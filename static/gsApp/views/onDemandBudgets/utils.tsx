@@ -40,31 +40,13 @@ export function parseOnDemandBudgets(
 ): OnDemandBudgets {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     const parsedBudgets: Partial<Record<DataCategory, number>> = {};
-    const categoryBudgets: Partial<
-      Omit<PerCategoryOnDemandBudget, 'budgetMode' | 'budgets'>
-    > = {};
     for (const category in onDemandBudgets.budgets) {
       parsedBudgets[category as DataCategory] =
-        onDemandBudgets.budgets[category as DataCategory] ?? 0;
-      const key = `${category}Budget`;
-      (categoryBudgets as Partial<Record<string, number>>)[key] =
         onDemandBudgets.budgets[category as DataCategory] ?? 0;
     }
 
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      // Set defaults for all possible categories to satisfy the type.
-      // TODO: refactor this out later in the future.
-      errorsBudget: 0,
-      transactionsBudget: 0,
-      attachmentsBudget: 0,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      uptimeBudget: 0,
-      // Spread the calculated values over the defaults
-      ...categoryBudgets,
       budgets: parsedBudgets,
     };
   }
@@ -116,7 +98,10 @@ export function formatOnDemandBudget(
     categories = plan.onDemandCategories.map(category => category);
   }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    categories = getOnDemandCategories(plan); // filter seer when budget mode is per-category
+    categories = getOnDemandCategories({
+      plan,
+      budgetMode: budget.budgetMode,
+    });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,
@@ -266,27 +251,8 @@ export function convertOnDemandBudget(
       newBudgets.transactions = transactionsBudget;
     }
 
-    const categoryBudgets: Partial<Record<string, number>> = Object.fromEntries(
-      Object.entries(newBudgets).map(([category, value]) => [
-        `${category}Budget`,
-        value ?? 0,
-      ])
-    );
-
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      // Set defaults for all possible categories to satisfy the type.
-      // TODO: refactor this out later in the future.
-      errorsBudget: 0,
-      transactionsBudget: 0,
-      attachmentsBudget: 0,
-      replaysBudget: 0,
-      monitorSeatsBudget: 0,
-      uptimeBudget: 0,
-      profileDurationBudget: 0,
-      profileDurationUIBudget: 0,
-      // Spread the calculated values over the defaults
-      ...categoryBudgets,
       budgets: newBudgets,
     };
   }

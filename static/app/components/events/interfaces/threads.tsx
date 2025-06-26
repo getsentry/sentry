@@ -2,9 +2,9 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -409,7 +409,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         type={SectionKey.STACKTRACE}
         disableCollapsePersistence
       >
-        <Flex column gap={space(2)}>
+        <Flex direction="column" gap={space(2)}>
           {threadComponent}
         </Flex>
       </InterimSection>
@@ -444,7 +444,7 @@ const ThreadStateWrapper = styled('div')`
 `;
 
 const LockReason = styled(TextOverflow)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
@@ -462,14 +462,14 @@ const ThreadTraceWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding: ${space(1)} ${space(4)};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(2)};
   }
 `;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;

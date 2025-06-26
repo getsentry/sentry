@@ -3,31 +3,35 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, Protocol, Self
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry import analytics
-from sentry.db.models import Model
+from sentry.db.models.base import Model
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.pipeline.views.base import PipelineView
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
-from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
+from .views.base import PipelineView
 from .views.nested import NestedPipelineView
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
 
 
-class Pipeline(abc.ABC):
+class _HasKey(Protocol):
+    @property
+    def key(self) -> str: ...
+
+
+class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -36,10 +40,6 @@ class Pipeline(abc.ABC):
     The pipeline works with a PipelineProvider object which provides the
     pipeline views and is made available to the views through the passed in
     pipeline.
-
-    :provider_manager:
-    A class property that must be specified to allow for lookup of a provider
-    implementation object given it's key.
 
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
@@ -54,12 +54,11 @@ class Pipeline(abc.ABC):
     """
 
     pipeline_name: str
-    provider_manager: Any
-    provider_model_cls: type[Model]
-    session_store_cls = PipelineSessionStore
+    provider_model_cls: type[M] | None = None
+    session_store_cls: type[S] = PipelineSessionStore  # type: ignore[assignment]  # python/mypy#18812
 
     @classmethod
-    def get_for_request(cls, request: HttpRequest) -> Pipeline | None:
+    def get_for_request(cls, request: HttpRequest) -> Self | None:
         req_state = cls.unpack_state(request)
         if not req_state:
             return None
@@ -74,13 +73,14 @@ class Pipeline(abc.ABC):
         )
 
     @classmethod
-    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState | None:
+    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState[M, S] | None:
         state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
         if not state.is_valid():
             return None
 
         provider_model = None
         if state.provider_model_id:
+            assert cls.provider_model_cls is not None
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
 
         organization: RpcOrganization | None = None
@@ -95,17 +95,12 @@ class Pipeline(abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(
-        self, provider_key: str, *, organization: RpcOrganization | None
-    ) -> PipelineProvider:
-        return self.provider_manager.get(provider_key)
-
     def __init__(
         self,
         request: HttpRequest,
         provider_key: str,
         organization: Organization | RpcOrganization | None = None,
-        provider_model: Model | None = None,
+        provider_model: M | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
         if organization:
@@ -119,11 +114,9 @@ class Pipeline(abc.ABC):
         )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key, organization=self.organization)
+        self._provider_key = provider_key
 
         self.config = config or {}
-        self.provider.set_pipeline(self)
-        self.provider.update_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
@@ -133,7 +126,14 @@ class Pipeline(abc.ABC):
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
+    @property
+    @abc.abstractmethod
+    def provider(self) -> _HasKey:
+        """implement me with @cached_property please!"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_pipeline_views(self) -> Sequence[PipelineView[Self] | Callable[[], PipelineView[Self]]]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -141,7 +141,7 @@ class Pipeline(abc.ABC):
         providers should inherit, or customize the provider method called to
         retrieve the views.
         """
-        return self.provider.get_pipeline_views()
+        raise NotImplementedError
 
     def is_valid(self) -> bool:
         return (
@@ -186,15 +186,7 @@ class Pipeline(abc.ABC):
         if callable(step):
             step = step()
 
-        return self.dispatch_to(step)
-
-    def dispatch_to(self, step: PipelineView) -> HttpResponseBase:
-        """
-        Dispatch to a view expected by this pipeline.
-
-        A subclass may override this if its views take other parameters.
-        """
-        return step.dispatch(request=self.request, pipeline=self)
+        return step.dispatch(self.request, pipeline=self)
 
     def error(self, message: str) -> HttpResponseBase:
         self.get_logger().error(

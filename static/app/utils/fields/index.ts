@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -833,8 +833,6 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
-  AggregationKey.COUNT_UNIQUE,
-  AggregationKey.EPM,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
@@ -845,6 +843,9 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.SUM,
   AggregationKey.MIN,
   AggregationKey.MAX,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPM,
+  AggregationKey.FAILURE_RATE,
 ];
 
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -1031,6 +1032,12 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     ],
   },
 };
+
+export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
+  SPAN_AGGREGATION_FIELDS
+)
+  .filter(([_, field]) => field.parameters?.length === 0)
+  .map(([key]) => key as AggregationKey);
 
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
@@ -1354,7 +1361,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_NAME]: {
-    desc: t('Descriptor details'),
+    desc: t('Model name as advertised on the market'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1889,11 +1896,29 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
-
-const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
+const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
   ...SPAN_HTTP_FIELD_DEFINITIONS,
+  [SpanFields.NAME]: {
+    desc: t(
+      'The span name. A short, human-readable identifier for the operation being performed by the span.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.KIND]: {
+    desc: t(
+      'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS]: {
+    desc: t('Span status. Indicates whether the span operation was successful.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
@@ -1926,8 +1951,8 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
@@ -2002,8 +2027,8 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.ERROR_HANDLED,
@@ -2602,8 +2627,8 @@ export const getFieldDefinition = (
       }
       return null;
     case 'span':
-      if (SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS]) {
-        return SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS];
+      if (SPAN_FIELD_DEFINITIONS[key]) {
+        return SPAN_FIELD_DEFINITIONS[key];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

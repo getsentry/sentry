@@ -208,17 +208,17 @@ const StyledHovercard = styled(Overlay)`
   line-height: 1.2;
   h6 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     margin-bottom: ${space(1)};
     text-transform: uppercase;
   }
 `;
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   word-wrap: break-word;
   padding: ${space(1.5)};
 `;

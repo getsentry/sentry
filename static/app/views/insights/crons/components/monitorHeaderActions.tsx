@@ -1,7 +1,7 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -60,13 +60,16 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   });
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
-  const disableProps = {
+  const disableProps: Pick<ButtonProps, 'disabled' | 'title'> = {
     disabled: !canEdit,
-    title: canEdit ? undefined : permissionTooltipText,
   };
+
+  if (!canEdit) {
+    disableProps.title = permissionTooltipText;
+  }
 
   return (
     <ButtonBar gap={1}>

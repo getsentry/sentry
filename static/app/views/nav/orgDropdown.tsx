@@ -131,7 +131,7 @@ export function OrgDropdown({
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/organizations/${organization.slug}/settings/`,
+              to: `/settings/${organization.slug}/`,
               hidden: !hasOrgRead || hideOrgLinks,
             },
             {
@@ -143,19 +143,19 @@ export function OrgDropdown({
             {
               key: 'members',
               label: t('Members'),
-              to: `/organizations/${organization.slug}/settings/members/`,
+              to: `/settings/${organization.slug}/members/`,
               hidden: !hasMemberRead || hideOrgLinks,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/organizations/${organization.slug}/settings/teams/`,
+              to: `/settings/${organization.slug}/teams/`,
               hidden: !hasTeamRead || hideOrgLinks,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/organizations/${organization.slug}/settings/billing/`,
+              to: `/settings/${organization.slug}/billing/`,
               hidden: !hasBillingAccess || hideOrgLinks,
             },
             {
@@ -200,7 +200,7 @@ const StyledOrganizationAvatar = styled(OrganizationAvatar)`
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;

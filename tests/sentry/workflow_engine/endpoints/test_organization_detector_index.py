@@ -39,6 +39,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
+
     def test_simple(self):
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -105,6 +106,39 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": 512345},
             status_code=403,
         )
+
+    def test_filter_by_ids(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+        )
+        self.create_detector(
+            project_id=self.project.id, name="Test Detector 3", type=MetricIssue.slug
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(detector.id)), ("id", str(detector_2.id))],
+        )
+        assert len(response.data) == 2
+        assert {d["id"] for d in response.data} == {str(detector.id), str(detector_2.id)}
+
+        # Test with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+        )
+        assert len(response.data) == 0
+
+        # Test with invalid ID format
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-an-id"},
+            status_code=400,
+        )
+        assert response.data == {"id": ["Invalid ID format"]}
 
     def test_invalid_sort_by(self):
         response = self.get_error_response(
@@ -240,14 +274,14 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricIssue.slug,
+            "type": MetricIssue.slug,
             "projectId": self.project.id,
             "dataSource": {
                 "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
                 "query": "test query",
                 "aggregate": "count()",
-                "timeWindow": 60,
+                "timeWindow": 3600,
                 "environment": self.environment.name,
                 "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
@@ -272,35 +306,35 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_missing_group_type(self):
         data = {**self.valid_data}
-        del data["detectorType"]
+        del data["type"]
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["This field is required."]}
+        assert response.data == {"type": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "detectorType": "invalid_type"}
+        data = {**self.valid_data, "type": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["Unknown detector type"]}
+        assert response.data == {
+            "type": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+        }
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_settings=None)
-            data = {**self.valid_data, "detectorType": "incompatible_type"}
+            data = {**self.valid_data, "type": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
                 **data,
                 status_code=400,
             )
-            assert response.data == {
-                "detectorType": ["Detector type not compatible with detectors"]
-            }
+            assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
     def test_missing_project_id(self):
         data = {**self.valid_data}
@@ -392,7 +426,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["This field is required."]}
+        assert response.data == {"type": ["This field is required."]}
 
     def test_missing_name(self):
         data = {**self.valid_data}
@@ -403,3 +437,106 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_empty_query_string(self):
+        data = {**self.valid_data}
+        data["dataSource"]["query"] = ""
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+
+        assert query_sub.snuba_query.query == ""
+
+    def test_valid_creation_with_owner(self):
+        # Test data with owner field
+        data_with_owner = {
+            **self.valid_data,
+            "owner": self.user.get_actor_identifier(),
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data_with_owner,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify owner is set correctly
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+        assert detector.owner is not None
+        assert detector.owner.identifier == self.user.get_actor_identifier()
+
+        # Verify serialized response includes owner
+        assert response.data["owner"] == self.user.get_actor_identifier()
+
+    def test_valid_creation_with_team_owner(self):
+        # Create a team for testing
+        team = self.create_team(organization=self.organization)
+
+        # Test data with team owner
+        data_with_team_owner = {
+            **self.valid_data,
+            "owner": f"team:{team.id}",
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data_with_team_owner,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify team owner is set correctly
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id == team.id
+        assert detector.owner is not None
+        assert detector.owner.identifier == f"team:{team.id}"
+
+        # Verify serialized response includes team owner
+        assert response.data["owner"] == f"team:{team.id}"
+
+    def test_invalid_owner(self):
+        # Test with invalid owner format
+        data_with_invalid_owner = {
+            **self.valid_data,
+            "owner": "invalid:owner:format",
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data_with_invalid_owner,
+            status_code=400,
+        )
+        assert "owner" in response.data
+
+    def test_owner_not_in_organization(self):
+        # Create a user in another organization
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+
+        # Test with owner not in current organization
+        data_with_invalid_owner = {
+            **self.valid_data,
+            "owner": other_user.get_actor_identifier(),
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data_with_invalid_owner,
+            status_code=400,
+        )
+        assert "owner" in response.data

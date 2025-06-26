@@ -29,6 +29,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
+    build_last_seen_interval_key,
     build_last_update_key,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
@@ -46,7 +47,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     get_detector,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -622,6 +623,98 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
+    def test_missed_check_false_positive(self):
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
+        # has an interval of 300 seconds, which we're going to say was just recently
+        # changed.  Verify we don't emit any metrics recording of a missed check
+        _get_cluster().set(
+            build_last_update_key(self.detector),
+            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+        )
+
+        _get_cluster().set(
+            build_last_seen_interval_key(self.detector),
+            3600 * 1000,
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+        ):
+            self.send_result(result)
+            logger.info.assert_any_call(
+                "uptime.result_processor.false_num_missing_check",
+                extra={**result},
+            )
+
+    def test_missed_check_updated_interval(self):
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
+        # has an interval of 300 seconds, which we're going to say was just recently
+        # changed.  Verify we don't emit any metrics recording of a missed check
+        _get_cluster().set(
+            build_last_update_key(self.detector),
+            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+        )
+
+        _get_cluster().set(
+            build_last_seen_interval_key(self.detector),
+            3600 * 1000,
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+        ):
+            self.send_result(result)
+            logger.info.assert_any_call(
+                "uptime.result_processor.false_num_missing_check",
+                extra={**result},
+            )
+
+        # Send another check that should now be classified as a miss
+        result = self.create_uptime_result(self.subscription.subscription_id)
+        result["scheduled_check_time_ms"] = int(result["scheduled_check_time_ms"]) + (600 * 1000)
+        result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+        ):
+            self.send_result(result)
+            logger.info.assert_any_call(
+                "uptime.result_processor.num_missing_check",
+                extra={"num_missed_checks": 1, **result},
+            )
+
+    def test_missed_check_true_positive(self):
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
+        # has an interval of 300 seconds, which we're going to say was just recently
+        # changed.  Verify we don't emit any metrics recording of a missed check
+        _get_cluster().set(
+            build_last_update_key(self.detector),
+            int(result["scheduled_check_time_ms"]) - (900 * 1000),
+        )
+
+        _get_cluster().set(
+            build_last_seen_interval_key(self.detector),
+            300 * 1000,
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+        ):
+            self.send_result(result)
+            logger.info.assert_any_call(
+                "uptime.result_processor.num_missing_check",
+                extra={"num_missed_checks": 2, **result},
+            )
+
     def test_skip_already_processed(self):
         features = [
             "organizations:uptime",
@@ -748,13 +841,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-create-issues",
             "organizations:uptime-detector-handler",
         ]
-        self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
-        )
+        self.project_subscription.update(mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             }
         )
 
@@ -868,13 +959,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc) - timedelta(minutes=5),
         )
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             },
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
@@ -921,14 +1012,14 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             },
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
@@ -986,7 +1077,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        assert self.project_subscription.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
         uptime_subscription.refresh_from_db()
         assert uptime_subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()

@@ -1,12 +1,12 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Radio} from 'sentry/components/core/radio';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
 interface SegmentedRadioFieldProps<Choices extends string = string>
@@ -95,7 +95,7 @@ const Container = styled('div')`
   grid-auto-flow: row;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-rows: minmax(0, 1fr);
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: column;
   }
   overflow: hidden;
@@ -116,7 +116,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   gap: ${space(0.25)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   border: 1px solid ${p => p.theme.border};
   margin: 0;
 
@@ -139,7 +139,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
     border-top-color: transparent;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     &:nth-child(n + 2) {
       border-top-color: ${p => p.theme.gray200};
       border-left-color: transparent;
@@ -168,8 +168,8 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray500};
 `;
 

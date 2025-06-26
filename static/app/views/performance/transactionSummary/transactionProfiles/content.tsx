@@ -166,7 +166,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   <RequestStateMessageContainer>
                     {t('There was an error loading the flamegraph.')}
                   </RequestStateMessageContainer>
-                ) : isEmpty(data) ? (
+                ) : isEmpty(data) && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>

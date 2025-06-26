@@ -21,14 +21,14 @@ describe('TestPerformance', () => {
     expect(flakyTestNumber).toBeInTheDocument();
     expect(flakyTestNumber).toHaveAttribute(
       'href',
-      '/mock-pathname/?f_b_type=flaky_tests'
+      '/mock-pathname/?filterBy=flakyTests'
     );
   });
 
   it('renders average flake rate', () => {
     render(<TestPerformance {...testPerformanceData} isLoading={false} />);
 
-    const averageFlakeRate = screen.getByText(/0.1%/);
+    const averageFlakeRate = screen.getByText(/0.10%/);
     expect(averageFlakeRate).toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe('TestPerformance', () => {
     expect(cumulativeFailures).toBeInTheDocument();
     expect(cumulativeFailures).toHaveAttribute(
       'href',
-      '/mock-pathname/?f_b_type=cumulative_failures'
+      '/mock-pathname/?filterBy=failedTests'
     );
   });
 
@@ -48,9 +48,6 @@ describe('TestPerformance', () => {
 
     const skippedTests = screen.getByRole('link', {name: '50'});
     expect(skippedTests).toBeInTheDocument();
-    expect(skippedTests).toHaveAttribute(
-      'href',
-      '/mock-pathname/?f_b_type=skipped_tests'
-    );
+    expect(skippedTests).toHaveAttribute('href', '/mock-pathname/?filterBy=skippedTests');
   });
 });

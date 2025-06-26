@@ -9,6 +9,8 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
+import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {
   AggregateFilter,
@@ -169,26 +171,23 @@ function useParameterSuggestions({
         });
         const {columnTypes} = parameterDefinition;
 
-        if (typeof columnTypes === 'function') {
-          return potentialColumns
-            .filter(col =>
-              columnTypes({
-                key: col.key,
-                valueType:
-                  getFieldDefinition(col.key, col.kind)?.valueType ??
-                  FieldValueType.STRING,
-              })
-            )
-            .map(col => ({value: col.key, label: col.key}));
-        }
+        const filterFn: (field: {key: string; valueType: FieldValueType}) => boolean =
+          typeof columnTypes === 'function'
+            ? columnTypes
+            : field => columnTypes.includes(field.valueType);
 
         return potentialColumns
-          .filter(col =>
-            columnTypes.includes(
-              getFieldDefinition(col.key)?.valueType ?? FieldValueType.STRING
-            )
+          .map(col => [col, getFieldDefinition(col.key, col.kind)] as const)
+          .filter(([col, definition]) =>
+            filterFn({
+              key: col.key,
+              valueType: definition?.valueType ?? FieldValueType.STRING,
+            })
           )
-          .map(col => ({value: col.key, label: col.key}));
+          .map(([col, definition]) => ({
+            value: col.key,
+            label: getKeyLabel(col, definition),
+          }));
       }
       case 'value':
         if (parameterDefinition.options) {
@@ -235,13 +234,15 @@ export function SearchQueryBuilderParametersCombobox({
   onCommit,
   onDelete,
 }: ParametersComboboxProps) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilder();
   const initialValue = getInitialInputValue(token);
   const [inputValue, setInputValue] = useState('');
   const [inputChanged, setInputChanged] = useState(false);
+
+  const placeholder = useAggregateParamVisual({token});
 
   function updateInputValue(value: string) {
     setInputValue(value);
@@ -273,20 +274,32 @@ export function SearchQueryBuilderParametersCombobox({
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
       if (inputChanged) {
+        const definition = getFieldDefinition(token.key.name.text);
+        const parameters = splitParameters(value).map((parameter, i) => {
+          return definition?.parameters?.[i]?.kind === 'column'
+            ? getSuggestedFilterKey(parameter)
+            : parameter;
+        });
+
         dispatch({
           type: 'UPDATE_AGGREGATE_ARGS',
           token,
-          value,
-          focusOverride: calculateNextFocus(
-            state,
-            getFieldDefinition(token.key.name.text)
-          ),
+          value: parameters.join(','),
+          focusOverride: calculateNextFocus(state, definition),
         });
 
         onCommit();
       }
     },
-    [inputChanged, dispatch, token, onCommit, state, getFieldDefinition]
+    [
+      inputChanged,
+      dispatch,
+      token,
+      onCommit,
+      state,
+      getFieldDefinition,
+      getSuggestedFilterKey,
+    ]
   );
 
   const handleOptionSelected = useCallback(
@@ -297,24 +310,28 @@ export function SearchQueryBuilderParametersCombobox({
         option.value
       );
 
+      const focusOverride = calculateNextFocus(
+        state,
+        getFieldDefinition(token.key.name.text),
+        parameterIndex
+      );
+
       dispatch({
         type: 'UPDATE_AGGREGATE_ARGS',
         token,
         value: newValue,
-        focusOverride: calculateNextFocus(
-          state,
-          getFieldDefinition(token.key.name.text),
-          parameterIndex
-        ),
+        focusOverride,
       });
       updateInputValue(newValue);
-      const newCursorPosition = getCursorPositionAtEndOfParameter(
-        newValue,
-        parameterIndex
-      );
-      if (inputRef.current) {
-        inputRef.current.value = newValue;
-        inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+      if (!defined(focusOverride)) {
+        const newCursorPosition = getCursorPositionAtEndOfParameter(
+          newValue,
+          parameterIndex
+        );
+        if (inputRef.current) {
+          inputRef.current.value = newValue;
+          inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
       }
     },
     [
@@ -332,7 +349,7 @@ export function SearchQueryBuilderParametersCombobox({
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
-      placeholder={initialValue}
+      placeholder={placeholder}
       onOptionSelected={handleOptionSelected}
       onCustomValueBlurred={handleInputValueConfirmed}
       onCustomValueCommitted={handleInputValueConfirmed}

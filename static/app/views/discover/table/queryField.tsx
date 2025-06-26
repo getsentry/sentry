@@ -844,7 +844,7 @@ const BlankSpace = styled('div')`
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
     color: ${p => p.theme.subText};
   }

@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
+import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
 
 import {
@@ -136,7 +137,8 @@ export default function CustomerDetails() {
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
       addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(variables)}.`
+        data.message ??
+          `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
@@ -752,7 +754,9 @@ export default function CustomerDetails() {
             key: 'addGiftBudgetAction',
             name: 'Gift to reserved budget',
             help: 'Select a reserved budget and gift it free dollars for the current billing period.',
-            visible: subscription.hasReservedBudgets,
+            visible:
+              (subscription.reservedBudgets?.length ?? 0) > 0 &&
+              some(subscription.reservedBudgets, budget => budget.reservedBudget > 0),
             skipConfirmModal: true,
             onAction: () => {
               addGiftBudgetAction({

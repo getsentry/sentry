@@ -1,82 +1,156 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import Form from 'sentry/components/forms/form';
-import type FormModel from 'sentry/components/forms/model';
-import Spinner from 'sentry/components/forms/spinner';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  FieldKey,
-  FieldKind,
-  MobileVital,
-  WebVital,
-} from 'sentry/utils/fields';
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {
+  DetectorDataset,
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metricFormData';
+import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
+import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type MetricDetectorKind = 'threshold' | 'change' | 'dynamic';
+function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const {projects} = useProjects();
 
-export function MetricDetectorForm({model}: {model: FormModel}) {
+  const traceItemProjects = useMemo(() => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      return undefined;
+    }
+    return [project];
+  }, [projectId, projects]);
+
   return (
-    <Form hideFooter model={model}>
-      <ChartContainer>
-        <Spinner />
-      </ChartContainer>
+    <TraceItemAttributeProvider
+      traceItemType={TraceItemDataset.SPANS}
+      projects={traceItemProjects}
+      enabled
+    >
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
+
+export function MetricDetectorForm() {
+  return (
+    <MetricDetectorFormContext>
       <FormStack>
         <DetectSection />
-        <AssignSection />
         <PrioritizeSection />
         <ResolveSection />
+        <AssignSection />
         <AutomateSection />
       </FormStack>
-    </Form>
+    </MetricDetectorFormContext>
+  );
+}
+
+function MonitorKind() {
+  const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
+    ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
+    ['percent', t('Change'), t('Percentage changes over defined time windows.')],
+    [
+      'dynamic',
+      t('Dynamic'),
+      t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
+    ],
+  ];
+
+  return (
+    <MonitorKindField
+      label={t('\u2026and monitor for changes in the following way:')}
+      flexibleControlStateSize
+      inline={false}
+      name={METRIC_DETECTOR_FORM_FIELDS.kind}
+      defaultValue="threshold"
+      choices={options}
+    />
   );
 }
 
 function ResolveSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  );
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const conditionComparisonAgo = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
+  );
+  const thresholdSuffix = useDetectorThresholdSuffix();
+
+  let description: string | undefined;
+  if (kind === 'dynamic') {
+    description = t(
+      'Sentry will automatically resolve the issue when the trend goes back to baseline.'
+    );
+  } else if (kind === 'static') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%s.',
+        conditionValue || '0',
+        thresholdSuffix
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query value is more than %s%s.',
+        conditionValue || '0',
+        thresholdSuffix
+      );
+    }
+  } else if (kind === 'percent') {
+    if (conditionType === DataConditionType.GREATER) {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%% higher than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    } else {
+      description = t(
+        'Issue will be resolved when the query value is less than %s%% lower than the previous %s.',
+        conditionValue || '0',
+        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
+      );
+    }
+  }
 
   return (
     <Container>
-      <Section
-        title={t('Resolve')}
-        description={
-          kind === 'dynamic'
-            ? t(
-                'Sentry will automatically resolve the issue when the trend goes back to baseline.'
-              )
-            : undefined
-        }
-      >
-        {kind !== 'dynamic' && (
-          <ThresholdField
-            flexibleControlStateSize
-            inline={false}
-            label={t('Close an incident when the value dips below:')}
-            placeholder="0"
-            name="resolve_threshold"
-            suffix="s"
-          />
-        )}
-      </Section>
+      <Section title={t('Resolve')} description={description} />
     </Container>
   );
 }
@@ -91,7 +165,7 @@ function AutomateSection() {
           priority="primary"
           icon={<IconAdd />}
         >
-          Connect Automations
+          {t('Connect Automations')}
         </Button>
       </Section>
     </Container>
@@ -109,7 +183,7 @@ function AssignSection() {
 }
 
 function PrioritizeSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   return (
     <Container>
       <Section
@@ -120,19 +194,35 @@ function PrioritizeSection() {
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && <PriorityControl name="prioritize" />}
+        {kind !== 'dynamic' && (
+          <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
+        )}
       </Section>
     </Container>
   );
 }
 
+function useDatasetChoices() {
+  const organization = useOrganization();
+
+  return useMemo(() => {
+    const datasetChoices: Array<[DetectorDataset, string]> = [
+      [DetectorDataset.ERRORS, t('Errors')],
+      [DetectorDataset.TRANSACTIONS, t('Transactions')],
+      ...(organization.features.includes('visibility-explore-view')
+        ? ([[DetectorDataset.SPANS, t('Spans')]] as Array<[DetectorDataset, string]>)
+        : []),
+      [DetectorDataset.RELEASES, t('Releases')],
+    ];
+
+    return datasetChoices;
+  }, [organization]);
+}
+
 function DetectSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
-  const aggregateOptions: Array<[string, string]> = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return [aggregate, aggregate];
-    });
-  }, []);
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const datasetChoices = useDatasetChoices();
+  const formContext = useContext(FormContext);
 
   return (
     <Container>
@@ -140,135 +230,175 @@ function DetectSection() {
         title={t('Detect')}
         description={t('Sentry will check the following query:')}
       >
-        <FirstRow>
-          <DetectColumn>
-            <VisualizeField
-              placeholder={t('Metric')}
-              flexibleControlStateSize
-              inline={false}
-              label="Visualize"
-              name="visualize"
-              choices={[['span.duration', 'span.duration']]}
-              defaultValue="span.duration"
-            />
-            <AggregateField
-              placeholder={t('aggregate')}
-              flexibleControlStateSize
-              defaultValue={'p75'}
-              name="aggregate"
-              choices={aggregateOptions}
-            />
-          </DetectColumn>
-          <DetectColumn>
-            <FilterField />
-          </DetectColumn>
-        </FirstRow>
-        <MonitorKindField
-          label={t('...and monitor for changes in the following way:')}
-          flexibleControlStateSize
-          inline={false}
-          name="kind"
-          defaultValue="threshold"
-          choices={[
-            [
-              'threshold',
-              t('Threshold'),
-              t('Absolute-valued thresholds, for non-seasonal data.'),
-            ],
-            ['change', t('Change'), t('Percentage changes over defined time windows.')],
-            [
-              'dynamic',
-              t('Dynamic'),
-              t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
-            ],
-          ]}
-        />
-        <Flex column>
-          {(!kind || kind === 'threshold') && (
-            <Flex column>
-              <MutedText>
-                {t('An issue will be created when query value exceeds:')}
-              </MutedText>
-              <ThresholdField
-                flexibleControlStateSize
-                inline={false}
-                hideLabel
-                placeholder="0"
-                name="config.low_threshold"
-                suffix="s"
-              />
+        <DatasetRow>
+          <DatasetField
+            placeholder={t('Dataset')}
+            flexibleControlStateSize
+            inline={false}
+            label={
+              <Tooltip
+                title={t('This reflects the type of information you want to use.')}
+                showUnderline
+              >
+                <SectionLabel>{t('Dataset')}</SectionLabel>
+              </Tooltip>
+            }
+            name={METRIC_DETECTOR_FORM_FIELDS.dataset}
+            choices={datasetChoices}
+            onChange={newDataset => {
+              // Reset aggregate function to dataset default when dataset changes
+              const datasetConfig = getDatasetConfig(newDataset);
+              const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
+              formContext.form?.setValue(
+                METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+                defaultAggregate
+              );
+            }}
+          />
+          <IntervalField
+            placeholder={t('Interval')}
+            flexibleControlStateSize
+            inline={false}
+            label={
+              <Tooltip
+                title={t('The time period over which to evaluate your metric.')}
+                showUnderline
+              >
+                <SectionLabel>{t('Interval')}</SectionLabel>
+              </Tooltip>
+            }
+            name={METRIC_DETECTOR_FORM_FIELDS.interval}
+            choices={[
+              // TODO: We will probably need to change these options based on dataset
+              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
+              [60, t('1 minute')],
+              [5 * 60, t('5 minutes')],
+              [15 * 60, t('15 minutes')],
+              [30 * 60, t('30 minutes')],
+              [60 * 60, t('1 hour')],
+              [4 * 60 * 60, t('4 hours')],
+              [24 * 60 * 60, t('1 day')],
+            ]}
+          />
+        </DatasetRow>
+        <Visualize />
+        <MonitorKind />
+        <Flex direction="column">
+          {(!kind || kind === 'static') && (
+            <Flex direction="column">
+              <MutedText>{t('An issue will be created when query value is:')}</MutedText>
+              <Flex align="center" gap={space(1)}>
+                <DirectionField
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
+                  hideLabel
+                  inline
+                  flexibleControlStateSize
+                  choices={
+                    [
+                      [DataConditionType.GREATER, t('Above')],
+                      [DataConditionType.LESS, t('Below')],
+                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
+                  }
+                  required
+                  preserveOnUnmount
+                />
+                <ThresholdField
+                  flexibleControlStateSize
+                  inline={false}
+                  hideLabel
+                  placeholder="0"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
+                  suffix="s"
+                  required
+                  preserveOnUnmount
+                />
+              </Flex>
             </Flex>
           )}
-          {kind === 'change' && (
-            <Flex column>
+          {kind === 'percent' && (
+            <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
-                  name="config.low_threshold.change"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   placeholder="0"
                   hideLabel
                   inline
+                  required
+                  preserveOnUnmount
                 />
                 <span>{t('percent')}</span>
                 <DirectionField
-                  name="config.low_threshold.direction"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
-                  defaultValue="higher"
                   flexibleControlStateSize
-                  choices={[
-                    ['higher', t('higher')],
-                    ['lower', t('lower')],
-                  ]}
+                  choices={
+                    [
+                      [DataConditionType.GREATER, t('higher')],
+                      [DataConditionType.LESS, t('lower')],
+                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
+                  }
+                  required
+                  preserveOnUnmount
                 />
                 <span>{t('than the previous')}</span>
                 <StyledSelectField
-                  name="config.low_threshold.unit"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo}
                   hideLabel
                   inline
-                  defaultValue="1 hour"
                   flexibleControlStateSize
-                  choices={[
-                    ['5 minutes', '5 minutes'],
-                    ['15 minutes', '15 minutes'],
-                    ['1 hour', '1 hour'],
-                    ['1 day', '1 day'],
-                    ['1 week', '1 week'],
-                    ['1 month', '1 month'],
-                  ]}
+                  choices={
+                    [
+                      [5 * 60, '5 minutes'],
+                      [15 * 60, '15 minutes'],
+                      [60 * 60, '1 hour'],
+                      [24 * 60 * 60, '1 day'],
+                      [7 * 24 * 60 * 60, '1 week'],
+                      [30 * 24 * 60 * 60, '1 month'],
+                    ] satisfies Array<
+                      [MetricDetectorFormData['conditionComparisonAgo'], string]
+                    >
+                  }
+                  preserveOnUnmount
+                  required
                 />
               </Flex>
             </Flex>
           )}
           {kind === 'dynamic' && (
-            <Flex column>
+            <Flex direction="column">
               <SelectField
                 required
-                name="config.sensitivity"
+                name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
                 label={t('Level of responsiveness')}
                 help={t(
                   'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
                 )}
-                defaultValue={AlertRuleSensitivity.MEDIUM}
-                choices={[
-                  [AlertRuleSensitivity.HIGH, t('High')],
-                  [AlertRuleSensitivity.MEDIUM, t('Medium')],
-                  [AlertRuleSensitivity.LOW, t('Low')],
-                ]}
+                choices={
+                  [
+                    [AlertRuleSensitivity.HIGH, t('High')],
+                    [AlertRuleSensitivity.MEDIUM, t('Medium')],
+                    [AlertRuleSensitivity.LOW, t('Low')],
+                  ] satisfies Array<[MetricDetectorFormData['sensitivity'], string]>
+                }
+                preserveOnUnmount
               />
               <SelectField
                 required
-                name="config.thresholdType"
+                name={METRIC_DETECTOR_FORM_FIELDS.thresholdType}
                 label={t('Direction of anomaly movement')}
                 help={t(
                   'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
                 )}
-                defaultValue={AlertRuleThresholdType.ABOVE_AND_BELOW}
-                choices={[
-                  [AlertRuleThresholdType.ABOVE, t('Above')],
-                  [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
-                  [AlertRuleThresholdType.BELOW, t('Below')],
-                ]}
+                choices={
+                  [
+                    [AlertRuleThresholdType.ABOVE, t('Above')],
+                    [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
+                    [AlertRuleThresholdType.BELOW, t('Below')],
+                  ] satisfies Array<[MetricDetectorFormData['thresholdType'], string]>
+                }
+                preserveOnUnmount
               />
             </Flex>
           )}
@@ -279,34 +409,38 @@ function DetectSection() {
 }
 
 function OwnerField() {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const {projects} = useProjects();
+  const memberOfProjectSlugs = useMemo(() => {
+    const project = projects.find(p => p.id === projectId);
+    return project ? [project.slug] : undefined;
+  }, [projects, projectId]);
+
   return (
     <StyledMemberTeamSelectorField
       placeholder={t('Select a member or team')}
       label={t('Owner')}
       help={t('Sentry will assign new issues to this owner.')}
-      name="owner"
+      name={METRIC_DETECTOR_FORM_FIELDS.owner}
       flexibleControlStateSize
+      memberOfProjectSlugs={memberOfProjectSlugs}
     />
   );
 }
 
-const FormStack = styled(Flex)`
-  max-width: ${p => p.theme.breakpoints.xlarge};
+const FormStack = styled('div')`
+  display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding: ${space(4)};
+  gap: ${space(3)};
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
-const FirstRow = styled('div')`
+const DatasetRow = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  max-width: 475px;
 `;
-
-function DetectColumn(props: React.ComponentProps<typeof Flex>) {
-  return <Flex flex={1} gap={space(1)} {...props} />;
-}
 
 const StyledSelectField = styled(SelectField)`
   width: 180px;
@@ -320,34 +454,6 @@ const StyledSelectField = styled(SelectField)`
 
 const StyledMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding-left: 0;
-`;
-
-const VisualizeField = styled(SelectField)`
-  flex: 2;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: 0;
-  border-bottom: none;
-`;
-
-const ChartContainer = styled('div')`
-  background: ${p => p.theme.background};
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: 24px 32px 16px 32px;
-`;
-
-const AggregateField = styled(SelectField)`
-  width: 120px;
-  margin-top: auto;
-  padding-top: 0;
-  padding-left: 0;
-  padding-right: 0;
-  border-bottom: none;
-
-  > div {
-    padding-left: 0;
-  }
 `;
 
 const DirectionField = styled(SelectField)`
@@ -400,104 +506,16 @@ const MutedText = styled('p')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-function FilterField() {
-  return (
-    <Flex column gap={space(0.5)} style={{paddingTop: 16, flex: 1}}>
-      <span>Filter</span>
-      <SearchQueryBuilder
-        initialQuery=""
-        filterKeySections={FILTER_KEY_SECTIONS}
-        filterKeys={FILTER_KEYS}
-        getTagValues={getTagValues}
-        searchSource="storybook"
-      />
-    </Flex>
-  );
-}
+const DatasetField = styled(SelectField)`
+  flex: 1;
+  padding: 0;
+  margin-left: 0;
+  border-bottom: none;
+`;
 
-const getTagValues = (): Promise<string[]> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(['foo', 'bar', 'baz']);
-    }, 500);
-  });
-};
-
-// TODO: replace hardcoded tags with data from API
-const FILTER_KEYS: TagCollection = {
-  [FieldKey.ASSIGNED]: {
-    key: FieldKey.ASSIGNED,
-    name: 'Assigned To',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: [
-      {
-        title: 'Suggested',
-        type: 'header',
-        icon: null,
-        children: [{value: 'me'}, {value: 'unassigned'}],
-      },
-      {
-        title: 'All',
-        type: 'header',
-        icon: null,
-        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
-      },
-    ],
-  },
-  [FieldKey.BROWSER_NAME]: {
-    key: FieldKey.BROWSER_NAME,
-    name: 'Browser Name',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
-  },
-  [FieldKey.IS]: {
-    key: FieldKey.IS,
-    name: 'is',
-    predefined: true,
-    values: ['resolved', 'unresolved', 'ignored'],
-  },
-  [FieldKey.LAST_SEEN]: {
-    key: FieldKey.LAST_SEEN,
-    name: 'lastSeen',
-    kind: FieldKind.FIELD,
-  },
-  [FieldKey.TIMES_SEEN]: {
-    key: FieldKey.TIMES_SEEN,
-    name: 'timesSeen',
-    kind: FieldKind.FIELD,
-  },
-  [WebVital.LCP]: {
-    key: WebVital.LCP,
-    name: 'lcp',
-    kind: FieldKind.FIELD,
-  },
-  [MobileVital.FRAMES_SLOW_RATE]: {
-    key: MobileVital.FRAMES_SLOW_RATE,
-    name: 'framesSlowRate',
-    kind: FieldKind.FIELD,
-  },
-  custom_tag_name: {
-    key: 'custom_tag_name',
-    name: 'Custom_Tag_Name',
-  },
-};
-
-const FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  {
-    value: 'cat_1',
-    label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.IS],
-  },
-  {
-    value: 'cat_2',
-    label: 'Category 2',
-    children: [WebVital.LCP, MobileVital.FRAMES_SLOW_RATE],
-  },
-  {
-    value: 'cat_3',
-    label: 'Category 3',
-    children: [FieldKey.TIMES_SEEN],
-  },
-];
+const IntervalField = styled(SelectField)`
+  flex: 1;
+  padding: 0;
+  margin-left: 0;
+  border-bottom: none;
+`;

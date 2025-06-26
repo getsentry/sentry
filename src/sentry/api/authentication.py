@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
@@ -24,7 +26,7 @@ from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
-from sentry.hybridcloud.rpc.service import compare_signature
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -43,7 +45,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
-from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
 logger = logging.getLogger("sentry.api.authentication")
@@ -169,7 +170,7 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
@@ -216,7 +217,7 @@ class RelayAuthentication(BasicAuthentication):
     def authenticate_credentials(
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
-        Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -511,7 +512,7 @@ class DSNAuthentication(StandardAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
@@ -547,6 +548,101 @@ class RpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        Scope.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
+
+        return (AnonymousUser(), token)
+
+
+def compare_service_signature(
+    url: str,
+    body: bytes,
+    signature: str,
+    shared_secret_setting: list[str],
+    service_name: str,
+) -> bool:
+    """
+    Generic function to compare request data + signature signed by one of the shared secrets.
+
+    Once a key has been able to validate the signature other keys will
+    not be attempted. We should only have multiple keys during key rotations.
+
+    Args:
+        url: The request URL path
+        body: The request body
+        signature: The signature to validate
+        shared_secret_setting: List of shared secrets from settings
+        service_name: Name of the service for logging (e.g., "Seer", "Launchpad")
+    """
+
+    if not shared_secret_setting:
+        raise RpcAuthenticationSetupException(
+            f"Cannot validate {service_name} RPC request signatures without shared secret"
+        )
+
+    # Ensure no empty secrets
+    if any(not secret.strip() for secret in shared_secret_setting):
+        raise RpcAuthenticationSetupException(
+            f"Cannot validate {service_name} RPC request signatures with empty shared secret"
+        )
+
+    if not signature.startswith("rpc0:"):
+        logger.error("%s RPC signature validation failed: invalid signature prefix", service_name)
+        return False
+
+    try:
+        # We aren't using the version bits currently.
+        _, signature_data = signature.split(":", 2)
+
+        signature_input = body
+
+        for key in shared_secret_setting:
+            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+            is_valid = constant_time_compare(computed.encode(), signature_data.encode())
+            if is_valid:
+                return True
+    except Exception:
+        logger.exception("%s RPC signature validation failed", service_name)
+        return False
+
+    logger.error("%s RPC signature validation failed", service_name)
+
+    return False
+
+
+class ServiceRpcSignatureAuthentication(StandardAuthentication):
+    """
+    Generic authentication for service RPC requests.
+    Requests are sent with an HMAC signed by a shared private key.
+
+    Subclasses should define:
+    - shared_secret_setting_name: str - name of the settings attribute (e.g., "SEER_RPC_SHARED_SECRET")
+    - service_name: str - name of the service for logging (e.g., "Seer", "Launchpad")
+    - sdk_tag_name: str - name for the SDK tag (e.g., "seer_rpc_auth", "launchpad_rpc_auth")
+    """
+
+    token_name = b"rpcsignature"
+    shared_secret_setting_name: str
+    service_name: str
+    sdk_tag_name: str
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not auth or len(auth) < 2:
+            return False
+        return auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
+        shared_secret_setting = getattr(settings, self.shared_secret_setting_name, None)
+
+        if shared_secret_setting is None:
+            raise RpcAuthenticationSetupException(
+                f"Cannot validate {self.service_name} RPC request signatures without shared secret"
+            )
+
+        if not compare_service_signature(
+            request.path_info, request.body, token, shared_secret_setting, self.service_name
+        ):
+            raise AuthenticationFailed("Invalid signature")
+
+        sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)

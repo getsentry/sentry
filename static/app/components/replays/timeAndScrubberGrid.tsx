@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,10 +14,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -27,9 +29,26 @@ type TimeAndScrubberGridProps = {
 
 function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const {replay} = useReplayContext();
+  const organization = useOrganization();
   const [timelineScale, setTimelineScale] = useTimelineScale();
   const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
+
+  const handleZoomOut = useCallback(() => {
+    const newScale = Math.max(timelineScale - 1, 1);
+    setTimelineScale(newScale);
+    trackAnalytics('replay.timeline.zoom-out', {
+      organization,
+    });
+  }, [timelineScale, setTimelineScale, organization]);
+
+  const handleZoomIn = useCallback(() => {
+    const newScale = Math.min(timelineScale + 1, maxScale);
+    setTimelineScale(newScale);
+    trackAnalytics('replay.timeline.zoom-in', {
+      organization,
+    });
+  }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
     <ButtonBar gap={0.5}>
@@ -38,7 +57,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         title={t('Zoom out')}
         icon={<IconSubtract />}
         borderless
-        onClick={() => setTimelineScale(Math.max(timelineScale - 1, 1))}
+        onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
       />
@@ -51,7 +70,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         title={t('Zoom in')}
         icon={<IconAdd />}
         borderless
-        onClick={() => setTimelineScale(Math.min(timelineScale + 1, maxScale))}
+        onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
       />
@@ -129,9 +148,9 @@ const StyledScrubber = styled('div')`
 
 const Numeric = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-inline: ${space(1.5)};
 `;
 

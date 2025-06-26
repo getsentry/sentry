@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
@@ -25,7 +25,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
-from sentry.projects.services.project_key.model import ProjectKeyRole, RpcProjectKey
+from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
@@ -135,16 +135,24 @@ class SetupWizardView(BaseView):
         This updates the cache content for a specific hash
         """
         if is_demo_user(request.user):
-            return HttpResponse(status=403)
+            return HttpResponse(
+                status=403, content='{"error":"Forbidden"}', content_type="application/json"
+            )
         elif not request.user.is_authenticated:
-            return HttpResponse(status=400)
+            return HttpResponse(
+                status=400, content='{"error":"Unauthorized"}', content_type="application/json"
+            )
 
         json_data = json.loads(request.body)
         organization_id = json_data.get("organizationId", None)
         project_id = json_data.get("projectId", None)
 
         if organization_id is None or project_id is None or wizard_hash is None:
-            return HttpResponseBadRequest()
+            return HttpResponse(
+                status=400,
+                content='{"error":"Some parameters are missing"}',
+                content_type="application/json",
+            )
 
         member_org_ids = OrganizationMemberMapping.objects.filter(
             user_id=request.user.id
@@ -157,13 +165,24 @@ class SetupWizardView(BaseView):
 
         project = project_service.get_by_id(organization_id=mapping.organization_id, id=project_id)
         if project is None:
-            raise Http404()
+            return HttpResponse(
+                status=404,
+                content='{"error":"Project not found"}',
+                content_type="application/json",
+            )
 
-        cache_data = get_cache_data(mapping=mapping, project=project, user=request.user)
+        try:
+            cache_data = get_cache_data(mapping=mapping, project=project, user=request.user)
+        except Http404:
+            return HttpResponse(
+                status=404,
+                content='{"error":"No DSN found for this project"}',
+                content_type="application/json",
+            )
 
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
-        return HttpResponse(status=200)
+        return HttpResponse(status=200, content="{}", content_type="application/json")
 
     @allow_cors_options
     def options(self, request, *args, **kwargs):
@@ -207,10 +226,9 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
 def get_cache_data(
     mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
 ):
-    project_key = project_key_service.get_project_key(
+    project_key = project_key_service.get_default_project_key(
         organization_id=mapping.organization_id,
         project_id=project.id,
-        role=ProjectKeyRole.store,
     )
     if project_key is None:
         raise Http404()

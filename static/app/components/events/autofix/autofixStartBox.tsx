@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -60,7 +59,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <StyledSeerWaitingIcon size="lg" />
+              <IconSeer variant="waiting" color="textColor" size="lg" />
               <Fragment>{t('Need help digging deeper?')}</Fragment>
             </StartTextRow>
           </AutofixStartText>
@@ -136,7 +135,7 @@ const AutofixStartText = styled('div')`
   padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   position: relative;
 `;
 
@@ -144,10 +143,6 @@ const StartTextRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.textColor};
 `;
 
 const BackgroundStar = styled('img')`

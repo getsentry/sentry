@@ -2,7 +2,8 @@ import type {Dispatch, SetStateAction} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SearchBar from 'sentry/components/searchBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -35,7 +36,16 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
         {connectedMonitors.length > 0 ? t('Other Monitors') : t('All Monitors')}
       </Heading>
       <div style={{flexGrow: 1}}>
-        <StyledSearchBar placeholder={t('Search for a monitor or project')} />
+        <StyledInputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch color="subText" size="sm" />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input
+            placeholder={t('Search for a monitor or project')}
+            type="text"
+            autoComplete="off"
+          />
+        </StyledInputGroup>
       </div>
       <ConnectedMonitorsList
         monitors={unconnectedMonitors}
@@ -47,11 +57,10 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
 }
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1.5)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
+const StyledInputGroup = styled(InputGroup)`
   margin-bottom: ${space(2)};
 `;

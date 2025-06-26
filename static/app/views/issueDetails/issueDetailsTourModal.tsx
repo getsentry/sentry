@@ -25,14 +25,14 @@ export function IssueDetailsTourModal({
   return (
     <TourContainer>
       <ImageContainer
-        alt={t('Preview of the new issue details components')}
+        alt={t('Preview of the issue details experience')}
         src={prefersDarkMode ? issueDetailsPreviewLight : issueDetailsPreviewDark}
       />
       <TextContainer>
-        <Header>{t('Welcome to the new Issue Details')}</Header>
+        <Header>{t('Welcome to Issue Details')}</Header>
         <Description>
           {t(
-            "Have 30 seconds? Tour the redesigned experience - we promise you'll be less confused."
+            "New around here? Tour the issue experience - we promise you'll be less confused."
           )}
         </Description>
         <Footer>
@@ -63,7 +63,7 @@ const ImageContainer = styled('img')`
 // XXX: The negative margin is to undo the global modal styling
 const TourContainer = styled('div')`
   margin: -${space(4)} -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
@@ -78,11 +78,11 @@ const TextContainer = styled('div')`
 const Header = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.tour.text};
   opacity: 0.8;
 `;

@@ -1,5 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {isValidElement, useCallback, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -81,7 +82,9 @@ function BreadcrumbItem({
   updateDimensions,
   allowShowSnippet,
 }: Props) {
-  const {color, description, title, icon} = getFrameDetails(frame);
+  const theme = useTheme();
+  const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
+  const colorHex = theme.tokens.graphics[colorGraphicsToken];
   const {replay} = useReplayContext();
   const organization = useOrganization();
   const {data: extraction, isPending} = useExtractDomNodes({
@@ -108,7 +111,7 @@ function BreadcrumbItem({
       onShowSnippet();
       e.preventDefault();
       e.stopPropagation();
-      trackAnalytics('replay.view_html', {
+      trackAnalytics('replay.view-html', {
         organization,
         breadcrumb_type: 'category' in frame ? frame.category : 'unknown',
       });
@@ -214,7 +217,7 @@ function BreadcrumbItem({
       ref={ref}
       icon={icon}
       title={title}
-      colorConfig={{title: color, icon: color, iconBorder: color}}
+      colorConfig={{title: colorHex, icon: colorHex, iconBorder: colorHex}}
       timestamp={
         <ReplayTimestamp>
           <TimestampButton
@@ -405,7 +408,7 @@ const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
@@ -457,7 +460,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
 
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   align-self: flex-start;
 `;
 
@@ -472,7 +475,7 @@ const ValueObjectKey = styled('span')`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: var(--prism-property);
 `;
 
@@ -481,9 +484,9 @@ const SelectorButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
   height: auto;

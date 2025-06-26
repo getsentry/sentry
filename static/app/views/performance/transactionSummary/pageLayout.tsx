@@ -8,12 +8,12 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Tabs} from 'sentry/components/core/tabs';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -353,7 +353,7 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
       flex-direction: column;
       gap: ${space(3)};
 
-      @media (min-width: ${p.theme.breakpoints.large}) {
+      @media (min-width: ${p.theme.breakpoints.lg}) {
         display: flex;
         flex-direction: column;
         gap: ${space(3)};

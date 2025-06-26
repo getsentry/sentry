@@ -52,6 +52,13 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
 /**
  * See DataConditionSerializer
  */
@@ -86,4 +93,10 @@ export interface DataConditionHandler {
   handlerGroup: DataConditionHandlerGroupType;
   handlerSubgroup: DataConditionHandlerSubgroupType;
   type: DataConditionType;
+}
+
+// for keeping track of conflicting condition ids in the UI
+export interface ConflictingConditions {
+  conflictingActionFilters: Record<string, string[]>;
+  conflictingTriggers: string[];
 }

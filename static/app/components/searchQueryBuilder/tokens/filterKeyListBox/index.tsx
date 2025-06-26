@@ -7,14 +7,13 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -26,7 +25,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone} from 'sentry/icons';
+import {IconMegaphone, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -217,8 +216,8 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   sections,
 }: FilterKeyMenuContentProps<T>) {
   const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
-    ?.value as string | undefined;
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey ?? '')
+    ?.props?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
@@ -236,7 +235,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           <SeerButtonWrapper>
             <SeerFullWidthButton
               size="md"
-              icon={<SeerIcon />}
+              icon={<IconSeer />}
               onClick={() => {
                 trackAnalytics('trace.explorer.ai_query_interface', {
                   organization,
@@ -537,10 +536,10 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   cursor: pointer;
@@ -569,8 +568,8 @@ const RecentFilterPillLabel = styled('div')`
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(1.5)};
   color: ${p => p.theme.subText};
   border: 0;
@@ -579,7 +578,7 @@ const SectionButton = styled(Button)`
     background-color: ${p => p.theme.purple100};
     box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
     color: ${p => p.theme.purple300};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;
 
@@ -610,18 +609,18 @@ const SeerButtonWrapper = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.purple100};
   width: 100%;
 `;
 
 const SeerFullWidthButton = styled(Button)`
   width: 100%;
   border-radius: 0;
-  background: none;
+  background-color: none;
   box-shadow: none;
   color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   justify-content: flex-start;
   padding: ${space(1)} ${space(2)};
@@ -630,7 +629,7 @@ const SeerFullWidthButton = styled(Button)`
   gap: ${space(1)};
   &:hover,
   &:focus {
-    background: ${p => p.theme.purple100};
+    background-color: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
     box-shadow: none;
   }

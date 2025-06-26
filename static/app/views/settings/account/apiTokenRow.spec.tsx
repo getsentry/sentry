@@ -38,7 +38,7 @@ describe('ApiTokenRow', () => {
     render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
     expect(cb).toHaveBeenCalled();
   });

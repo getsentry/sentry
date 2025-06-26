@@ -16,7 +16,6 @@ import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -216,7 +215,6 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
     'tests/**/fixtures/**/*',
@@ -310,10 +308,6 @@ export default typescript.config([
               message: 'Do not import gsApp into sentry',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -397,7 +391,10 @@ export default typescript.config([
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
-      'import/no-extraneous-dependencies': ['error', {includeTypes: true}],
+      'import/no-extraneous-dependencies': [
+        'error',
+        {includeTypes: true, devDependencies: ['!eslint.config.mjs']},
+      ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
@@ -791,10 +788,8 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
-      'tests/js/sentry-test/echartsMock.js',
-      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
-      'tests/js/sentry-test/svgMock.js',
       'tests/js/setup.ts',
     ],
     languageOptions: {
@@ -805,46 +800,6 @@ export default typescript.config([
     },
     rules: {
       'import/no-nodejs-modules': 'off',
-    },
-  },
-  {
-    name: 'files/devtoolbar',
-    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: [
-            ...restrictedImportPaths,
-            {
-              name: 'sentry/components/button',
-              message:
-                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
-            },
-            {
-              name: 'sentry/utils/queryClient',
-              message:
-                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-            },
-          ],
-        },
-      ],
     },
   },
   {
@@ -885,10 +840,6 @@ export default typescript.config([
               message: 'Do not import gsApp into sentry',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -910,6 +861,7 @@ export default typescript.config([
     name: 'files/sentry-stories',
     files: ['**/*.stories.tsx'],
     rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
   },
@@ -944,10 +896,6 @@ export default typescript.config([
               message: 'Do not import gsAdmin into gsApp',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -975,10 +923,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -1008,6 +952,10 @@ export default typescript.config([
     ...mdx.flat,
     name: 'files/mdx',
     files: ['**/*.mdx'],
+    rules: {
+      ...mdx.flat.rules,
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
   },
   {
     name: 'plugin/boundaries',
@@ -1020,7 +968,7 @@ export default typescript.config([
         // --- stories ---
         {
           type: 'story-files',
-          pattern: 'static/**/*.stories.{ts,tsx}',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
           mode: 'full',
         },
         {
@@ -1055,10 +1003,6 @@ export default typescript.config([
           pattern: 'tests/js',
         },
         // --- specifics ---
-        {
-          type: 'devtoolbar',
-          pattern: 'sentry/components/devtoolbar',
-        },
         {
           type: 'core-button',
           pattern: 'static/app/components/core/button',
@@ -1141,10 +1085,6 @@ export default typescript.config([
               from: ['gsAdmin*'],
               disallow: ['sentry-locale'],
               allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
-            },
-            {
-              from: ['devtoolbar'],
-              allow: ['devtoolbar', 'sentry*'],
             },
             {
               from: ['test-sentry'],

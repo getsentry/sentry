@@ -7,7 +7,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import type {ProductTrial} from 'getsentry/types';
+import {OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -18,6 +18,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
+  isEnterprise,
   isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
@@ -863,9 +864,40 @@ describe('isNewPayingCustomer', function () {
 });
 
 describe('getOnDemandCategories', function () {
-  it('filters out seer categories', function () {
-    const categories = getOnDemandCategories(PlanDetailsLookupFixture('am1_business')!);
+  const plan = PlanDetailsLookupFixture('am1_business')!;
+  it('filters out unconfigurable categories for per-category budget mode', function () {
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    });
+    expect(categories).toHaveLength(plan.onDemandCategories.length - 2);
     expect(categories).not.toContain(DataCategory.SEER_SCANNER);
     expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
+  });
+
+  it('does not filter out any categories for shared budget mode', function () {
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.SHARED,
+    });
+    expect(categories).toHaveLength(plan.onDemandCategories.length);
+    expect(categories).toEqual(plan.onDemandCategories);
+  });
+});
+
+describe('isEnterprise', function () {
+  it('returns true for enterprise plans', function () {
+    expect(isEnterprise('e1')).toBe(true);
+    expect(isEnterprise('enterprise')).toBe(true);
+    expect(isEnterprise('am1_business_ent')).toBe(true);
+    expect(isEnterprise('am2_team_ent_auf')).toBe(true);
+    expect(isEnterprise('am3_business_ent_ds_auf')).toBe(true);
+  });
+
+  it('returns false for non-enterprise plans', function () {
+    expect(isEnterprise('_e1')).toBe(false);
+    expect(isEnterprise('_enterprise')).toBe(false);
+    expect(isEnterprise('am1_business')).toBe(false);
+    expect(isEnterprise('am2_team')).toBe(false);
   });
 });

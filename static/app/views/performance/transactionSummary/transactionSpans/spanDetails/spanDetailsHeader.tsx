@@ -121,7 +121,7 @@ const ContentHeader = styled('div')`
   gap: ${space(4)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr repeat(3, max-content);
   }
 `;
@@ -136,14 +136,14 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
 
 const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const PercentileHeaderBodyWrapper = styled('div')`

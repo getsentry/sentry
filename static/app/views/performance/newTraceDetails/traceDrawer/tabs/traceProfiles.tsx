@@ -10,8 +10,6 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -21,21 +19,10 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
-export function TraceProfiles({
-  tree,
-  onScrollToNode,
-}: {
-  onScrollToNode: (node: TraceTreeNode<any>) => void;
-  tree: TraceTree;
-}) {
+export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
@@ -63,20 +50,9 @@ export function TraceProfiles({
     [organization]
   );
 
-  const onNodeIdClick = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      navigate({
-        ...location,
-        hash: `#trace-waterfall`,
-      });
-      onScrollToNode(node);
-    },
-    [location, navigate, onScrollToNode]
-  );
-
   return (
     <ProfilesTable>
-      <ProfilesTableRow hasTraceTabsUi={hasTraceTabsUi}>
+      <ProfilesTableRow>
         <ProfilesTableTitle>{t('Profiled Events')}</ProfilesTableTitle>
         <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
       </ProfilesTableRow>
@@ -129,14 +105,8 @@ export function TraceProfiles({
             </Fragment>
           );
           return (
-            <ProfilesTableRow key={index} hasTraceTabsUi={hasTraceTabsUi}>
-              <div>
-                {hasTraceTabsUi ? (
-                  event
-                ) : (
-                  <a onClick={() => onNodeIdClick(node)}>{event}</a>
-                )}
-              </div>
+            <ProfilesTableRow key={index}>
+              <div>{event}</div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
                   {profileOrProfilerId.substring(0, 8)}
@@ -166,14 +136,8 @@ export function TraceProfiles({
             </Fragment>
           );
           return (
-            <ProfilesTableRow key={index} hasTraceTabsUi={hasTraceTabsUi}>
-              <div>
-                {hasTraceTabsUi ? (
-                  event
-                ) : (
-                  <a onClick={() => onNodeIdClick(node)}>{event}</a>
-                )}
-              </div>
+            <ProfilesTableRow key={index}>
+              <div>{event}</div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
                   {profileOrProfilerId.substring(0, 8)}
@@ -189,14 +153,12 @@ export function TraceProfiles({
 }
 
 const ProfilesTable = styled('div')`
-  margin-top: ${space(1)};
   display: grid !important;
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 
   > div {
     white-space: nowrap;
@@ -212,7 +174,7 @@ const ProfilesTable = styled('div')`
   }
 `;
 
-const ProfilesTableRow = styled('div')<{hasTraceTabsUi: boolean}>`
+const ProfilesTableRow = styled('div')`
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -228,8 +190,9 @@ const ProfilesTableRow = styled('div')<{hasTraceTabsUi: boolean}>`
   }
 
   &:first-child {
-    background-color: ${p =>
-      p.hasTraceTabsUi ? p.theme.background : p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.background};
+    border-top-left-radius: ${p => p.theme.borderRadius};
+    border-top-right-radius: ${p => p.theme.borderRadius};
   }
 
   &:not(:last-child) {
@@ -239,7 +202,7 @@ const ProfilesTableRow = styled('div')<{hasTraceTabsUi: boolean}>`
 
 const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(0.5)};
 `;

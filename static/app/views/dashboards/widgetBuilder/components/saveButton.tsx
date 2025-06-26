@@ -15,7 +15,7 @@ import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
-interface SaveButtonProps {
+export interface SaveButtonProps {
   isEditing: boolean;
   onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   setError: (error: Record<string, any>) => void;

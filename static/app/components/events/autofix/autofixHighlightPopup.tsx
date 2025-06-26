@@ -13,7 +13,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -22,7 +21,7 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -86,7 +85,12 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending your comment.'));
@@ -122,7 +126,12 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when resolving the thread.'));
@@ -160,7 +169,7 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const {data: autofixData} = useAutofixData({groupId});
+  const {data: autofixData} = useAutofixData({groupId, isUserWatching: true});
   const currentStep = isAgentComment
     ? autofixData?.steps?.[stepIndex + 1]
     : autofixData?.steps?.[stepIndex];
@@ -324,7 +333,7 @@ function AutofixHighlightPopupContent({
             <Message key={i} role={message.role}>
               {message.role === 'assistant' ? (
                 <CircularSeerIcon>
-                  <SeerIcon />
+                  <IconSeer />
                 </CircularSeerIcon>
               ) : (
                 <UserAvatar user={currentUser} size={24} />
@@ -354,7 +363,7 @@ function AutofixHighlightPopupContent({
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
             size="sm"
-            autoFocus
+            autoFocus={!isAgentComment}
             maxRows={5}
             autosize
             onKeyDown={e => {
@@ -426,7 +435,7 @@ function AutofixHighlightPopup(props: Props) {
   const [isFocused, setIsFocused] = useState(false);
 
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -625,7 +634,7 @@ const Header = styled('div')`
 `;
 
 const SelectedText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
@@ -670,7 +679,7 @@ const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   word-break: break-word;
   overflow-wrap: break-word;

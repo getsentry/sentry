@@ -105,6 +105,14 @@ class ScheduleEntry:
     def fullname(self) -> str:
         return self._task.fullname
 
+    @property
+    def namespace(self) -> str:
+        return self._task.namespace.name
+
+    @property
+    def taskname(self) -> str:
+        return self._task.name
+
     def set_last_run(self, last_run: datetime | None) -> None:
         self._last_run = last_run
 
@@ -118,7 +126,6 @@ class ScheduleEntry:
         return self._schedule.runtime_after(start)
 
     def delay_task(self) -> None:
-        logger.info("taskworker.scheduler.delay_task", extra={"task": self._task.fullname})
         monitor_config = self.monitor_config()
         headers: dict[str, Any] | None = None
         if monitor_config:
@@ -223,13 +230,21 @@ class ScheduleRunner:
             entry.delay_task()
             entry.set_last_run(now)
 
-            logger.info("taskworker.scheduler.delay_task", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.delay_task")
+            logger.debug("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
+            metrics.incr(
+                "taskworker.scheduler.delay_task",
+                tags={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                },
+            )
         else:
             # sync with last_run state in storage
             entry.set_last_run(self._run_storage.read(entry.fullname))
 
-            logger.info("taskworker.scheduler.sync_with_storage", extra={"task": entry.fullname})
+            logger.debug(
+                "taskworker.scheduler.sync_with_storage", extra={"fullname": entry.fullname}
+            )
             metrics.incr("taskworker.scheduler.sync_with_storage")
 
     def _update_heap(self) -> None:

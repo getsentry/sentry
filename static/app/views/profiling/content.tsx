@@ -298,6 +298,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
           initialQuery={query}
           onSearch={handleSearch}
           searchSource="profile_landing"
+          disallowFreeText={false}
         />
       </SearchbarContainer>
       {transactionsError && (
@@ -389,7 +390,7 @@ const LayoutBody = styled(Layout.Body)`
   display: grid;
   align-content: stretch;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     align-content: stretch;
   }
 `;
@@ -435,7 +436,7 @@ const WidgetsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
 `;

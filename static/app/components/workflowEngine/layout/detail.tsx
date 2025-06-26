@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -44,7 +44,7 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
 
 const ProjectContainer = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledPage = styled(Layout.Page)`
@@ -63,7 +63,7 @@ interface RequiredChildren {
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
-      <Flex column gap={space(2)}>
+      <Flex direction="column" gap={space(2)}>
         {children}
       </Flex>
     </Layout.Main>
@@ -72,7 +72,7 @@ function Main({children}: RequiredChildren) {
 function Sidebar({children}: RequiredChildren) {
   return (
     <Layout.Side>
-      <Flex column gap={space(2)}>
+      <Flex direction="column" gap={space(2)}>
         {children}
       </Flex>
     </Layout.Side>

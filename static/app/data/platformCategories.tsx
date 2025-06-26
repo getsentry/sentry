@@ -24,6 +24,7 @@ export const frontend: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -238,6 +239,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-svelte',
@@ -305,6 +307,7 @@ export const profiling: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -356,6 +359,8 @@ export const profiling: PlatformKey[] = [
 export const releaseHealth: PlatformKey[] = [
   'javascript',
   'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
   'javascript-angular',
   'javascript-angularjs',
   'javascript-astro',
@@ -365,7 +370,6 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-nuxt',
-  'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
   'javascript-svelte',
@@ -473,6 +477,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -520,6 +525,8 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 // Feedback platforms that show only NPM widget setup instructions (no loader)
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
+  'react-native',
+  'flutter',
   ...replayFrontendPlatforms,
 ];
 
@@ -544,13 +551,11 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'flutter',
   'java',
   'java-log4j2',
   'java-logback',
   'kotlin',
   'node-koa',
-  'react-native',
   'unity',
   'unreal',
 ];
@@ -589,12 +594,25 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
+const platformKeys = platforms.map(p => p.id);
+
 // Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platforms
-  .map(p => p.id)
-  .filter(id => id.startsWith('javascript') || id.startsWith('python'));
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
 
 // Feature flag platforms to show the issue details distribution drawer for.
-export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platforms
-  .map(p => p.id)
-  .filter(id => id.startsWith('javascript') || id.startsWith('python'));
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
+
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-react-router',
+  'javascript-solidstart',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);

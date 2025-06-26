@@ -11,18 +11,20 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -44,6 +46,8 @@ import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
@@ -107,7 +111,7 @@ function SaveAsDropdown({
             <StyledOverlay arrowProps={arrowProps} animated>
               <FocusScope contain restoreFocus autoFocus>
                 <form onSubmit={modifiedHandleCreateQuery}>
-                  <Flex gap={space(1)} column>
+                  <Flex gap={space(1)} direction="column">
                     <Input
                       type="text"
                       name="query_name"
@@ -348,13 +352,42 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
+    const {organization, location, savedQuery} = this.props;
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    const deprecatingSaveAs =
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      organization.features.includes('discover-saved-queries-deprecation');
+
+    const tracesUrl = getExploreUrl({
+      organization,
+      query: 'is_transaction:true',
+    });
+
     return (
-      <SaveAsDropdown
-        queryName={queryName}
-        onChangeInput={this.onChangeInput}
-        modifiedHandleCreateQuery={this.handleCreateQuery}
-        disabled={disabled}
-      />
+      <Tooltip
+        disabled={
+          currentDataset !== DiscoverDatasets.TRANSACTIONS ||
+          !organization.features.includes('discover-saved-queries-deprecation')
+        }
+        isHoverable
+        title={tct(
+          'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+          {
+            traces: <Link to={tracesUrl} />,
+          }
+        )}
+      >
+        <SaveAsDropdown
+          queryName={queryName}
+          onChangeInput={this.onChangeInput}
+          modifiedHandleCreateQuery={this.handleCreateQuery}
+          disabled={disabled || deprecatingSaveAs}
+        />
+      </Tooltip>
     );
   }
 
@@ -411,6 +444,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       location,
       savedQuery?.queryDataset
     );
+
+    if (
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      deprecateTransactionAlerts(organization)
+    ) {
+      return null;
+    }
 
     let alertType: any;
     let buttonEventView = eventView;
@@ -577,12 +617,35 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
       this.props;
 
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    const deprecatingAddToDashboard =
+      currentDataset === DiscoverDatasets.TRANSACTIONS &&
+      organization.features.includes('discover-saved-queries-deprecation');
+
     const contextMenuItems: MenuItemProps[] = [];
+
+    const tracesUrl = getExploreUrl({
+      organization,
+      query: 'is_transaction:true',
+    });
 
     if (organization.features.includes('dashboards-edit')) {
       contextMenuItems.push({
         key: 'add-to-dashboard',
         label: t('Add to Dashboard'),
+        disabled: deprecatingAddToDashboard,
+        tooltip:
+          deprecatingAddToDashboard &&
+          tct(
+            'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+            {
+              traces: <Link to={tracesUrl} />,
+            }
+          ),
         onAction: () => {
           handleAddQueryToDashboard({
             organization,
@@ -650,7 +713,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 }
 
 const ResponsiveButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 0;
   }
 `;

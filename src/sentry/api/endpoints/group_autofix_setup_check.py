@@ -15,11 +15,13 @@ from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -36,19 +38,20 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=["github"], limit=1
+        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
     )
 
-    organization_integration = organization_integrations[0] if organization_integrations else None
-    integration = organization_integration and integration_service.get_integration(
-        organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
-    )
-    installation = integration and integration.get_installation(organization_id=organization.id)
+    # Iterate through all organization integrations to find one with an active integration
+    for organization_integration in organization_integrations:
+        integration = integration_service.get_integration(
+            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
+        )
+        if integration:
+            installation = integration.get_installation(organization_id=organization.id)
+            if installation:
+                return None
 
-    if not installation:
-        return "integration_missing"
-
-    return None
+    return "integration_missing"
 
 
 def get_repos_and_access(project: Project) -> list[dict]:
@@ -64,7 +67,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
     for repo in repos:
         # We only support github for now.
         provider = repo.get("provider")
-        if provider != "integrations:github" and provider != "github":
+        if provider != "integrations:github" and provider != IntegrationProviderSlug.GITHUB.value:
             continue
 
         body = orjson.dumps(
@@ -95,6 +98,14 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+        }
+    }
 
     def get(self, request: Request, group: Group) -> Response:
         """
@@ -127,7 +138,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
             org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
 
-        # TODO return BOTH trial status and autofix quota
         has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )

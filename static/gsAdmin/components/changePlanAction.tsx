@@ -108,6 +108,7 @@ function ChangePlanAction({
       return planList.filter(
         plan =>
           plan.isTestPlan &&
+          plan.price !== 0 && // filter out enterprise, trial, and free test plans
           plan.billingInterval === billingInterval &&
           plan.contractInterval === contractInterval
       );

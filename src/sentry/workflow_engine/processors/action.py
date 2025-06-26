@@ -2,9 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
-from django.db.models.fields.json import KeyTextTransform
-from django.db.models.functions import Cast, Coalesce
+from django.db import models
 from django.utils import timezone
 
 from sentry import features
@@ -23,14 +21,11 @@ from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.rules.actions.services import PluginService
 from sentry.workflow_engine.models import (
     Action,
-    ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
     WorkflowActionGroupStatus,
-    WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
@@ -38,104 +33,6 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
-
-
-def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
-    # Annotate the actions with the amount of time since the last update
-    statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
-
-    check_workflow_frequency = Cast(
-        Coalesce(
-            KeyTextTransform(
-                "frequency",
-                F(
-                    "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
-                ),
-            ),
-            Value("0"),  # default 0
-        ),
-        output_field=IntegerField(),
-    )
-
-    frequency_in_minutes = ExpressionWrapper(
-        F("frequency") * timedelta(minutes=1),  # convert to timedelta
-        output_field=DurationField(),
-    )
-
-    time_since_last_update = ExpressionWrapper(
-        Value(now) - F("date_updated"), output_field=DurationField()
-    )
-
-    statuses = statuses.annotate(
-        frequency=check_workflow_frequency,
-        frequency_minutes=frequency_in_minutes,
-        difference=time_since_last_update,
-    )
-
-    return statuses
-
-
-def create_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
-) -> list[WorkflowFireHistory]:
-    # Create WorkflowFireHistory objects for workflows we fire actions for
-    workflow_ids = set(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
-        ).values_list("workflow_id", flat=True)
-    )
-
-    fire_histories = [
-        WorkflowFireHistory(
-            workflow_id=workflow_id,
-            group=event_data.event.group,
-            event_id=event_data.event.event_id,
-        )
-        for workflow_id in workflow_ids
-    ]
-    return WorkflowFireHistory.objects.bulk_create(fire_histories)
-
-
-# TODO(cathy): only reinforce workflow frequency for certain issue types
-def filter_recently_fired_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> BaseQuerySet[Action]:
-    # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
-
-    group = event_data.event.group
-
-    now = timezone.now()
-    statuses = get_action_last_updated_statuses(now, actions, group)
-
-    actions_without_statuses = actions.exclude(id__in=statuses.values_list("action_id", flat=True))
-    actions_to_include = set(
-        statuses.filter(difference__gt=F("frequency_minutes")).values_list("action_id", flat=True)
-    )
-
-    ActionGroupStatus.objects.filter(
-        action__in=actions_to_include, group=group, date_updated__lt=now
-    ).order_by("id").update(date_updated=now)
-    ActionGroupStatus.objects.bulk_create(
-        [
-            ActionGroupStatus(action=action, group=group, date_updated=now)
-            for action in actions_without_statuses
-        ],
-        batch_size=1000,
-        ignore_conflicts=True,
-    )
-
-    actions_without_statuses_ids = {action.id for action in actions_without_statuses}
-    filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
-
-    # dual write to WorkflowActionGroupStatus, ignoring results for now until they are canonical
-    _ = filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
-
-    create_workflow_fire_histories(filtered_actions, event_data)
-
-    return filtered_actions
 
 
 def get_workflow_action_group_statuses(
@@ -260,11 +157,11 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
-    # TODO: write this in a single spot
-    # create_workflow_fire_histories
-
-    # TODO: somehow attach workflows so we can fire actions with the appropriate workflow env
-    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
+        workflow_id=models.F(
+            "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
+        )
+    )
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:

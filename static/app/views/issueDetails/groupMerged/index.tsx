@@ -174,7 +174,7 @@ class GroupMergedView extends Component<Props, State> {
 export default withOrganization(GroupMergedView);
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(0.75)};
 `;
 

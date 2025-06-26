@@ -16,7 +16,7 @@ import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
@@ -58,7 +58,7 @@ export function ArithmeticTokenFunction({
       {...rowProps}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute.format()})`}
+      aria-label={`${token.function}(${attribute.text})`}
       aria-invalid={false}
       state={'valid'}
     >
@@ -305,7 +305,7 @@ function DeleteFunction({token}: DeleteFunctionProps) {
   }, [dispatch, token]);
 
   return (
-    <DeleteButton aria-label={t('Remove function %s', token.format())} onClick={onClick}>
+    <DeleteButton aria-label={t('Remove function %s', token.text)} onClick={onClick}>
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
     </DeleteButton>

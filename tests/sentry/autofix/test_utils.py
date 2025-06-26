@@ -5,13 +5,17 @@ import pytest
 from django.conf import settings
 
 from sentry.autofix.utils import (
+    AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS,
     AutofixState,
     AutofixStatus,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_autofix_state_from_pr_id,
+    is_seer_autotriggered_autofix_rate_limited,
+    is_seer_scanner_rate_limited,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 
 
@@ -123,7 +127,7 @@ class TestGetAutofixState(TestCase):
 
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":123,"run_id":null,"check_repo_access":false}',
+            data=b'{"group_id":123,"run_id":null,"check_repo_access":false,"is_user_fetching":false}',
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -154,7 +158,7 @@ class TestGetAutofixState(TestCase):
 
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":null,"run_id":456,"check_repo_access":false}',
+            data=b'{"group_id":null,"run_id":456,"check_repo_access":false,"is_user_fetching":false}',
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -183,3 +187,82 @@ class TestGetAutofixState(TestCase):
 
         # Assertions
         assert "HTTP Error" in str(context.value)
+
+
+class TestAutomationRateLimiting(TestCase):
+    @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
+    @patch("sentry.autofix.utils.track_outcome")
+    def test_scanner_rate_limited_with_unlimited_flag(self, mock_track_outcome):
+        """Test scanner rate limiting bypassed with unlimited feature flag"""
+        project = self.create_project()
+        organization = project.organization
+
+        is_rate_limited = is_seer_scanner_rate_limited(project, organization)
+
+        assert is_rate_limited is False
+        mock_track_outcome.assert_not_called()
+
+    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
+    @patch("sentry.autofix.utils.track_outcome")
+    def test_scanner_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
+        """Test scanner rate limiting logic"""
+        project = self.create_project()
+        organization = project.organization
+
+        mock_is_limited.return_value = (True, 45, None)
+
+        with self.options({"seer.max_num_scanner_autotriggered_per_minute": 50}):
+            is_rate_limited = is_seer_scanner_rate_limited(project, organization)
+
+        assert is_rate_limited is True
+        mock_track_outcome.assert_called_once()
+
+    @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
+    @patch("sentry.autofix.utils.track_outcome")
+    def test_autofix_rate_limited_with_unlimited_flag(self, mock_track_outcome):
+        """Test autofix rate limiting bypassed with unlimited feature flag"""
+        project = self.create_project()
+        organization = project.organization
+
+        is_rate_limited = is_seer_autotriggered_autofix_rate_limited(project, organization)
+
+        assert is_rate_limited is False
+        mock_track_outcome.assert_not_called()
+
+    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
+    @patch("sentry.autofix.utils.track_outcome")
+    def test_autofix_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
+        """Test autofix rate limiting logic"""
+        project = self.create_project()
+        organization = project.organization
+
+        project.update_option("sentry:autofix_automation_tuning", None)
+
+        mock_is_limited.return_value = (True, 19, None)
+
+        with self.options({"seer.max_num_autofix_autotriggered_per_hour": 20}):
+            is_rate_limited = is_seer_autotriggered_autofix_rate_limited(project, organization)
+
+        assert is_rate_limited is True
+        mock_track_outcome.assert_called_once()
+
+    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
+    def test_autofix_rate_limit_multiplication_logic(self, mock_is_limited):
+        """Test that the limit is multiplied correctly based on project option"""
+        project = self.create_project()
+        organization = project.organization
+        mock_is_limited.return_value = (False, 0, None)
+
+        base_limit = 20
+
+        for option, multiplier in AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.items():
+            with self.options({"seer.max_num_autofix_autotriggered_per_hour": base_limit}):
+                project.update_option("sentry:autofix_automation_tuning", option)
+                is_seer_autotriggered_autofix_rate_limited(project, organization)
+                expected_limit = base_limit * multiplier
+                mock_is_limited.assert_called_with(
+                    project=project,
+                    key="autofix.auto_triggered",
+                    limit=expected_limit,
+                    window=60 * 60,
+                )

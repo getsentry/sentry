@@ -8,10 +8,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import Projects from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
   organization: Organization;
@@ -26,6 +26,15 @@ export default function ReleaseHealthCTA({
   selectedProject,
   selection,
 }: Props) {
+  const {
+    data: project,
+    isPending,
+    isError,
+  } = useApiQuery<Project>([`/projects/${organization.slug}/${selectedProject?.slug}/`], {
+    enabled: Boolean(selectedProject) && releases.length > 0,
+    staleTime: 1_000, // 1 second
+  });
+
   const trackAddReleaseHealth = useCallback(() => {
     if (organization.id && selection.projects[0]) {
       trackAnalytics('releases_list.click_add_release_health', {
@@ -35,43 +44,35 @@ export default function ReleaseHealthCTA({
     }
   }, [organization, selection]);
 
-  if (!selectedProject || selectedProject?.hasSessions !== false || !releases?.length) {
+  if (isPending || isError) {
+    return null;
+  }
+
+  const projectCanHaveReleases =
+    project.platform && releaseHealth.includes(project.platform);
+
+  if (project.hasSessions || !projectCanHaveReleases) {
     return null;
   }
 
   return (
-    <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-      {({projects, initiallyLoaded, fetchError}) => {
-        const project: AvatarProject | undefined =
-          projects?.length === 1 ? projects.at(0) : undefined;
-        const projectCanHaveReleases =
-          project?.platform && releaseHealth.includes(project.platform);
-
-        if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
-          return null;
-        }
-
-        return (
-          <Alert.Container>
-            <Alert type="info" showIcon>
-              <AlertText>
-                <div>
-                  {t(
-                    'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-                  )}
-                </div>
-                <ExternalLink
-                  href="https://docs.sentry.io/product/releases/setup/#release-health"
-                  onClick={trackAddReleaseHealth}
-                >
-                  {t('Add Release Health')}
-                </ExternalLink>
-              </AlertText>
-            </Alert>
-          </Alert.Container>
-        );
-      }}
-    </Projects>
+    <Alert.Container>
+      <Alert type="info" showIcon>
+        <AlertText>
+          <div>
+            {t(
+              'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
+            )}
+          </div>
+          <ExternalLink
+            href="https://docs.sentry.io/product/releases/setup/#release-health"
+            onClick={trackAddReleaseHealth}
+          >
+            {t('Add Release Health')}
+          </ExternalLink>
+        </AlertText>
+      </Alert>
+    </Alert.Container>
   );
 }
 
@@ -85,7 +86,7 @@ const AlertText = styled('div')`
     flex: 1;
   }
   flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;

@@ -125,10 +125,14 @@ class EapCheckEntry:
     region: str
 
 
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
+class UptimeMonitorMode(enum.IntEnum):
     # Manually created by a user
     MANUAL = 1
     # Auto-detected by our system and in the onboarding stage
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
+
+
+# TODO(epurkhiser): interop with getsentry
+ProjectUptimeSubscriptionMode = UptimeMonitorMode

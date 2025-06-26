@@ -17,6 +17,7 @@ import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import client
+from sentry.integrations.github import integration as github_integration
 from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
 from sentry.integrations.github.integration import (
     API_ERRORS,
@@ -38,7 +39,6 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import PipelineView
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -1245,6 +1245,38 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
+    def test_get_stacktrace_link_avoid_double_quote(self):
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/test%20id/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/test%20id/test.py"
+        )
+
+    @responses.activate
     def test_get_account_id(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1278,7 +1310,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
@@ -1495,7 +1527,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     )
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui_no_biz_plan(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
@@ -1555,7 +1587,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     )
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
     def test_errors_when_invalid_access_to_multi_org(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
@@ -1736,3 +1768,58 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
             },
         ]
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_validates_installing_organization(self, mock_record):
+        self._setup_with_existing_installations()
+        chosen_installation_id = "1"
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # Create a new organization and switch to it
+        self.create_organization(name="new-org", owner=self.user)
+        self.login_as(self.user)
+
+        # Try to continue the installation with the new organization
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": chosen_installation_id,
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"Your organization does not have access to this feature."}}'
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)

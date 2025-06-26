@@ -61,6 +61,12 @@ const EventColumn = styled(Timeline.Col)`
   }
 `;
 
+type GraphicsKey = keyof Theme['tokens']['graphics'];
+type GraphicsKeyTrio =
+  | [GraphicsKey]
+  | [GraphicsKey, GraphicsKey]
+  | [GraphicsKey, GraphicsKey, GraphicsKey];
+
 function Event({
   frames,
   markerWidth,
@@ -99,7 +105,7 @@ function Event({
     max-width: 291px !important;
     width: 291px;
 
-    @media screen and (max-width: ${theme.breakpoints.small}) {
+    @media screen and (max-width: ${theme.breakpoints.sm}) {
       max-width: 220px !important;
     }
   `;
@@ -107,26 +113,25 @@ function Event({
   const firstFrame = frames.at(0);
 
   // We want to show the full variety of colors available.
-  const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
+  const uniqueColorTokens = uniq(
+    frames.map(frame => getFrameDetails(frame).colorGraphicsToken)
+  );
 
   // We just need to stack up to 3 times
-  const frameCount = Math.min(uniqueColors.length, 3);
+  const frameCount = Math.min(uniqueColorTokens.length, 3);
 
   // Sort the frame colors by color priority
-  // Priority order: red300, yellow300, green300, purple300, gray300
-  const sortedUniqueColors = uniqueColors.sort(function (x, y) {
-    const colorOrder: string[] = [
-      theme.tokens.graphics.danger,
-      theme.tokens.graphics.warning,
-      theme.tokens.graphics.success,
-      theme.tokens.graphics.accent,
-      theme.tokens.graphics.muted,
-    ];
-    function getColorPos(c: string) {
-      return colorOrder.indexOf(c);
-    }
-    return getColorPos(x) - getColorPos(y);
-  });
+  const colorOrder = [
+    'danger',
+    'warning',
+    'success',
+    'accent',
+    'muted',
+  ] as readonly GraphicsKey[];
+  const getColorPos = (c: GraphicsKey) => colorOrder.indexOf(c);
+  const sortedUniqueColorTokens = uniqueColorTokens
+    .toSorted((x, y) => getColorPos(x) - getColorPos(y))
+    .slice(0, 3) as GraphicsKeyTrio;
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
@@ -137,7 +142,7 @@ function Event({
         isHoverable
       >
         <IconNode
-          colors={sortedUniqueColors}
+          colorTokens={sortedUniqueColorTokens}
           frameCount={frameCount}
           onClick={() => {
             if (firstFrame) {
@@ -156,17 +161,17 @@ const IconPosition = styled('div')`
 `;
 
 const getBackgroundGradient = ({
-  colors,
+  colorTokens,
   frameCount,
   theme,
 }: {
-  colors: Array<keyof Theme['tokens']['graphics']>;
+  colorTokens: GraphicsKeyTrio;
   frameCount: number;
   theme: Theme;
 }) => {
-  const c0 = theme.tokens.graphics[colors[0]!] ?? colors[0]!;
-  const c1 = theme.tokens.graphics[colors[1]!] ?? colors[1]! ?? c0;
-  const c2 = theme.tokens.graphics[colors[2]!] ?? colors[2]! ?? c1;
+  const c0 = theme.tokens.graphics[colorTokens[0]];
+  const c1 = colorTokens[1] ? theme.tokens.graphics[colorTokens[1]] : c0;
+  const c2 = colorTokens[2] ? theme.tokens.graphics[colorTokens[2]] : c1;
 
   if (frameCount === 1) {
     return `background: ${c0};`;
@@ -192,7 +197,7 @@ const getBackgroundGradient = ({
 };
 
 const IconNode = styled('button')<{
-  colors: Array<keyof Theme['tokens']['graphics']>;
+  colorTokens: GraphicsKeyTrio;
   frameCount: number;
 }>`
   padding: 0;

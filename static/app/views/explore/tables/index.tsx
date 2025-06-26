@@ -19,7 +19,7 @@ import {
   useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -54,8 +54,8 @@ export function ExploreTables(props: ExploreTablesProps) {
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -106,7 +106,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <SamplesTableHeader>
-        <Tabs value={tab} onChange={setTab}>
+        <Tabs value={tab} onChange={setTab} size="sm">
           <TabList hideBorder variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>

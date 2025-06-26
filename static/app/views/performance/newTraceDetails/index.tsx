@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -9,8 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
-import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
+import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
   TraceViewLogsDataProvider,
@@ -19,7 +18,6 @@ import {
 import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
@@ -86,7 +84,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useLogsPageDataQueryResult().data;
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
-  const hasTraceTabsUI = useHasTraceTabsUI();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
@@ -107,79 +104,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
-    rootEventResults,
     logs: logsData,
   });
-
-  const legacyTraceInnerContent = (
-    <FlexBox>
-      <TraceWaterfall
-        tree={tree}
-        trace={trace}
-        meta={meta}
-        replay={null}
-        source="performance"
-        rootEventResults={rootEventResults}
-        traceSlug={traceSlug}
-        traceEventView={traceEventView}
-        organization={organization}
-        hideIfNoData={hideTraceWaterfallIfEmpty}
-        traceWaterfallScrollHandlers={traceWaterfallScroll}
-        traceWaterfallModels={traceWaterfallModels}
-      />
-      <TraceContextPanel
-        traceSlug={traceSlug}
-        tree={tree}
-        rootEventResults={rootEventResults}
-        onScrollToNode={traceWaterfallScroll.onScrollToNode}
-        logs={logsData}
-        scrollContainer={traceInnerLayoutRef}
-      />
-    </FlexBox>
-  );
-
-  const traceInnerContent = (
-    <Fragment>
-      <TraceTabsAndVitals
-        tabsConfig={{
-          tabOptions,
-          currentTab,
-          onTabChange,
-        }}
-        rootEventResults={rootEventResults}
-        tree={tree}
-      />
-      <TabsWaterfallWrapper visible={currentTab === TraceLayoutTabKeys.WATERFALL}>
-        <TraceWaterfall
-          tree={tree}
-          trace={trace}
-          meta={meta}
-          replay={null}
-          source="performance"
-          rootEventResults={rootEventResults}
-          traceSlug={traceSlug}
-          traceEventView={traceEventView}
-          organization={organization}
-          hideIfNoData={hideTraceWaterfallIfEmpty}
-          traceWaterfallScrollHandlers={traceWaterfallScroll}
-          traceWaterfallModels={traceWaterfallModels}
-        />
-      </TabsWaterfallWrapper>
-      {currentTab === TraceLayoutTabKeys.TAGS ||
-      currentTab === TraceLayoutTabKeys.ATTRIBUTES ? (
-        <TraceContextTags rootEventResults={rootEventResults} />
-      ) : null}
-      {currentTab === TraceLayoutTabKeys.PROFILES ? (
-        <TraceProfiles tree={tree} onScrollToNode={traceWaterfallScroll.onScrollToNode} />
-      ) : null}
-      {currentTab === TraceLayoutTabKeys.LOGS ? (
-        <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
-      ) : null}
-      {currentTab === TraceLayoutTabKeys.SUMMARY ? (
-        <TraceSummarySection traceSlug={traceSlug} />
-      ) : null}
-    </Fragment>
-  );
 
   return (
     <SentryDocumentTitle
@@ -198,7 +124,46 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
           />
           <TraceInnerLayout ref={traceInnerLayoutRef}>
-            {hasTraceTabsUI ? traceInnerContent : legacyTraceInnerContent}
+            <TraceTabsAndVitals
+              tabsConfig={{
+                tabOptions,
+                currentTab,
+                onTabChange,
+              }}
+              rootEventResults={rootEventResults}
+              tree={tree}
+            />
+            <TabsWaterfallWrapper visible={currentTab === TraceLayoutTabKeys.WATERFALL}>
+              <TraceWaterfall
+                tree={tree}
+                trace={trace}
+                meta={meta}
+                replay={null}
+                source="performance"
+                rootEventResults={rootEventResults}
+                traceSlug={traceSlug}
+                traceEventView={traceEventView}
+                organization={organization}
+                hideIfNoData={hideTraceWaterfallIfEmpty}
+                traceWaterfallScrollHandlers={traceWaterfallScroll}
+                traceWaterfallModels={traceWaterfallModels}
+              />
+            </TabsWaterfallWrapper>
+            {currentTab === TraceLayoutTabKeys.PROFILES ? (
+              <TraceProfiles tree={tree} />
+            ) : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? (
+              <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
+            ) : null}
+            {currentTab === TraceLayoutTabKeys.SUMMARY ? (
+              <TraceSummarySection traceSlug={traceSlug} />
+            ) : null}
+            {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
+              <TraceAiSpans
+                traceSlug={traceSlug}
+                viewManager={traceWaterfallModels.viewManager}
+              />
+            ) : null}
           </TraceInnerLayout>
         </TraceExternalLayout>
       </NoProjectMessage>

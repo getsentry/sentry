@@ -257,6 +257,16 @@ function MonitorForm({
       submitLabel={submitLabel}
     >
       <StyledList symbol="colored-numeric">
+        {monitor?.isUpserting && (
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {t(
+                'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
         <InputGroup noPadding>
@@ -561,13 +571,13 @@ const StyledList = styled(List)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 
 const LabelText = styled(Text)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -597,8 +607,8 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;
 `;

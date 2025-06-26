@@ -196,40 +196,38 @@ function Controls({
               </Button>
             </Feature>
             {dashboard.id !== 'default-overview' && (
-              <Feature features="dashboards-favourite">
-                <Button
-                  size="sm"
-                  aria-label={'dashboards-favourite'}
-                  icon={
-                    <IconStar
-                      color={isFavorited ? 'yellow300' : 'gray300'}
-                      isSolid={isFavorited}
-                      aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                    />
+              <Button
+                size="sm"
+                aria-label={'dashboards-favourite'}
+                icon={
+                  <IconStar
+                    color={isFavorited ? 'yellow300' : 'gray300'}
+                    isSolid={isFavorited}
+                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                  />
+                }
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      queryClient,
+                      organization.slug,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                    trackAnalytics('dashboards_manage.toggle_favorite', {
+                      organization,
+                      dashboard_id: dashboard.id,
+                      favorited: !isFavorited,
+                    });
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
                   }
-                  onClick={async () => {
-                    try {
-                      setIsFavorited(!isFavorited);
-                      await updateDashboardFavorite(
-                        api,
-                        queryClient,
-                        organization.slug,
-                        dashboard.id,
-                        !isFavorited
-                      );
-                      trackAnalytics('dashboards_manage.toggle_favorite', {
-                        organization,
-                        dashboard_id: dashboard.id,
-                        favorited: !isFavorited,
-                      });
-                    } catch (error) {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    }
-                  }}
-                />
-              </Feature>
+                }}
+              />
             )}
             {dashboard.id !== 'default-overview' && (
               <EditAccessSelector
@@ -313,7 +311,7 @@ function DashboardEditFeature({
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

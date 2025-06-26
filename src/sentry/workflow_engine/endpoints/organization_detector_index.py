@@ -26,6 +26,7 @@ from sentry.search.utils import tokenize_query
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -41,14 +42,15 @@ SORT_ATTRS = {
 def get_detector_validator(
     request: Request, project: Project, detector_type_slug: str, instance=None
 ) -> BaseDetectorTypeValidator:
-    detector_type = grouptype.registry.get_by_slug(detector_type_slug)
-    if detector_type is None:
-        raise ValidationError({"detectorType": ["Unknown detector type"]})
+    type = grouptype.registry.get_by_slug(detector_type_slug)
+    if type is None:
+        error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
+        raise ValidationError({"type": [error_message]})
 
-    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
-        raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
+    if type.detector_settings is None or type.detector_settings.validator is None:
+        raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    return detector_type.detector_settings.validator(
+    return type.detector_settings.validator(
         instance=instance,
         context={
             "project": project,
@@ -80,6 +82,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
             DetectorParams.QUERY,
             DetectorParams.SORT,
+            DetectorParams.ID,
         ],
         responses={
             201: DetectorSerializer,
@@ -99,6 +102,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = Detector.objects.filter(
             project_id__in=projects,
         )
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
             tokenized_query = tokenize_query(raw_query)
@@ -162,9 +172,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         :param object data_source: Configuration for the data source
         :param array data_conditions: List of conditions to trigger the detector
         """
-        detector_type = request.data.get("detectorType")
+        detector_type = request.data.get("type")
         if not detector_type:
-            raise ValidationError({"detectorType": ["This field is required."]})
+            raise ValidationError({"type": ["This field is required."]})
 
         try:
             project_id = request.data.get("projectId")

@@ -107,7 +107,6 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
     workflow_id = -1
     workflow_event_data = WorkflowEventData(
         event=test_event,
-        workflow_id=workflow_id,
     )
 
     detector = Detector(
@@ -127,6 +126,9 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
             data=action_data.get("data", {}),
             config=action_data.get("config", {}),
         )
+
+        # Annotate the action with the workflow id
+        setattr(action, "workflow_id", workflow_id)
 
         # Test fire the action and collect any exceptions
         exceptions = test_fire_action(action, workflow_event_data, detector)

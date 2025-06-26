@@ -1,7 +1,7 @@
 import uuid
 from unittest import mock
 
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -38,7 +38,10 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
-            self.detector, self.evidence_data, self.group_event.group.status
+            self.detector,
+            self.evidence_data,
+            self.group_event.group.status,
+            self.group_event.occurrence.priority,
         )
         metric_issue_context = MetricIssueContext.from_group_event(
             self.group, self.evidence_data, self.group_event.occurrence.priority
@@ -98,9 +101,9 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             name=self.detector.name,
             action_identifier_id=self.detector.id,
             threshold_type=AlertRuleThresholdType.ABOVE,
-            detection_type=None,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
-            alert_threshold=self.evidence_data.data_condition_comparison_value,
+            alert_threshold=self.evidence_data.conditions[0]["comparison"],
         )
 
         self.assert_metric_issue_context(

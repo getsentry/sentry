@@ -3,7 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {
+  EChartsOption,
+  SeriesOption,
+  ToolboxComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -20,6 +25,8 @@ import {isChartHovered, truncationFormatter} from 'sentry/components/charts/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
+  EChartBrushEndHandler,
+  EChartBrushStartHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -32,7 +39,6 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
@@ -46,10 +52,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -75,6 +78,12 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   axisRange?: 'auto' | 'dataMin';
+
+  /**
+   * The brush options for the chart.
+   */
+  brush?: EChartsOption['brush'];
+
   /**
    * Reference to the chart instance
    */
@@ -83,6 +92,16 @@ export interface TimeSeriesWidgetVisualizationProps
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd?: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart?: EChartBrushStartHandler;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -120,6 +139,11 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -139,13 +163,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
-    props.showReleaseAs !== 'none' &&
-    organization.features.includes('release-bubbles-ui') &&
-    props.showReleaseAs === 'bubble';
+    props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
@@ -272,10 +293,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // Set up a fallback palette for any plottable without a color
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
-  const palette =
-    paletteSize > 0
-      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
-      : [];
+  const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
 
   // Create a lookup of series names (given to ECharts) to labels (from
   // Plottable). This makes it easier to look up alises when rendering tooltips
@@ -408,20 +426,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             theme,
             props.releases,
             function onReleaseClick(release: Release) {
-              if (organization.features.includes('release-bubbles-ui')) {
-                navigate(
-                  makeReleaseDrawerPathname({
-                    location,
-                    release: release.version,
-                    source: 'time-series-widget',
-                  })
-                );
-                return;
-              }
               navigate(
-                makeReleasesPathname({
-                  organization,
-                  path: `/${encodeURIComponent(release.version)}/`,
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
                 })
               );
             },
@@ -663,6 +672,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
+      toolBox={props.toolBox ?? chartZoomProps.toolBox}
+      brush={props.brush}
+      onBrushStart={props.onBrushStart}
+      onBrushEnd={props.onBrushEnd}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
@@ -752,7 +765,7 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMessage = styled('div')<{visible: boolean}>`
   opacity: ${p => (p.visible ? 1 : 0)};
-  height: ${p => p.theme.fontSizeSmall};
+  height: ${p => p.theme.fontSize.sm};
 `;
 
 const LoadingMask = styled(TransparentLoadingMask)`

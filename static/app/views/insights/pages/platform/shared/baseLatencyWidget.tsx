@@ -11,7 +11,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
@@ -20,6 +19,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface BaseLatencyWidgetProps extends LoadableChartWidgetProps {
+  referrer: string;
   title: string;
   baseQuery?: string;
 }
@@ -27,6 +27,7 @@ interface BaseLatencyWidgetProps extends LoadableChartWidgetProps {
 export default function BaseLatencyWidget({
   title,
   baseQuery,
+  referrer,
   ...props
 }: BaseLatencyWidgetProps) {
   const organization = useOrganization();
@@ -43,9 +44,8 @@ export default function BaseLatencyWidget({
       ...pageFilterChartParams,
       search: fullQuery,
       yAxis: ['avg(span.duration)', 'p95(span.duration)'],
-      referrer: Referrer.DURATION_CHART,
     },
-    Referrer.DURATION_CHART,
+    referrer,
     props.pageFilters
   );
 
@@ -81,6 +81,8 @@ export default function BaseLatencyWidget({
         organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
+            showCreateAlert
+            referrer={referrer}
             exploreParams={{
               mode: Mode.SAMPLES,
               visualize: [

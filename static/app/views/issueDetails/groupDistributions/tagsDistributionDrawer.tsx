@@ -67,16 +67,16 @@ export default function TagsDistributionDrawer({
       </EventNavigator>
       <EventDrawerBody>
         {!tagKey && enableSuspectFlags ? (
-          <SuspectTable
-            debugSuspectScores={false}
-            environments={environments}
-            group={group}
-          />
+          <SuspectTable environments={environments} group={group} />
         ) : null}
 
         {tagKey ? null : (
           <EventStickyControls>
-            <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
+            {includeFeatureFlagsTab ? (
+              <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
+            ) : (
+              <div />
+            )}
 
             <ButtonBar gap={1}>
               <GroupDistributionsSearchInput

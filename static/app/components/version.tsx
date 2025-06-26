@@ -8,10 +8,7 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -78,22 +75,12 @@ function Version({
   const renderVersion = () => {
     if (anchor && organization?.slug) {
       const props = {
-        to: organization.features.includes('release-bubbles-ui')
-          ? makeReleaseDrawerPathname({
-              location,
-              release: version,
-              projectId: releaseDetailProjectId,
-              source: 'release-version-link',
-            })
-          : {
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(version)}/`,
-                organization,
-              }),
-              query: releaseDetailProjectId
-                ? {project: releaseDetailProjectId}
-                : undefined,
-            },
+        to: makeReleaseDrawerPathname({
+          location,
+          release: version,
+          projectId: releaseDetailProjectId,
+          source: 'release-version-link',
+        }),
         className,
       };
       if (preservePageFilters) {
@@ -144,7 +131,7 @@ function Version({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints.small}) {
+      @media (min-width: ${theme.breakpoints.sm}) {
         max-width: 500px;
       }
     `;

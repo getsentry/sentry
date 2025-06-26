@@ -206,3 +206,32 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["project.id"] == project2.id
         assert log_data["trace"] == trace_id_2
         assert log_data["message"] == "bar"
+
+    def test_query_field(self):
+        trace_id_1 = "1" * 32
+        trace_id_2 = "2" * 32
+        self.store_ourlogs(
+            [
+                self.create_ourlog(
+                    {"body": "foo", "trace_id": trace_id_1},
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "bar", "trace_id": trace_id_2},
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.client.get(
+            self.url,
+            data={"traceId": [trace_id_1, trace_id_2], "query": "message:foo"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        log_data = data[0]
+        assert log_data["project.id"] == self.project.id
+        assert log_data["trace"] == trace_id_1
+        assert log_data["message"] == "foo"

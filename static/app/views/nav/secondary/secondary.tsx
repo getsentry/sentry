@@ -5,8 +5,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
@@ -260,8 +260,8 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -306,7 +306,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.fontWeightBold};
+  font-weight: ${p.theme.fontWeight.bold};
   color: ${p.theme.textColor};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
@@ -328,7 +328,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   & > span:last-child {
     flex: 1;
@@ -349,7 +349,7 @@ const TrailingItems = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  padding: ${space(1.5)} 0;
+  margin: ${space(1.5)} 0;
   display: none;
 `;
 
@@ -366,13 +366,13 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -388,7 +388,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -420,8 +420,8 @@ const StyledNavItem = styled(Link)<ItemProps>`
   height: 34px;
   align-items: center;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
   gap: ${space(0.75)};
@@ -433,7 +433,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
 
   &[aria-selected='true'] {
     color: ${p => p.theme.purple400};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
 
     &:hover {
       color: ${p => p.theme.purple400};

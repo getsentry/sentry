@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -6,13 +6,16 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import {
+  SelectedReplayIndexProvider,
+  useSelectedReplayIndex,
+} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -20,7 +23,6 @@ import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader'
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
@@ -53,14 +55,7 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplayColumn.ACTIVITY,
 ];
 
-const visibleColumns = (allMobileProj: boolean) =>
-  allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS;
-
 function ReplayFilterMessage() {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-  if (!hasStreamlinedUI) {
-    return null;
-  }
   return (
     <ReplayFilterText>
       {t('The replays shown below are not subject to search filters.')}
@@ -94,12 +89,16 @@ export default function GroupReplays({group}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+
   if (!eventView) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
-          <ReplayFilterMessage />
+          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <ReplayCountHeader>
             <IconUser size="sm" />
             {isFetching ? (
@@ -114,48 +113,74 @@ export default function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={visibleColumns(isMobilePlatform)}
+          visibleColumns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
   }
+
+  const replayCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
+
   return (
-    <GroupReplaysTable eventView={eventView} organization={organization} group={group} />
+    <SelectedReplayIndexProvider>
+      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+        <ReplayHeader>
+          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
+          <ReplayCountHeader>
+            <IconUser size="sm" />
+            {replayCount > 50
+              ? tn(
+                  'There are 50+ replays for this issue across %s event',
+                  'There are 50+ replays for this issue across %s events',
+                  group.count
+                )
+              : t(
+                  'There %s for this issue across %s.',
+                  tn('is %s replay', 'are %s replays', replayCount),
+                  tn('%s event', '%s events', group.count)
+                )}
+          </ReplayCountHeader>
+        </ReplayHeader>
+
+        <GroupReplaysTable
+          eventView={eventView}
+          group={group}
+          replayCount={replayCount}
+        />
+      </StyledLayoutPage>
+    </SelectedReplayIndexProvider>
   );
 }
 
-function GroupReplaysTableInner({
+function SelectedReplayWrapper({
   children,
-  organization,
   group,
   replaySlug,
-  setSelectedReplayIndex,
-  selectedReplayIndex,
   overlayContent,
   replays,
 }: {
   children: React.ReactNode;
   group: Group;
-  organization: Organization;
+  overlayContent: React.ReactNode;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
-  selectedReplayIndex: number;
-  setSelectedReplayIndex: (index: number) => void;
-  overlayContent?: React.ReactNode;
 }) {
-  const orgSlug = organization.slug;
+  const organization = useOrganization();
   const readerResult = useLoadReplayReader({
-    orgSlug,
+    orgSlug: organization.slug,
     replaySlug,
     group,
   });
-  const {fetching, replay} = readerResult;
+  const {status, replay} = readerResult;
+
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
 
   return (
     <ReplayContextProvider
       analyticsContext="replay_tab"
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
       autoStart
     >
@@ -164,16 +189,12 @@ function GroupReplaysTableInner({
         overlayContent={overlayContent}
         handleForwardClick={
           replays && selectedReplayIndex + 1 < replays.length
-            ? () => {
-                setSelectedReplayIndex(selectedReplayIndex + 1);
-              }
+            ? () => setSelectedReplayIndex(selectedReplayIndex + 1)
             : undefined
         }
         handleBackClick={
           selectedReplayIndex > 0
-            ? () => {
-                setSelectedReplayIndex(selectedReplayIndex - 1);
-              }
+            ? () => setSelectedReplayIndex(selectedReplayIndex - 1)
             : undefined
         }
         analyticsContext="replay_tab"
@@ -183,139 +204,99 @@ function GroupReplaysTableInner({
   );
 }
 
-const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
-
 function GroupReplaysTable({
   eventView,
-  organization,
   group,
+  replayCount,
 }: {
   eventView: EventView;
   group: Group;
-  organization: Organization;
+  replayCount: number;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = useParams<{groupId: string}>();
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
+  const organization = useOrganization();
+  const {allMobileProj} = useAllMobileProj({});
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
+
+  const {groupId} = useParams<{groupId: string}>();
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['selected_replay_index'],
+    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${groupId}/`),
   });
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const replayListData = useReplayList({
     eventView,
-    location: locationForFetching,
+    location: useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []),
     organization,
     queryReferrer: 'issueReplays',
   });
   const {replays} = replayListData;
-  const {allMobileProj} = useAllMobileProj({});
-
-  const rawReplayIndex = location.query.selected_replay_index;
-  const selectedReplayIndex = parseInt(
-    typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
-    10
-  );
-
-  useCleanQueryParamsOnRouteLeave({
-    fieldsToClean: ['selected_replay_index'],
-    shouldClean: newLocation =>
-      newLocation.pathname.includes(`/issues/${params.groupId}/`),
-  });
-
-  const setSelectedReplayIndex = useCallback(
-    (index: number) => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {...location.query, selected_replay_index: index},
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    },
-    [location, navigate]
-  );
-
   const selectedReplay = replays?.[selectedReplayIndex];
-
-  const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
-  const nextReplay = replays?.[selectedReplayIndex + 1];
-  const nextReplayText = nextReplay?.id
-    ? `${nextReplay.user.display_name || t('Anonymous User')}`
-    : undefined;
-
-  const overlayContent =
-    nextReplayText && replayCount && replayCount > 1 ? (
-      <Fragment>
-        <UpNext>{t('Up Next')}</UpNext>
-        <OverlayText>{nextReplayText}</OverlayText>
-        <Button
-          onClick={() => {
-            setSelectedReplayIndex(selectedReplayIndex + 1);
-          }}
-          icon={<IconPlay size="md" />}
-          analyticsEventKey="issue_details.replay_tab.play_next_replay"
-          analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"
-        >
-          {t('Play Now')}
-        </Button>
-      </Fragment>
-    ) : undefined;
 
   const replayTable = (
     <ReplayTable
       sort={undefined}
       visibleColumns={[
         ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
-        ...visibleColumns(allMobileProj),
+        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
       ]}
       showDropdownFilters={false}
-      onClickPlay={setSelectedReplayIndex}
+      onClickRow={setSelectedReplayIndex}
       fetchError={replayListData.fetchError}
       isFetching={replayListData.isFetching}
       replays={replays}
     />
   );
 
-  const inner = selectedReplay ? (
-    <GroupReplaysTableInner
-      // Use key to force unmount/remount of component to reset the context and replay iframe
-      key={selectedReplay.id}
-      setSelectedReplayIndex={setSelectedReplayIndex}
-      selectedReplayIndex={selectedReplayIndex}
-      overlayContent={overlayContent}
-      organization={organization}
-      group={group}
-      replaySlug={selectedReplay.id}
-      replays={replays}
-    >
-      {replayTable}
-    </GroupReplaysTableInner>
-  ) : (
-    replayTable
-  );
+  if (selectedReplay) {
+    return (
+      <SelectedReplayWrapper
+        // Use key to force unmount/remount of component to reset the context and replay iframe
+        key={selectedReplay.id}
+        overlayContent={<ReplayOverlay replayCount={replayCount} replays={replays} />}
+        group={group}
+        replaySlug={selectedReplay.id}
+        replays={replays}
+      >
+        {replayTable}
+      </SelectedReplayWrapper>
+    );
+  }
+  return replayTable;
+}
+
+function ReplayOverlay({
+  replayCount,
+  replays,
+}: {
+  replayCount: number;
+  replays: ReplayListRecord[];
+}) {
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
+
+  const nextReplay = replays?.[selectedReplayIndex + 1];
+  const nextReplayText = nextReplay?.id
+    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    : undefined;
+
+  if (!nextReplayText || !replayCount) {
+    return null;
+  }
 
   return (
-    <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-      <ReplayHeader>
-        <ReplayFilterMessage />
-        <ReplayCountHeader>
-          <IconUser size="sm" />
-          {(replayCount ?? 0) > 50
-            ? tn(
-                'There are 50+ replays for this issue across %s event',
-                'There are 50+ replays for this issue across %s events',
-                group.count
-              )
-            : t(
-                'There %s for this issue across %s.',
-                tn('is %s replay', 'are %s replays', replayCount ?? 0),
-                tn('%s event', '%s events', group.count)
-              )}
-        </ReplayCountHeader>
-      </ReplayHeader>
-      {inner}
-    </StyledLayoutPage>
+    <Fragment>
+      <UpNext>{t('Up Next')}</UpNext>
+      <OverlayText>{nextReplayText}</OverlayText>
+      <Button
+        onClick={() => setSelectedReplayIndex(selectedReplayIndex + 1)}
+        icon={<IconPlay size="md" />}
+        analyticsEventKey="issue_details.replay_tab.play_next_replay"
+        analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"
+      >
+        {t('Play Now')}
+      </Button>
+    </Fragment>
   );
 }
 
@@ -354,7 +335,7 @@ const ReplayFilterText = styled('div')`
 `;
 
 const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const UpNext = styled('div')`

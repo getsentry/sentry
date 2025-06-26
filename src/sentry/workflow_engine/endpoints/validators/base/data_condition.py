@@ -40,27 +40,31 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
-    def _get_handler(self) -> DataConditionHandler | None:
+
+    @property
+    def condition_type(self) -> Condition:
+        if isinstance(self.initial_data, list) and self.initial_data:
+            return self.initial_data[0].get("type")
+
+        return self.initial_data.get("type")
+
+    def _get_handler(self) -> type[DataConditionHandler] | None:
         if self._is_operator_condition():
             return None
 
-        condition_type = self.initial_data.get("type")
-
         try:
-            return condition_handler_registry.get(condition_type)
+            return condition_handler_registry.get(self.condition_type)
         except NoRegistrationExistsError:
-            raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+            raise serializers.ValidationError(f"Invalid condition type: {self.condition_type}")
 
     def _is_operator_condition(self) -> bool:
-        condition_type = self.initial_data.get("type")
-        return condition_type in CONDITION_OPS
+        return self.condition_type in CONDITION_OPS
 
     def validate_comparison(self, value: Any) -> Any:
         """
         Validate the comparison field. Get the schema configuration for the type, if
         there is no schema configuration, then we assume the comparison field is a primitive value.
         """
-
         handler = self._get_handler()
 
         if not handler:

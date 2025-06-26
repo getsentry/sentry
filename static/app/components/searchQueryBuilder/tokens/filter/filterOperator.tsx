@@ -1,12 +1,13 @@
 import {type ReactNode, useMemo} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
@@ -267,7 +268,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   );
 }
 
-const OpButton = styled(UnstyledButton)<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {
+  shouldForwardProp: isPropValid,
+})<{onlyOperator?: boolean}>`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
   height: 100%;
   border-left: 1px solid transparent;

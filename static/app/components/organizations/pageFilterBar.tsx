@@ -88,7 +88,7 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
     except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
         flex-shrink: 1;
       }
     }
@@ -145,7 +145,7 @@ const chonkPageFilterBarStyles = (p: {
 except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
         flex-shrink: 1;
       }
     }
@@ -167,6 +167,8 @@ except in mobile */
 
   display: flex;
   position: relative;
+
+  height: ${p.theme.form.md.height};
 
   & button[aria-haspopup] {
     height: 100%;

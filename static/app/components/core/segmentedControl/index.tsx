@@ -11,9 +11,9 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
@@ -263,6 +263,12 @@ const GroupWrap = withChonk(
   ChonkStyledGroupWrap
 );
 
+const segmentedWrapPadding = {
+  md: '10px 16px 10px 16px',
+  sm: '8px 12px 8px 12px',
+  xs: '6px 8px 6px 8px',
+} as const;
+
 const SegmentWrap = withChonk(
   styled('label')<{
     isSelected: boolean;
@@ -279,8 +285,8 @@ const SegmentWrap = withChonk(
     min-height: 0;
     min-width: 0;
 
-    ${p => p.theme.buttonPadding[p.size]}
-    font-weight: ${p => p.theme.fontWeightNormal};
+    padding: ${p => segmentedWrapPadding[p.size]};
+    font-weight: ${p => p.theme.fontWeight.normal};
 
     ${p =>
       !p.isDisabled &&

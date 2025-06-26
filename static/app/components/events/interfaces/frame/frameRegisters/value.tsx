@@ -60,7 +60,7 @@ const InlinePre = styled('pre')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   text-align: left;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ToggleButton = styled(Button)`

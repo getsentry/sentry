@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
@@ -38,12 +38,12 @@ const HeaderInfo = styled('div')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 `;
 
 const SectionBody = styled('div')<{rightAlign?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-align: ${p => (p.rightAlign ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;
@@ -51,7 +51,7 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 
 interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
-  meta: TraceMeta | undefined;
+  meta: TraceMetaQueryResults['data'];
   organization: Organization;
   representativeEvent: RepresentativeTraceEvent;
   tree: TraceTree;
@@ -166,7 +166,11 @@ export function Meta(props: MetaProps) {
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
-          bodyText={props.logs?.length ?? 0}
+          bodyText={
+            props.meta && 'logs' in props.meta
+              ? props.meta.logs
+              : (props.logs?.length ?? 0)
+          }
         />
       ) : null}
     </MetaWrapper>

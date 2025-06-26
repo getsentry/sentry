@@ -5,7 +5,12 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -16,7 +21,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaEndpoint(
-    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin
+    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin, SpanTestCase
 ):
     def setUp(self):
         super().setUp()
@@ -35,6 +40,15 @@ class OrganizationEventsMetaEndpoint(
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_spans_dataset(self):
+        self.store_spans([self.create_span(start_ts=self.min_ago)], is_eap=True)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "spans"})
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1

@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -187,7 +188,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Alternatively, add the [code:SentryGlobalFilter] (or [code:SentryGlobalGraphQLFilter] if you are using GraphQL) before any other exception filters to the providers of your main module.',
+            'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
@@ -283,6 +284,9 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/nestjs',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nestjs',
   }),
 };
 

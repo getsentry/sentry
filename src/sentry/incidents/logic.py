@@ -99,6 +99,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -1018,6 +1019,22 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
 
 
+def update_detector(detector: Detector, enabled: bool) -> None:
+    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+
+    with transaction.atomic(router.db_for_write(Detector)):
+        detector.update(status=updated_detector_status)
+        detector.update(enabled=enabled)
+        query_subscriptions = QuerySubscription.objects.filter(
+            id__in=[data_source.source_id for data_source in detector.data_sources.all()]
+        )
+        if query_subscriptions:
+            if enabled:
+                bulk_enable_snuba_subscriptions(query_subscriptions)
+            else:
+                bulk_disable_snuba_subscriptions(query_subscriptions)
+
+
 def delete_alert_rule(
     alert_rule: AlertRule, user: User | RpcUser | None = None, ip_address: str | None = None
 ) -> None:
@@ -1769,6 +1786,9 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 

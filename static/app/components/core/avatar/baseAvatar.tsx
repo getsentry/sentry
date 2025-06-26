@@ -1,22 +1,24 @@
 import type React from 'react';
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import {Gravatar} from 'sentry/components/core/avatar/gravatar';
-import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
-import {
-  type BaseAvatarComponentProps,
-  BaseAvatarComponentStyles,
-} from './baseAvatarComponentStyles';
+import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+import {Gravatar} from './gravatar';
+import {LetterAvatar} from './letterAvatar';
 
 const DEFAULT_REMOTE_SIZE = 120;
 
 export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
+  /**
+   * The component to render if the selected avatar type cannot be rendered.
+   * For Gravatar this may happen if the gravatar cannot be loaded, for
+   * uploaded avatars this will happen when no uploadUrl is provided.
+   */
   backupAvatar?: React.ReactNode;
   gravatarId?: string;
   /**
@@ -47,7 +49,7 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Full URL to the uploaded avatar's image.
    */
-  uploadUrl?: string | null | undefined;
+  uploadUrl?: string | null;
 }
 
 export function BaseAvatar({
@@ -70,14 +72,26 @@ export function BaseAvatar({
 }: BaseAvatarProps) {
   const [hasError, setError] = useState<boolean | null>(null);
 
+  // Reset loading errors when avatar type changes
+  useEffect(() => setError(null), [type]);
+
   const handleError = useCallback(() => setError(true), []);
   const handleLoad = useCallback(() => setError(false), []);
+
+  const showBackup = hasError || (type === 'upload' && !uploadUrl);
+
+  // Don't add remote size query parameter if we have a data url
+  const imgSrc = uploadUrl
+    ? uploadUrl.startsWith('data:')
+      ? uploadUrl
+      : `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`
+    : undefined;
 
   const imageAvatar =
     type === 'upload' ? (
       <ImageAvatar
         ref={ref as React.Ref<HTMLImageElement>}
-        src={uploadUrl ? `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}` : ''}
+        src={imgSrc}
         round={round}
         suggested={suggested}
         onLoad={handleLoad}
@@ -93,8 +107,6 @@ export function BaseAvatar({
         onLoad={handleLoad}
         onError={handleError}
       />
-    ) : type === 'background' ? (
-      <BackgroundAvatar round={round} suggested={suggested} />
     ) : (
       <LetterAvatar
         ref={ref as React.Ref<SVGSVGElement>}
@@ -117,7 +129,7 @@ export function BaseAvatar({
         title={title}
         {...props}
       >
-        {hasError
+        {showBackup
           ? (backupAvatar ?? (
               <LetterAvatar
                 ref={ref as React.Ref<SVGSVGElement>}
@@ -145,32 +157,6 @@ const AvatarContainer = styled('span')<{
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
 `;
 
-interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
-  ref?: React.Ref<SVGSVGElement>;
-  round?: boolean;
-  suggested?: boolean;
-}
-
-/**
- * Creates an avatar placeholder that is used when showing multiple
- * suggested assignees
- */
-const BackgroundAvatar = styled(
-  ({round: _round, ref, ...props}: BackgroundAvatarProps) => {
-    return (
-      <svg ref={ref} viewBox="0 0 120 120" {...props}>
-        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
-      </svg>
-    );
-  }
-)<BackgroundAvatarProps>`
-  ${BaseAvatarComponentStyles};
-
-  svg rect {
-    fill: ${p => p.theme.purple100};
-  }
-`;
-
-const ImageAvatar = styled('img')<BaseAvatarComponentProps>`
-  ${BaseAvatarComponentStyles};
+const ImageAvatar = styled('img')<BaseAvatarStyleProps>`
+  ${baseAvatarStyles};
 `;

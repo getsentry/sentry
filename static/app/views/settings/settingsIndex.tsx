@@ -59,13 +59,7 @@ function SettingsIndex(props: SettingsIndexProps) {
   // be the organization settings page.
   // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
   if (organization && prefersStackedNav(organization)) {
-    return (
-      <Redirect
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/settings/${organization.slug}/`
-        )}
-      />
-    );
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/`)} />;
   }
 
   const myAccount = (
@@ -283,7 +277,7 @@ const GridPanel = styled(Panel)`
 
 const HomePanelHeader = styled(PanelHeader)`
   background: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   align-items: center;
   text-transform: unset;
   padding: ${space(4)} ${space(4)} 0;

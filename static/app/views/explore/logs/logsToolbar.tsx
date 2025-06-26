@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,15 +10,18 @@ import {
   useLogsAggregateFunction,
   useLogsAggregateParam,
   useLogsGroupBy,
-  useLogsSortBys,
   useSetLogsPageParams,
-  useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
+  },
+  {
+    label: t('count unique'),
+    value: AggregationKey.COUNT_UNIQUE,
   },
   {
     label: t('sum'),
@@ -55,7 +59,7 @@ const TOOLBAR_AGGREGATES = [
     label: t('min'),
     value: AggregationKey.MIN,
   },
-];
+] satisfies Array<{label: string; value: OurLogsAggregate}>;
 
 interface LogsToolbarProps {
   numberTags?: TagCollection;
@@ -64,12 +68,26 @@ interface LogsToolbarProps {
 
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam() ?? 'logs';
-  const sortBys = useLogsSortBys();
+  let aggregateParam = useLogsAggregateParam();
   const groupBy = useLogsGroupBy();
-  const sortAscending = !sortBys.some(x => x.kind === 'desc');
   const setLogsPageParams = useSetLogsPageParams();
-  const setLogsSortBys = useSetLogsSortBys();
+  const functionArgRef = useRef<HTMLDivElement>(null);
+
+  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+    label: prettifyTagKey(key),
+    value: key,
+  }));
+
+  if (aggregateFunction === AggregationKey.COUNT) {
+    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
+    aggregateParam = 'logs';
+  }
+  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
+    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
+      label: prettifyTagKey(key),
+      value: key,
+    }));
+  }
 
   return (
     <Container>
@@ -79,7 +97,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
+            options={LOG_AGGREGATES}
             onChange={val => {
               if (val.value === 'count') {
                 setLogsPageParams({
@@ -88,24 +106,23 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
                 });
               } else {
                 setLogsPageParams({aggregateFn: val.value as string | undefined});
+                functionArgRef.current?.querySelector('button')?.click();
               }
             }}
             value={aggregateFunction}
           />
-          <Select
-            options={[
-              {label: t('logs'), value: 'logs'},
-              ...Object.keys(numberTags ?? {}).map(key => ({
-                label: prettifyTagKey(key),
-                value: key,
-              })),
-            ]}
-            onChange={val =>
-              setLogsPageParams({aggregateParam: val.value as string | undefined})
-            }
-            value={aggregateParam}
-            disabled={aggregateFunction === 'count'}
-          />
+          <SelectRefWrapper ref={functionArgRef}>
+            <Select
+              options={aggregatableKeys}
+              onChange={val => {
+                if (aggregateFunction !== 'count') {
+                  setLogsPageParams({aggregateParam: val.value as string | undefined});
+                }
+              }}
+              searchable
+              value={aggregateParam}
+            />
+          </SelectRefWrapper>
         </ToolbarSelectRow>
       </ToolbarItem>
       <ToolbarItem>
@@ -132,56 +149,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
           triggerProps={{style: {width: '100%'}}}
         />
       </ToolbarItem>
-      <ToolbarItem>
-        <SectionHeader>
-          <Label>{t('Sort By')}</Label>
-        </SectionHeader>
-        <ToolbarSelectRow>
-          <Select
-            options={[
-              ...Object.keys(stringTags ?? {}),
-              ...Object.keys(numberTags ?? {}),
-            ].map(key => ({
-              label: prettifyTagKey(key),
-              value: key,
-            }))}
-            onChange={val =>
-              setLogsSortBys([
-                {
-                  field: val.value as string,
-                  kind: sortAscending ? 'asc' : 'desc',
-                },
-              ])
-            }
-            value={sortBys[0]!.field}
-            searchable
-            triggerProps={{style: {width: '100%'}}}
-          />
-          <Select
-            options={[
-              {
-                label: t('asc'),
-                value: 'asc',
-              },
-              {
-                label: t('desc'),
-                value: 'desc',
-              },
-            ]}
-            value={sortAscending ? 'asc' : 'desc'}
-            onChange={val => {
-              setLogsSortBys([
-                {
-                  field: sortBys[0]!.field,
-                  kind: val.value === 'desc' ? 'desc' : 'asc',
-                },
-              ]);
-            }}
-            searchable
-            triggerProps={{style: {width: '100%'}}}
-          />
-        </ToolbarSelectRow>
-      </ToolbarItem>
     </Container>
   );
 }
@@ -195,7 +162,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.background};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
   }
 `;
@@ -224,6 +191,11 @@ const ToolbarSelectRow = styled('div')`
   grid-template-columns: minmax(90px, auto) 1fr;
   max-width: 100%;
   gap: ${space(2)};
+`;
+
+const SelectRefWrapper = styled('div')`
+  width: 100%;
+  min-width: 0;
 `;
 
 const Select = styled(CompactSelect)`
