@@ -125,7 +125,8 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
     if (drawerUrlState.trace && !isDrawerOpen) {
       openTraceViewDrawer(drawerUrlState.trace);
     }
-  }, [drawerUrlState.trace, isDrawerOpen, openTraceViewDrawer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
+  }, []);
 
   return {
     openTraceViewDrawer,
