@@ -266,6 +266,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         mock_trigger.reset_mock()
         high_priority_event_2 = self.create_error_event(project=project, detector=detector)
         # ignore the issue to get has_reappeared
+        assert high_priority_event_2.group
         handle_ignored(
             group_list=[high_priority_event_2.group],
             status_details={"ignoreDuration": -1},
