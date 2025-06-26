@@ -253,7 +253,7 @@ const RadioLabel = styled('label')`
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 

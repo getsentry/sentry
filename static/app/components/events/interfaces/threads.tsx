@@ -444,7 +444,7 @@ const ThreadStateWrapper = styled('div')`
 `;
 
 const LockReason = styled(TextOverflow)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
@@ -470,6 +470,6 @@ const ThreadTraceWrapper = styled('div')`
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;

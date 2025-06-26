@@ -194,7 +194,7 @@ const Type = styled('div')`
 
 const TitleOpText = styled('div')`
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -802,7 +802,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-right: ${space(1)};
 `;
 

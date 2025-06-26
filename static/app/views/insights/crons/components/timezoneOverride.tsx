@@ -74,7 +74,7 @@ function TimezoneLabel({timezone}: {timezone: string}) {
 
 const TimezoneName = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSize.sm};

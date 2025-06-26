@@ -9,7 +9,7 @@ import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 export const Header = styled('h3')`
   display: block;
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 `;
 

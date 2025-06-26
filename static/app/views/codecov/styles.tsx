@@ -7,7 +7,7 @@ export const InlineCodeSnippet = styled('span')`
   color: ${p => p.theme.white};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(0.75)} 10px;
   line-height: 1;

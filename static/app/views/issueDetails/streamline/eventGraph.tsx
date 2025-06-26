@@ -668,7 +668,7 @@ const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
   margin-top: ${space(0.5)};
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
 `;
 

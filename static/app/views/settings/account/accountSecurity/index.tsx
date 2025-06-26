@@ -267,7 +267,7 @@ const AuthenticatorTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const AuthenticatorDescription = styled(TextBlock)`

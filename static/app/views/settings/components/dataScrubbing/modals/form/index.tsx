@@ -224,7 +224,7 @@ const ToggleWrapper = styled('div')`
 `;
 
 const Toggle = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {

@@ -390,7 +390,7 @@ const NotificationActionFormContainer = styled('div')`
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.borderRadius};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default NotificationActionItem;

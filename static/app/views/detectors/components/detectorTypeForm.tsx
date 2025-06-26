@@ -178,7 +178,7 @@ const StyledRadioField = styled(RadioField)`
 
     /* Markup for choice name and description is all divs :( */
     div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
     }
 
     &[aria-checked='true'] {

@@ -44,7 +44,7 @@ const LayoutGap = styled('div')`
 const HeaderValue = styled('div')`
   margin-top: ${space(4)};
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StyledButton = styled(Button)`

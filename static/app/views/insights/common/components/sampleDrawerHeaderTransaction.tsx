@@ -76,7 +76,7 @@ const Bar = styled('h4')`
   line-height: ${p => p.theme.text.lineHeightBody};
 
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   overflow: hidden;
 `;

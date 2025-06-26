@@ -283,7 +283,7 @@ const CheckboxContainer = styled('label')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

@@ -99,7 +99,7 @@ const RepoInfoWrapper = styled('div')`
 `;
 
 const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const RepoProvider = styled('div')`

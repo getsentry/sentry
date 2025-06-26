@@ -181,7 +181,7 @@ const Wrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

@@ -230,7 +230,7 @@ const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
   color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ContentWrapper = styled('div')<{

@@ -149,7 +149,7 @@ export const ColoredLogText = styled('span')<{
   logColors: ReturnType<typeof getLogColors>;
 }>`
   color: ${p => p.logColors.color};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-family: ${p => p.theme.text.familyMono};
 `;
 
@@ -159,7 +159,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
 `;
 
 export const LogsHighlight = styled(HighlightComponent)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.gray200};
   margin-right: 2px;
   margin-left: 2px;

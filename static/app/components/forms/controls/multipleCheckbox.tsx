@@ -119,7 +119,7 @@ const MultipleCheckboxWrapper = styled('div')`
 const Label = styled('label')`
   display: inline-flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
   margin-right: 10px;
   margin-bottom: 10px;

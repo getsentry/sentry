@@ -52,7 +52,7 @@ const BlockTitle = styled('h3')<{alignment: 'left' | 'right'}>`
 
 const BlockContent = styled('h4')<{alignment: 'left' | 'right'}>`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-align: ${p => p.alignment};
 `;
 

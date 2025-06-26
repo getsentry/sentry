@@ -174,7 +174,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 
 const StreamlinedVersion = styled(Version)`
   color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   &:hover {
@@ -185,7 +185,7 @@ const StreamlinedVersion = styled(Version)`
 
 const StreamlinedCommitLink = styled(CommitLink)`
   color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   margin-right: ${space(0.5)};

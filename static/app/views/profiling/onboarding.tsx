@@ -386,7 +386,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`
@@ -490,7 +490,7 @@ const DescriptionWrapper = styled('div')`
   && > h5,
   && > h6 {
     font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     line-height: 34px;
   }
 

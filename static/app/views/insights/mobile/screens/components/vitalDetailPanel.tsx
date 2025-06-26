@@ -92,6 +92,6 @@ const Badge = styled('div')<{status: PerformanceScore}>`
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;

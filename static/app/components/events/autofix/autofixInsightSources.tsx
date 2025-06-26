@@ -315,7 +315,7 @@ const SourceCard = styled(Button)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   white-space: nowrap;
   flex-shrink: 0;

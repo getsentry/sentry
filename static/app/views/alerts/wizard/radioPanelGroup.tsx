@@ -62,7 +62,7 @@ const RadioLineItem = styled('label')<{
   align-items: center;
   cursor: pointer;
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
   color: ${p => p.theme.subText};
   transition: color 0.3s ease-in;

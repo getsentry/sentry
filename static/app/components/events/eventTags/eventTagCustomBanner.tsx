@@ -50,7 +50,7 @@ const Body = styled(PanelBody)`
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 

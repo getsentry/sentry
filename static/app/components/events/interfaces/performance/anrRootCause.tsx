@@ -169,13 +169,13 @@ function Spacer() {
 
 const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Title = styled('div')`

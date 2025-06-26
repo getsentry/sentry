@@ -408,7 +408,7 @@ const StoryTypesTableDefinitionCell = styled('td')`
 
   > span {
     font-size: ${p => p.theme.fontSizeRelativeSmall};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     margin-right: ${space(0.5)};
   }
 `;

@@ -125,7 +125,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   text-transform: uppercase;
   user-select: none;

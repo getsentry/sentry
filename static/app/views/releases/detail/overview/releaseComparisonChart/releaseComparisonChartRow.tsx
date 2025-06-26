@@ -157,7 +157,7 @@ const ChartTableRow = styled('label')<{
   role: ReleaseComparisonRow['role'];
 }>`
   display: contents;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: 0;
 
   > * {

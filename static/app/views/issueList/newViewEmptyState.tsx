@@ -132,7 +132,7 @@ export function NewViewEmptyState() {
 }
 
 const Bold = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const TooltipSubLink = styled(Link)`
@@ -160,7 +160,7 @@ const Card = styled(Panel)`
 
 const CardHeading = styled('h2')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@ const QueryButton = styled('button')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   background: none;
   border: none;
   margin: 0;

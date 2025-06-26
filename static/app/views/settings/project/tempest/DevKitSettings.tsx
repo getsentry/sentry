@@ -203,7 +203,7 @@ export const getDevKitHeaderAction = (organization: Organization, project: Proje
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')``;
@@ -215,7 +215,7 @@ const HeaderWrapper = styled('div')`
 
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 

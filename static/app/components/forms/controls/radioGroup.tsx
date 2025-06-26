@@ -128,7 +128,7 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 
