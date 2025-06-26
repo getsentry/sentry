@@ -1,3 +1,5 @@
+from typing import Any
+
 import orjson
 from django.test import override_settings
 
@@ -24,15 +26,14 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         url = self._get_url(artifact_id)
         json_data = orjson.dumps(data) if isinstance(data, dict) else data
 
-        kwargs = {"data": json_data, "content_type": "application/json"}
+        kwargs: dict[str, Any] = {"data": json_data, "content_type": "application/json"}
         if authenticated:
             signature = generate_service_request_signature(
                 url, json_data, ["test-secret-key"], "Launchpad"
             )
             kwargs["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 
-        with self.feature("organizations:preprod-artifact-assemble"):
-            return self.client.put(url, **kwargs)
+        return self.client.put(url, **kwargs)
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_success(self):
@@ -56,6 +57,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         }
 
         self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.date_built is not None
         assert self.preprod_artifact.date_built.isoformat() == "2024-01-01T00:00:00+00:00"
         assert self.preprod_artifact.artifact_type == 1
         assert self.preprod_artifact.build_version == "1.2.3"
