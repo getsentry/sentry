@@ -273,6 +273,7 @@ class PendingChanges extends Component<Props> {
       seenBudgets.add(pendingBudgetInfo?.apiName ?? '');
 
       if (pendingBudgetInfo?.isFixed) {
+        // if it's a fixed budget, we don't care about the existing budget state
         results.push(
           tct('[productName] product access will be [accessState]', {
             productName: toTitleCase(pendingBudgetInfo?.productName),
