@@ -16,7 +16,7 @@ import type {
 
 type NotSortable = {
   label: string;
-  tooltip?: string | ReactNode;
+  tooltip?: undefined | string | ReactNode;
 };
 
 type Sortable = {
