@@ -917,7 +917,6 @@ export class TokenConverter {
   ) => {
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
-
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
