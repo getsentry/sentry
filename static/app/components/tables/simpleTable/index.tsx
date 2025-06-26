@@ -69,7 +69,6 @@ function HeaderCell({
 function Row({children, variant = 'default', ...props}: RowProps) {
   return (
     <StyledRow variant={variant} role="row" {...props}>
-      <InteractionStateLayer />
       {children}
     </StyledRow>
   );
