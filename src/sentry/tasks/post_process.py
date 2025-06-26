@@ -956,6 +956,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
     from sentry.workflow_engine.processors.workflow import process_workflows
+    from sentry.workflow_engine.tasks import process_workflows_event
 
     # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
@@ -973,8 +974,24 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         logger.exception("Could not create WorkflowEventData", extra={"job": job})
         return
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_event_data)
+    org = job["event"].project.organization
+    if not features.has("organizations:workflow-engine-post-process-async", org):
+        with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+            process_workflows(workflow_event_data)
+    else:
+        try:
+            process_workflows_event.delay(
+                project_id=job["event"].project_id,
+                event_id=job["event"].event_id,
+                occurrence_id=job["event"].occurrence_id,
+                group_id=job["event"].group_id,
+                group_state=job["group_state"],
+                has_reappeared=job["has_reappeared"],
+                has_escalated=job["has_escalated"],
+            )
+        except Exception:
+            logger.exception("Could not process workflow task", extra={"job": job})
+            return
 
 
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
