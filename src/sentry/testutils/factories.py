@@ -8,7 +8,7 @@ import random
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
 from hashlib import sha1
@@ -341,7 +341,7 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
     return orjson.dumps(manifest).decode()
 
 
-def _set_sample_rate_from_error_sampling(normalized_data: dict) -> None:
+def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, Any]) -> None:
     """Set 'sample_rate' on normalized_data if contexts.error_sampling.client_sample_rate is present and valid."""
     client_sample_rate = None
     try:
