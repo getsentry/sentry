@@ -93,13 +93,15 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def test_update_preprod_artifact_invalid_schema(self):
         response = self._make_request({"artifact_type": 99})  # Invalid value
         assert response.status_code == 400
-        assert "Validation error" in response.json()["error"]
+        assert (
+            "The artifact_type field must be an integer between 0 and 2."
+            in response.json()["error"]
+        )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_extra_properties(self):
         response = self._make_request({"artifact_type": 1, "extra_field": "not allowed"})
-        assert response.status_code == 400
-        assert "Validation error" in response.json()["error"]
+        assert response.status_code == 200
 
     def test_update_preprod_artifact_unauthorized(self):
         response = self._make_request({"artifact_type": 1}, authenticated=False)

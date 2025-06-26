@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.utils import json
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -23,13 +24,38 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
     schema = {
         "type": "object",
         "properties": {
+            # Optional metadata
             "date_built": {"type": "string"},
             "artifact_type": {"type": "integer", "minimum": 0, "maximum": 2},
-            "error_message": {"type": "string"},
             "build_version": {"type": "string", "maxLength": 255},
             "build_number": {"type": "integer"},
+            "error_message": {"type": "string"},
+            "apple_app_info": {
+                "type": "object",
+                "properties": {
+                    "is_simulator": {"type": "boolean"},
+                    "codesigning_type": {"type": "string"},
+                    "profile_name": {"type": "string"},
+                    "is_code_signature_valid": {"type": "boolean"},
+                    "code_signature_errors": {"type": "array", "items": {"type": "string"}},
+                },
+            },
         },
-        "additionalProperties": False,
+        "additionalProperties": True,
+    }
+
+    error_messages = {
+        "date_built": "The date_built field must be a string.",
+        "artifact_type": "The artifact_type field must be an integer between 0 and 2.",
+        "error_message": "The error_message field must be a string.",
+        "build_version": "The build_version field must be a string with a maximum length of 255 characters.",
+        "build_number": "The build_number field must be an integer.",
+        "apple_app_info": "The apple_app_info field must be an object.",
+        "apple_app_info.is_simulator": "The is_simulator field must be a boolean.",
+        "apple_app_info.codesigning_type": "The codesigning_type field must be a string.",
+        "apple_app_info.profile_name": "The profile_name field must be a string.",
+        "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
+        "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
     }
 
     try:
@@ -37,7 +63,12 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         jsonschema.validate(data, schema)
         return data, None
     except jsonschema.ValidationError as e:
-        return {}, f"Validation error: {e.message}"
+        error_message = e.message
+        # Get the field from the path if available
+        if e.path:
+            if field := e.path[0]:
+                error_message = error_messages.get(str(field), error_message)
+        return {}, error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
 
@@ -118,6 +149,15 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         if "build_number" in data:
             preprod_artifact.build_number = data["build_number"]
             updated_fields.append("build_number")
+
+        if "apple_app_info" in data:
+            try:
+                preprod_artifact.extras = json.dumps(data["apple_app_info"])
+            except (TypeError, ValueError) as e:
+                return Response(
+                    {"error": f"Failed to serialize apple_app_info: {str(e)}"}, status=400
+                )
+            updated_fields.append("extras")
 
         # Save the artifact if any fields were updated
         if updated_fields:
