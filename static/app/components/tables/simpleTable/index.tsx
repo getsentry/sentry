@@ -93,6 +93,7 @@ function RowCell({
 
 const StyledPanel = styled(Panel)`
   display: grid;
+  margin: 0;
 `;
 
 const StyledPanelHeader = styled('div')`
