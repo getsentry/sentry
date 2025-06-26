@@ -310,7 +310,7 @@ export function SetupReplaysCTA({
 }
 
 const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.small}) {
+  @media (min-width: ${p => p.breakpoints.sm}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -322,7 +322,7 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.medium}) {
+  @media (min-width: ${p => p.breakpoints.md}) {
     transform: translateX(-55%);
     width: 300px;
     min-width: 300px;
@@ -334,7 +334,7 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
     min-width: 380px;
   }
 
-  @media (min-width: ${p => p.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.breakpoints.xl}) {
     transform: translateX(-65%);
     width: 420px;
     min-width: 420px;

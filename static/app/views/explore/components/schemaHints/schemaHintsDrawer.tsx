@@ -270,7 +270,7 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   padding: ${space(1)} ${space(0.5)};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
   }
 
@@ -327,7 +327,7 @@ const NoAttributesMessage = styled('div')`
 `;
 
 const StyledInputGroup = styled(InputGroup)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     max-width: 175px;
   }
 `;

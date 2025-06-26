@@ -463,7 +463,7 @@ const BodySearch = styled(Layout.Body)`
   border-bottom: 1px solid ${p => p.theme.border};
   padding-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${space(2)};
   }
 `;
@@ -476,7 +476,7 @@ const BodyContent = styled('div')`
   flex-direction: column;
   padding: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: flex;
     flex-direction: row;
     padding: 0px;
@@ -488,7 +488,7 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: none;
     ${p =>
       p.expanded
@@ -513,7 +513,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
 
   padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     ${p =>
       p.expanded
         ? css`
@@ -529,7 +529,7 @@ const FilterSection = styled('div')`
   display: grid;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr;
   }
 `;
@@ -551,7 +551,7 @@ const ChevronButton = withChonk(
     margin-bottom: ${space(1)};
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: block;
     }
 
@@ -569,7 +569,7 @@ const ChevronButton = withChonk(
     display: none;
     margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 
@@ -585,7 +585,7 @@ const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};
   margin-bottom: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: ${space(1)};
     margin-bottom: 0px;
   }

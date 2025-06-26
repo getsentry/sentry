@@ -92,7 +92,7 @@ const IntegrationBannerImage = styled('img')`
   right: 4rem;
   pointer-events: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

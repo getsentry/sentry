@@ -122,7 +122,7 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-grow: 1;
   }
 `;

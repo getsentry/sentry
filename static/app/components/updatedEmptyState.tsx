@@ -434,7 +434,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

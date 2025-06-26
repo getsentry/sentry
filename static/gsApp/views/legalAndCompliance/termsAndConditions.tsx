@@ -241,7 +241,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
 }
 
 const PolicyTitle = styled('h6')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.lg};
   }
 `;

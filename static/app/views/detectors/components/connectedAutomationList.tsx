@@ -152,7 +152,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 180px auto;
 
     .last-triggered {
@@ -160,7 +160,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr auto;
 
     .action-filters {

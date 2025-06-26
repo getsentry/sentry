@@ -427,7 +427,7 @@ const ControlsWrapper = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;

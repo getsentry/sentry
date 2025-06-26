@@ -1616,7 +1616,7 @@ const StyledListItem = styled(ListItem)`
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;
@@ -1719,7 +1719,7 @@ const StyledField = styled(FieldGroup)`
 `;
 
 const StyledFieldWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
@@ -1727,7 +1727,7 @@ const StyledFieldWrapper = styled('div')`
 `;
 
 const ContentIndent = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: ${space(4)};
   }
 `;

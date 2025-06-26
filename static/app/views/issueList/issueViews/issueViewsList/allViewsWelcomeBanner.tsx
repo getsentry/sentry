@@ -100,7 +100,7 @@ const BannerStar1 = styled('img')`
   right: 150px;
   transform: scale(0.9);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -110,7 +110,7 @@ const BannerStar2 = styled('img')`
   right: 120px;
   transform: rotate(-30deg) scale(0.7);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -120,7 +120,7 @@ const BannerStar3 = styled('img')`
   right: 80px;
   transform: rotate(80deg) scale(0.6);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
