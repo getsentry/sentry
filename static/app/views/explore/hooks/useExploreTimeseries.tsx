@@ -106,11 +106,6 @@ function useExploreTimeseriesImpl({
   const options = useMemo(() => {
     const search = new MutableSearch(query);
 
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
     return {
       search,
       yAxis: yAxes,
