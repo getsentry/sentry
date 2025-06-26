@@ -184,15 +184,13 @@ function getIndicatorColor({
   status: StatusPageIncidentUpdate['status'];
   theme: Theme;
 }): string {
-  const indicatorColor: Record<UpdateStatus, string> = {
-	  investigating: theme.red200,
-	  identified: theme.blue200,
-	  monitoring: theme.yellow200,
-	  resolved: theme.green200,
-	};
-	return indicatorColor[status];
-    }
-  }
+  const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
+    investigating: theme.red200,
+    identified: theme.blue200,
+    monitoring: theme.yellow200,
+    resolved: theme.green200,
+  };
+  return indicatorColor[status];
 }
 
 const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
