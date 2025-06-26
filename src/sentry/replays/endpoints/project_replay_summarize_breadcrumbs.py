@@ -158,8 +158,8 @@ def fetch_trace_connected_errors(
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
                 projects=[project],
-                start=start,
-                end=end,
+                start=datetime.fromtimestamp(start) if start else None,
+                end=datetime.fromtimestamp(end) if end else None,
                 organization=project.organization,
             )
 
