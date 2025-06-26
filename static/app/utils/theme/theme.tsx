@@ -1327,7 +1327,7 @@ export const darkTheme: typeof lightTheme = {
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
 export type IconSize = Size;
-export type Aliases = typeof lightAliases;
+type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;
 
