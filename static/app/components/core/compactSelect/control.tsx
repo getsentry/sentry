@@ -606,12 +606,12 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const headerVerticalPadding: Record<FormSize, string> = {
+const headerVerticalPadding: Record<NonNullable<ControlProps['size']>, string> = {
   xs: space(0.25),
   sm: space(0.5),
   md: space(0.75),
 };
-const MenuHeader = styled('div')<{size: FormSize}>`
+const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   position: relative;
   display: flex;
   align-items: center;
