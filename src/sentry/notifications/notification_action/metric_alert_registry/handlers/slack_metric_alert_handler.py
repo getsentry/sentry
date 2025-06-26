@@ -47,6 +47,8 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         if not open_period:
             raise ValueError("Open period not found")
 
+        alert_rule_serialized_response = None
+        incident_serialized_response = None
         try:
             alert_rule_serialized_response = get_alert_rule_serializer(detector)
             incident_serialized_response = get_detailed_incident_serializer(open_period)

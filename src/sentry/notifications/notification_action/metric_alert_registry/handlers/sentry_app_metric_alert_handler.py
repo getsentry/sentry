@@ -41,6 +41,7 @@ class SentryAppMetricAlertHandler(BaseMetricAlertHandler):
         if not open_period:
             raise ValueError("Open period not found")
 
+        incident_serialized_response = None
         try:
             incident_serialized_response = get_incident_serializer(open_period)
         except SoftTimeLimitExceeded:
