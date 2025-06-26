@@ -21,5 +21,3 @@ export const agentMonitoringEventMap: Record<
   'agent-monitoring.table-switch': 'Agent Monitoring: Table Switch',
   'agent-monitoring.column-sort': 'Agent Monitoring: Column Sort',
 };
-
-export type AgentMonitoringEventKey = keyof typeof agentMonitoringEventMap;
