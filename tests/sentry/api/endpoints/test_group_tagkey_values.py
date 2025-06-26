@@ -208,7 +208,6 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             response = self.client.get(url)
             assert response.status_code == 429
 
-
         mock_record.assert_called_with(
             "eventuser_endpoint.request",
             project_id=project.id,
