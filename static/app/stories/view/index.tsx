@@ -78,9 +78,12 @@ const Layout = styled('div')`
   grid-template-rows: 1fr;
   grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
-  min-height: calc(100dvh - 53px);
-  padding: var(--stories-grid-space);
-  margin-top: 52px;
+  min-height: calc(100dvh - 52px);
+  padding-bottom: ${space(4)};
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
 `;
 
 const HeaderContainer = styled('header')`
