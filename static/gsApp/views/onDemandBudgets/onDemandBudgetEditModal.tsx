@@ -243,12 +243,15 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
               pattern="[0-9]*"
               maxLength={7}
               placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.errorsBudget)}
+              value={coerceValue(onDemandBudget.budgets.errors || 0)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({
                   onDemandBudget: {
                     ...onDemandBudget,
-                    errorsBudget: parseInputValue(e),
+                    budgets: {
+                      ...onDemandBudget.budgets,
+                      errors: parseInputValue(e),
+                    },
                   },
                 });
               }}
@@ -264,12 +267,15 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
               pattern="[0-9]*"
               maxLength={7}
               placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.transactionsBudget)}
+              value={coerceValue(onDemandBudget.budgets.transactions || 0)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({
                   onDemandBudget: {
                     ...onDemandBudget,
-                    transactionsBudget: parseInputValue(e),
+                    budgets: {
+                      ...onDemandBudget.budgets,
+                      transactions: parseInputValue(e),
+                    },
                   },
                 });
               }}
@@ -285,12 +291,15 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
               pattern="[0-9]*"
               maxLength={7}
               placeholder="e.g. 50"
-              value={coerceValue(onDemandBudget.attachmentsBudget)}
+              value={coerceValue(onDemandBudget.budgets.attachments || 0)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({
                   onDemandBudget: {
                     ...onDemandBudget,
-                    attachmentsBudget: parseInputValue(e),
+                    budgets: {
+                      ...onDemandBudget.budgets,
+                      attachments: parseInputValue(e),
+                    },
                   },
                 });
               }}
