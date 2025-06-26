@@ -333,33 +333,33 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
 
     def test_assemble_preprod_artifact_size_analysis_error_cases(self):
-        test_cases = [
-            # (content, kwargs, expected_status, expected_detail_contains)
-            (b"nonexistent artifact", {"artifact_id": 99999}, ChunkFileState.ERROR, None),
-            (
-                b"checksum mismatch",
-                {"checksum": "b" * 40},
-                ChunkFileState.ERROR,
-                "checksum mismatch",
-            ),
-            (
-                b"missing chunks",
-                {"chunks": ["nonexistent" + "1" * 32]},
-                ChunkFileState.ERROR,
-                "Not all chunks available",
-            ),
-            (b"nonexistent org", {"org_id": 99999}, ChunkFileState.ERROR, None),
-            (b"nonexistent project", {"project_id": 99999}, ChunkFileState.ERROR, None),
-        ]
+        # Test nonexistent artifact
+        status, details = self._run_task_and_verify_status(
+            b"nonexistent artifact", artifact_id=99999
+        )
+        assert status == ChunkFileState.ERROR
 
-        for content, kwargs, expected_status, expected_detail in test_cases:
-            status, details = self._run_task_and_verify_status(content, **kwargs)
-            assert status == expected_status
-            if expected_detail:
-                assert expected_detail in details
+        # Test checksum mismatch
+        status, details = self._run_task_and_verify_status(b"checksum mismatch", checksum="b" * 40)
+        assert status == ChunkFileState.ERROR
+        assert "checksum mismatch" in details
 
-            # Verify artifact was not updated for error cases
-            if expected_status == ChunkFileState.ERROR and kwargs.get("artifact_id") != 99999:
-                self.preprod_artifact.refresh_from_db()
-                assert self.preprod_artifact.analysis_file_id is None
-                assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        # Test missing chunks
+        status, details = self._run_task_and_verify_status(
+            b"missing chunks", chunks=["nonexistent" + "1" * 32]
+        )
+        assert status == ChunkFileState.ERROR
+        assert "Not all chunks available" in details
+
+        # Test nonexistent org
+        status, details = self._run_task_and_verify_status(b"nonexistent org", org_id=99999)
+        assert status == ChunkFileState.ERROR
+
+        # Test nonexistent project
+        status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
+        assert status == ChunkFileState.ERROR
+
+        # Verify artifact was not updated for error cases
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.analysis_file_id is None
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
