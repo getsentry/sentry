@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GridEditable, {
@@ -95,18 +95,6 @@ export function ModelsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  // Track column sorting
-  useEffect(() => {
-    if (sortField && sortOrder) {
-      trackAnalytics('agent-monitoring.column-sort', {
-        organization,
-        table: 'models',
-        column: sortField,
-        direction: sortOrder,
-      });
-    }
-  }, [sortField, sortOrder, organization]);
-
   const modelsRequest = useEAPSpans(
     {
       fields: [
@@ -146,6 +134,18 @@ export function ModelsTable() {
     }));
   }, [modelsRequest.data]);
 
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'models',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
       <HeadSortCell
@@ -153,11 +153,12 @@ export function ModelsTable() {
         cursorParamName="modelsCursor"
         forceCellGrow={column.key === 'model'}
         align={rightAlignColumns.has(column.key) ? 'right' : undefined}
+        onClick={handleSort}
       >
         {column.name}
       </HeadSortCell>
     );
-  }, []);
+  }, [handleSort]);
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {

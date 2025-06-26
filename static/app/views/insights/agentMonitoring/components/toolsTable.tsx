@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -86,18 +86,6 @@ export function ToolsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  // Track column sorting
-  useEffect(() => {
-    if (sortField && sortOrder) {
-      trackAnalytics('agent-monitoring.column-sort', {
-        organization,
-        table: 'tools',
-        column: sortField,
-        direction: sortOrder,
-      });
-    }
-  }, [sortField, sortOrder, organization]);
-
   const toolsRequest = useEAPSpans(
     {
       fields: [
@@ -133,6 +121,18 @@ export function ToolsTable() {
     }));
   }, [toolsRequest.data]);
 
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'tools',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
       <HeadSortCell
@@ -140,11 +140,12 @@ export function ToolsTable() {
         cursorParamName="toolsCursor"
         forceCellGrow={column.key === 'tool'}
         align={rightAlignColumns.has(column.key) ? 'right' : undefined}
+        onClick={handleSort}
       >
         {column.name}
       </HeadSortCell>
     );
-  }, []);
+  }, [handleSort]);
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
