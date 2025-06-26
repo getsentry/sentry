@@ -102,7 +102,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
             on_results=functools.partial(
-                analyze_recording_segments, error_events, replay_id, project_id=project.id
+                analyze_recording_segments, error_events, replay_id, project.id
             ),
         )
 
