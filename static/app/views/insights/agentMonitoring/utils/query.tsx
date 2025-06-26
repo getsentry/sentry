@@ -74,11 +74,19 @@ export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.tool.input', ['ai.toolCall.args']],
   ['gen_ai.tool.output', ['ai.toolCall.result']],
   ['gen_ai.request.messages', ['ai.prompt.messages']],
+  ['gen_ai.prompt', ['ai.prompt']],
   ['gen_ai.response.tool_calls', ['ai.response.toolCalls']],
   ['gen_ai.response.text', ['ai.response.text']],
   ['gen_ai.response.object', ['ai.response.object']],
   ['gen_ai.tool.name', ['ai.toolCall.name']],
 ]);
+
+export function extendWithLegacyAttributeKeys(attributeKeys: string[]) {
+  return attributeKeys.flatMap(key => {
+    const legacyKeys = legacyAttributeKeys.get(key) ?? [];
+    return [key, ...legacyKeys];
+  });
+}
 
 export function getIsAiSpan({
   op = 'default',
