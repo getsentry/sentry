@@ -27,7 +27,7 @@ import type {
   StatusPageServiceStatus,
 } from 'sentry/types/system';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 interface Props {
   incident: StatuspageIncident;
@@ -177,16 +177,30 @@ const UpdatesList = styled(List)`
   }
 `;
 
-type UpdateStatus = StatusPageIncidentUpdate['status'];
+function getIndicatorColor({
+  theme,
+  status,
+}: {
+  status: StatusPageIncidentUpdate['status'];
+  theme: Theme;
+}): string {
+  switch (status) {
+    case 'investigating':
+      return theme.red200;
+    case 'identified':
+      return theme.blue200;
+    case 'monitoring':
+      return theme.yellow200;
+    case 'resolved':
+      return theme.green200;
+    default: {
+      const _exhaustiveCheck: never = status;
+      return _exhaustiveCheck;
+    }
+  }
+}
 
-const indicatorColor: Record<UpdateStatus, ColorOrAlias> = {
-  investigating: 'red200',
-  identified: 'blue200',
-  monitoring: 'yellow200',
-  resolved: 'green200',
-};
-
-const UpdateHeading = styled('div')<{status: UpdateStatus}>`
+const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
   margin-bottom: ${space(0.5)};
   display: flex;
   align-items: center;
@@ -201,7 +215,7 @@ const UpdateHeading = styled('div')<{status: UpdateStatus}>`
     width: 8px;
     margin-left: -15px;
     border-radius: 50%;
-    background: ${p => p.theme[indicatorColor[p.status]]};
+    background: ${p => getIndicatorColor({theme: p.theme, status: p.status})};
   }
 `;
 
