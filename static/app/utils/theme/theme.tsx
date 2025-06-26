@@ -974,16 +974,7 @@ const breakpoints = {
   xxlarge: '2560px',
 } as const satisfies Breakpoints;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = Record<Size, string>;
-const iconNumberSizes: Record<Size, number> = {
-  xs: 12,
-  sm: 14,
-  md: 18,
-  lg: 24,
-  xl: 32,
-  xxl: 72,
-} as const;
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
 type IconDirection = 'up' | 'right' | 'down' | 'left';
@@ -1092,13 +1083,13 @@ const formTheme: FormTheme = {
   },
 };
 
-const iconSizes: Sizes = {
-  xs: `${iconNumberSizes.xs}px`,
-  sm: `${iconNumberSizes.sm}px`,
-  md: `${iconNumberSizes.md}px`,
-  lg: `${iconNumberSizes.lg}px`,
-  xl: `${iconNumberSizes.xl}px`,
-  xxl: `${iconNumberSizes.xxl}px`,
+const iconSizes: Record<Size, string> = {
+  xs: '12px',
+  sm: '14px',
+  md: '18px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '72px',
 } as const;
 
 /**
@@ -1112,7 +1103,6 @@ const commonTheme = {
 
   // Icons
   iconSizes,
-  iconNumberSizes,
   iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
