@@ -2,8 +2,8 @@ import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 import dropRightWhile from 'lodash/dropRightWhile';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
