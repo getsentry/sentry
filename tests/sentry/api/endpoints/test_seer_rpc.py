@@ -11,10 +11,13 @@ from sentry.api.endpoints.seer_rpc import (
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
 )
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -401,5 +404,16 @@ class TestSeerRpcMethods(APITestCase):
         with pytest.raises(Integration.DoesNotExist):
             get_github_enterprise_integration_config(
                 organization_id=-1,
+                integration_id=integration.id,
+            )
+
+        # Test with disabled integration
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
+
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=self.organization.id,
                 integration_id=integration.id,
             )
