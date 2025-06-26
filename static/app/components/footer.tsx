@@ -117,7 +117,7 @@ const SentryLogoLink = styled(ExternalLink)`
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-left: ${space(1)};
 `;
 

@@ -174,7 +174,7 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};

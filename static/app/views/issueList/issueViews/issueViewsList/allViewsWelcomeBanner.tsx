@@ -79,20 +79,20 @@ const Banner = styled('div')`
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerSubTitle = styled('div')`
   display: flex;
   flex-direction: column;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.5)};
 `;
 
 const BannerNoteBold = styled('div')`
   display: inline;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const BannerStar1 = styled('img')`
   position: absolute;

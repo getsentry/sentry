@@ -286,7 +286,7 @@ const SegmentWrap = withChonk(
     min-width: 0;
 
     padding: ${p => segmentedWrapPadding[p.size]};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
 
     ${p =>
       !p.isDisabled &&

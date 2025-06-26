@@ -1183,17 +1183,18 @@ const commonTheme = {
     xl: '18px' as const,
   },
 
+  fontWeight: {
+    normal: 400 as const,
+    bold: 600 as const,
+  },
+
   /**
    * @TODO(jonasbadalic) remove relative font sizes
    * @deprecated use fontSize instead
    */
   fontSizeRelativeSmall: '0.9em' as const,
-
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
-
-  fontWeightNormal: 400,
-  fontWeightBold: 600,
 
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
