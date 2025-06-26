@@ -19,7 +19,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
+  AI_COST_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -35,6 +37,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
+  totalCost: number;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -51,6 +54,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
+  {key: 'totalCost', name: t('Total Cost'), width: 120},
   {key: 'timestamp', name: t('Timestamp'), width: 100},
 ];
 
@@ -60,6 +64,7 @@ const rightAlignColumns = new Set([
   'llmCalls',
   'totalTokens',
   'toolCalls',
+  'totalCost',
   'timestamp',
 ]);
 
@@ -90,6 +95,7 @@ export function TracesTable() {
         'count_if(span.op,gen_ai.generate_text)',
         'count_if(span.op,gen_ai.execute_tool)',
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_COST_ATTRIBUTE_SUM,
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -110,10 +116,14 @@ export function TracesTable() {
             (span['count_if(span.op,gen_ai.generate_text)'] ?? 0),
           toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
+          totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
         };
         return acc;
       },
-      {} as Record<string, {llmCalls: number; toolCalls: number; totalTokens: number}>
+      {} as Record<
+        string,
+        {llmCalls: number; toolCalls: number; totalCost: number; totalTokens: number}
+      >
     );
   }, [spansRequest.data]);
 
@@ -143,6 +153,7 @@ export function TracesTable() {
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
       timestamp: span.start,
       isSpanDataLoading: spansRequest.isLoading,
     }));
@@ -219,6 +230,11 @@ const BodyCell = memo(function BodyCell({
         return <NumberPlaceholder />;
       }
       return <NumberCell value={dataRow[column.key]} />;
+    case 'totalCost':
+      if (dataRow.isSpanDataLoading) {
+        return <NumberPlaceholder />;
+      }
+      return <TextAlignRight>{formatLLMCosts(dataRow.totalCost)}</TextAlignRight>;
     case 'timestamp':
       return (
         <TextAlignRight>
