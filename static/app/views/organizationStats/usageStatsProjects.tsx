@@ -5,10 +5,13 @@ import type {LocationDescriptorObject} from 'history';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import type {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import type {
+  Alignments,
+  Directions,
+} from 'sentry/components/tables/gridEditable/sortLink';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
