@@ -79,12 +79,11 @@ class DetectorStateManager:
         detector: Detector,
         counter_names: list[DetectorCounter] | None = None,
     ):
-        self.counter_names = counter_names or []
         self.detector = detector
+        self.counter_names = counter_names or []
         self.dedupe_updates = {}
         self.counter_updates = {}
         self.state_updates = {}
-        self.counter_names = []
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
