@@ -12,12 +12,9 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {
-  fieldAlignment,
-  parseFunction,
-  prettifyParsedFunction,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -43,7 +40,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {viewSamplesTarget} from 'sentry/views/explore/utils';
+import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -102,19 +99,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
-              let label = field;
-
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
-              if (tag) {
-                label = tag.name;
-              }
-
-              const func = parseFunction(field);
-              if (func) {
-                label = prettifyParsedFunction(func);
-              }
+              const label = prettifyField(field, stringTags, numberTags);
 
               const direction = sorts.find(s => s.field === field)?.kind;
 
@@ -220,6 +207,19 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
       />
     </Fragment>
   );
+}
+
+function prettifyField(
+  field: string,
+  stringTags: TagCollection,
+  numberTags: TagCollection
+): string {
+  const tag = stringTags[field] ?? numberTags[field] ?? null;
+  if (tag) {
+    return tag.name;
+  }
+
+  return prettifyAggregation(field) ?? field;
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`

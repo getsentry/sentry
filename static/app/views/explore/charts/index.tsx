@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -40,7 +39,10 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  prettifyAggregation,
+} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -90,7 +92,7 @@ interface ChartInfo {
   yAxes: readonly string[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
-  formattedYAxes?: Array<string | undefined>;
+  formattedYAxes?: Array<string | null>;
   label?: string;
   stack?: string;
 }
@@ -111,7 +113,7 @@ export function ExploreCharts({
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | null>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -155,10 +157,7 @@ export function ExploreCharts({
     (yAxis: string) => {
       const dedupedYAxes = [yAxis];
 
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+      const formattedYAxes = dedupedYAxes.map(prettifyAggregation);
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 

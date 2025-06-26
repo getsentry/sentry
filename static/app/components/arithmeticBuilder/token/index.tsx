@@ -17,9 +17,11 @@ export abstract class Token {
 
   key = '';
   location: LocationRange;
+  text = '';
 
-  constructor(location: LocationRange) {
+  constructor(location: LocationRange, text: string) {
     this.location = location;
+    this.text = text;
   }
 }
 
@@ -32,7 +34,7 @@ export abstract class TokenParenthesis extends Token {
   parenthesis: Parenthesis;
 
   constructor(location: LocationRange, parenthesis: Parenthesis) {
-    super(location);
+    super(location, parenthesis);
     this.parenthesis = parenthesis;
   }
 }
@@ -66,7 +68,7 @@ export class TokenOperator extends Token {
   operator: Operator;
 
   constructor(location: LocationRange, operator: Operator) {
-    super(location);
+    super(location, operator);
     this.operator = operator;
   }
 }
@@ -78,16 +80,10 @@ export class TokenAttribute extends Token {
   type?: string;
 
   constructor(location: LocationRange, attribute: string, type?: string) {
-    super(location);
+    const text = defined(type) ? `tags[${attribute},${type}]` : attribute;
+    super(location, text);
     this.attribute = attribute;
     this.type = type;
-  }
-
-  format(): string {
-    if (defined(this.type)) {
-      return `tags[${this.attribute},${this.type}]`;
-    }
-    return this.attribute;
   }
 }
 
@@ -98,26 +94,16 @@ export class TokenFunction extends Token {
   attributes: TokenAttribute[];
 
   constructor(location: LocationRange, func: string, attributes: TokenAttribute[]) {
-    super(location);
+    const args = attributes.map(attr => attr.text);
+    const text = `${func}(${args.join(',')})`;
+    super(location, text);
     this.function = func;
     this.attributes = attributes;
-  }
-
-  format(): string {
-    const args = this.attributes.map(attr => attr.format());
-    return `${this.function}(${args.join(',')})`;
   }
 }
 
 export class TokenFreeText extends Token {
   kind: TokenKind = TokenKind.FREE_TEXT;
-
-  text: string;
-
-  constructor(location: LocationRange, text: string) {
-    super(location);
-    this.text = text;
-  }
 
   merge(token: TokenFreeText) {
     // Assumes `this` and `token` are adjacent tokens with 0 more spaces between them.
