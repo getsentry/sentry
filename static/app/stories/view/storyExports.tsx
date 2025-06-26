@@ -54,7 +54,7 @@ function StoryTitlebar() {
   return (
     <StoryHeader>
       <StoryGrid>
-        <StoryContainer>
+        <StoryContainer style={{gap: space(1)}}>
           <h1>{title}</h1>
           {description && <p>{description}</p>}
 
@@ -193,7 +193,6 @@ const StoryContainer = styled('div')`
   flex-direction: column;
   gap: ${space(4)};
   padding-inline: ${space(2)};
-  overflow-x: hidden;
 `;
 
 const StoryContent = styled('main')`
