@@ -4,14 +4,11 @@ import * as qs from 'query-string';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export enum TraceLayoutTabKeys {
   WATERFALL = 'waterfall',
-  TAGS = 'tags',
-  ATTRIBUTES = 'attributes',
   PROFILES = 'profiles',
   LOGS = 'logs',
   SUMMARY = 'summary',
@@ -34,14 +31,9 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
     slug: TraceLayoutTabKeys.WATERFALL,
     label: t('Waterfall'),
   },
-  [TraceLayoutTabKeys.TAGS]: {slug: TraceLayoutTabKeys.TAGS, label: t('Tags')},
   [TraceLayoutTabKeys.PROFILES]: {
     slug: TraceLayoutTabKeys.PROFILES,
     label: t('Profiles'),
-  },
-  [TraceLayoutTabKeys.ATTRIBUTES]: {
-    slug: TraceLayoutTabKeys.ATTRIBUTES,
-    label: t('Attributes'),
   },
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
@@ -60,10 +52,6 @@ function getTabOptions({
 
   if (sections.hasTraceEvents) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]);
-  }
-
-  if (sections.hasTags) {
-    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.ATTRIBUTES]);
   }
 
   if (sections.hasProfiles) {
@@ -87,19 +75,16 @@ function getTabOptions({
 
 interface UseTraceLayoutTabsProps {
   logs: OurLogsResponseItem[] | undefined;
-  rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }
 
 export function useTraceLayoutTabs({
   tree,
-  rootEventResults,
   logs,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const sections = useTraceContextSections({
     tree,
-    rootEventResults,
     logs,
   });
   const tabOptions = getTabOptions({sections: {...sections}});
