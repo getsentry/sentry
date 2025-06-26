@@ -148,6 +148,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             preprod_artifact.error_message = data["error_message"]
             updated_fields.append("error_message")
 
+        if "error_code" in data or "error_message" in data:
+            preprod_artifact.state = PreprodArtifact.ArtifactState.FAILED
+            updated_fields.append("state")
+
         if "build_version" in data:
             preprod_artifact.build_version = data["build_version"]
             updated_fields.append("build_version")

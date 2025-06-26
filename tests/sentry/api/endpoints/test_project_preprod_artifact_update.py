@@ -72,11 +72,45 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updated_fields"]) == {"artifact_type", "error_message"}
+        assert set(resp_data["updated_fields"]) == {"artifact_type", "error_message", "state"}
 
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.artifact_type == 2
         assert self.preprod_artifact.error_message == "Build failed"
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_sets_failed_state_on_error(self):
+        # Test that setting error_code sets state to FAILED
+        data = {"error_code": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updated_fields"]) == {"error_code", "state"}
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.error_code == 1
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED
+
+        # Reset for next test
+        self.preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADING
+        self.preprod_artifact.error_code = None
+        self.preprod_artifact.save()
+
+        # Test that setting error_message sets state to FAILED
+        data = {"error_message": "Processing failed"}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert set(resp_data["updated_fields"]) == {"error_message", "state"}
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.error_message == "Processing failed"
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_not_found(self):
