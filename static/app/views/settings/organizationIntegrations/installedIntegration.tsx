@@ -241,7 +241,7 @@ function IntegrationStatus(
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
             ? t('This integration has been disconnected from the external provider')
-            : t('This integration is pending deletion.')
+            : t('Deletion takes a few minutes to complete.')
       }
     >
       {inner}
