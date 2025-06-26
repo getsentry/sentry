@@ -1265,7 +1265,37 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const MultilineText = styled('div')`
+const MAX_TEXT_LENGTH = 300;
+const MAX_NEWLINES = 5;
+
+function MultilineText({children}: {children: string}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const newLineMatches = Array.from(children.matchAll(/\n/g));
+  const maxNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
+
+  const truncatePosition = Math.min(maxNewlinePosition, MAX_TEXT_LENGTH);
+  const needsTruncation = truncatePosition < children.length;
+
+  return (
+    <MultilineTextWrapper>
+      {isExpanded || !needsTruncation ? (
+        children
+      ) : (
+        <Fragment>{children.slice(0, truncatePosition) + '...'}</Fragment>
+      )}
+      {needsTruncation ? (
+        <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>
+          <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? t('Show less') : t('Show all')}
+          </Button>
+        </Flex>
+      ) : null}
+    </MultilineTextWrapper>
+  );
+}
+
+const MultilineTextWrapper = styled('div')`
   white-space: pre-wrap;
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
@@ -1276,30 +1306,33 @@ const MultilineText = styled('div')`
   }
 `;
 
+function tryParseJson(value: string) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return value;
+  }
+}
+
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
 }: {
-  value: string;
+  value: any;
   maxDefaultDepth?: number;
 }) {
-  try {
-    const json = JSON.parse(value);
-    return (
-      <TraceDrawerComponents.MultilineText>
-        <StructuredData
-          value={json}
-          maxDefaultDepth={maxDefaultDepth}
-          withAnnotatedText
-        />
-      </TraceDrawerComponents.MultilineText>
-    );
-  } catch (error) {
-    return (
-      <TraceDrawerComponents.MultilineText>{value}</TraceDrawerComponents.MultilineText>
-    );
-  }
+  const json = tryParseJson(value);
+  return (
+    <MultilineTextWrapperMonospace>
+      <StructuredData value={json} maxDefaultDepth={maxDefaultDepth} withAnnotatedText />
+    </MultilineTextWrapperMonospace>
+  );
 }
+
+const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+`;
 
 const MultilineTextLabel = styled('div')`
   font-weight: bold;
