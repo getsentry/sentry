@@ -6,6 +6,7 @@ from django.test import override_settings
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
@@ -114,3 +115,54 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         resp_data = response.json()
         assert resp_data["success"] is True
         assert resp_data["updated_fields"] == []
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_apple_app_info(self):
+        apple_info = {
+            "is_simulator": True,
+            "codesigning_type": "development",
+            "profile_name": "Test Profile",
+            "is_code_signature_valid": False,
+            "code_signature_errors": ["Certificate expired", "Missing entitlements"],
+        }
+        data = {
+            "date_built": "2024-01-01T00:00:00Z",
+            "artifact_type": 1,
+            "build_version": "1.2.3",
+            "build_number": 123,
+            "apple_app_info": apple_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updated_fields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_apple_info = json.loads(self.preprod_artifact.extras)
+        assert stored_apple_info == apple_info
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_partial_apple_app_info(self):
+        apple_info = {
+            "is_simulator": False,
+            "codesigning_type": "distribution",
+        }
+        data = {
+            "artifact_type": 2,
+            "apple_app_info": apple_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updated_fields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_apple_info = json.loads(self.preprod_artifact.extras)
+        # Should only contain the fields that were provided
+        assert stored_apple_info == apple_info
+        assert "profile_name" not in stored_apple_info
+        assert "is_code_signature_valid" not in stored_apple_info

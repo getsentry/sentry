@@ -151,13 +151,21 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             updated_fields.append("build_number")
 
         if "apple_app_info" in data:
-            try:
-                preprod_artifact.extras = json.dumps(data["apple_app_info"])
-            except (TypeError, ValueError) as e:
-                return Response(
-                    {"error": f"Failed to serialize apple_app_info: {str(e)}"}, status=400
-                )
-            updated_fields.append("extras")
+            apple_info = data["apple_app_info"]
+            parsed_apple_info = {}
+            for field in [
+                "is_simulator",
+                "codesigning_type",
+                "profile_name",
+                "is_code_signature_valid",
+                "code_signature_errors",
+            ]:
+                if field in apple_info:
+                    parsed_apple_info[field] = apple_info[field]
+
+            if parsed_apple_info:
+                preprod_artifact.extras = json.dumps(parsed_apple_info)
+                updated_fields.append("extras")
 
         # Save the artifact if any fields were updated
         if updated_fields:
