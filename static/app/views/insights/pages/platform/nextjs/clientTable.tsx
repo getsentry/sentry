@@ -6,9 +6,12 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -19,6 +22,7 @@ import {
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
@@ -50,6 +54,10 @@ const rightAlignColumns = new Set([
 ]);
 
 export function ClientTable() {
+  const organization = useOrganization();
+  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
+
   const tableDataRequest = useTableData({
     query: `span.op:[pageload, navigation]`,
     fields: [
@@ -91,11 +99,28 @@ export function ClientTable() {
         }
         return (
           <AlignCenter>
-            <PerformanceBadge
-              score={Math.round(
-                dataRow['performance_score(measurements.score.total)'] * 100
-              )}
-            />
+            {hasWebVitalsFlag ? (
+              <Link
+                to={{
+                  pathname: `${webVitalsUrl}/overview/`,
+                  query: {
+                    transaction: dataRow.transaction,
+                  },
+                }}
+              >
+                <PerformanceBadge
+                  score={Math.round(
+                    dataRow['performance_score(measurements.score.total)'] * 100
+                  )}
+                />
+              </Link>
+            ) : (
+              <PerformanceBadge
+                score={Math.round(
+                  dataRow['performance_score(measurements.score.total)'] * 100
+                )}
+              />
+            )}
           </AlignCenter>
         );
       }
@@ -139,7 +164,7 @@ export function ClientTable() {
           return <div />;
       }
     },
-    []
+    [webVitalsUrl, hasWebVitalsFlag]
   );
 
   const pagesTablePageLinks = tableDataRequest.pageLinks;
