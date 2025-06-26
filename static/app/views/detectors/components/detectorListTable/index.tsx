@@ -57,9 +57,8 @@ function HeaderCell({
   return (
     <SimpleTable.HeaderCell
       className={name}
-      sort={sort}
-      sortKey={sortKey}
-      handleSortClick={handleSort}
+      sort={sort && sortKey === sort?.field ? sort.kind : undefined}
+      handleSortClick={sortKey ? handleSort : undefined}
     >
       {children}
     </SimpleTable.HeaderCell>
