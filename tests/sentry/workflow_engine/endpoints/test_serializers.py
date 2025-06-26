@@ -387,6 +387,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": None,
             "detectorIds": [],
             "enabled": workflow.enabled,
+            "lastTriggered": None,
         }
 
     def test_serialize_full(self):
@@ -438,6 +439,12 @@ class TestWorkflowSerializer(TestCase):
         self.create_detector_workflow(
             detector=detector,
             workflow=workflow,
+        )
+        history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            date_added=workflow.date_added + timedelta(seconds=1),
         )
 
         result = serialize(workflow)
@@ -491,6 +498,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": self.environment.name,
             "detectorIds": [str(detector.id)],
             "enabled": workflow.enabled,
+            "lastTriggered": history.date_added,
         }
 
 

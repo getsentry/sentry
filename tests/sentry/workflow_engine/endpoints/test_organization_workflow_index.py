@@ -5,6 +5,7 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -29,6 +30,14 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.workflow_three = self.create_workflow(
             organization_id=self.organization.id, name="Green Apple Workflow 3"
         )
+
+        # Only two workflows have fire histories.
+        for workflow in [self.workflow, self.workflow_two]:
+            WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                event_id=self.event.event_id,
+            )
 
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -176,6 +185,26 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.workflow_three.name,
             self.workflow_two.name,
         ][0]
+
+    def test_sort_by_last_triggered(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"sortBy": "lastTriggered"}
+        )
+        # in ascending order, un-triggered is first.
+        assert [w["name"] for w in response.data] == [
+            self.workflow_three.name,
+            self.workflow.name,
+            self.workflow_two.name,
+        ]
+
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
+        )
+        assert [w["name"] for w in response2.data] == [
+            self.workflow_two.name,
+            self.workflow.name,
+            self.workflow_three.name,
+        ]
 
     def test_query_filter_by_name(self):
         response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
