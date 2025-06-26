@@ -33,6 +33,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -47,6 +48,9 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -69,7 +73,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           <FilterValueSingleTruncatedValue>
             {formatFilterValue({
               token: items[0]!.value,
-              stripWildcards: allContains,
+              stripWildcards: allContains && hasWildcardOperators,
             })}
           </FilterValueSingleTruncatedValue>
         );
@@ -87,7 +91,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
               <FilterMultiValueTruncated>
                 {formatFilterValue({
                   token: item.value!,
-                  stripWildcards: allContains,
+                  stripWildcards: allContains && hasWildcardOperators,
                 })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -113,7 +117,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueSingleTruncatedValue>
           {formatFilterValue({
             token: token.value,
-            stripWildcards: allContains,
+            stripWildcards: allContains && hasWildcardOperators,
           })}
         </FilterValueSingleTruncatedValue>
       );
