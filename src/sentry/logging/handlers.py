@@ -79,6 +79,7 @@ class HumanRenderer:
             event_dict.pop("name", "root"),
             event_dict.pop("event", ""),
         )
+        event_dict.pop("sentry.trace.trace_id", None)
         join = " ".join(k + "=" + repr(v) for k, v in event_dict.items())
         return "{}{}".format(base, (" (%s)" % join if join else ""))
 
