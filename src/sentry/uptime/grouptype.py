@@ -15,10 +15,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
-from sentry.uptime.types import (
-    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-    ProjectUptimeSubscriptionMode,
-)
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -307,7 +304,7 @@ class UptimeDomainCheckFailure(GroupType):
             "properties": {
                 "mode": {
                     "type": ["integer"],
-                    "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
+                    "enum": [mode.value for mode in UptimeMonitorMode],
                 },
                 "environment": {"type": ["string", "null"]},
             },
