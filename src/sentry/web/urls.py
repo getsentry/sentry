@@ -48,7 +48,7 @@ from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.project_event import ProjectEventRedirect
-from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
+from sentry.web.frontend.react_page import AuthV2ReactPageView, GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
@@ -63,6 +63,7 @@ from social_auth.views import complete
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
+auth_v2_react_page_view = AuthV2ReactPageView.as_view()
 
 urlpatterns: list[URLResolver | URLPattern] = [
     re_path(
@@ -182,6 +183,12 @@ urlpatterns += [
         r"^api/embed/error-page/$",
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
+    ),
+    # Auth V2
+    re_path(
+        r"^auth-v2/",
+        auth_v2_react_page_view,
+        name="sentry-auth-v2",
     ),
     # OAuth
     re_path(

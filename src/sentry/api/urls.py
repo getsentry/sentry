@@ -931,6 +931,7 @@ AUTH_URLS = [
     ),
 ]
 
+# Auth V2
 AUTH_V2_URLS = [
     re_path(
         r"^login/$",
