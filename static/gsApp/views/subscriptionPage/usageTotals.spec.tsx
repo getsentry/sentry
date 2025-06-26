@@ -1975,7 +1975,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       plan: 'am3_business',
     });
 
-    // Add SEER category but don't include it in reservedBudgetCategories
+    // Add SEER category but don't include it in reservedBudgets
     subscription.categories.seerAutofix = MetricHistoryFixture({
       category: DataCategory.SEER_AUTOFIX,
       usage: 10,
