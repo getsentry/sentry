@@ -22,8 +22,9 @@ RUN : \
 
 WORKDIR /usr/src/sentry
 
-ENV PATH=/.venv/bin:$PATH PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PATH=/.venv/bin:$PATH UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
 RUN python3 -m venv /.venv
+COPY --from=ghcr.io/astral-sh/uv:0.7.15 /uv /bin/
 
 ENV \
   # Sentry config params
@@ -32,8 +33,6 @@ ENV \
   UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
-
-COPY --from=ghcr.io/astral-sh/uv:0.7.15 /uv /bin/
 
 # Install dependencies first to leverage Docker layer caching.
 COPY requirements-frozen.txt /tmp/requirements-frozen.txt
