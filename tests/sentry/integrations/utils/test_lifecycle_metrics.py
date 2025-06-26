@@ -75,7 +75,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         with metric_obj.capture(assume_success=False):
             pass
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.info.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "integration_domain": "messaging",
@@ -93,7 +93,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             lifecycle.record_halt(ExampleException(""), extra={"even": "more"})
 
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.info.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "extra": "value",
@@ -114,7 +114,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             lifecycle.record_halt("Integration went boom", extra={"even": "more"})
 
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.info.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "outcome_reason": "Integration went boom",
@@ -222,7 +222,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         self._check_metrics_call_args(mock_metrics, "halted")
         mock_sentry_sdk.capture_exception.assert_called_once()
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.info.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "extra": "value",

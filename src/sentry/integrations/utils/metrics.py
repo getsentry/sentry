@@ -170,7 +170,7 @@ class EventLifecycle:
         if outcome == EventLifecycleOutcome.FAILURE:
             logger.warning(key, **log_params)
         elif outcome == EventLifecycleOutcome.HALTED:
-            logger.warning(key, **log_params)
+            logger.info(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
