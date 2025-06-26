@@ -1489,6 +1489,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+
         if (spanId === eventId) {
           return true;
         }
