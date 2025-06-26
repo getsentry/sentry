@@ -1,50 +1,47 @@
-import type {ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import {
-  ActivityCell,
-  BrowserCell,
-  DeadClickCountCell,
-  DurationCell,
-  ErrorCountCell,
-  OSCell,
-  PlayPauseCell,
-  RageClickCountCell,
-  ReplayCell,
-  TransactionCell,
-} from 'sentry/views/replays/replayTable/tableCell';
-import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
-interface Props {
-  columns: Array<GridColumnOrder<ReplayColumn>>;
+type SortProps =
+  | {
+      onSortClick: (key: string) => void;
+      sort: Sort;
+    }
+  | {onSortClick?: never; sort?: never};
+
+type Props = SortProps & {
+  columns: readonly ReplayTableColumn[];
   error: RequestError | null | undefined;
   isPending: boolean;
   replays: ListRecord[];
   showDropdownFilters: boolean;
-}
+};
 
 export default function ReplayTable({
   columns,
   error,
   isPending,
+  onSortClick,
   replays,
-  // showDropdownFilters,
+  showDropdownFilters,
+  sort,
 }: Props) {
   if (isPending) {
     return (
-      <ReplayTableWithColumns columns={columns}>
+      <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -54,7 +51,7 @@ export default function ReplayTable({
 
   if (error) {
     return (
-      <ReplayTableWithColumns columns={columns}>
+      <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -66,14 +63,19 @@ export default function ReplayTable({
   }
 
   return (
-    <ReplayTableWithColumns columns={columns}>
+    <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
       {replays.length === 0 && <SimpleTable.Empty>No data</SimpleTable.Empty>}
-      {replays.map(replay => (
+      {replays.map((replay, rowIndex) => (
         <SimpleTable.Row key={replay.id}>
-          {columns.map(column => (
-            <SimpleTable.RowCell key={`${replay.id}-${column.key}`} name={column.key}>
-              {renderBodyCell(column, replay, 0, 0)}
-            </SimpleTable.RowCell>
+          {columns.map((column, columnIndex) => (
+            <RowCell key={`${replay.id}-${column.sortKey}`}>
+              <column.Component
+                columnIndex={columnIndex}
+                replay={replay}
+                rowIndex={rowIndex}
+                showDropdownFilters={showDropdownFilters}
+              />
+            </RowCell>
           ))}
         </SimpleTable.Row>
       ))}
@@ -81,20 +83,25 @@ export default function ReplayTable({
   );
 }
 
+type TableProps = {
+  children: ReactNode;
+  columns: readonly ReplayTableColumn[];
+  className?: string;
+  onSortClick?: (key: string) => void;
+  sort?: Sort;
+};
+
 const ReplayTableWithColumns = styled(
-  ({
-    children,
-    className,
-    columns,
-  }: {
-    children: ReactNode;
-    columns: Array<GridColumnOrder<ReplayColumn>>;
-    className?: string;
-  }) => (
+  ({children, className, columns, onSortClick, sort}: TableProps) => (
     <SimpleTable className={className}>
       <SimpleTable.Header>
         {columns.map(column => (
-          <SimpleTable.HeaderCell key={column.key} name={column.key} sortKey={column.key}>
+          <SimpleTable.HeaderCell
+            key={column.sortKey}
+            handleSortClick={() => column.sortKey && onSortClick?.(column.sortKey)}
+            sort={column.sortKey && sort?.field === column.sortKey ? sort : undefined}
+            sortKey={column.sortKey}
+          >
             <Tooltip title={column.tooltip} disabled={!column.tooltip}>
               {column.name}
             </Tooltip>
@@ -107,88 +114,9 @@ const ReplayTableWithColumns = styled(
   )
 )`
   grid-template-columns: 1fr repeat(7, max-content);
+
+  margin-bottom: 0;
 `;
-
-function renderBodyCell(
-  column: GridColumnOrder<ReplayColumn>,
-  replay: ListRecord,
-  _rowIndex: number,
-  _columnIndex: number
-) {
-  const showDropdownFilters = true;
-  switch (column.key) {
-    case ReplayColumn.ACTIVITY:
-      return (
-        <ActivityCell
-          key="activity"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.BROWSER:
-      return (
-        <BrowserCell
-          key="browser"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.COUNT_DEAD_CLICKS:
-      return (
-        <DeadClickCountCell
-          key="countDeadClicks"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.COUNT_ERRORS:
-      return (
-        <ErrorCountCell
-          key="countErrors"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.COUNT_RAGE_CLICKS:
-      return (
-        <RageClickCountCell
-          key="countRageClicks"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.DURATION:
-      return (
-        <DurationCell
-          key="duration"
-          replay={replay}
-          showDropdownFilters={showDropdownFilters}
-        />
-      );
-
-    case ReplayColumn.OS:
-      return (
-        <OSCell key="os" replay={replay} showDropdownFilters={showDropdownFilters} />
-      );
-
-    case ReplayColumn.REPLAY:
-      return <ReplayCell key="session" replay={replay} referrerTable="main" />;
-
-    case ReplayColumn.PLAY_PAUSE:
-      return <PlayPauseCell key="play" isSelected={false} handleClick={() => {}} />;
-
-    case ReplayColumn.SLOWEST_TRANSACTION:
-      return <TransactionCell key="slowestTransaction" replay={replay} />;
-
-    default:
-      return null;
-  }
-}
 
 function getErrorMessage(fetchError: RequestError) {
   if (typeof fetchError === 'string') {
@@ -207,3 +135,11 @@ function getErrorMessage(fetchError: RequestError) {
     'This could be due to invalid search parameters or an internal systems error.'
   );
 }
+
+const RowCell = styled(SimpleTable.RowCell)`
+  position: relative;
+
+  &:hover [data-visible-on-hover='true'] {
+    opacity: 1;
+  }
+`;

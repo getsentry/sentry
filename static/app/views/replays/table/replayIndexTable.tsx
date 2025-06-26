@@ -1,9 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
+import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
+import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -18,31 +19,31 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import {ReplayColumn, ReplayGridColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-const COLUMNS_WEB: Array<GridColumnOrder<ReplayColumn>> = [
-  ReplayGridColumns[ReplayColumn.REPLAY],
-  ReplayGridColumns[ReplayColumn.OS],
-  ReplayGridColumns[ReplayColumn.BROWSER],
-  ReplayGridColumns[ReplayColumn.DURATION],
-  ReplayGridColumns[ReplayColumn.COUNT_DEAD_CLICKS],
-  ReplayGridColumns[ReplayColumn.COUNT_RAGE_CLICKS],
-  ReplayGridColumns[ReplayColumn.COUNT_ERRORS],
-  ReplayGridColumns[ReplayColumn.ACTIVITY],
-];
+const COLUMNS_WEB = [
+  ReplayTableColumns.ReplaySessionColumn,
+  ReplayTableColumns.ReplayOSColumn,
+  ReplayTableColumns.ReplayBrowserColumn,
+  ReplayTableColumns.ReplayDurationColumn,
+  ReplayTableColumns.ReplayCountDeadClicksColumn,
+  ReplayTableColumns.ReplayCountRageClicksColumn,
+  ReplayTableColumns.ReplayCountErrorsColumn,
+  ReplayTableColumns.ReplayActivityColumn,
+] as const;
 
-const COLUMNS_MOBILE: Array<GridColumnOrder<ReplayColumn>> = [
-  ReplayGridColumns[ReplayColumn.REPLAY],
-  ReplayGridColumns[ReplayColumn.OS],
-  ReplayGridColumns[ReplayColumn.DURATION],
-  ReplayGridColumns[ReplayColumn.COUNT_ERRORS],
-  ReplayGridColumns[ReplayColumn.ACTIVITY],
-];
+const COLUMNS_MOBILE = [
+  ReplayTableColumns.ReplaySessionColumn,
+  ReplayTableColumns.ReplayOSColumn,
+  ReplayTableColumns.ReplayDurationColumn,
+  ReplayTableColumns.ReplayCountErrorsColumn,
+  ReplayTableColumns.ReplayActivityColumn,
+] as const;
 
 export default function ReplayIndexTable() {
   const organization = useOrganization();
 
+  const {onSortClick, sortQuery, sortType} = useReplayTableSort();
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
@@ -50,14 +51,13 @@ export default function ReplayIndexTable() {
       environment: decodeList,
       project: decodeList,
       query: decodeScalar,
-      sort: (value: any) => decodeScalar(value, '-started_at'),
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
     },
   });
   const queryKey = useReplayListQueryKey({
-    options: {query},
+    options: {query: {...query, sort: sortQuery}},
     organization,
     queryReferrer: 'replayList',
   });
@@ -89,8 +89,10 @@ export default function ReplayIndexTable() {
         columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
         error={error}
         isPending={isPending}
+        onSortClick={onSortClick}
         replays={replays ?? []}
         showDropdownFilters
+        sort={sortType}
       />
       <Paginate pageLinks={getResponseHeader?.('Link') ?? null} />
     </Fragment>
@@ -139,7 +141,7 @@ function Paginate({pageLinks}: {pageLinks: string | null}) {
 
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ReplayPagination = styled(Pagination)`

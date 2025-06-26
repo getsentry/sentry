@@ -32,14 +32,15 @@ function Header({children}: {children: React.ReactNode}) {
 
 function HeaderCell({
   children,
-  name,
+  className,
   sortKey,
   sort,
   handleSortClick,
 }: {
-  name: string;
   children?: React.ReactNode;
+  className?: string;
   handleSortClick?: () => void;
+  name?: string;
   sort?: Sort;
   sortKey?: string;
 }) {
@@ -47,7 +48,7 @@ function HeaderCell({
 
   return (
     <ColumnHeaderCell
-      className={name}
+      className={className}
       isSorted={isSortedByField}
       onClick={handleSortClick}
       role="columnheader"
@@ -79,15 +80,16 @@ function Row({children, variant = 'default', ...props}: RowProps) {
 
 function RowCell({
   children,
-  name,
+  className,
   justify,
 }: {
   children: React.ReactNode;
-  name: string;
+  className?: string;
   justify?: CSSProperties['justifyContent'];
+  name?: string;
 }) {
   return (
-    <StyledRowCell className={name} role="cell" align="center" justify={justify}>
+    <StyledRowCell className={className} role="cell" align="center" justify={justify}>
       {children}
     </StyledRowCell>
   );
