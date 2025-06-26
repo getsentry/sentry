@@ -1,13 +1,11 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Select} from 'sentry/components/core/select';
 
-type SelectFieldProps = ComponentProps<typeof SelectField>;
-
-export default function AutomationBuilderSelectField(props: SelectFieldProps) {
+export function AutomationBuilderSelect(props: ComponentProps<typeof Select>) {
   return (
-    <StyledSelectField
+    <StyledSelect
       flexibleControlStateSize
       hideLabel
       inline
@@ -17,7 +15,7 @@ export default function AutomationBuilderSelectField(props: SelectFieldProps) {
   );
 }
 
-const StyledSelectField = styled(SelectField)`
+const StyledSelect = styled(Select)`
   width: 180px;
   padding: 0;
   > div {

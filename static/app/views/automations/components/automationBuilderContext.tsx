@@ -11,6 +11,7 @@ import {
   DataConditionGroupLogicType,
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function useAutomationBuilderReducer() {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
@@ -385,7 +386,7 @@ function addIf(
       {
         id: uuid4(),
         conditions: [],
-        logicType: DataConditionGroupLogicType.ANY,
+        logicType: DataConditionGroupLogicType.ALL,
       },
     ],
   };
@@ -420,7 +421,9 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            comparison: true,
+            // comparison: true,
+            comparison:
+              dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
             conditionResult: true,
           },
         ],

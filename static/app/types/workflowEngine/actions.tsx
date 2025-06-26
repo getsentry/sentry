@@ -7,7 +7,7 @@ export interface Action {
     target_display?: string;
     target_identifier?: string;
   };
-  data: Record<string, unknown>;
+  data: Record<string, any>;
   id: string;
   type: ActionType;
   integrationId?: string;
@@ -16,7 +16,7 @@ export interface Action {
 export interface TicketCreationAction extends Action {
   [key: string]: any;
   data: {
-    additional_fields?: Record<string, unknown>;
+    additional_fields?: Record<string, any>;
     dynamic_form_fields?: IssueConfigField[];
   };
   integrationId: string;
