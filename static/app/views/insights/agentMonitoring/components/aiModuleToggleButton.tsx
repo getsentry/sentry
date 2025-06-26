@@ -1,9 +1,9 @@
-import type {Key} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   hasAgentInsightsFeature,
@@ -14,10 +14,14 @@ export function AiModuleToggleButton() {
   const [preferedAiModule, togglePreferedModule] = useTogglePreferedAiModule();
   const organization = useOrganization();
 
-  const handleExperimentDropdownAction = (key: Key) => {
-    if (key === 'ai-module') {
-      togglePreferedModule();
-    }
+  const handleAction = () => {
+    const isEnabled = preferedAiModule !== 'agents-insights';
+
+    trackAnalytics('agent-monitoring.ui-toggle', {
+      organization,
+      enabled: isEnabled,
+    });
+    togglePreferedModule();
   };
 
   if (!hasAgentInsightsFeature(organization)) {
@@ -32,12 +36,12 @@ export function AiModuleToggleButton() {
           <IconLab isSolid />
         </StyledDropdownButton>
       )}
-      onAction={handleExperimentDropdownAction}
       items={[
         {
           key: 'ai-module',
           leadingItems:
             preferedAiModule === 'agents-insights' ? null : <IconLab isSolid />,
+          onAction: handleAction,
           label:
             preferedAiModule === 'agents-insights'
               ? 'Switch to Old Experience'
