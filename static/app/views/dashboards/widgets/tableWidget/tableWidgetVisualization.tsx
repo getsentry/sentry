@@ -55,11 +55,18 @@ interface TableWidgetVisualizationProps {
    */
   frameless?: boolean;
   /**
-   * A function that accepts a field name, a data row, and the table meta. It should return a field renderer that can be used to render that field given the data and meta. A field renderer is a function that accepts a data row, and a baggage object, and returns a React node or `undefined`, and can be rendered as a table cell.
+   * A function that returns a field renderer that can be used to render that field given the data and meta. A field renderer is a function that accepts a data row, and a baggage object, and returns a React node or `undefined`, and can be rendered as a table cell.
+   * @param fieldName The name of the field to render
+   * @param dataRow The full table row of data
+   * @param meta The full table metadata
+   * @returns `FieldRenderer`
    */
   getRenderer?: FieldRendererGetter;
   /**
-   * A function that accepts a field name, a data row, and the table meta. It should return a baggage object that will be passed to all the field renderers during table rendering.
+   * A function that returns a baggage object that will be passed to all the field renderers during table rendering.
+   * @param fieldName The name of the field to render
+   * @param dataRow The full table row of data
+   * @param meta The full table metadata
    */
   makeBaggage?: BaggageMaker;
   /**
