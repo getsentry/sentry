@@ -145,7 +145,6 @@ export default Storybook.story('SimpleTable', story => {
           <Storybook.JSXNode name="Link" /> or a raw <Storybook.JSXNode name="button" />,
           but be sure to set <code>display: contents; pointer: cursor;</code> in the css
         </p>
-        <p>In this example the first row is clickable, but the second is not.</p>
         <SimpleTableWithColumns>
           <SimpleTable.Header>
             {headers.map(header => (
@@ -165,7 +164,9 @@ export default Storybook.story('SimpleTable', story => {
               style={{display: 'contents', cursor: 'pointer'}}
             >
               <InteractionStateLayer />
-              <SimpleTable.RowCell>Linked Issue</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                Clickable <Storybook.JSXNode name="Link" />
+              </SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
@@ -181,7 +182,9 @@ export default Storybook.story('SimpleTable', story => {
               style={{display: 'contents', cursor: 'pointer'}}
             >
               <InteractionStateLayer />
-              <SimpleTable.RowCell>Linked Issue</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                Clickable <Storybook.JSXNode name="button" />
+              </SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
               <SimpleTable.RowCell>123</SimpleTable.RowCell>
