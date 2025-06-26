@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';

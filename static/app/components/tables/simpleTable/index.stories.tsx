@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 
