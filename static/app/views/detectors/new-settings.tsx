@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {
@@ -20,8 +21,8 @@ import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
+import useProjects from 'sentry/utils/useProjects';
+import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
@@ -45,19 +46,20 @@ export default function DetectorNewSettings() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {projects, fetching: isFetchingProjects} = useProjects();
   // We'll likely use more query params on this page to open drawers, validate once
   const validatedRequiredQueryParams = useRef(false);
 
   useWorkflowEngineFeatureGate({redirect: true});
 
-  // Kick user back to the previous step if they don't have a project or detectorType
+  // Kick user back to the previous step if they don't have a detectorType
   useLayoutEffect(() => {
-    const {project, detectorType} = location.query;
+    const {detectorType} = location.query;
     if (validatedRequiredQueryParams.current) {
       return;
     }
 
-    if (!project || !detectorType) {
+    if (!detectorType) {
       navigate(`${makeMonitorBasePathname(organization.slug)}new/`);
     }
     validatedRequiredQueryParams.current = true;
@@ -81,15 +83,20 @@ export default function DetectorNewSettings() {
   );
 
   // Defaults and data from the previous step passed in as query params
-  const initialData = useMemo(
-    (): MetricDetectorFormData => ({
+  const initialData = useMemo((): MetricDetectorFormData => {
+    const defaultProjectId = projects.find(p => p.isMember)?.id ?? projects[0]?.id;
+
+    return {
       ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-      projectId: (location.query.project as string) ?? '',
+      projectId: (location.query.project as string) ?? defaultProjectId ?? '',
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
-    }),
-    [location.query]
-  );
+    };
+  }, [location.query, projects]);
+
+  if (isFetchingProjects) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
@@ -113,15 +120,7 @@ export default function DetectorNewSettings() {
                 },
               ]}
             />
-            <Flex gap={space(1)} direction="column">
-              <Layout.Title>
-                <EditableDetectorName />
-              </Layout.Title>
-              <DetectorSubtitle
-                projectId={initialData.projectId}
-                environment={initialData.environment}
-              />
-            </Flex>
+            <DetectorBaseFields />
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>

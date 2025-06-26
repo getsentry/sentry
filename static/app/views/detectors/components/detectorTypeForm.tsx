@@ -2,91 +2,23 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useProjects from 'sentry/utils/useProjects';
-
-function getDefaultProject(projects: Project[]) {
-  return projects.find(p => p.isMember) ?? projects[0];
-}
 
 export function DetectorTypeForm() {
   return (
     <FormContainer>
-      <div>
-        <Header>
-          <h3>{t('Monitor type')}</h3>
-          <p>
-            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-            <a href="#">{t('Learn more about monitor types.')}</a>
-          </p>
-        </Header>
-        <MonitorTypeField />
-      </div>
-      <div>
-        <Header>
-          <h3>{t('Project and Environment')}</h3>
-        </Header>
-        <Flex>
-          <ProjectField />
-          <EnvironmentField />
-        </Flex>
-      </div>
+      <Header>
+        <h3>{t('Monitor type')}</h3>
+        <p>
+          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+          <a href="#">{t('Learn more about monitor types.')}</a>
+        </p>
+      </Header>
+      <MonitorTypeField />
     </FormContainer>
-  );
-}
-
-function ProjectField() {
-  const {projects, fetching} = useProjects();
-
-  return (
-    <StyledProjectField
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      projects={projects}
-      groupProjects={project => (project.isMember ? 'member' : 'all')}
-      groups={[
-        {key: 'member', label: t('My Projects')},
-        {key: 'all', label: t('All Projects')},
-      ]}
-      name="project"
-      placeholder={t('Project')}
-      aria-label={t('Select Project')}
-      disabled={fetching}
-    />
-  );
-}
-
-function EnvironmentField() {
-  const {projects} = useProjects();
-  const projectId = useFormField<string>('project');
-  const currentProject = projectId
-    ? projects.find(p => p.id === projectId)
-    : getDefaultProject(projects);
-
-  const environments = currentProject?.environments ?? [];
-
-  return (
-    <StyledEnvironmentField
-      choices={[
-        ['', t('All Environments')],
-        ...(environments?.map(environment => [environment, environment]) ?? []),
-      ]}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      name="environment"
-      placeholder={t('Environment')}
-      aria-label={t('Select Environment')}
-    />
   );
 }
 
@@ -138,18 +70,6 @@ const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
   max-width: ${p => p.theme.breakpoints.xl};
-`;
-
-const StyledProjectField = styled(SentryProjectSelectorField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
-`;
-
-const StyledEnvironmentField = styled(SelectField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
 `;
 
 const StyledRadioField = styled(RadioField)`

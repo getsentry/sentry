@@ -18,8 +18,7 @@ import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
+import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
@@ -113,15 +112,7 @@ export default function DetectorEdit() {
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detectorId={params.detectorId} />
-            <Flex gap={space(1)} direction="column">
-              <Layout.Title>
-                <EditableDetectorName />
-              </Layout.Title>
-              <DetectorSubtitle
-                projectId={initialData.projectId}
-                environment={initialData.environment}
-              />
-            </Flex>
+            <DetectorBaseFields />
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
