@@ -462,7 +462,7 @@ const ThreadTraceWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding: ${space(1)} ${space(4)};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(2)};
   }
 `;

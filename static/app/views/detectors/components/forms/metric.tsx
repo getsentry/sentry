@@ -432,7 +432,7 @@ const FormStack = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xlarge};
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const DatasetRow = styled('div')`

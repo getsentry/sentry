@@ -371,7 +371,7 @@ const WorkflowActions = styled('div')`
   justify-content: flex-end;
   column-gap: ${space(2)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
   }
 `;

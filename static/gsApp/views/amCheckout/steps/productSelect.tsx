@@ -451,7 +451,7 @@ const FeatureDescription = styled('div')`
 const IllustrationContainer = styled('div')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     display: block;
     position: absolute;
     bottom: 0px;

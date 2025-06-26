@@ -328,7 +328,7 @@ const ContainerHeader = styled('div')`
     margin: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: flex-start;
 

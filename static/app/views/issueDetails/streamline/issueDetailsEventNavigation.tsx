@@ -48,7 +48,7 @@ export function IssueDetailsEventNavigation({
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
 
   // Reset shouldPreload when the groupId changes

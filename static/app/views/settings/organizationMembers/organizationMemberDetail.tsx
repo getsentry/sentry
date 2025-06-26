@@ -435,7 +435,7 @@ const Details = styled('div')`
   gap: ${space(2)};
   width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-template-columns: auto;
   }

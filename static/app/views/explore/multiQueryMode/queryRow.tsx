@@ -105,7 +105,7 @@ const QueryConstructionSection = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(400px, 1fr) 1fr;
   }
 `;

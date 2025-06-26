@@ -168,7 +168,7 @@ const SectionHeader = styled('div')`
     font-weight: ${p => p.theme.fontWeight.normal};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
