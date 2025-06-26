@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -117,6 +118,8 @@ const Container = styled('div')`
 
 const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
+
+  margin-bottom: ${space(2)};
 
   .type,
   .last-issue,
