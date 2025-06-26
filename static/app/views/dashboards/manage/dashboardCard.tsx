@@ -95,9 +95,9 @@ function DashboardCard({
               aria-label={favorited ? t('UnFavorite') : t('Favorite')}
             />
           }
-          size="zero"
           borderless
           aria-label={t('Dashboards Favorite')}
+          size="xs"
           onClick={async () => {
             try {
               setFavorited(!favorited);
@@ -138,7 +138,7 @@ const Title = styled('div')`
   font-size: 1rem;
   line-height: 1.2;
   /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const CardLink = styled(Link)`

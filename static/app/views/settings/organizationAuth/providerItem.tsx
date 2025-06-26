@@ -155,7 +155,7 @@ const ProviderLogo = styled('div')`
 `;
 
 const ProviderName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ProviderDescription = styled('div')`

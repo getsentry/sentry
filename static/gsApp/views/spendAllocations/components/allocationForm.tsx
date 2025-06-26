@@ -522,7 +522,7 @@ const Toggle = styled(NewBooleanField)`
 const OffsetBody = styled(PanelBody)`
   margin: -${space(3)} -${space(4)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(3)};
   }
 `;

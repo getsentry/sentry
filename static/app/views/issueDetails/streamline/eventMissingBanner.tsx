@@ -104,12 +104,12 @@ export function EventMissingBanner() {
 
 const MainText = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SubText = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const EventIdText = styled(SubText)`

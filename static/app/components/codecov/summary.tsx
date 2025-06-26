@@ -37,7 +37,7 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
 
 const StyledSummaryEntryLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray300};
 `;
 
@@ -77,12 +77,12 @@ const StyledSummaryEntryValueLink = styled('span')`
     visibility: hidden;
     overflow: hidden;
     pointer-events: none;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     display: block;
   }
 
   &[data-is-filtered='true'] {
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   &:hover {
@@ -132,7 +132,7 @@ export const SummaryEntries = styled('div')<{
   padding-bottom: ${space(1)};
   grid-template-columns: repeat(${p => p.smallColumnSpan}, 1fr);
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(${p => p.largeColumnSpan}, 1fr);
   }
 `;

@@ -223,7 +223,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)} !important;
 `;

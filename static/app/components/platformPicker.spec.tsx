@@ -82,6 +82,7 @@ describe('PlatformPicker', function () {
       'Nuxt',
       'React',
       'React Native',
+      'React Router Framework',
       'Remix',
       'Solid',
       'SolidStart',

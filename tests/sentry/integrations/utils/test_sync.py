@@ -76,7 +76,7 @@ class TestSyncAssigneeInbound(TestCase):
         )
 
         assert self.group.get_assignee() is None
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assignment(self, mock_record_event):
@@ -99,7 +99,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert updated_assignee is not None
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assign_with_multiple_groups(self, mock_record_event):
@@ -149,7 +149,7 @@ class TestSyncAssigneeInbound(TestCase):
             assert assignee.id == self.test_user.id
             assert assignee.email == "test@example.com"
 
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     def test_assign_with_no_user_found(self, mock_record_halt):
@@ -208,7 +208,7 @@ class TestSyncAssigneeInbound(TestCase):
         updated_assignee = self.group.get_assignee()
         assert updated_assignee is None
 
-        mock_record_failure.assert_called_once_with(mock.ANY)
+        mock_record_failure.assert_called_once_with(mock.ANY, create_issue=True)
 
         exception_param = mock_record_failure.call_args_list[0].args[0]
 

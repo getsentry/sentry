@@ -288,7 +288,7 @@ function PerformanceScoreRingWithTooltips({
           barWidth={barWidth}
           textCss={() => css`
             font-size: 32px;
-            font-weight: ${theme.fontWeightBold};
+            font-weight: ${theme.fontWeight.bold};
             color: ${theme.textColor};
           `}
           segmentColors={ringSegmentColors}
@@ -347,7 +347,7 @@ const ProgressRingContainer = styled('div')``;
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   text-anchor: middle;
 `;

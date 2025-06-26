@@ -7,7 +7,6 @@ import {Item, Section} from '@react-stately/collections';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -96,7 +95,7 @@ export interface DropdownMenuProps
   /**
    * Affects the size of the trigger button and menu items.
    */
-  size?: FormSize;
+  size?: DropdownMenuListProps['size'];
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in

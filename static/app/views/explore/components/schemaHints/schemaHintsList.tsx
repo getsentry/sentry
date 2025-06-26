@@ -489,7 +489,7 @@ export const SchemaHintsSection = styled('div')`
   margin-top: -4px;
   height: fit-content;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
@@ -503,16 +503,16 @@ const HintTextContainer = styled('div')`
 `;
 
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.purple400};
 `;

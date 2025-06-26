@@ -50,6 +50,7 @@ export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
 export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE =
   'gen_ai.response.model' as EAPSpanProperty;
 export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
+export const AI_COST_ATTRIBUTE = 'gen_ai.usage.total_cost' as EAPSpanProperty;
 export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
 export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
 
@@ -61,6 +62,8 @@ export const AI_INPUT_TOKENS_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.input_tokens,integer])` as EAPSpanProperty;
 export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.output_tokens,integer])` as EAPSpanProperty;
+export const AI_COST_ATTRIBUTE_SUM =
+  `sum(tags[gen_ai.usage.total_cost,number])` as EAPSpanProperty;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.request.model', ['ai.model.id']],
@@ -71,11 +74,19 @@ export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.tool.input', ['ai.toolCall.args']],
   ['gen_ai.tool.output', ['ai.toolCall.result']],
   ['gen_ai.request.messages', ['ai.prompt.messages']],
+  ['gen_ai.prompt', ['ai.prompt']],
   ['gen_ai.response.tool_calls', ['ai.response.toolCalls']],
   ['gen_ai.response.text', ['ai.response.text']],
   ['gen_ai.response.object', ['ai.response.object']],
   ['gen_ai.tool.name', ['ai.toolCall.name']],
 ]);
+
+export function extendWithLegacyAttributeKeys(attributeKeys: string[]) {
+  return attributeKeys.flatMap(key => {
+    const legacyKeys = legacyAttributeKeys.get(key) ?? [];
+    return [key, ...legacyKeys];
+  });
+}
 
 export function getIsAiSpan({
   op = 'default',

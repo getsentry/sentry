@@ -296,11 +296,11 @@ const SearchAndSelectorWrapper = styled('div')`
   align-items: flex-end;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: flex;
   }
 `;
@@ -308,7 +308,7 @@ const SearchAndSelectorWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: ${space(1)};
   }
 `;
@@ -318,11 +318,11 @@ const ProjectCards = styled('div')`
   gap: ${space(3)};
   grid-template-columns: repeat(auto-fill, minmax(1fr, 400px));
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
   }
 `;

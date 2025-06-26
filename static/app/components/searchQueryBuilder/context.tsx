@@ -54,6 +54,7 @@ interface SearchQueryBuilderContextData {
    */
   portalTarget?: HTMLElement | null;
   recentSearches?: SavedSearchType;
+  replaceRawSearchKeys?: string[];
 }
 
 export function useSearchQueryBuilder() {
@@ -90,6 +91,7 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  replaceRawSearchKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -159,6 +161,7 @@ export function SearchQueryBuilderProvider({
       portalTarget,
       displaySeerResults,
       setDisplaySeerResults,
+      replaceRawSearchKeys,
     };
   }, [
     state,
@@ -182,6 +185,7 @@ export function SearchQueryBuilderProvider({
     parseQuery,
     displaySeerResults,
     setDisplaySeerResults,
+    replaceRawSearchKeys,
   ]);
 
   return (

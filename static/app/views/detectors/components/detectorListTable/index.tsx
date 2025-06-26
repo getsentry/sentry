@@ -126,7 +126,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     display: none;
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 3fr 0.8fr;
 
     .type {
@@ -134,7 +134,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.small}) {
+  @container (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
@@ -142,7 +142,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.medium}) {
+  @container (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .assignee {
@@ -150,7 +150,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.large}) {
+  @container (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     .connected-automations {

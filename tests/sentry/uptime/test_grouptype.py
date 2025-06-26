@@ -18,7 +18,7 @@ from sentry.uptime.grouptype import (
     build_fingerprint,
 )
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -229,7 +229,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
             project_id=self.project.id,
             type=UptimeDomainCheckFailure.slug,
             config={
-                "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                "mode": UptimeMonitorMode.MANUAL,
                 "environment": "hi",
             },
         )
@@ -260,7 +260,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": 1,
                 },
             )
@@ -281,7 +281,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "bad_mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "bad_mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                 },
             )
@@ -291,7 +291,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                     "junk": "hi",
                 },
@@ -319,7 +319,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                 },
             )
 

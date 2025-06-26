@@ -83,26 +83,34 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr auto auto auto 140px;
+  grid-template-columns: 1fr 100px auto auto auto;
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr auto auto 140px;
+  /*
+    The connected column can be added/removed depending on props, so in order to
+    have a constant width we have an auto grid column and set the width here.
+  */
+  .connected {
+    width: 140px;
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr 100px auto auto;
 
     .last-issue {
       display: none;
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr auto 140px;
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr 100px auto;
 
     .owner {
       display: none;
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 1fr 140px;
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr 100px;
 
     .type {
       display: none;

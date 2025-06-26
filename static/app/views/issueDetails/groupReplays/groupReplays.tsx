@@ -6,6 +6,10 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import {
+  SelectedReplayIndexProvider,
+  useSelectedReplayIndex,
+} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
@@ -24,11 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
-import {
-  SelectedReplayIndexProvider,
-  useSelectedReplayIndex,
-} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
-import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -174,8 +173,8 @@ function SelectedReplayWrapper({
   });
   const {status, replay} = readerResult;
 
-  const selectedReplayIndex = useSelectedReplayIndex();
-  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
 
   return (
     <ReplayContextProvider
@@ -215,8 +214,8 @@ function GroupReplaysTable({
 }) {
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj({});
-  const selectedReplayIndex = useSelectedReplayIndex();
-  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
   useCleanQueryParamsOnRouteLeave({
@@ -271,8 +270,8 @@ function ReplayOverlay({
   replayCount: number;
   replays: ReplayListRecord[];
 }) {
-  const selectedReplayIndex = useSelectedReplayIndex();
-  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
 
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id

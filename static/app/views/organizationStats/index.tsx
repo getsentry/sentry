@@ -453,10 +453,10 @@ const DropdownDataCategory = styled(CompactSelect)`
     height: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: auto / span 2;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
   }
 
@@ -476,7 +476,7 @@ const DropdownDataCategory = styled(CompactSelect)`
 const NewLayoutBody = styled('div')``;
 
 const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
@@ -499,7 +499,7 @@ const PageControl = styled('div')`
 
   margin-bottom: 0;
   grid-template-columns: minmax(0, max-content);
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

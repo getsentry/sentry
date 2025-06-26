@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -53,23 +54,16 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
   );
 }
 
-export interface RepoSelectorProps {
-  onChange: (data: string) => void;
-  /**
-   * Repository value
-   */
-  repository: string | null;
-  /**
-   * Optional trigger for the assignee selector. If nothing passed in,
-   * the default trigger will be used
-   */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => React.ReactNode;
-}
+export function RepoSelector() {
+  const {repository, changeContextValue} = useCodecovContext();
 
-export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps) {
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({repository: selectedOption.value});
+    },
+    [changeContextValue]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     // TODO: When API is ready, replace placeholder w/ api response
     const repoSet = new Set([
@@ -88,13 +82,6 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
     });
   }, [repository]);
 
-  const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    newSelected => {
-      onChange(newSelected.value);
-    },
-    [onChange]
-  );
-
   return (
     <CompactSelect
       searchable
@@ -105,31 +92,28 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
       menuWidth={'16rem'}
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
-      trigger={
-        trigger ??
-        ((triggerProps, isOpen) => {
-          const defaultLabel = options.some(item => item.value === repository)
-            ? repository
-            : t('Select Repo');
+      trigger={(triggerProps, isOpen) => {
+        const defaultLabel = options.some(item => item.value === repository)
+          ? repository
+          : t('Select Repo');
 
-          return (
-            <DropdownButton
-              isOpen={isOpen}
-              data-test-id="page-filter-codecov-repository-selector"
-              {...triggerProps}
-            >
-              <TriggerLabelWrap>
-                <Flex align="center" gap={space(0.75)}>
-                  <IconContainer>
-                    <IconRepository />
-                  </IconContainer>
-                  <TriggerLabel>{defaultLabel}</TriggerLabel>
-                </Flex>
-              </TriggerLabelWrap>
-            </DropdownButton>
-          );
-        })
-      }
+        return (
+          <DropdownButton
+            isOpen={isOpen}
+            data-test-id="page-filter-codecov-repository-selector"
+            {...triggerProps}
+          >
+            <TriggerLabelWrap>
+              <Flex align="center" gap={space(0.75)}>
+                <IconContainer>
+                  <IconRepository />
+                </IconContainer>
+                <TriggerLabel>{defaultLabel}</TriggerLabel>
+              </Flex>
+            </TriggerLabelWrap>
+          </DropdownButton>
+        );
+      }}
     />
   );
 }
