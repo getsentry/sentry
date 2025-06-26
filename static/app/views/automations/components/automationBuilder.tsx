@@ -4,15 +4,17 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {
   ConflictingConditions,
   DataConditionGroup,
+  DataConditionGroupLogicType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
 import useApi from 'sentry/utils/useApi';
@@ -61,7 +63,9 @@ export default function AutomationBuilder() {
                   isClearable={false}
                   name="triggers.logicType"
                   value={state.triggers.logicType}
-                  onChange={logicType => actions.updateWhenLogicType(logicType)}
+                  onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                    actions.updateWhenLogicType(option.value)
+                  }
                   required
                   flexibleControlStateSize
                   options={TRIGGER_MATCH_OPTIONS}
@@ -144,8 +148,8 @@ function ActionFilterBlock({
                       options={FILTER_MATCH_OPTIONS}
                       size="xs"
                       value={actionFilter.logicType}
-                      onChange={value =>
-                        actions.updateIfLogicType(actionFilter.id, value)
+                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                        actions.updateIfLogicType(actionFilter.id, option.value)
                       }
                     />
                   </EmbeddedWrapper>
@@ -208,7 +212,7 @@ const StepLead = styled(Flex)`
   gap: ${space(0.5)};
 `;
 
-const EmbeddedSelectField = styled(SelectField)`
+const EmbeddedSelectField = styled(Select)`
   padding: 0;
   font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;

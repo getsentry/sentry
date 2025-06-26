@@ -2,10 +2,12 @@ import styled from '@emotion/styled';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import AutomationBuilderSelectField, {
+import {
+  AutomationBuilderSelect,
   selectControlStyles,
-} from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -73,12 +75,12 @@ export function EmailNode() {
 function TargetTypeField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(value: string) =>
-        onUpdate({config: {target_type: value, target_identifier: undefined}})
+      onChange={(option: SelectValue<string>) =>
+        onUpdate({config: {target_type: option.value, target_identifier: undefined}})
       }
     />
   );
@@ -126,11 +128,13 @@ function IdentifierField() {
 function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.data.fallthroughType`}
       value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
-      onChange={(value: string) => onUpdate({data: {fallthroughType: value}})}
+      onChange={(option: SelectValue<string>) =>
+        onUpdate({data: {fallthroughType: option.value}})
+      }
     />
   );
 }

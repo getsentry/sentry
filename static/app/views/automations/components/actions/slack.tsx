@@ -1,6 +1,6 @@
 import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
-import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
   RowLine,
@@ -89,13 +89,13 @@ export function SlackNode() {
 function NotesField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${actionId}.data.notes`}
       placeholder={t('example notes')}
       value={action.data.tags}
-      onChange={(value: string) => {
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          data: {tags: value},
+          data: {tags: e.target.value},
         });
       }}
     />
