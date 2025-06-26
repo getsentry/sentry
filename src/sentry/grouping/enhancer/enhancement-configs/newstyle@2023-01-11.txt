@@ -100,6 +100,11 @@ stack.abs_path:package:sentry_hive/** -app -group
 stack.abs_path:package:sentry_isar/** -app -group
 stack.abs_path:package:sentry_sqflite/** -app -group
 stack.abs_path:package:sentry_drift/** -app -group
+stack.abs_path:package:sentry_isar/** -app
+stack.abs_path:package:sentry_link/** -app
+stack.abs_path:package:sentry_firebase_remote_config/** -app
+# .pub-cache is the node_modules equivalent for Dart
+family:native stack.abs_path:**/.pub-cache/** -app
 
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
