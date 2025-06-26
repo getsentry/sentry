@@ -58,7 +58,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
   useCompareAnalytics({
     aggregatesTableResult,
-    index,
     query: queryParts,
     spansTableResult,
     timeseriesResult,

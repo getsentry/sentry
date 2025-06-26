@@ -56,8 +56,6 @@ export function ToolbarVisualize() {
 
   const canDelete = visualizes.length > 1;
 
-  const shouldRenderLabel = visualizes.length > 1;
-
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
@@ -77,7 +75,6 @@ export function ToolbarVisualize() {
             canDelete={canDelete}
             deleteOverlay={deleteOverlay}
             group={group}
-            label={shouldRenderLabel ? visualize.label : undefined}
             yAxis={visualize.yAxis}
             visualizes={visualizes}
             setVisualizes={setVisualizes}
@@ -108,7 +105,6 @@ interface VisualizeDropdownProps {
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   visualizes: Visualize[];
   yAxis: string;
-  label?: string;
 }
 
 function VisualizeDropdown({
@@ -118,7 +114,6 @@ function VisualizeDropdown({
   setVisualizes,
   visualizes,
   yAxis,
-  label,
 }: VisualizeDropdownProps) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
@@ -172,7 +167,6 @@ function VisualizeDropdown({
 
   return (
     <ToolbarRow>
-      {label && <ChartLabel>{label}</ChartLabel>}
       <AggregateCompactSelect
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
@@ -197,18 +191,6 @@ function VisualizeDropdown({
     </ToolbarRow>
   );
 }
-
-const ChartLabel = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  width: 38px;
-  color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-content: center;
-  align-self: stretch;
-`;
 
 const ColumnCompactSelect = styled(CompactSelect)`
   flex: 1 1;

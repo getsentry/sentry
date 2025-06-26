@@ -66,8 +66,6 @@ export function getAggregateFieldsFromLocation(
     parseGroupByOrBaseVisualize(raw, organization)
   );
 
-  let i = 0;
-
   const aggregateFields: AggregateField[] = [];
 
   let hasGroupBys = false;
@@ -81,11 +79,9 @@ export function getAggregateFieldsFromLocation(
       for (const yAxis of groupByOrBaseVisualize.yAxes) {
         aggregateFields.push(
           new Visualize(yAxis, {
-            label: String.fromCharCode(65 + i), // starts from 'A',
             chartType: groupByOrBaseVisualize.chartType,
           })
         );
-        i++;
         hasVisualizes = true;
       }
     }
