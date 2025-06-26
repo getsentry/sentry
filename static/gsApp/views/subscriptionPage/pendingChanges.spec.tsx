@@ -2,7 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
+import {
+  PendingReservedBudgetFixture,
+  SeerReservedBudgetFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -557,7 +560,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
-  it('renders fixed budget changes', function () {
+  it('renders fixed reserved budget changes for disabling', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -573,21 +576,54 @@ describe('Subscription > PendingChanges', function () {
         },
       }),
     });
-    sub.categories = {
-      ...sub.categories,
-      seerAutofix: MetricHistoryFixture({
-        ...sub.categories.seerAutofix,
-        reserved: RESERVED_BUDGET_QUOTA,
-      }),
-      seerScanner: MetricHistoryFixture({
-        ...sub.categories.seerScanner,
-        reserved: RESERVED_BUDGET_QUOTA,
-      }),
-    };
 
     render(<PendingChanges organization={organization} subscription={sub} />);
 
     expect(screen.getByText('Seer product access will be disabled')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer product access will be enabled')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
+  });
+
+  it('renders fixed reserved budget changes for enabling', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      hasReservedBudgets: true,
+      reservedBudgets: [],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        plan: 'am3_team',
+        planName: 'Team',
+        reserved: {
+          seerAutofix: RESERVED_BUDGET_QUOTA,
+          seerScanner: RESERVED_BUDGET_QUOTA,
+        },
+        reservedBudgets: [
+          PendingReservedBudgetFixture({
+            categories: {
+              seerAutofix: true,
+              seerScanner: true,
+            },
+            reservedBudget: SeerReservedBudgetFixture({}).reservedBudget,
+          }),
+        ],
+        reservedCpe: {
+          seerAutofix: 1_00,
+          seerScanner: 1,
+        },
+      }),
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.getByText('Seer product access will be enabled')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer product access will be disabled')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
