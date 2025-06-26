@@ -1,6 +1,7 @@
 import functools
 import logging
 from collections.abc import Generator, Iterator
+from datetime import datetime
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -104,7 +105,10 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         else:
             replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
             trace_connected_errors = fetch_trace_connected_errors(
-                project=project, trace_ids=trace_ids
+                project=project,
+                trace_ids=trace_ids,
+                start=filter_params["start"],
+                end=filter_params["end"],
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -142,7 +146,9 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def fetch_trace_connected_errors(project: Project, trace_ids: list[str]) -> list[GroupEvent]:
+def fetch_trace_connected_errors(
+    project: Project, trace_ids: list[str], start: float, end: float
+) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
     try:
         if not trace_ids:
@@ -152,6 +158,9 @@ def fetch_trace_connected_errors(project: Project, trace_ids: list[str]) -> list
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
                 projects=[project],
+                start=start,
+                end=end,
+                organization=project.organization,
             )
 
             # Generate a query for each trace ID. This will be executed in bulk.
@@ -187,13 +196,25 @@ def fetch_trace_connected_errors(project: Project, trace_ids: list[str]) -> list
         error_events = []
         for result, query in zip(results, queries):
             error_data = query.process_results(result)["data"]
+
             for event in error_data:
+                timestamp_raw = event.get("timestamp_ms", 0)
+                if isinstance(timestamp_raw, str):
+                    # The raw timestamp might be returned as a string.
+                    try:
+                        dt = datetime.fromisoformat(timestamp_raw.replace("Z", "+00:00"))
+                        timestamp = dt.timestamp() * 1000  # Convert to milliseconds
+                    except (ValueError, AttributeError):
+                        timestamp = 0.0
+                else:
+                    timestamp = float(timestamp_raw)  # Keep in milliseconds
+
                 error_events.append(
                     GroupEvent(
                         category="error",
                         id=event["id"],
                         title=event.get("title", ""),
-                        timestamp=float(event.get("timestamp_ms", 0)),
+                        timestamp=timestamp,
                         message=event.get("message", ""),
                     )
                 )
