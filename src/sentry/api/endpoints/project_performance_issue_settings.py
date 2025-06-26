@@ -74,7 +74,7 @@ class ConfigurableThresholds(Enum):
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
     DB_QUERY_INJECTION = "db_query_injection_detection_enabled"
-    DB_QUERY_INJECTION_QUERY_VALUE_LENGTH = "db_query_injection_query_value_length_threshold"
+    SQL_INJECTION_QUERY_VALUE_LENGTH = "sql_injection_query_value_length_threshold"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {
@@ -111,7 +111,7 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_API_CALLS_DURATION.value: ConfigurableThresholds.N_PLUS_ONE_API_CALLS.value,
     ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS.value,
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: ConfigurableThresholds.HTTP_OVERHEAD.value,
-    ConfigurableThresholds.DB_QUERY_INJECTION_QUERY_VALUE_LENGTH.value: ConfigurableThresholds.DB_QUERY_INJECTION.value,
+    ConfigurableThresholds.SQL_INJECTION_QUERY_VALUE_LENGTH.value: ConfigurableThresholds.DB_QUERY_INJECTION.value,
 }
 """
 A mapping of threshold setting to the parent setting that manages it's detection.
@@ -171,8 +171,8 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     db_query_injection_detection_enabled = serializers.BooleanField(required=False)
-    db_query_injection_query_value_length_threshold = serializers.IntegerField(
-        required=False, min_value=3, max_value=20
+    sql_injection_query_value_length_threshold = serializers.IntegerField(
+        required=False, min_value=3, max_value=10
     )
 
 
