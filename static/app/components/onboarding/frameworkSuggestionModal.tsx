@@ -274,7 +274,7 @@ export function FrameworkSuggestionModal({
               items={listEntriesWithVanilla.length}
               collapseCount={COLLAPSE_COUNT}
               buttonTitle={tn(
-                'Hidden Frameworks',
+                'Hidden Framework',
                 'Hidden Frameworks',
                 listEntriesWithVanilla.length - COLLAPSE_COUNT
               )}
