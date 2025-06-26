@@ -941,6 +941,6 @@ describe('getBestActionToIncreaseEventLimits', function () {
       organization,
       plan: 'am3_business',
     });
-    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBeNull();
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
   });
 });
