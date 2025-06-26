@@ -16,18 +16,18 @@ function MissingPrimaryEmailModal({Header, Body}: Props) {
   return (
     <Fragment>
       <Header>
-        <Heading>{t('Action Required')}</Heading>
+        <Heading>{t('Action Required: Add Email Address')}</Heading>
       </Header>
       <Body>
         <TextBlock>
           <p>
             {t(
-              "Busted! Looks like you've been flying under the radar without an email address!"
+              "Looks like you've been flying under the radar and using Sentry without an email address!"
             )}
           </p>
           <p>
             {tct(
-              "Sentry accounts need to have an email address. Please add yours [deadline], or we'll have to delete your account.",
+              'All Sentry accounts need to have an associated email. Add yours [deadline], or your account will be deleted.',
               {
                 deadline,
               }
@@ -35,7 +35,7 @@ function MissingPrimaryEmailModal({Header, Body}: Props) {
           </p>
         </TextBlock>
         <LinkButton to={`/settings/account/emails/`} priority="primary">
-          {t('Go to User Settings')}
+          {t('Add Your Email')}
         </LinkButton>
       </Body>
     </Fragment>
