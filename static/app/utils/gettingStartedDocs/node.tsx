@@ -317,7 +317,7 @@ Sentry.profiler.stopProfiler();
           additionalInfo:
             profilingLifecycle === 'trace'
               ? tct(
-                  'If you eed more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+                  'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
                   {
                     link: (
                       <ExternalLink
