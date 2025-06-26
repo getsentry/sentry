@@ -24,16 +24,20 @@ class ProjectPreprodArtifactAssembleSizeAnalysisEndpointTest(TestCase):
 
     def _make_request(self, data, artifact_id=None, authenticated=True):
         url = self._get_url(artifact_id)
-        json_data = orjson.dumps(data) if isinstance(data, dict) else data
+        json_data: bytes = orjson.dumps(data) if isinstance(data, dict) else data
 
-        kwargs = {"data": json_data, "content_type": "application/json"}
         if authenticated:
             signature = generate_service_request_signature(
                 url, json_data, ["test-secret-key"], "Launchpad"
             )
-            kwargs["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
-
-        return self.client.post(url, **kwargs)
+            return self.client.post(
+                url,
+                data=json_data,
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"rpcsignature {signature}",
+            )
+        else:
+            return self.client.post(url, data=json_data, content_type="application/json")
 
     def _create_blobs(self, count=2):
         return [
