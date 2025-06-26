@@ -3,7 +3,7 @@ import type {User} from '@sentry/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function useUserFromId({id}: {id: number}) {
+export default function useUserFromId({id}: {id: number | undefined}) {
   const organization = useOrganization();
 
   const {isPending, isError, data} = useApiQuery<User>(
