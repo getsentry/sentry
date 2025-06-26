@@ -280,7 +280,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
+  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p => (p.isSelected ? 'none' : 'line-through')};

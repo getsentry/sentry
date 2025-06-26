@@ -124,7 +124,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const grayText = css`
     color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
+    font-weight: ${theme.fontWeight.normal};
   `;
 
   const host = organization.links.regionUrl;
@@ -267,7 +267,7 @@ function EventNavigationLink({
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
 `;
 
@@ -281,7 +281,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
 
   @media (max-width: ${p =>
-      p.hasProcessingError ? p.theme.breakpoints.large : p.theme.breakpoints.small}) {
+      p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
     gap: ${space(0.5)};
     padding: ${space(0.5)} ${space(2)};
@@ -295,7 +295,7 @@ const EventInfo = styled('div')`
   align-items: center;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     padding-top: ${space(1)};
   }
 `;
@@ -317,7 +317,7 @@ const JumpTo = styled('div')`
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   :hover {
     color: ${p => p.theme.red300};
@@ -363,7 +363,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${space(0.25)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
 
   button {

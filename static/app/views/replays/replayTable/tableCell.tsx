@@ -433,9 +433,9 @@ const DisplayNameLink = styled(Link)`
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   &[data-has-viewed='true'] {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 
@@ -476,7 +476,7 @@ export function TransactionCell({replay}: Props) {
 export function OSCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.os;
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -503,7 +503,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 export function BrowserCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.browser;
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;

@@ -39,33 +39,35 @@ export default function ConnectedMonitorsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="last-issue">
+          <SimpleTable.HeaderCell className="name">{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="type">{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="last-issue">
             {t('Last Issue')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell name="connected" />}
+          <SimpleTable.HeaderCell className="owner">
+            {t('Assignee')}
+          </SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell className="connected" />}
         </SimpleTable.Header>
         {monitors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
         {monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
-            <SimpleTable.RowCell name="name">
+            <SimpleTable.RowCell className="name">
               <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="type">
+            <SimpleTable.RowCell className="type">
               <DetectorTypeCell type={monitor.type} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="last-issue">
+            <SimpleTable.RowCell className="last-issue">
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="owner">
+            <SimpleTable.RowCell className="owner">
               <DetectorAssigneeCell assignee={monitor.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell name="connected" justify="flex-end">
+              <SimpleTable.RowCell className="connected" justify="flex-end">
                 <Button onClick={() => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>
@@ -93,7 +95,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 100px auto auto;
 
     .last-issue {
@@ -101,7 +103,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 100px auto;
 
     .owner {
@@ -109,7 +111,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr 100px;
 
     .type {

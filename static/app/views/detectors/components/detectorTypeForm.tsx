@@ -137,7 +137,7 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xlarge};
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const StyledProjectField = styled(SentryProjectSelectorField)`
@@ -178,7 +178,7 @@ const StyledRadioField = styled(RadioField)`
 
     /* Markup for choice name and description is all divs :( */
     div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
     }
 
     &[aria-checked='true'] {
@@ -239,7 +239,7 @@ const Visualization = styled('div')`
   right: ${space(2)};
   margin-block: auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
   }
 `;

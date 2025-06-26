@@ -34,7 +34,7 @@ const Invalid = styled(`span`)`
   color: ${p => p.theme.gray400};
 
   code {
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     padding: 0;
   }
   display: flex;

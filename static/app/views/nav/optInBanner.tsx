@@ -68,7 +68,7 @@ const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 
   display: flex;

@@ -40,7 +40,7 @@ const StyledBanner = styled(Banner)`
 `;
 
 const DashboardBackground = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     background-image: url(${DashLeft}), url(${DashRight});
     background-position:
       left center,

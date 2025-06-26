@@ -1,10 +1,11 @@
 import {Flex} from 'sentry/components/core/layout';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {
   OptionalRowLine,
   RowLine,
 } from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBanner';
+import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -52,18 +53,16 @@ export function DiscordNode() {
       <OptionalRowLine>
         {tct('Optional: in the message show tags [tags]', {tags: <TagsField />})}
       </OptionalRowLine>
-      <InfoBanner>
-        <Flex gap={space(0.5)}>
-          {tct(
-            'Note that you must enter a Discord channel ID, not a channel name. Get help [link:here]',
-            {
-              link: (
-                <BannerLink href="https://docs.sentry.io/organization/integrations/notification-incidents/discord/#issue-alerts" />
-              ),
-            }
-          )}
-        </Flex>
-      </InfoBanner>
+      <DismissableInfoAlert>
+        {tct(
+          'Note that you must enter a Discord channel ID, not a channel name. Get help [link:here].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/organization/integrations/notification-incidents/discord/#issue-alerts" />
+            ),
+          }
+        )}
+      </DismissableInfoAlert>
     </Flex>
   );
 }
