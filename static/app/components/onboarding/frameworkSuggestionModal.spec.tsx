@@ -29,7 +29,7 @@ describe('Framework suggestion modal', function () {
     name: 'JavaScript',
   };
 
-  it('render default components', function () {
+  it('render default components', async function () {
     const closeModal = jest.fn();
 
     render(
@@ -57,6 +57,8 @@ describe('Framework suggestion modal', function () {
     const frameworks = platforms.filter(
       platform => platform.type === 'framework' && platform.language === 'javascript'
     );
+
+    await userEvent.click(screen.getByRole('button', {name: /Hidden Frameworks/}));
 
     for (const framework of frameworks) {
       expect(screen.getByRole('radio', {name: framework.name})).toBeInTheDocument();
