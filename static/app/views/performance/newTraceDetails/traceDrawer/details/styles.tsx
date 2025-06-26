@@ -1271,11 +1271,10 @@ const MAX_NEWLINES = 5;
 function MultilineText({children}: {children: string}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // find the position of the 7th occurrence of '\n'
   const newLineMatches = Array.from(children.matchAll(/\n/g));
-  const seventhNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
+  const maxNewlinePosition = newLineMatches.at(MAX_NEWLINES - 1)?.index ?? Infinity;
 
-  const truncatePosition = Math.min(seventhNewlinePosition, MAX_TEXT_LENGTH);
+  const truncatePosition = Math.min(maxNewlinePosition, MAX_TEXT_LENGTH);
   const needsTruncation = truncatePosition < children.length;
 
   return (
