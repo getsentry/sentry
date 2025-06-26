@@ -697,6 +697,13 @@ def bind_ambiguous_org_context(
     )
 
 
+def get_trace_id():
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        return span.get_trace_context().get("trace_id")
+    return None
+
+
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
