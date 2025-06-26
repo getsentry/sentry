@@ -78,8 +78,10 @@ export default function RepoTokenTable({
             column,
             row,
             selectedRepository,
-            onRepositorySelect,
           }),
+      }}
+      onRowClick={(row, _key, _event) => {
+        onRepositorySelect(row.name);
       }}
     />
   );
