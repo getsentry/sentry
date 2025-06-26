@@ -1,5 +1,5 @@
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import models
@@ -17,6 +17,10 @@ def generate_token() -> str:
     return secrets.token_hex(nbytes=32)
 
 
+def generate_expires_at() -> datetime:
+    return timezone.now() + timedelta(minutes=TOKEN_MINUTES_VALID)
+
+
 @control_silo_model
 class UserMergeVerificationCode(Model):
     """
@@ -29,9 +33,7 @@ class UserMergeVerificationCode(Model):
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     token = models.CharField(max_length=64, default=generate_token)
-    expires_at = models.DateTimeField(
-        default=timezone.now() + timedelta(minutes=TOKEN_MINUTES_VALID)
-    )
+    expires_at = models.DateTimeField(default=generate_expires_at)
 
     class Meta:
         app_label = "sentry"
