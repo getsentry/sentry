@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Sort} from 'sentry/utils/discover/fields';
 
 interface TableProps {
   children: React.ReactNode;
@@ -33,35 +32,34 @@ function Header({children}: {children: React.ReactNode}) {
 function HeaderCell({
   children,
   className,
-  sortKey,
   sort,
   handleSortClick,
 }: {
   children?: React.ReactNode;
   className?: string;
   handleSortClick?: () => void;
-  sort?: Sort;
-  sortKey?: string;
+  sort?: 'asc' | 'desc';
 }) {
-  const isSortedByField = sort?.field === sortKey;
+  const isSorted = sort !== undefined;
+  const canSort = handleSortClick !== undefined;
 
   return (
     <ColumnHeaderCell
       className={className}
-      isSorted={isSortedByField}
+      isSorted={isSorted}
       onClick={handleSortClick}
       role="columnheader"
-      as={sortKey ? 'button' : 'div'}
+      as={canSort ? 'button' : 'div'}
     >
       {children && <HeaderDivider />}
-      {sortKey && <InteractionStateLayer />}
+      {canSort && <InteractionStateLayer />}
       <HeadingText>{children}</HeadingText>
-      {sortKey && (
+      {isSorted && (
         <SortIndicator
           aria-hidden
           size="xs"
-          direction={sort?.kind === 'asc' ? 'up' : 'down'}
-          isSorted={isSortedByField}
+          direction={sort === 'asc' ? 'up' : 'down'}
+          isSorted={isSorted}
         />
       )}
     </ColumnHeaderCell>
