@@ -2052,3 +2052,52 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "isOther": True,
             "order": 2,
         }
+
+    def test_disable_extrapolation(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"client_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans, is_eap=True)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "disableAggregateExtrapolation": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 3_600_000,
+        }
