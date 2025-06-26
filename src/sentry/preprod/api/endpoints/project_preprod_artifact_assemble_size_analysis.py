@@ -53,71 +53,17 @@ def validate_preprod_artifact_size_analysis_schema(request_body: bytes) -> tuple
 
     try:
         data = orjson.loads(request_body)
-    except (orjson.JSONDecodeError, TypeError):
-        return {}, "Invalid json body"
-
-    try:
         jsonschema.validate(data, schema)
         return data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
-
-        # Handle missing required fields - be more specific about which field is missing
-        if "'checksum' is a required property" in error_message:
-            error_message = error_messages["checksum"]
-        elif "'chunks' is a required property" in error_message:
-            error_message = error_messages["chunks"]
-        # Handle additional properties
-        elif "Additional properties are not allowed" in error_message:
-            error_message = "Additional properties are not allowed"
-        # Handle field-specific validation errors
-        elif e.path and len(e.path) > 0:
-            field = str(e.path[0])
-            if field in error_messages:
-                error_message = error_messages[field]
-        # Handle pattern validation errors when field is identified in message
-        elif "does not match" in error_message:
-            # For cases where both checksum and chunks might be invalid,
-            # check if chunks are invalid and prioritize chunks error if so
-            if isinstance(data, dict) and "chunks" in data:
-                chunks = data.get("chunks", [])
-                if isinstance(chunks, list):
-                    for chunk in chunks:
-                        if not isinstance(chunk, str) or len(chunk) != 40:
-                            # If chunks are invalid, report chunks error
-                            error_message = error_messages["chunks"]
-                            break
-                        # Check if chunk is valid hex
-                        try:
-                            int(chunk, 16)
-                        except ValueError:
-                            # If chunks are invalid hex, report chunks error
-                            error_message = error_messages["chunks"]
-                            break
-                    else:
-                        # If chunks are valid but we're here, it's likely checksum error
-                        error_message = error_messages["checksum"]
-                else:
-                    error_message = error_messages["chunks"]
-            else:
-                # Default pattern validation error handling
-                if e.absolute_path and len(list(e.absolute_path)) > 0:
-                    field_path = list(e.absolute_path)
-                    if field_path[0] in error_messages:
-                        error_message = error_messages[field_path[0]]
-                elif "'checksum'" in error_message:
-                    error_message = error_messages["checksum"]
-                elif "'chunks'" in error_message or "items" in error_message:
-                    error_message = error_messages["chunks"]
-
-        # Final fallback check for missing fields
-        if isinstance(data, dict):
-            if "checksum" not in data:
-                error_message = error_messages["checksum"]
-            elif "chunks" not in data:
-                error_message = error_messages["chunks"]
-
+        # Get the field from the path if available
+        if e.path:
+            if field := e.path[0]:
+                error_message = error_messages.get(str(field), error_message)
         return {}, error_message
+    except (orjson.JSONDecodeError, TypeError):
+        return {}, "Invalid json body"
 
 
 @region_silo_endpoint
