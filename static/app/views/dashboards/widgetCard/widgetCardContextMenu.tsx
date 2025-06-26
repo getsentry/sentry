@@ -366,7 +366,7 @@ export function getMenuOptions(
   if (widget.widgetType === WidgetType.LOGS) {
     menuOptions.push({
       key: 'open-in-explore',
-      label: t('Open in Logs'),
+      label: t('Open in Explore'),
       to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
     });
   }
