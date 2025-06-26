@@ -90,7 +90,7 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
     },
   });
 
-  return <MarkdownButton onClick={copyMarkdown}>{t('Markdown')}</MarkdownButton>;
+  return <MarkdownButton onClick={copyMarkdown}>{t('Copy to Clipboard')}</MarkdownButton>;
 }
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
