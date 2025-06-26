@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import type {ReplayRecordNestedFieldName} from 'sentry/views/replays/types';
 
-export interface ReplayTableColumn {
+interface ReplayTableColumn {
   name: string;
   sortKey: undefined | ReplayRecordNestedFieldName;
   tooltip?: ReactNode;
@@ -89,5 +89,5 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
 export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   name: t('Slowest Transaction'),
-  sortKey: 'slowest_transaction',
+  sortKey: undefined,
 };
