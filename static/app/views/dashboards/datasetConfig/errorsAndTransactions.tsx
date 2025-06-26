@@ -19,7 +19,7 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -435,7 +435,7 @@ export function getCustomEventsFieldRenderer(
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data: any, baggage: any) {
+    return function (data: EventData, baggage: RenderFunctionBaggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
