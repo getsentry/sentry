@@ -20,6 +20,11 @@ from sentry.sentry_apps.api.utils.webhook_requests import (
     get_buffer_requests_from_control,
     get_buffer_requests_from_regions,
 )
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app_request import SentryAppRequestFilterArgs
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS
@@ -98,36 +103,49 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
             "organization": organization,
         }
 
-        # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
-        if event_type == "installation.created" or event_type == "installation.deleted":
-            control_filter["event"] = event_type
-            requests.extend(
-                get_buffer_requests_from_control(sentry_app, control_filter, datetime_org_filter)
-            )
-        # If event type has been specified, we only need to fetch requests from region buffers
-        elif event_type:
-            region_filter["event"] = event_type
-            requests.extend(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
-            )
-        else:
-            control_filter["event"] = [
-                "installation.created",
-                "installation.deleted",
-            ]
-            requests.extend(
-                get_buffer_requests_from_control(sentry_app, control_filter, datetime_org_filter)
-            )
-            region_filter["event"] = list(
-                set(EXTENDED_VALID_EVENTS)
-                - {
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.MANAGEMENT,
+            event_type=SentryAppEventType.WEBHOOK_UPDATE,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("sentry_app", sentry_app.id)
+            # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
+            if event_type == "installation.created" or event_type == "installation.deleted":
+                control_filter["event"] = event_type
+                requests.extend(
+                    get_buffer_requests_from_control(
+                        sentry_app, control_filter, datetime_org_filter
+                    )
+                )
+            # If event type has been specified, we only need to fetch requests from region buffers
+            elif event_type:
+                region_filter["event"] = event_type
+                requests.extend(
+                    get_buffer_requests_from_regions(
+                        sentry_app.id, region_filter, datetime_org_filter
+                    )
+                )
+            else:
+                control_filter["event"] = [
                     "installation.created",
                     "installation.deleted",
-                }
-            )
-            requests.extend(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
-            )
+                ]
+                requests.extend(
+                    get_buffer_requests_from_control(
+                        sentry_app, control_filter, datetime_org_filter
+                    )
+                )
+                region_filter["event"] = list(
+                    set(EXTENDED_VALID_EVENTS)
+                    - {
+                        "installation.created",
+                        "installation.deleted",
+                    }
+                )
+                requests.extend(
+                    get_buffer_requests_from_regions(
+                        sentry_app.id, region_filter, datetime_org_filter
+                    )
+                )
 
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)
 
