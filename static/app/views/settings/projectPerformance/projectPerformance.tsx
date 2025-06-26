@@ -906,7 +906,6 @@ function ProjectPerformance() {
               'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
             ),
             tickValues: [3, 10],
-            showTickLabels: true,
             allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
             disabled: !(
               hasAccess &&
