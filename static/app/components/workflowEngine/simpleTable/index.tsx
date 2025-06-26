@@ -40,6 +40,7 @@ function HeaderCell({
   children?: React.ReactNode;
   className?: string;
   handleSortClick?: () => void;
+  name?: string;
   sort?: Sort;
   sortKey?: string;
 }) {
@@ -85,6 +86,7 @@ function RowCell({
   children: React.ReactNode;
   className?: string;
   justify?: CSSProperties['justifyContent'];
+  name?: string;
 }) {
   return (
     <StyledRowCell className={className} role="cell" align="center" justify={justify}>
