@@ -197,10 +197,6 @@ function useSpans({query, trace}: UseSpansOptions): {
 
     const search = new MutableSearch(query);
 
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
     search.addFilterValues('trace', [trace.trace]);
 
     const discoverQuery: NewQuery = {
