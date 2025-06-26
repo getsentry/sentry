@@ -212,6 +212,7 @@ export function getSourceMapsDocLinks(platform: string) {
       legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
       sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
       bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
+      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
     };
   }
 
@@ -241,7 +242,7 @@ export function getSourceMapsDocLinks(platform: string) {
     )
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/cli/`,
-    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c341c7679d84bc0fdb05335ebe150c2ca6469e1d/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L16)
+    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/db4ea29ed330b69bf95b526c7dd988a1dda5e542/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L22)
     hostingPublicly: [
       'node',
       'aws-lambda',
@@ -254,6 +255,12 @@ export function getSourceMapsDocLinks(platform: string) {
       'hono',
       'koa',
       'nestjs',
+      'nextjs',
+      'astro',
+      'nuxt',
+      'remix',
+      'solidstart',
+      'sveltekit',
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
