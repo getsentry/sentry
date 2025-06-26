@@ -40,6 +40,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -61,6 +62,8 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -90,7 +93,7 @@ type WidgetCardChartProps = Pick<
   isMobile?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -138,8 +141,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth, organization} = this.props;
-    if (typeof tableResults === 'undefined') {
+    const {widget, selection, minTableColumnWidth, location, organization, theme} =
+      this.props;
+    if (loading || !tableResults?.[0]) {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
@@ -158,18 +162,47 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
       const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+      const columns = decodeColumnOrder(
+        fields.map(field => ({
+          field,
+        }))
+      ).map(column => ({
+        key: column.key,
+        name: column.name,
+        width: minTableColumnWidth ?? column.width,
+        type: column.type === 'never' ? null : column.type,
+      }));
+      const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          {organization.features.includes('use-table-widget-visualization') ? (
+          {organization.features.includes('dashboards-use-widget-table-visualization') ? (
             <TableWidgetVisualization
-              columns={[]}
-              tableData={{
-                data: [],
-                meta: {
-                  fields: {},
-                  units: {},
-                },
+              columns={columns}
+              tableData={tableData}
+              frameless
+              scrollable
+              fit="max-content"
+              getRenderer={(field, _dataRow, meta) => {
+                const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+                  field,
+                  meta as MetaType,
+                  widget,
+                  organization
+                )!;
+
+                return customRenderer;
+              }}
+              makeBaggage={(field, _dataRow, meta) => {
+                const unit = meta.units?.[field] as string | undefined;
+
+                return {
+                  location,
+                  organization,
+                  theme,
+                  unit,
+                  eventView,
+                } satisfies RenderFunctionBaggage;
               }}
             />
           ) : (
@@ -188,7 +221,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               stickyHeaders
               fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
               getCustomFieldRenderer={getCustomFieldRenderer}
-              minColumnWidth={minTableColumnWidth}
+              minColumnWidth={
+                minTableColumnWidth ? minTableColumnWidth.toString() + 'px' : undefined
+              }
             />
           )}
         </TableWrapper>

@@ -76,6 +76,7 @@ export type TabularData<TFields extends string = string> = {
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
   name: TFields;
+  alias?: string;
   type?: AttributeValueType;
   width?: number;
 };
