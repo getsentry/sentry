@@ -17,6 +17,11 @@ from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEve
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
 )
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
@@ -110,20 +115,24 @@ class SentryAppInstallationCreator:
     notify: bool = True
 
     def run(self, *, user: User | RpcUser, request: HttpRequest | None) -> SentryAppInstallation:
-        metrics.incr("sentry_apps.installation.attempt")
-        with transaction.atomic(router.db_for_write(ApiGrant)):
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.MANAGEMENT,
+            event_type=SentryAppEventType.WEBHOOK_UPDATE,
+        ).capture() as lifecycle:
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
+            lifecycle.add_extra("installation_id", install.id)
+
             self.audit(request=request)
 
-        self._create_service_hooks(install=install)
-        install.is_new = True
+            self._create_service_hooks(install=install)
+            install.is_new = True
 
-        if self.notify:
-            installation_webhook.delay(install.id, user.id)
+            if self.notify:
+                installation_webhook.delay(install.id, user.id)
 
-        self.record_analytics(user=user)
-        return install
+            self.record_analytics(user=user)
+            return install
 
     def _create_install(self, api_grant: ApiGrant) -> SentryAppInstallation:
         status = SentryAppInstallationStatus.PENDING
