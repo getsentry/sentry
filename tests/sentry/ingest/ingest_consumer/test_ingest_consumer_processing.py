@@ -627,8 +627,8 @@ def test_collect_span_metrics(default_project):
 
 
 @pytest.mark.parametrize(
-    "env_value,settings_value,expected_sample_rate",
-    [
+    ("env_value", "settings_value", "expected_sample_rate"),
+    (
         # Both unset - should use default of 0
         (None, None, 0.0),
         # Only environment variable set
@@ -643,7 +643,7 @@ def test_collect_span_metrics(default_project):
         ("0", 1, 0.0),  # env=0, settings=1 -> should use env (0)
         ("1", 0, 1.0),  # env=1, settings=0 -> should use env (1)
         ("0.3", 0.8, 0.3),  # env=0.3, settings=0.8 -> should use env (0.3)
-    ],
+    ),
 )
 def test_sample_rate_passed(env_value, settings_value, expected_sample_rate):
     # Test various combinations of environment variable and settings values
