@@ -171,7 +171,7 @@ const StoryHeader = styled('header')`
   grid-area: story-head;
   h1 {
     font-size: 24px;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
   p {
     margin-top: 8px;
