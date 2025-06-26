@@ -523,7 +523,7 @@ const Container = styled('div')`
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.gray400};
   display: flex;
   flex: 1;

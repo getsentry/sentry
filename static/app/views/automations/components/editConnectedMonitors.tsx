@@ -57,7 +57,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
 }
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1.5)};
 `;
 

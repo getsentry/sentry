@@ -33,7 +33,7 @@ export function ChonkBadge(props: ChonkBadgeProps) {
 const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   display: inline-flex;
   align-items: center;

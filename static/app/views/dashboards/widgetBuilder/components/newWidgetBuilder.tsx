@@ -542,7 +542,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   height: 95%;
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 

@@ -330,7 +330,7 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
@@ -350,7 +350,7 @@ const TouchCustomerMessage = styled('p')`
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(1)};
 `;

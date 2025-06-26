@@ -361,7 +361,7 @@ const HeaderCell = styled('div')`
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   border-bottom: 1px solid ${p => p.theme.border};
   white-space: nowrap;
   line-height: 1;
@@ -404,7 +404,7 @@ const OneLineCodeBlock = styled('pre')`
 const TreeGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content min-content min-content;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   & > * {
     text-align: right;

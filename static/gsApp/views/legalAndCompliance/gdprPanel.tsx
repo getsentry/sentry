@@ -205,7 +205,7 @@ const ItemLayout = styled(PanelItem)`
 
 const SubText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 /**
@@ -226,5 +226,5 @@ const FormWrapper = styled('div')`
 
 const ContactDetailsWrapper = styled('div')`
   margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

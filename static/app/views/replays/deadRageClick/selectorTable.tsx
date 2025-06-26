@@ -243,7 +243,7 @@ const SelectorScroll = styled('div')`
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Title = styled('div')`

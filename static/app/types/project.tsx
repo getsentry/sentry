@@ -65,7 +65,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
+  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
@@ -229,6 +229,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-nuxt'
   | 'javascript-react'
+  | 'javascript-react-router'
   | 'javascript-remix'
   | 'javascript-solid'
   | 'javascript-solidstart'

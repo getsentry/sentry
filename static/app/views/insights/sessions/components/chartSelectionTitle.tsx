@@ -41,6 +41,6 @@ const StyledCompactSelect = styled(CompactSelect)`
 
   button {
     padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;

@@ -962,37 +962,6 @@ type ButtonColors = Record<
   }
 >;
 
-type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = Record<
-  ButtonSize,
-  {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  }
->;
-const buttonPaddingSizes: ButtonPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-};
-
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
 type Breakpoints = Record<Breakpoint, string>;
 
@@ -1216,17 +1185,22 @@ const commonTheme = {
 
   borderRadius: '6px',
 
-  // Relative font sizes
-  // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em' as const,
-  fontSizeExtraSmall: '11px' as const,
-  fontSizeSmall: '12px' as const,
-  fontSizeMedium: '14px' as const,
-  fontSizeLarge: '16px' as const,
-  fontSizeExtraLarge: '18px' as const,
+  fontSize: {
+    xs: '11px' as const,
+    sm: '12px' as const,
+    md: '14px' as const,
+    lg: '16px' as const,
+    xl: '18px' as const,
+  },
 
-  codeFontSize: '13px',
-  headerFontSize: '22px',
+  /**
+   * @TODO(jonasbadalic) remove relative font sizes
+   * @deprecated use fontSize instead
+   */
+  fontSizeRelativeSmall: '0.9em' as const,
+
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
 
   fontWeightNormal: 400,
   fontWeightBold: 600,
@@ -1237,12 +1211,6 @@ const commonTheme = {
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
   },
-
-  /**
-   * Padding for buttons
-   * @TODO(jonasbadalic) This should exist on button component
-   */
-  buttonPadding: buttonPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
