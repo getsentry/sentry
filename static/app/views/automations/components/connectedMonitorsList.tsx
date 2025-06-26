@@ -2,8 +2,8 @@ import type {Dispatch, SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';

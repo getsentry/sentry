@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';

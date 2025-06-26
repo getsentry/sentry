@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', function () {
   it('renders headers andcells', function () {
