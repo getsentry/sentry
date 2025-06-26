@@ -250,7 +250,7 @@ const PolicySubtext = styled('div')`
 `;
 
 const PolicyTitle = styled('h6')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.lg};
   }
 `;
@@ -269,7 +269,7 @@ const PolicyActions = styled('div')`
 `;
 
 const modalCss = (theme: Theme) => css`
-  @media (min-width: ${theme.breakpoints.small}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
     max-width: 1200px;
   }

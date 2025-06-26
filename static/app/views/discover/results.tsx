@@ -904,7 +904,7 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }

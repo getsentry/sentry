@@ -65,7 +65,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
 };
-const MOBILE_BREAKPOINT = (theme: Theme) => parseInt(theme.breakpoints.small, 10);
+const MOBILE_BREAKPOINT = (theme: Theme) => parseInt(theme.breakpoints.sm, 10);
 const BREAKPOINTS = (theme: Theme) => ({
   [MOBILE]: 0,
   [DESKTOP]: MOBILE_BREAKPOINT(theme),

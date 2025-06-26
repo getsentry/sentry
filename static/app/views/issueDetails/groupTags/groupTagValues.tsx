@@ -367,7 +367,7 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSize.md};
 
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 

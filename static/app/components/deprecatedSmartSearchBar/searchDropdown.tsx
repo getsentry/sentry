@@ -646,7 +646,7 @@ const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -654,7 +654,7 @@ const HotkeyGlyphWrapper = styled('span')`
 const IconWrapper = styled('span')`
   display: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     margin-right: ${space(0.5)};
     align-items: center;

@@ -110,7 +110,7 @@ const MonitorDetails = styled('div')`
   white-space: nowrap;
   line-height: 1.2;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;

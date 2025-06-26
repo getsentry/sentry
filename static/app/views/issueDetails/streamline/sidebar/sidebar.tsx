@@ -51,7 +51,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
 
   if (!shouldDisplaySidebar) {
@@ -133,7 +133,7 @@ export const SidebarSectionTitle = styled(SidebarSection.Title)`
 const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.border};
   }
 `;

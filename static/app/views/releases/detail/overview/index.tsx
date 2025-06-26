@@ -657,7 +657,7 @@ const ReleaseDetailsPageFilters = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;

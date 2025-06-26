@@ -189,7 +189,7 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: ${space(2)};
     margin-bottom: 0;
   }

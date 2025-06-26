@@ -238,7 +238,7 @@ const ImageHeader = styled('div')`
   background-position: top;
   height: 200px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)} -${space(4)} 0 -${space(4)};
   }
 `;

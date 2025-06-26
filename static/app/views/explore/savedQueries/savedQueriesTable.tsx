@@ -310,7 +310,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
     auto auto 48px;
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-areas: 'star name project query created-by actions';
     grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
 
@@ -322,7 +322,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-areas: 'star name query actions';
     grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
 

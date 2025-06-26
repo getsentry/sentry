@@ -506,7 +506,7 @@ const NotFoundMessage = styled('div')`
 const StyledDataSection = styled(DataSection)`
   padding: ${space(0.5)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(4)};
   }
 

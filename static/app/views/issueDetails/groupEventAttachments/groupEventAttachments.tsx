@@ -181,15 +181,15 @@ const ScreenshotGrid = styled('div')`
   grid-template-rows: repeat(2, max-content);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: repeat(4, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints['2xl']}) {
     grid-template-columns: repeat(6, minmax(100px, 1fr));
   }
 `;

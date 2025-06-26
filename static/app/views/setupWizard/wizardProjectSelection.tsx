@@ -410,7 +410,7 @@ const Columns = styled('div')`
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr;
   }
 `;

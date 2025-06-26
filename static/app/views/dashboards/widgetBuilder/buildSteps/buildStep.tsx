@@ -43,7 +43,7 @@ export const SubHeading = styled('small')`
   color: ${p => p.theme.gray400};
   padding: ${space(0.25)} ${space(2)} ${space(2)} 0;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     padding-top: ${space(1)};
     margin-left: -${space(4)};
   }
@@ -51,7 +51,7 @@ export const SubHeading = styled('small')`
 
 const Content = styled('div')`
   display: grid;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;

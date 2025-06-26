@@ -310,7 +310,7 @@ export const TopSectionBody = styled(Body)`
   padding-bottom: 0;
   flex: 0 0 auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${space(2)};
   }
 `;
@@ -321,7 +321,7 @@ export const BottomSectionBody = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
     padding-top: ${space(1)};
   }
@@ -329,7 +329,7 @@ export const BottomSectionBody = styled('div')`
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
   height: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
   }
@@ -345,7 +345,7 @@ export const LogsSidebarCollapseButton = withChonk(
     margin-left: -31px;
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: block;
     }
   `,
@@ -354,7 +354,7 @@ export const LogsSidebarCollapseButton = withChonk(
     display: none;
     margin-left: -31px;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 

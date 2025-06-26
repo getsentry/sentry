@@ -162,7 +162,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.background};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
   }
 `;

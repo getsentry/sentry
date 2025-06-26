@@ -318,7 +318,7 @@ const PerformanceOnboardingContainer = styled('div')`
 `;
 
 const PerfImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: unset;
     user-select: none;
     position: absolute;
@@ -329,11 +329,11 @@ const PerfImage = styled('img')`
     margin-bottom: auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 480px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 600px;
   }
 `;
@@ -852,7 +852,7 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   flex: 0.65;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
   }
 `;
@@ -891,7 +891,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

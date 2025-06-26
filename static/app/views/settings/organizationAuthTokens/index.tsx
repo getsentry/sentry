@@ -216,7 +216,7 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
 export default withOrganization(OrganizationAuthTokensIndex);
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),

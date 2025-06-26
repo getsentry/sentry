@@ -28,10 +28,10 @@ import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
-  large: string;
-  medium: string;
-  small: string;
-  xlarge: string;
+  lg: string;
+  md: string;
+  sm: string;
+  xl: string;
 };
 
 const OnboardingCTAHook = HookOrDefault({
@@ -79,16 +79,16 @@ export default function ReplayOnboardingPanel() {
 
   const breakpoints = preferences.collapsed
     ? {
-        small: '800px',
-        medium: '992px',
-        large: '1210px',
-        xlarge: '1450px',
+        sm: '800px',
+        md: '992px',
+        lg: '1210px',
+        xl: '1450px',
       }
     : {
-        small: '800px',
-        medium: '1175px',
-        large: '1375px',
-        xlarge: '1450px',
+        sm: '800px',
+        md: '1175px',
+        lg: '1375px',
+        xl: '1450px',
       };
 
   return (
@@ -310,7 +310,7 @@ export function SetupReplaysCTA({
 }
 
 const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.small}) {
+  @media (min-width: ${p => p.breakpoints.sm}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -322,19 +322,19 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.medium}) {
+  @media (min-width: ${p => p.breakpoints.md}) {
     transform: translateX(-55%);
     width: 300px;
     min-width: 300px;
   }
 
-  @media (min-width: ${p => p.breakpoints.large}) {
+  @media (min-width: ${p => p.breakpoints.lg}) {
     transform: translateX(-60%);
     width: 380px;
     min-width: 380px;
   }
 
-  @media (min-width: ${p => p.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.breakpoints.xl}) {
     transform: translateX(-65%);
     width: 420px;
     min-width: 420px;

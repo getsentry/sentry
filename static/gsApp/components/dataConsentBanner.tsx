@@ -126,7 +126,7 @@ const DataConsentBannerTitle = styled('div')`
 const StarContainer = styled('div')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
     position: absolute;
     bottom: 0;
@@ -141,7 +141,7 @@ const StarContainer = styled('div')`
 const IllustrationContainer = styled('div')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
     position: absolute;
     bottom: 0;

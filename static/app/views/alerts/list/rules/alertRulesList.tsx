@@ -341,7 +341,7 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 

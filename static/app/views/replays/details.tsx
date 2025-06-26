@@ -87,7 +87,7 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }

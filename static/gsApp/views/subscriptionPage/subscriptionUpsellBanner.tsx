@@ -226,7 +226,7 @@ const BannerImage = styled('img')`
   pointer-events: none;
   max-height: 90%;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
   }
 `;

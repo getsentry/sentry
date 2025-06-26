@@ -392,7 +392,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};
     width: 100%;

@@ -521,7 +521,7 @@ const PageGrid = styled('div')`
     grid-template-columns: repeat(3, 1fr);
     grid-template-areas: 'bb bb dd';
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(5, 1fr);
     grid-template-areas: 'bb bb dd . .';
   }

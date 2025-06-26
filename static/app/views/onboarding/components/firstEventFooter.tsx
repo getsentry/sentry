@@ -180,7 +180,7 @@ const StatusWrapper = styled(motion.div)`
   font-size: ${p => p.theme.fontSize.md};
   justify-content: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -188,7 +188,7 @@ const StatusWrapper = styled(motion.div)`
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
   white-space: nowrap;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -196,7 +196,7 @@ const SkipOnboardingLink = styled(Link)`
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     flex-direction: row;
     justify-content: end;

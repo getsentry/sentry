@@ -95,7 +95,7 @@ const Container = styled('div')`
   grid-auto-flow: row;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-rows: minmax(0, 1fr);
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: column;
   }
   overflow: hidden;
@@ -139,7 +139,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
     border-top-color: transparent;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     &:nth-child(n + 2) {
       border-top-color: ${p => p.theme.gray200};
       border-left-color: transparent;

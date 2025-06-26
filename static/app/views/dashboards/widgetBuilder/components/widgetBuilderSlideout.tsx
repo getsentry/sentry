@@ -114,7 +114,7 @@ function WidgetBuilderSlideout({
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
 
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const showSortByStep =
     (isChartWidget && state.fields && state.fields.length > 0) ||

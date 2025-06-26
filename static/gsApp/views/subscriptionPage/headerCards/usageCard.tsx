@@ -268,7 +268,7 @@ const PlanUseBody = styled('div')`
   line-height: 1.2;
   color: ${p => p.theme.subText};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(1.5)} ${space(3)} ${space(1.5)} 0;
   }
 `;

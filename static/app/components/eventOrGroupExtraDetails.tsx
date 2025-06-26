@@ -178,7 +178,7 @@ const GroupExtra = styled('div')`
     color: ${p => p.theme.subText};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;

@@ -166,13 +166,13 @@ const ActionItem = styled(motion.div)`
   margin-bottom: ${space(2)};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.border};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
     width: 680px;
     align-items: center;
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     flex-direction: column;
   }
@@ -182,7 +182,7 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
     margin: ${space(1)} ${space(1)};
     margin-top: ${space(3)};

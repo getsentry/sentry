@@ -93,7 +93,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 100px auto auto;
 
     .last-issue {
@@ -101,7 +101,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 100px auto;
 
     .owner {
@@ -109,7 +109,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr 100px;
 
     .type {

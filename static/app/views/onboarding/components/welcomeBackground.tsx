@@ -247,7 +247,7 @@ const Container = styled(motion.div)`
   width: 300%;
   top: -25%;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

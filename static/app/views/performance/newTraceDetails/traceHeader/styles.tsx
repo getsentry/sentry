@@ -79,7 +79,7 @@ const HeaderRow = styled('div')`
   gap: ${space(2)};
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${space(1)};
     flex-direction: column;
   }

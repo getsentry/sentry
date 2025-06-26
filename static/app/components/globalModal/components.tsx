@@ -17,7 +17,7 @@ const ModalHeader = styled('header')`
   padding: ${space(3)} ${space(3)};
   margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(3)} ${space(4)};
     margin: -${space(4)} -${space(4)} ${space(3)} -${space(4)};
   }
@@ -88,7 +88,7 @@ const ModalFooter = styled('footer')`
   padding: ${space(3)} ${space(2)};
   margin: ${space(3)} -${space(3)} -${space(4)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(3)} ${space(4)};
     margin: ${space(3)} -${space(4)} -${space(4)};
   }
