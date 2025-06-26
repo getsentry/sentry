@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.db.models import Count, Max, Q
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -21,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.db.models.query import in_icontains, in_iexact
 from sentry.search.utils import tokenize_query
+from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -135,8 +139,12 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     )
                 )
             case "last_triggered":
+                # If a workflow has never triggered, it should be treated as having a last_triggered
+                # order before any that have. We can coalesce an arbitrary value here because
+                # the annotated value isn't returned in the results.
+                long_ago = ensure_aware(datetime(1970, 1, 1))
                 queryset = queryset.annotate(
-                    last_triggered=Max("workflowfirehistory__date_added"),
+                    last_triggered=Max(Coalesce("workflowfirehistory__date_added", long_ago)),
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)

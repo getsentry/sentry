@@ -190,19 +190,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
+        # in ascending order, un-triggered is first.
         assert [w["name"] for w in response.data] == [
+            self.workflow_three.name,
             self.workflow.name,
             self.workflow_two.name,
-            self.workflow_three.name,
         ]
 
         response2 = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
         )
         assert [w["name"] for w in response2.data] == [
-            self.workflow_three.name,
             self.workflow_two.name,
             self.workflow.name,
+            self.workflow_three.name,
         ]
 
     def test_query_filter_by_name(self):
