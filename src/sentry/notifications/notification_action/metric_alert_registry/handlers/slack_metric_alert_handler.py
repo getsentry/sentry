@@ -1,5 +1,7 @@
 import logging
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -45,15 +47,14 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         if not open_period:
             raise ValueError("Open period not found")
 
-        alert_rule_serialized_response = get_alert_rule_serializer(detector)
-        incident_serialized_response = get_detailed_incident_serializer(open_period)
-
-        logger.info(
-            "notification_action.execute_via_metric_alert_handler.slack",
-            extra={
-                "action_id": alert_context.action_identifier_id,
-            },
-        )
+        try:
+            alert_rule_serialized_response = get_alert_rule_serializer(detector)
+            incident_serialized_response = get_detailed_incident_serializer(open_period)
+        except SoftTimeLimitExceeded:
+            logger.exception(
+                "notification_action.execute_via_metric_alert_handler.slack.soft_time_limit_exceeded",
+                extra={"action_id": alert_context.action_identifier_id},
+            )
 
         send_incident_alert_notification(
             notification_context=notification_context,

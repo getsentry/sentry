@@ -1,5 +1,7 @@
 import logging
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from sentry.incidents.action_handlers import email_users
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -53,8 +55,14 @@ class EmailMetricAlertHandler(BaseMetricAlertHandler):
         if not open_period:
             raise ValueError("Open period not found")
 
-        alert_rule_serialized_response = get_alert_rule_serializer(detector)
-        incident_serialized_response = get_detailed_incident_serializer(open_period)
+        try:
+            alert_rule_serialized_response = get_alert_rule_serializer(detector)
+            incident_serialized_response = get_detailed_incident_serializer(open_period)
+        except SoftTimeLimitExceeded:
+            logger.exception(
+                "notification_action.execute_via_metric_alert_handler.email.soft_time_limit_exceeded",
+                extra={"action_id": alert_context.action_identifier_id},
+            )
 
         recipients = list(
             get_email_addresses(
@@ -64,12 +72,6 @@ class EmailMetricAlertHandler(BaseMetricAlertHandler):
 
         targets = [(user_id, email) for user_id, email in recipients]
 
-        logger.info(
-            "notification_action.execute_via_metric_alert_handler.email",
-            extra={
-                "action_id": alert_context.action_identifier_id,
-            },
-        )
         # TODO(iamrajjoshi): Add analytics
         email_users(
             metric_issue_context=metric_issue_context,
