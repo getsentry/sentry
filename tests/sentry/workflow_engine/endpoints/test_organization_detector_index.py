@@ -1,5 +1,7 @@
 from unittest import mock
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.api.serializers import serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -13,6 +15,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -336,6 +339,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             )
             assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
+    @with_feature("organizations:incidents")
     def test_missing_project_id(self):
         data = {**self.valid_data}
         del data["projectId"]
@@ -346,6 +350,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["This field is required."]}
 
+    @with_feature("organizations:incidents")
     def test_project_id_not_found(self):
         data = {**self.valid_data}
         data["projectId"] = 123456
@@ -356,6 +361,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["Project not found"]}
 
+    @with_feature("organizations:incidents")
     def test_wrong_org_project_id(self):
         data = {**self.valid_data}
         data["projectId"] = self.create_project(organization=self.create_organization()).id
@@ -366,6 +372,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["Project not found"]}
 
+    def test_without_feature_flag(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=404,
+        )
+        assert response.data == {
+            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+        }
+
+    @with_feature("organizations:incidents")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
@@ -421,6 +438,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             data=detector.get_audit_log_data(),
         )
 
+    @with_feature("organizations:incidents")
     def test_missing_required_field(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -428,6 +446,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"type": ["This field is required."]}
 
+    @with_feature("organizations:incidents")
     def test_missing_name(self):
         data = {**self.valid_data}
         del data["name"]
@@ -438,6 +457,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"name": ["This field is required."]}
 
+    @with_feature("organizations:incidents")
     def test_empty_query_string(self):
         data = {**self.valid_data}
         data["dataSource"]["query"] = ""
@@ -455,6 +475,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
         assert query_sub.snuba_query.query == ""
 
+    @with_feature("organizations:incidents")
     def test_valid_creation_with_owner(self):
         # Test data with owner field
         data_with_owner = {
@@ -480,6 +501,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         # Verify serialized response includes owner
         assert response.data["owner"] == self.user.get_actor_identifier()
 
+    @with_feature("organizations:incidents")
     def test_valid_creation_with_team_owner(self):
         # Create a team for testing
         team = self.create_team(organization=self.organization)
@@ -508,6 +530,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         # Verify serialized response includes team owner
         assert response.data["owner"] == f"team:{team.id}"
 
+    @with_feature("organizations:incidents")
     def test_invalid_owner(self):
         # Test with invalid owner format
         data_with_invalid_owner = {
@@ -522,6 +545,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert "owner" in response.data
 
+    @with_feature("organizations:incidents")
     def test_owner_not_in_organization(self):
         # Create a user in another organization
         other_org = self.create_organization()
