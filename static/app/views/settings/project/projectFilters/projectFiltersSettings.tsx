@@ -658,7 +658,7 @@ const FilterGridIcon = styled('img')`
 
 const FilterTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
 `;
 

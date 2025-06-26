@@ -201,7 +201,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const TraceLink = styled(Link)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
   display: flex;
   align-items: center;

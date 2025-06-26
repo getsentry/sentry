@@ -412,7 +412,7 @@ const QueryResultsHeader = styled('div')`
 
 const QueryResultsTitle = styled('h3')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
   margin: 0;
 `;

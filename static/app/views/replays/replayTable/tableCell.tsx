@@ -433,9 +433,9 @@ const DisplayNameLink = styled(Link)`
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   &[data-has-viewed='true'] {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

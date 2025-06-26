@@ -424,7 +424,7 @@ export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
@@ -442,7 +442,7 @@ const Details = styled('div')`
 `;
 
 const DetailLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
 `;

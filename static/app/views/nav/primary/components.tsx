@@ -343,7 +343,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   padding: ${space(1.5)} ${space(3)};
   color: ${p.theme.textColor};
   font-size: ${p.theme.fontSize.md};
-  font-weight: ${p.theme.fontWeightNormal};
+  font-weight: ${p.theme.fontWeight.normal};
   line-height: 1;
   width: 100%;
 
@@ -411,7 +411,7 @@ const NavLinkLabel = styled('div')`
   align-items: center;
   justify-content: center;
   font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   letter-spacing: -0.05em;
 `;
 

@@ -159,7 +159,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   border: none;
   padding: 0 ${space(2)};
   text-transform: inherit;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};

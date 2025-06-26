@@ -94,7 +94,7 @@ const GraphLabelContents = styled('div')`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-right: ${space(2)};
 `;
 

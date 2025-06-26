@@ -123,7 +123,7 @@ const ReleaseWrapper = styled('span')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Subtitle = styled('div')`

@@ -307,20 +307,20 @@ const LargeDropdownButtonWrapper = styled('div')`
 
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.5)};
 `;
 
 const NavigationLabel = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.25)};
   padding-left: ${space(1.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -354,7 +354,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   gap: ${space(3)};
   font-variant-numeric: tabular-nums;
   font-weight: ${p =>
-    p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
+    p.isCurrentTab ? p.theme.fontWeight.bold : p.theme.fontWeight.normal};
 `;
 
 const ItemCount = styled(Count)`

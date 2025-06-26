@@ -91,7 +91,7 @@ export const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const HeaderWrapper = styled('div')`

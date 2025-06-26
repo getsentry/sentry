@@ -536,7 +536,7 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
   background-color: ${p => p.theme.background};
@@ -568,7 +568,7 @@ const RecentFilterPillLabel = styled('div')`
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(1.5)};
   color: ${p => p.theme.subText};
@@ -578,7 +578,7 @@ const SectionButton = styled(Button)`
     background-color: ${p => p.theme.purple100};
     box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
     color: ${p => p.theme.purple300};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;
 
@@ -620,7 +620,7 @@ const SeerFullWidthButton = styled(Button)`
   box-shadow: none;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
   justify-content: flex-start;
   padding: ${space(1)} ${space(2)};

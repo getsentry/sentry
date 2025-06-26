@@ -54,7 +54,7 @@ const ReleaseSummaryHeading = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   margin-bottom: ${space(0.5)};
 `;

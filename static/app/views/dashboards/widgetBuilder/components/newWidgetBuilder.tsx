@@ -543,7 +543,7 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   color: ${p => p.theme.subText};
   font-style: italic;
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const WidgetPreviewPlaceholder = styled('div')`
@@ -568,7 +568,7 @@ const WidgetPreviewTitle = styled(motion.h5)`
   margin-bottom: ${space(1)};
   margin-left: ${space(1)};
   color: ${p => p.theme.white};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const FilterBarContainer = styled(motion.div)`

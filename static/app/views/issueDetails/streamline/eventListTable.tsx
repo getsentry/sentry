@@ -146,13 +146,13 @@ export const Header = styled('div')`
 
 export const Title = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
 `;
 
 export const HeaderItem = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
@@ -225,7 +225,7 @@ const StreamlineGridEditable = styled('div')`
 
 export const PaginationButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export function PaginationText({
