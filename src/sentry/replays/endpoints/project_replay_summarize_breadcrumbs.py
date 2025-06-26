@@ -104,7 +104,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         else:
             replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
             trace_connected_errors = fetch_trace_connected_errors(
-                project_id=project.id, trace_ids=trace_ids
+                project=project, trace_ids=trace_ids
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -142,7 +142,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def fetch_trace_connected_errors(project_id: int, trace_ids: list[str]) -> list[GroupEvent]:
+def fetch_trace_connected_errors(project: Project, trace_ids: list[str]) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
     try:
         if not trace_ids:
@@ -151,7 +151,7 @@ def fetch_trace_connected_errors(project_id: int, trace_ids: list[str]) -> list[
         queries = []
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
-                project_ids=[project_id],
+                projects=[project],
             )
 
             # Generate a query for each trace ID. This will be executed in bulk.
