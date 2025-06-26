@@ -208,7 +208,7 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
     width: 8px;
     margin-left: -15px;
     border-radius: 50%;
-    background: ${p => getIndicatorColor({theme: p.theme, status: p.status})};
+    background: ${getIndicatorColor};
   }
 `;
 
