@@ -48,6 +48,12 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   ${p => getChildTransforms(p.listSize)}
 `;
 
+const segmentedWrapPadding = {
+  md: '10px 16px 10px 16px',
+  sm: '8px 12px 8px 12px',
+  xs: '6px 8px 6px 8px',
+} as const;
+
 export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   isSelected: boolean;
   priority: Priority;
@@ -63,7 +69,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   min-width: 0;
   z-index: ${p => (p.isSelected ? 1 : undefined)};
 
-  ${p => p.theme.buttonPadding[p.size]}
+  padding: ${p => segmentedWrapPadding[p.size]};
   font-weight: ${p => p.theme.fontWeightNormal};
 
   ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
