@@ -47,6 +47,7 @@ const topGoFrameworks: PlatformKey[] = [
 export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-react',
+  'javascript-react-router',
   'javascript-vue',
   'javascript-nuxt',
   'javascript-angular',
