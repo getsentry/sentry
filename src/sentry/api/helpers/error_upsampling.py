@@ -56,7 +56,7 @@ def transform_query_columns_for_error_upsampling(
             transformed_columns.append("upsampled_count() as count")
 
         else:
-            {transformed_columns.append(column)}
+            transformed_columns.append(column)
 
     return transformed_columns
 

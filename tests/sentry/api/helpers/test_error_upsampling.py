@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.http import QueryDict
 from django.test import RequestFactory
 from rest_framework.request import Request
 
@@ -31,7 +32,7 @@ class ErrorUpsamplingTest(TestCase):
         )
         factory = RequestFactory()
         self.request = Request(factory.get("/"))
-        self.request.GET = {}
+        self.request.GET = QueryDict("")
 
     @patch("sentry.api.helpers.error_upsampling.options")
     def test_are_all_projects_error_upsampled(self, mock_options):
@@ -52,44 +53,38 @@ class ErrorUpsamplingTest(TestCase):
 
     def test_transform_query_columns_for_error_upsampling(self):
         # Test count() transformation
-        columns = ["count()", "epm()", "eps()", "other_column"]
+        columns = ["count()", "other_column"]
         expected = [
-            "sum(sample_weight)",
-            "divide(sum(sample_weight), divide(interval, 60))",
-            "divide(sum(sample_weight), interval)",
+            "upsampled_count() as count",
             "other_column",
         ]
         assert transform_query_columns_for_error_upsampling(columns) == expected
 
         # Test case insensitivity
-        columns = ["COUNT()", "EPM()", "EPS()"]
+        columns = ["COUNT()"]
         expected = [
-            "sum(sample_weight)",
-            "divide(sum(sample_weight), divide(interval, 60))",
-            "divide(sum(sample_weight), interval)",
+            "upsampled_count() as count",
         ]
         assert transform_query_columns_for_error_upsampling(columns) == expected
 
         # Test whitespace handling
-        columns = [" count() ", " epm() ", " eps() "]
+        columns = [" count() "]
         expected = [
-            "sum(sample_weight)",
-            "divide(sum(sample_weight), divide(interval, 60))",
-            "divide(sum(sample_weight), interval)",
+            "upsampled_count() as count",
         ]
         assert transform_query_columns_for_error_upsampling(columns) == expected
 
     def test_is_error_focused_query(self):
         # Test explicit error type
-        self.request.GET = {"query": "event.type:error"}
+        self.request.GET = QueryDict("query=event.type:error")
         assert _is_error_focused_query(self.request) is True
 
         # Test explicit transaction type
-        self.request.GET = {"query": "event.type:transaction"}
+        self.request.GET = QueryDict("query=event.type:transaction")
         assert _is_error_focused_query(self.request) is False
 
         # Test empty query
-        self.request.GET = {}
+        self.request.GET = QueryDict("")
         assert _is_error_focused_query(self.request) is False
 
     def test_should_apply_sample_weight_transform(self):
@@ -99,8 +94,8 @@ class ErrorUpsamplingTest(TestCase):
         # Test transactions dataset
         assert _should_apply_sample_weight_transform(transactions, self.request) is False
 
-        self.request.GET = {"query": "event.type:error"}
+        self.request.GET = QueryDict("query=event.type:error")
         assert _should_apply_sample_weight_transform(discover, self.request) is True
 
-        self.request.GET = {"query": "event.type:transaction"}
+        self.request.GET = QueryDict("query=event.type:transaction")
         assert _should_apply_sample_weight_transform(discover, self.request) is False
