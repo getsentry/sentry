@@ -1673,6 +1673,34 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
     });
+
+    it('correctly reverses sort between events (freq) and last seen (date) field', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            sort: ['freq'],
+            dataset: WidgetType.ISSUE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // We expect desc even though freq doesn't use '-'
+      expect(result.current.state.sort).toEqual([{field: 'freq', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [{field: 'date', kind: 'desc'}],
+        });
+      });
+
+      // Expect it to switch back to asc for other issue fields
+      expect(result.current.state.sort).toEqual([{field: 'date', kind: 'asc'}]);
+    });
   });
 
   describe('limit', () => {
