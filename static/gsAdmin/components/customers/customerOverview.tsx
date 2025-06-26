@@ -237,7 +237,7 @@ function ReservedData({customer}: ReservedDataProps) {
 }
 
 function ReservedBudgetsData({customer}: ReservedDataProps) {
-  if (!customer.hasReservedBudgets || !customer.reservedBudgets) {
+  if (!customer.reservedBudgets) {
     return null;
   }
 

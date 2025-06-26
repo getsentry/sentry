@@ -321,7 +321,6 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasOverageNotificationsDisabled: boolean;
-  hasReservedBudgets: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
@@ -377,7 +376,6 @@ export type Subscription = {
   renewalDate: string;
   // TODO(data categories): BIL-960
   reservedAttachments: number | null;
-  reservedBudgetCategories: DataCategory[] | null;
   /**
    * For AM plan tier, null for previous tiers
    */
@@ -706,7 +704,6 @@ export type BillingMetricHistory = {
 export type BillingHistory = {
   categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
-  hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;
   links: {
@@ -722,7 +719,6 @@ export type BillingHistory = {
   plan: string;
   planName: string;
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedBudgetCategories: DataCategory[];
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];

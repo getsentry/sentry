@@ -564,7 +564,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      hasReservedBudgets: true,
       reservedBudgets: [SeerReservedBudgetFixture({})],
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_team'),
@@ -592,7 +591,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      hasReservedBudgets: true,
       reservedBudgets: [],
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_team'),
