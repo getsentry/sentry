@@ -13,7 +13,7 @@ from sentry.users.services.user.model import RpcUser
 TOKEN_MINUTES_VALID = 30
 
 
-def generate_token():
+def generate_token() -> str:
     return secrets.token_hex(nbytes=32)
 
 
@@ -28,7 +28,7 @@ class UserMergeVerificationCode(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
-    token = models.CharField(max_length=32, default=generate_token)
+    token = models.CharField(max_length=64, default=generate_token)
     expires_at = models.DateTimeField(
         default=timezone.now() + timedelta(minutes=TOKEN_MINUTES_VALID)
     )
@@ -39,13 +39,13 @@ class UserMergeVerificationCode(Model):
 
     __repr__ = sane_repr("user_id", "token")
 
-    def regenerate_token(self):
-        self.token = self.generate_token()
+    def regenerate_token(self) -> None:
+        self.token = generate_token()
         self.refresh_expires_at()
 
-    def refresh_expires_at(self):
+    def refresh_expires_at(self) -> None:
         now = timezone.now()
-        self.token_expires_at = now + timedelta(minutes=TOKEN_MINUTES_VALID)
+        self.expires_at = now + timedelta(minutes=TOKEN_MINUTES_VALID)
 
     def is_valid(self) -> bool:
         return timezone.now() < self.expires_at
