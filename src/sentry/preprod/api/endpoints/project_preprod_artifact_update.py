@@ -29,6 +29,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
             "artifact_type": {"type": "integer", "minimum": 0, "maximum": 2},
             "build_version": {"type": "string", "maxLength": 255},
             "build_number": {"type": "integer"},
+            "error_code": {"type": "integer", "minimum": 0, "maximum": 3},
             "error_message": {"type": "string"},
             "apple_app_info": {
                 "type": "object",
@@ -47,6 +48,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
     error_messages = {
         "date_built": "The date_built field must be a string.",
         "artifact_type": "The artifact_type field must be an integer between 0 and 2.",
+        "error_code": "The error_code field must be an integer between 0 and 3.",
         "error_message": "The error_message field must be a string.",
         "build_version": "The build_version field must be a string with a maximum length of 255 characters.",
         "build_number": "The build_number field must be an integer.",
@@ -137,6 +139,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         if "artifact_type" in data:
             preprod_artifact.artifact_type = data["artifact_type"]
             updated_fields.append("artifact_type")
+
+        if "error_code" in data:
+            preprod_artifact.error_code = data["error_code"]
+            updated_fields.append("error_code")
 
         if "error_message" in data:
             preprod_artifact.error_message = data["error_message"]
