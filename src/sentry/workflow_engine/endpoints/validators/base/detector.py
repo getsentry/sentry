@@ -33,7 +33,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         help_text="Name of the monitor",
     )
     type = serializers.CharField()
-    config = serializers.JSONField(default={})
+    config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
