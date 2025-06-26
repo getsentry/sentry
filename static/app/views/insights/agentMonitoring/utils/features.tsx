@@ -1,6 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import type {Organization} from 'sentry/types/organization';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -19,6 +20,21 @@ export function usePreferedAiModule() {
   }
 
   return user.options.prefersAgentsInsightsModule ? 'agents-insights' : 'llm-monitoring';
+}
+
+export function useTogglePreferedAiModule(): [string, () => void] {
+  const preferedAiModule = usePreferedAiModule();
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+
+  const togglePreferedModule = () => {
+    const prefersAgentsInsightsModule = preferedAiModule === 'agents-insights';
+    const newPrefersAgentsInsightsModule = !prefersAgentsInsightsModule;
+    mutateUserOptions({
+      ['prefersAgentsInsightsModule']: newPrefersAgentsInsightsModule,
+    });
+  };
+
+  return [preferedAiModule, togglePreferedModule];
 }
 
 export function AIInsightsFeature(props: AgentInsightsFeatureProps) {
