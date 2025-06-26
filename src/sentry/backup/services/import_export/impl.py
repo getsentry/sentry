@@ -15,6 +15,7 @@ from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
 from django.db import DatabaseError, IntegrityError, connections, models, router, transaction
 from django.db.models import Q
+from django.db.models.fields.json import JSONField
 from django.forms import model_to_dict
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
@@ -111,6 +112,27 @@ def fixup_array_fields[T: (str, str | bytes)](json_data: T) -> T:
                     dct["fields"][k] = json.dumps(ast.literal_eval(v))
                 else:
                     pass
+    return json.dumps(contents)
+
+
+def fixup_json_fields[T: (str, str | bytes)](json_data: T) -> T:
+    # preserve for 3 versions as per https://docs.sentry.io/concepts/migration/#version-support-window
+    # so probably 2025.11 this can go away?
+    try:
+        contents = json.loads(json_data)
+    except Exception:  # let the actual import/export produce a better message
+        return json_data
+
+    for dct in contents:
+        model = apps.get_model(dct["model"])
+        for k, v in dct["fields"].items():
+            if isinstance(model._meta.get_field(k), JSONField) and isinstance(v, str):
+                try:
+                    # old PickledObjectField / JSONField is serialized to a string
+                    dct["fields"][k] = json.loads(v)
+                except ValueError:
+                    pass  # new JSONField already represents data directly rather than encoding
+
     return json.dumps(contents)
 
 
@@ -236,6 +258,7 @@ class UniversalImportExportService(ImportExportService):
                 last_seen_ordinal = min_ordinal - 1
 
                 json_data = fixup_array_fields(json_data)
+                json_data = fixup_json_fields(json_data)
 
                 for deserialized_object in deserialize(
                     "json", json_data, use_natural_keys=False, ignorenonexistent=True
