@@ -351,6 +351,7 @@ const MarkdownButton = styled('button')`
   text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
   font-size: inherit;
   cursor: pointer;
+  text-wrap: nowrap;
 
   :hover {
     color: ${p => p.theme.subText};
