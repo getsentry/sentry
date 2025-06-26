@@ -12,6 +12,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
@@ -37,8 +38,6 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
-import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -98,7 +97,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.large})`);
+    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
     if (replay.is_archived) {
       return null;
@@ -272,7 +271,7 @@ export const ReplayOSColumn: ReplayTableColumn = {
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.large})`);
+    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
     if (replay.is_archived) {
       return null;
@@ -300,8 +299,8 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
   name: '',
   sortKey: undefined,
   Component: ({replay, rowIndex}) => {
-    const selectedReplayIndex = useSelectedReplayIndex();
-    const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+    const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+      useSelectedReplayIndex();
 
     if (replay.is_archived) {
       return null;
@@ -518,9 +517,9 @@ const DisplayNameLink = styled(Link)`
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   &[data-has-viewed='true'] {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 
