@@ -180,29 +180,6 @@ Then, use it to run sync this one time.
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
-            (
-                "python dependencies (1/3)",
-                (
-                    # upgrading pip first
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "pip",
-                ),
-                {},
-            ),
-        ),
-        verbose,
-    ):
-        return 1
-
     if not SKIP_FRONTEND and not run_procs(
         repo,
         reporoot,
@@ -211,7 +188,7 @@ Then, use it to run sync this one time.
             (
                 # Spreading out the network load by installing js,
                 # then py in the next batch.
-                "javascript dependencies (1/1)",
+                "javascript dependencies",
                 (
                     "pnpm",
                     "install",
@@ -239,8 +216,9 @@ Then, use it to run sync this one time.
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
-                "python dependencies (2/3)",
+                "python dependencies",
                 (
+                    "uv",
                     "pip",
                     "install",
                     "--constraint",
@@ -261,7 +239,7 @@ Then, use it to run sync this one time.
         venv_dir,
         (
             (
-                "python dependencies (3/3)",
+                "python editable install",
                 ("python3", "-m", "tools.fast_editable", "--path", "."),
                 {},
             ),

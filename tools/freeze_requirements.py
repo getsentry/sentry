@@ -10,11 +10,11 @@ from subprocess import CalledProcessError, run
 from tools.lib import gitroot
 
 
-def worker(args: tuple[str, ...]) -> None:
+def worker(args: tuple[str, ...], cwd=None) -> None:
     env = os.environ.copy()
     env["CUSTOM_COMPILE_COMMAND"] = "make freeze-requirements"
 
-    run(args, check=True, capture_output=True, env=env)
+    run(args, check=True, capture_output=True, env=env, cwd=cwd)
 
 
 def check_futures(futures: list[Future[None]]) -> int:
@@ -44,12 +44,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     base_path = abspath(gitroot())
 
     base_cmd = (
-        "pip-compile",
+        "uv",
+        "pip",
+        "compile",
         "--allow-unsafe",
         "--no-annotate",
         "--quiet",
         "--strip-extras",
-        "--index-url=https://pypi.devinfra.sentry.io/simple",
+        "--emit-index-url",
+        "--default-index",
+        "https://pypi.devinfra.sentry.io/simple",
     )
 
     executor = ThreadPoolExecutor(max_workers=2)
@@ -58,22 +62,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             worker,
             (
                 *base_cmd,
-                f"{base_path}/requirements-base.txt",
-                f"{base_path}/requirements-getsentry.txt",
+                f"requirements-base.txt",
+                f"requirements-getsentry.txt",
                 "-o",
-                f"{base_path}/requirements-frozen.txt",
+                f"requirements-frozen.txt",
             ),
+            cwd=base_path,
         ),
         executor.submit(
             worker,
             (
                 *base_cmd,
-                f"{base_path}/requirements-base.txt",
-                f"{base_path}/requirements-getsentry.txt",
-                f"{base_path}/requirements-dev.txt",
+                f"requirements-base.txt",
+                f"requirements-getsentry.txt",
+                f"requirements-dev.txt",
                 "-o",
-                f"{base_path}/requirements-dev-frozen.txt",
+                f"requirements-dev-frozen.txt",
             ),
+            cwd=base_path,
         ),
     ]
 
