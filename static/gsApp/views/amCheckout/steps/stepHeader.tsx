@@ -1,10 +1,9 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {IconCheckmark, IconChevron, IconEdit} from 'sentry/icons';
+import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -42,14 +41,14 @@ function StepHeader({
   organization,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
-
   const toggleTier = getToggleTier(checkoutTier);
+  const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
-      onClick={canEdit ? () => onEdit(stepNumber) : undefined}
+      onClick={onEditClick}
       data-test-id={`header-${kebabCase(title)}`}
     >
       <Flex justify="space-between">
@@ -75,17 +74,15 @@ function StepHeader({
           )
         ) : (
           <EditStep>
-            {isCompleted && (
-              <Button size="sm" onClick={() => onEdit(stepNumber)} icon={<IconEdit />}>
-                {t('Edit')}
-              </Button>
-            )}
             {canEdit && (
               <Button
                 size="sm"
                 aria-label={t('Expand section')}
                 icon={<IconChevron direction="down" />}
-              />
+                onClick={onEditClick}
+              >
+                {t('Edit')}
+              </Button>
             )}
           </EditStep>
         )}
@@ -103,12 +100,7 @@ const Header = styled('div')<{canEdit?: boolean; isActive?: boolean}>`
   align-items: center;
   padding: ${space(3)} ${space(2)};
   cursor: ${p => (p.canEdit ? 'pointer' : undefined)};
-
-  ${p =>
-    p.isActive &&
-    css`
-      border-bottom: 1px solid ${p.theme.border};
-    `};
+  border-bottom: 1px solid ${p => (p.isActive ? p.theme.border : 'transparent')};
 `;
 
 const StepTitle = styled('div')`
