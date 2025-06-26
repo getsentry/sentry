@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GridEditable, {
@@ -38,6 +38,7 @@ import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/Du
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface TableData {
   avg: number;
@@ -73,6 +74,7 @@ const rightAlignColumns = new Set([
 export function ModelsTable() {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
 
@@ -92,6 +94,18 @@ export function ModelsTable() {
   };
 
   const {sortField, sortOrder} = useTableSortParams();
+
+  // Track column sorting
+  useEffect(() => {
+    if (sortField && sortOrder) {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'models',
+        column: sortField,
+        direction: sortOrder,
+      });
+    }
+  }, [sortField, sortOrder, organization]);
 
   const modelsRequest = useEAPSpans(
     {

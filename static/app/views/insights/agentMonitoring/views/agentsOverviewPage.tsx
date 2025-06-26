@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -12,6 +12,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,6 +76,18 @@ function AgentsMonitoringPage() {
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
+  const handleTableChange = useCallback(
+    (newTable: TableType) => {
+      trackAnalytics('agent-monitoring.table-switch', {
+        organization,
+        previousTable: activeTable,
+        newTable,
+      });
+      onActiveTableChange(newTable);
+    },
+    [activeTable, onActiveTableChange, organization]
+  );
+
   return (
     <React.Fragment>
       <AgentsPageHeader
@@ -136,7 +149,7 @@ function AgentsMonitoringPage() {
                     <ControlsWrapper>
                       <TableControl
                         value={activeTable}
-                        onChange={onActiveTableChange}
+                        onChange={handleTableChange}
                         size="sm"
                       >
                         <TableControlItem key={TableType.TRACES}>
