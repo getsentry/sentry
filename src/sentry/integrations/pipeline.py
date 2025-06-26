@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from collections.abc import Callable, Sequence
+from typing import Any, Never, TypedDict
 
 from django.db import IntegrityError
 from django.http.response import HttpResponseBase, HttpResponseRedirect
@@ -12,15 +13,18 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationData
+from sentry.integrations.base import IntegrationData, IntegrationProvider
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline_types import IntegrationPipelineT
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.base import Pipeline
+from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.types import PipelineAnalyticsEntry
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -89,9 +93,24 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(IntegrationPipelineT):
+class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     pipeline_name = "integration_pipeline"
-    provider_manager = default_manager
+
+    organization: RpcOrganization
+
+    @property
+    def provider(self) -> IntegrationProvider:
+        ret = default_manager.get(self._provider_key)
+        ret.set_pipeline(self)
+        ret.update_config(self.config)
+        return ret
+
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
+        return self.provider.get_pipeline_views()
 
     def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
@@ -176,6 +195,8 @@ class IntegrationPipeline(IntegrationPipelineT):
             )
         else:
             self.integration = ensure_integration(self.provider.integration_key, data)
+
+        assert self.request.user.is_authenticated
 
         # Does this integration provide a user identity for the user setting up
         # the integration?

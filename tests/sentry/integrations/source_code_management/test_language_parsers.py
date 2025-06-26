@@ -367,7 +367,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -115,6 +116,7 @@ function Sidebar({organization}: Props) {
 
    const collapsed = !!preferences.collapsed;
-   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+   const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
 +  const hasSuperuserSession = isActiveSuperuser(organization);
 
    useOpenOnboardingSidebar();

@@ -90,12 +90,12 @@ const Items = styled('div')`
 const CopyButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledIconCopy = styled(IconCopy)``;
 
 const ViewEventLink = styled(Link)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: 0.9em;
 `;

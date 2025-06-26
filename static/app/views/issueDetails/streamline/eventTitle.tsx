@@ -124,7 +124,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const grayText = css`
     color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
+    font-weight: ${theme.fontWeight.normal};
   `;
 
   const host = organization.links.regionUrl;
@@ -267,7 +267,7 @@ function EventNavigationLink({
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
 `;
 
@@ -280,7 +280,7 @@ const EventInfoJumpToWrapper = styled('div')`
   padding: 0 ${space(2)};
   flex-wrap: nowrap;
   min-height: ${MIN_NAV_HEIGHT}px;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     gap: 0;
   }
@@ -294,7 +294,7 @@ const EventInfo = styled('div')`
   align-items: center;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     padding-top: ${space(1)};
   }
 `;
@@ -308,14 +308,14 @@ const JumpTo = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   max-width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 50%;
   }
 `;
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   :hover {
     color: ${p => p.theme.red300};
@@ -360,7 +360,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${space(0.25)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 
   button {
     visibility: hidden;

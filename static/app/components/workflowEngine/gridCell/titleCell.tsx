@@ -42,7 +42,7 @@ const Name = styled('div')<{disabled: boolean}>`
 `;
 
 const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
   width: auto;
 `;
@@ -73,9 +73,4 @@ const DetailsWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   white-space: nowrap;
-  line-height: 1.2;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    line-height: 1;
-  }
 `;

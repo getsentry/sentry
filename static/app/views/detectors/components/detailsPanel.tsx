@@ -12,6 +12,10 @@ interface DetailsPanelProps {
 }
 
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
+  if (!dataSource.queryObj) {
+    return <Container>{t('Query not found.')}</Container>;
+  }
+
   return (
     <Container>
       <Flex direction="column" gap={space(0.5)}>
