@@ -81,7 +81,7 @@ class WebhookPayload(Model):
 
         constraints = [
             models.CheckConstraint(
-                check=Q(destination_type=DestinationType.SENTRY_REGION)
+                condition=Q(destination_type=DestinationType.SENTRY_REGION)
                 & Q(region_name__isnull=False),
                 name="webhookpayload_region_name_not_null",
             ),
