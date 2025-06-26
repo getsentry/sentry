@@ -176,8 +176,8 @@ def gen_request_data(
 @sentry_sdk.trace
 def analyze_recording_segments(
     error_events: list[ErrorEvent],
-    segments: list[RecordingSegmentStorageMeta],
     replay_id: str,
+    segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
