@@ -36,13 +36,13 @@ import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
-  errorRate: number;
+  // errorRate: number;
   inputTokens: number;
   model: string;
   outputTokens: number;
@@ -59,14 +59,14 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
   {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 120},
+  // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-  'failure_rate()',
+  // 'failure_rate()',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -104,7 +104,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'failure_rate()',
+        // 'failure_rate()',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -128,7 +128,7 @@ export function ModelsTable() {
       requests: span['count()'],
       avg: span['avg(span.duration)'],
       p95: span['p95(span.duration)'],
-      errorRate: span['failure_rate()'],
+      // errorRate: span['failure_rate()'],
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
     }));
@@ -231,8 +231,8 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'failure_rate()':
-      return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
+    // case 'failure_rate()':
+    //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
     default:
       return null;
   }
