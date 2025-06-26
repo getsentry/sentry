@@ -12,7 +12,7 @@ import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
-interface ListBoxOptionProps extends AriaOptionProps {
+export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
