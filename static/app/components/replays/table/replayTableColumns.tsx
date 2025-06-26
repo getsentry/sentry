@@ -95,7 +95,7 @@ export const ReplayActivityColumn: ReplayTableColumn = {
 
 export const ReplayBrowserColumn: ReplayTableColumn = {
   name: t('Browser'),
-  sortKey: 'browser',
+  sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
     const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -269,7 +269,7 @@ export const ReplayDurationColumn: ReplayTableColumn = {
 
 export const ReplayOSColumn: ReplayTableColumn = {
   name: t('OS'),
-  sortKey: 'os',
+  sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
     const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.large})`);

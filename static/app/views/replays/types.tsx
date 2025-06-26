@@ -190,14 +190,6 @@ type ArchivedReplayRecord = {
 };
 export type ReplayRecord = HydratedReplayRecord | ArchivedReplayRecord;
 
-// The ReplayRecord fields, but with nested fields represented as `foo.bar`.
-export type ReplayRecordNestedFieldName =
-  | keyof ReplayRecord
-  | `browser.${keyof ReplayRecord['browser']}`
-  | `device.${keyof ReplayRecord['device']}`
-  | `os.${keyof ReplayRecord['os']}`
-  | `user.${keyof ReplayRecord['user']}`;
-
 export type ReplayListLocationQuery = {
   cursor?: string;
   end?: string;
