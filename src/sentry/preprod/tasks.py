@@ -209,7 +209,7 @@ def assemble_preprod_artifact_size_analysis(
                 )
             except PreprodArtifact.DoesNotExist:
                 # Ideally this should never happen
-                logger.error(
+                logger.exception(
                     "PreprodArtifact not found during size analysis assembly",
                     extra={
                         "artifact_id": artifact_id,
