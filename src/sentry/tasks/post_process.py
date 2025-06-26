@@ -1575,22 +1575,18 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.issue_summary import get_issue_summary_cache_key, get_issue_summary_lock_key
+    from sentry.seer.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
     group = event.group
 
-    # Only run on new issues or issues with no existing summary/scan
-    if (
-        not job["group_state"]["is_new"]
-        and group.seer_fixability_score is not None
-        and cache.get(get_issue_summary_cache_key(group.id))
-    ):
+    # Only run on issues with no existing scan
+    if group.seer_fixability_score is not None:
         return
 
-    # Check if there's already a task in progress for this issue
+    # Don't run if there's already a task in progress for this issue
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock = locks.get(lock_key, duration=1, name=lock_name)
     if lock.locked():
