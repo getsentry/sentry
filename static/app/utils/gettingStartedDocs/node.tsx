@@ -360,7 +360,17 @@ export const getNodeAgentMonitoringOnboarding = ({
 } = {}): OnboardingConfig => ({
   introduction: () => (
     <Alert type="info">
-      {t('Agent Monitoring is currently in beta with Vercel AI SDK support only.')}
+      {tct(
+        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK].',
+        {
+          vercelai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+          ),
+          openai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+        }
+      )}
     </Alert>
   ),
   install: params => [
