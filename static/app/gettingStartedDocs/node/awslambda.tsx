@@ -226,7 +226,7 @@ const docs: Docs<PlatformOptions> = {
     basePackage: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/aws-serverless',
+    basePackage: 'aws-serverless',
   }),
   platformOptions,
 };

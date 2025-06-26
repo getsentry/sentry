@@ -562,7 +562,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/nextjs',
+    basePackage: 'nextjs',
   }),
 };
 

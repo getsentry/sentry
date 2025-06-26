@@ -503,7 +503,7 @@ const docs: Docs = {
   performanceOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/react-router',
+    basePackage: 'react-router',
   }),
 };
 
