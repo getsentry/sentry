@@ -184,18 +184,13 @@ function getIndicatorColor({
   status: StatusPageIncidentUpdate['status'];
   theme: Theme;
 }): string {
-  switch (status) {
-    case 'investigating':
-      return theme.red200;
-    case 'identified':
-      return theme.blue200;
-    case 'monitoring':
-      return theme.yellow200;
-    case 'resolved':
-      return theme.green200;
-    default: {
-      const _exhaustiveCheck: never = status;
-      return _exhaustiveCheck;
+  const indicatorColor: Record<UpdateStatus, string> = {
+	  investigating: theme.red200,
+	  identified: theme.blue200,
+	  monitoring: theme.yellow200,
+	  resolved: theme.green200,
+	};
+	return indicatorColor[status];
     }
   }
 }
