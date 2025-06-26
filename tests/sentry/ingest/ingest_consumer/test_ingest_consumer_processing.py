@@ -662,13 +662,13 @@ def test_sample_rate_passed(env_value, settings_value, expected_sample_rate):
             with patch(
                 "sentry.ingest.consumer.processors.sentry_sdk.start_span"
             ) as mock_start_span:
-                # Create a dummy function to decorate
+                # Create a placeholder function to decorate
                 @trace_func(name="test_span")
-                def dummy_function():
+                def placeholder_function():
                     return "test_result"
 
                 # Call the decorated function
-                result = dummy_function()
+                result = placeholder_function()
 
                 # Verify the function returned correctly
                 assert result == "test_result"
