@@ -28,4 +28,6 @@ class PromptsActivity(Model):
         db_table = "sentry_promptsactivity"
         unique_together = (("user_id", "feature", "organization_id", "project_id"),)
 
+        indexes = [models.Index(fields=("feature", "organization_id", "project_id"))]
+
     __repr__ = sane_repr("user_id", "feature")
