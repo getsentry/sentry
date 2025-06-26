@@ -758,7 +758,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: auto;
 `;
 
@@ -784,7 +784,7 @@ const CountsWrapper = styled('div')`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -792,7 +792,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: right;
   color: ${p => p.theme.subText};
@@ -811,12 +811,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
 
   h4 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};
@@ -918,7 +918,7 @@ const StartedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     width: 140px;
   }
@@ -931,7 +931,7 @@ const EventsReprocessedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 140px;
   }
 `;
@@ -941,7 +941,7 @@ const ProgressColumn = styled('div')`
   align-self: center;
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     width: 160px;
   }

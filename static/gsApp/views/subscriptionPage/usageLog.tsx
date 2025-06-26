@@ -224,7 +224,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
 `;
 
@@ -245,7 +245,7 @@ const UsageTable = styled(PanelTable)`
 `;
 
 const UserInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
   display: flex;
 `;
@@ -257,13 +257,13 @@ const NoteContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-content: center;
 `;

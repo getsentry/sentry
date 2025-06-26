@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -6,6 +6,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,6 +37,12 @@ function TraceAiSpans({
     return lastSpan?.replace('span-', '') ?? null;
   });
 
+  useEffect(() => {
+    trackAnalytics('agent-monitoring.trace.rendered', {
+      organization,
+    });
+  }, [organization]);
+
   const selectedNode = useMemo(() => {
     return (
       nodes.find(node => getNodeId(node) === selectedNodeKey) ||
@@ -51,6 +58,10 @@ function TraceAiSpans({
       }
       setSelectedNodeKey(eventId);
 
+      trackAnalytics('agent-monitoring.trace.span-select', {
+        organization,
+      });
+
       // Update the node path url param to keep the trace waterfal in sync
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
       navigate(
@@ -64,8 +75,14 @@ function TraceAiSpans({
         {replace: true}
       );
     },
-    [location, navigate]
+    [location, navigate, organization]
   );
+
+  const handleViewFullTraceClick = useCallback(() => {
+    trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
+      organization,
+    });
+  }, [organization]);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -85,6 +102,7 @@ function TraceAiSpans({
       <HeaderCell align={'right'}>
         <LinkButton
           size="xs"
+          onClick={handleViewFullTraceClick}
           to={{
             ...location,
             query: {
@@ -136,7 +154,7 @@ const Wrapper = styled('div')`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin-bottom: ${space(2)};
   margin-left: ${space(1)};
@@ -144,7 +162,7 @@ const SpansHeader = styled('h6')`
 
 const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
   padding: 0 ${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;

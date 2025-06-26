@@ -256,7 +256,7 @@ const SummaryTitle = styled('div')`
 `;
 
 const SummaryTotal = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: 700;
 `;
 
@@ -268,7 +268,7 @@ const PlanUseBody = styled('div')`
   line-height: 1.2;
   color: ${p => p.theme.subText};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(1.5)} ${space(3)} ${space(1.5)} 0;
   }
 `;
@@ -310,10 +310,10 @@ const LegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
 `;

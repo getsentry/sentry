@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
@@ -30,7 +30,6 @@ export default Storybook.story('Grid Cell Components', story => {
     {
       title: {
         name: 'Slack suggested assignees',
-        projectId: '1',
         link: '/issues/monitors/1',
       },
       actions: [ActionType.SLACK],
@@ -45,8 +44,6 @@ export default Storybook.story('Grid Cell Components', story => {
     {
       title: {
         name: 'Send Discord notification',
-        projectId: '1',
-        details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
       actions: [ActionType.DISCORD],
@@ -61,8 +58,6 @@ export default Storybook.story('Grid Cell Components', story => {
     {
       title: {
         name: 'Email suggested assignees',
-        projectId: '1',
-        details: ['Every hour'],
         link: '/issues/monitors/3',
       },
       actions: [ActionType.EMAIL],
@@ -77,7 +72,6 @@ export default Storybook.story('Grid Cell Components', story => {
     {
       title: {
         name: 'Send notification',
-        projectId: '1',
         link: '/issues/monitors/4',
         disabled: true,
       },
@@ -128,8 +122,6 @@ export default Storybook.story('Grid Cell Components', story => {
           <TitleCell
             link={dataRow.title.link}
             name={dataRow.title.name}
-            projectId={dataRow.title.projectId}
-            details={dataRow.title.details}
             disabled={dataRow.title.disabled}
           />
         );

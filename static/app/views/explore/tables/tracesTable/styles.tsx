@@ -88,10 +88,10 @@ export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName:
 `;
 
 export const EmptyStateText = styled('div')<{
-  size: 'fontSizeExtraLarge' | 'fontSizeMedium';
+  size: 'xl' | 'md';
 }>`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme[p.size]};
+  font-size: ${p => p.theme.fontSize[p.size]};
   padding-bottom: ${space(1)};
 `;
 

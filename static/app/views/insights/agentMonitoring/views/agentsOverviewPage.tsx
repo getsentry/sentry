@@ -1,6 +1,7 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -11,6 +12,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
@@ -41,6 +44,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
@@ -59,13 +63,29 @@ function useShowOnboarding() {
     pageFilters.selection.projects,
     projects
   );
+
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+}
+
+function useShouldShowLegacyLLMAlert() {
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+  const selectedProjects = getSelectedProjectList(
+    pageFilters.selection.projects,
+    projects
+  );
+
+  const hasAgentMonitoring = selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+  const hasLlmMonitoring = selectedProjects.some(p => p.hasInsightsLlmMonitoring);
+
+  return hasLlmMonitoring && !hasAgentMonitoring;
 }
 
 function AgentsMonitoringPage() {
   const location = useLocation();
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
+  const hasInsightsLlmMonitoring = useShouldShowLegacyLLMAlert();
   const datePageFilterProps = limitMaxPickableDays(organization);
 
   const {eventView, handleSearch} = useTransactionNameQuery();
@@ -73,11 +93,36 @@ function AgentsMonitoringPage() {
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
+  useEffect(() => {
+    trackAnalytics('agent-monitoring.page-view', {
+      organization,
+      isOnboarding: showOnboarding,
+    });
+  }, [organization, showOnboarding]);
+
+  const handleTableSwitch = useCallback(
+    (newTable: TableType) => {
+      trackAnalytics('agent-monitoring.table-switch', {
+        organization,
+        newTable,
+        previousTable: activeTable,
+      });
+      onActiveTableChange(newTable);
+    },
+    [organization, activeTable, onActiveTableChange]
+  );
+
   return (
     <React.Fragment>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
         headerActions={<AiModuleToggleButton />}
+        headerTitle={
+          <Fragment>
+            {AGENTS_LANDING_TITLE}
+            <FeatureBadge type="beta" />
+          </Fragment>
+        }
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
         <Layout.Body>
@@ -100,7 +145,9 @@ function AgentsMonitoringPage() {
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
+
               <ModuleLayout.Full>
+                {hasInsightsLlmMonitoring && <LegacyLLMMonitoringInfoAlert />}
                 {showOnboarding ? (
                   <Onboarding />
                 ) : (
@@ -128,7 +175,7 @@ function AgentsMonitoringPage() {
                     <ControlsWrapper>
                       <TableControl
                         value={activeTable}
-                        onChange={onActiveTableChange}
+                        onChange={handleTableSwitch}
                         size="sm"
                       >
                         <TableControlItem key={TableType.TRACES}>

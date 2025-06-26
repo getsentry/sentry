@@ -277,7 +277,7 @@ const GridPanel = styled(Panel)`
 
 const HomePanelHeader = styled(PanelHeader)`
   background: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   align-items: center;
   text-transform: unset;
   padding: ${space(4)} ${space(4)} 0;

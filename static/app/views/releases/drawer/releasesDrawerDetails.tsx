@@ -325,8 +325,8 @@ const Details = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 

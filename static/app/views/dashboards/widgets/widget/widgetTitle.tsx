@@ -17,5 +17,5 @@ export function WidgetTitle(props: WidgetTitleProps) {
 
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

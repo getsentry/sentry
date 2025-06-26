@@ -7,7 +7,7 @@ export const PanelItemPolicy = styled(PanelItem)`
   grid-template-columns: 1fr 1fr;
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr auto;
   }
 `;

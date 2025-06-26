@@ -228,11 +228,6 @@ describe('OnDemandBudgets', () => {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
-        replaysBudget: 0,
-        monitorSeatsBudget: 0,
         budgets: {
           errors: 1000,
           transactions: 2000,
@@ -348,9 +343,6 @@ describe('OnDemandBudgets', () => {
       body: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },
     });
@@ -382,9 +374,6 @@ describe('OnDemandBudgets', () => {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 1000,
-          transactionsBudget: 2000,
-          attachmentsBudget: 3000,
           budgets: {
             errors: 1000,
             transactions: 2000,
@@ -621,10 +610,6 @@ describe('OnDemandBudgets', () => {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
-        replaysBudget: 4000,
         budgets: {
           errors: 1000,
           transactions: 2000,
@@ -642,10 +627,6 @@ describe('OnDemandBudgets', () => {
 
     const onDemandBudget = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
-      errorsBudget: 1000,
-      transactionsBudget: 2000,
-      attachmentsBudget: 3000,
-      replaysBudget: 4000,
       budgets: {
         errors: 1000,
         transactions: 2000,
