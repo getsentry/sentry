@@ -152,13 +152,7 @@ export default Storybook.story('SimpleTable', story => {
           <SimpleTableWithHiddenColumns>
             <SimpleTable.Header>
               {headers.map(header => (
-                <SimpleTable.HeaderCell
-                  key={header.key}
-                  data-max-width-sm-hide={header.key === 'action' ? 'true' : undefined}
-                  data-max-width-xs-hide={
-                    header.key === 'lastTriggered' ? 'true' : undefined
-                  }
-                >
+                <SimpleTable.HeaderCell key={header.key} data-column-name={header.key}>
                   {header.label}
                 </SimpleTable.HeaderCell>
               ))}
@@ -167,10 +161,10 @@ export default Storybook.story('SimpleTable', story => {
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell data-max-width-sm-hide>
+                <SimpleTable.RowCell data-column-name="action">
                   {row.action}
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell data-max-width-xs-hide>
+                <SimpleTable.RowCell data-column-name="lastTriggered">
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
@@ -259,7 +253,7 @@ const SimpleTableWithHiddenColumns = styled(SimpleTable)`
   @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2fr min-content auto;
 
-    [data-max-width-sm-hide='true'] {
+    [data-column-name='action'] {
       display: none;
     }
   }
@@ -267,7 +261,7 @@ const SimpleTableWithHiddenColumns = styled(SimpleTable)`
   @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2fr min-content;
 
-    [data-max-width-xs-hide='true'] {
+    [data-column-name='lastTriggered'] {
       display: none;
     }
   }

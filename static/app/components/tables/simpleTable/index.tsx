@@ -31,13 +31,11 @@ function Header({children}: {children: React.ReactNode}) {
 
 function HeaderCell({
   children,
-  className,
   sort,
   handleSortClick,
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
-  className?: string;
   handleSortClick?: () => void;
   sort?: 'asc' | 'desc';
 }) {
@@ -47,7 +45,6 @@ function HeaderCell({
   return (
     <ColumnHeaderCell
       {...props}
-      className={className}
       isSorted={isSorted}
       onClick={handleSortClick}
       role="columnheader"
