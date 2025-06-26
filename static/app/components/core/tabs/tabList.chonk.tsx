@@ -26,15 +26,11 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
       ? css`
           grid-auto-flow: column;
           justify-content: start;
-          ${p.variant === 'flat' &&
-          `border-bottom: solid 1px ${p.theme.tokens.border.primary};`}
         `
       : css`
           height: 100%;
           grid-auto-flow: row;
           align-content: start;
           padding-right: ${space(0.5)};
-          ${p.variant === 'flat' &&
-          `border-right: solid 1px ${p.theme.tokens.border.primary};`}
         `};
 `;
