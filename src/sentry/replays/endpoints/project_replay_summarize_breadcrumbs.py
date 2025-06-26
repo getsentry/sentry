@@ -102,7 +102,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=functools.partial(analyze_recording_segments, error_events),
+            on_results=functools.partial(analyze_recording_segments, error_events, replay_id),
         )
 
 
@@ -176,16 +176,17 @@ def gen_request_data(
 @sentry_sdk.trace
 def analyze_recording_segments(
     error_events: list[ErrorEvent],
+    replay_id: str,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
     # Log when the input string is too large. This is potential for timeout.
-    if len(request_data) > 120000:
+    if len(request_data) > 100000:
         logger.info(
-            "Replay AI summary: input length exceeds 120k.",
-            extra={"request_len": len(request_data)},
+            "Replay AI summary: input length exceeds 100k.",
+            extra={"request_len": len(request_data), "replay_id": replay_id},
         )
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
