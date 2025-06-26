@@ -40,6 +40,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -60,7 +61,6 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
-import {renderEventViewBasedBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -183,14 +183,26 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               frameless
               scrollable
               fit="max-content"
-              renderTableBodyCell={renderEventViewBasedBodyCell({
-                location,
-                organization,
-                eventView,
-                tableData,
-                theme,
-                getCustomFieldRenderer,
-              })}
+              getRenderer={(field, _dataRow, meta) => {
+                const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+                  field,
+                  meta as MetaType,
+                  widget,
+                  organization
+                )!;
+
+                return customRenderer;
+              }}
+              makeBaggage={(field, _dataRow, meta) => {
+                const unit = meta.units?.[field] as string | undefined;
+
+                return {
+                  location,
+                  organization,
+                  theme,
+                  unit,
+                } satisfies RenderFunctionBaggage;
+              }}
             />
           ) : (
             <StyledSimpleTableChart

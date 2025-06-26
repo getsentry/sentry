@@ -12,10 +12,10 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {renderEventViewBasedBodyCell} from 'sentry/views/dashboards/widgets/tableWidget/eventViewBasedCellRenderers';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -25,10 +25,10 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  theme: Theme;
   widget: Widget;
   errorMessage?: string;
   tableResults?: TableData[];
-  theme?: Theme;
 };
 
 export function IssueWidgetCard({
@@ -86,14 +86,26 @@ export function IssueWidgetCard({
         frameless
         scrollable
         fit="max-content"
-        renderTableBodyCell={renderEventViewBasedBodyCell({
-          location,
-          tableData,
-          eventView,
-          organization,
-          theme,
-          getCustomFieldRenderer,
-        })}
+        getRenderer={(field, _dataRow, meta) => {
+          const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+            field,
+            meta as MetaType,
+            widget,
+            organization
+          )!;
+
+          return customRenderer;
+        }}
+        makeBaggage={(field, _dataRow, meta) => {
+          const unit = meta.units?.[field] as string | undefined;
+
+          return {
+            location,
+            organization,
+            theme,
+            unit,
+          } satisfies RenderFunctionBaggage;
+        }}
       />
     </TableContainer>
   ) : (
