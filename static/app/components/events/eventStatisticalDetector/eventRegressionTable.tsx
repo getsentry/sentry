@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';

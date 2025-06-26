@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

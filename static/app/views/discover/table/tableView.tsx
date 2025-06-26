@@ -6,12 +6,12 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';

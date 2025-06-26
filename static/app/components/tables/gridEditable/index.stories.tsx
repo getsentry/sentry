@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import * as Storybook from 'sentry/stories';
 import {useLocation} from 'sentry/utils/useLocation';

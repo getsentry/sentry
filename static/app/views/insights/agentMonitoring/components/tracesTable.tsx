@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+} from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

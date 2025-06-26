@@ -4,14 +4,14 @@ import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

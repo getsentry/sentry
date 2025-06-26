@@ -5,8 +5,8 @@ import type {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import AssigneeSelectorDropdown, {
   AssigneeWrapper,
 } from 'sentry/components/assigneeSelectorDropdown';
-import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
-import {Grid} from 'sentry/components/gridEditable/styles';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
+import GridEditable, {type GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {Grid} from 'sentry/components/tables/gridEditable/styles';
 import TimeSince from 'sentry/components/timeSince';
 import type {Group} from 'sentry/types/group';
 

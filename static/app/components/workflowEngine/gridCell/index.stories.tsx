@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
