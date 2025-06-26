@@ -47,7 +47,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     get_detector,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -841,13 +841,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-create-issues",
             "organizations:uptime-detector-handler",
         ]
-        self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
-        )
+        self.project_subscription.update(mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             }
         )
 
@@ -961,13 +959,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc) - timedelta(minutes=5),
         )
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             },
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
@@ -1014,14 +1012,14 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
         self.detector.update(
             config={
                 **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
             },
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
@@ -1079,7 +1077,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        assert self.project_subscription.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
         uptime_subscription.refresh_from_db()
         assert uptime_subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()

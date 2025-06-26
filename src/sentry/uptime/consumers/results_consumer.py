@@ -44,11 +44,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import (
-    DATA_SOURCE_UPTIME_SUBSCRIPTION,
-    IncidentStatus,
-    ProjectUptimeSubscriptionMode,
-)
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -472,7 +468,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             metrics.incr("uptime.result_processor.dropped_no_feature")
             return
 
-        mode_name = ProjectUptimeSubscriptionMode(detector.config["mode"]).name.lower()
+        mode_name = UptimeMonitorMode(detector.config["mode"]).name.lower()
 
         status_reason = "none"
         if result["status_reason"]:
@@ -567,7 +563,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # measurement of delay/duration.
         record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
 
-        Mode = ProjectUptimeSubscriptionMode
+        Mode = UptimeMonitorMode
         try:
             match detector.config["mode"]:
                 case Mode.AUTO_DETECTED_ONBOARDING:
