@@ -423,8 +423,13 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'Import and initialize the Sentry SDK with the OpenAI Agents integration:'
+      description: tct(
+        'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
+        {
+          openai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+        }
       ),
       configurations: [
         {

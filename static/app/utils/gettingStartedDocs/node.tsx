@@ -395,7 +395,7 @@ export const getNodeAgentMonitoringOnboarding = ({
         {
           code: <code />,
           link: (
-            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
           ),
         }
       ),
