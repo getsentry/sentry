@@ -103,7 +103,7 @@ const SidebarContainer = styled('nav')`
   }
   h3 {
     color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-weight: ${p => p.theme.fontWeightBold};
     margin: 0;
     padding: ${space(1)};
