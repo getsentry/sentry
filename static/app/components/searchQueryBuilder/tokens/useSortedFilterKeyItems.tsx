@@ -17,6 +17,7 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -135,6 +136,9 @@ export function useSortedFilterKeyItems({
     disallowFreeText,
     replaceRawSearchKeys,
   } = useSearchQueryBuilder();
+  const hasRawSearchReplacement = useOrganization().features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -204,7 +208,7 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        !replaceRawSearchKeys?.length;
+        (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
 
       const rawSearchReplacements: KeySectionItem = {
         key: 'raw-search-filter-values',
@@ -226,7 +230,8 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        !!replaceRawSearchKeys?.length;
+        !!replaceRawSearchKeys?.length &&
+        hasRawSearchReplacement;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -250,15 +255,16 @@ export function useSortedFilterKeyItems({
 
     return keyItems;
   }, [
-    disallowFreeText,
-    filterKeySections,
-    filterKeys,
     filterValue,
+    search,
+    includeSuggestions,
+    filterKeySections,
     flatKeys,
     getFieldDefinition,
-    includeSuggestions,
+    filterKeys,
     inputValue,
-    search,
+    disallowFreeText,
     replaceRawSearchKeys,
+    hasRawSearchReplacement,
   ]);
 }

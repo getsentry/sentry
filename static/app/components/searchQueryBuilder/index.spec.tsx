@@ -4353,7 +4353,8 @@ describe('SearchQueryBuilder', function () {
           {...defaultProps}
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
-        />
+        />,
+        {organization: {features: ['search-query-builder-raw-search-replacement']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
