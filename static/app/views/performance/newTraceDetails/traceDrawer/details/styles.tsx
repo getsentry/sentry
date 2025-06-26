@@ -124,7 +124,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 
@@ -160,7 +160,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
@@ -188,7 +188,7 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TitleOpText = styled('div')`
@@ -672,7 +672,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
   background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -690,7 +690,7 @@ const HighlightDuration = styled('div')`
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: normal;
 `;
 
@@ -699,7 +699,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }

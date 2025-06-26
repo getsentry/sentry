@@ -20,7 +20,9 @@ class NotificationRenderer[RenderableT](Protocol):
     provider_key: NotificationProviderKey
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> RenderableT:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> RenderableT:
         """
         Convert template, and data into a renderable object.
         The form of the renderable object is defined by the provider.

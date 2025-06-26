@@ -158,10 +158,8 @@ export function LogsTable({
           {isEmpty && (
             <TableStatus>
               <EmptyStateWarning withIcon>
-                <EmptyStateText size="fontSizeExtraLarge">
-                  {t('No logs found')}
-                </EmptyStateText>
-                <EmptyStateText size="fontSizeMedium">
+                <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
+                <EmptyStateText size="md">
                   {tct(
                     'Try adjusting your filters or get started with sending logs by checking these [instructions]',
                     {

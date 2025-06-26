@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
@@ -15,8 +14,14 @@ import {IconBranch} from './iconBranch';
 const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
-  const {branch} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {branch, changeContextValue} = useCodecovContext();
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({branch: selectedOption.value});
+    },
+    [changeContextValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
@@ -34,18 +39,6 @@ export function BranchSelector() {
 
     return [...optionSet].map(makeOption);
   }, [branch]);
-
-  const handleChange = useCallback(
-    (newBranch: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        branch: newBranch.value,
-      };
-      setSearchParams(updatedParams);
-    },
-    [searchParams, setSearchParams]
-  );
 
   return (
     <CompactSelect

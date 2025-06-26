@@ -141,7 +141,7 @@ const OverlayInner = withChonk(
     box-shadow:
       0 0 0 1px ${p => p.theme.translucentBorder},
       ${p => p.theme.dropShadowHeavy};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
 
     /* Override z-index from useOverlayPosition */
     z-index: ${p => p.theme.zIndex.dropdown} !important;
@@ -162,7 +162,7 @@ const OverlayInner = withChonk(
     border: 1px solid ${p => p.theme.colors.border.primary};
     box-shadow:
       0 2px 0 0 ${p => p.theme.colors.border.primary};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
 
     /* Override z-index from useOverlayPosition */
     z-index: ${p => p.theme.zIndex.dropdown} !important;

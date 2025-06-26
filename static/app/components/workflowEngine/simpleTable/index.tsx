@@ -1,8 +1,9 @@
-import type {HTMLAttributes} from 'react';
+import type {CSSProperties, HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout/flex';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -36,8 +37,8 @@ function HeaderCell({
   sort,
   handleSortClick,
 }: {
-  children: React.ReactNode;
   name: string;
+  children?: React.ReactNode;
   handleSortClick?: () => void;
   sort?: Sort;
   sortKey?: string;
@@ -52,7 +53,7 @@ function HeaderCell({
       role="columnheader"
       as={sortKey ? 'button' : 'div'}
     >
-      <HeaderDivider />
+      {children && <HeaderDivider />}
       {sortKey && <InteractionStateLayer />}
       <HeadingText>{children}</HeadingText>
       {sortKey && (
@@ -76,9 +77,17 @@ function Row({children, variant = 'default', ...props}: RowProps) {
   );
 }
 
-function RowCell({children, name}: {children: React.ReactNode; name: string}) {
+function RowCell({
+  children,
+  name,
+  justify,
+}: {
+  children: React.ReactNode;
+  name: string;
+  justify?: CSSProperties['justifyContent'];
+}) {
   return (
-    <StyledRowCell className={name} role="cell">
+    <StyledRowCell className={name} role="cell" align="center" justify={justify}>
       {children}
     </StyledRowCell>
   );
@@ -103,9 +112,7 @@ const StyledPanelHeader = styled('div')`
   grid-column: 1 / -1;
 `;
 
-const StyledRowCell = styled('div')`
-  display: flex;
-  align-items: center;
+const StyledRowCell = styled(Flex)`
   overflow: hidden;
   padding: ${space(2)};
 `;
@@ -154,7 +161,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   text-transform: inherit;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 
   position: relative;
@@ -197,7 +204,7 @@ const StyledEmptyMessage = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 SimpleTable.Header = Header;

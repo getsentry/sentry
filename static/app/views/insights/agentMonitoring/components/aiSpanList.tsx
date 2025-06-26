@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconCode} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -11,14 +12,17 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
+  AI_COST_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
   AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
   AI_TOOL_CALL_DESCRIPTIONS,
@@ -110,12 +114,16 @@ export function AISpanList({
           }
         }
 
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
+
         const uniqueKey = getNodeId(node);
         return (
           <Fragment key={uniqueKey}>
             {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
             <TraceListItem
-              indent={aiRunNode === node ? 0 : 1}
+              indent={shouldIndent ? 1 : 0}
               traceBounds={getTimeBounds(currentAiRunNode)}
               key={uniqueKey}
               node={node}
@@ -223,7 +231,9 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         'span_id',
         AI_AGENT_NAME_ATTRIBUTE,
         AI_MODEL_ID_ATTRIBUTE,
+        AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
+        keyToTag(AI_COST_ATTRIBUTE, 'number'),
         AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
@@ -298,13 +308,20 @@ function calculateRelativeTiming(
   return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
 }
 
+interface NodeInfo {
+  color: string | undefined;
+  icon: React.ReactNode;
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}
+
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
   spanAttributes: Record<string, string>
 ) {
   // Default return value
-  const nodeInfo = {
+  const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
@@ -342,17 +359,44 @@ function getNodeInfo(
     AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
-    const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
+    const model =
+      getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
+      getNodeAttribute(AI_MODEL_NAME_FALLBACK_ATTRIBUTE) ||
+      '';
     nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
+    nodeInfo.subtitle = agentName;
+    if (model) {
+      nodeInfo.subtitle = nodeInfo.subtitle ? (
+        <Fragment>
+          {nodeInfo.subtitle} ({model})
+        </Fragment>
+      ) : (
+        model
+      );
+    }
     nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
+    const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
-    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    nodeInfo.subtitle = tokens ? (
+      <Fragment>
+        <Count value={tokens} />
+        {' Tokens'}
+      </Fragment>
+    ) : (
+      ''
+    );
+    if (cost) {
+      nodeInfo.subtitle = (
+        <Fragment>
+          {nodeInfo.subtitle} ({formatLLMCosts(cost)})
+        </Fragment>
+      );
+    }
     nodeInfo.color = colors[2];
   } else if (
     AI_TOOL_CALL_OPS.includes(op) ||
@@ -413,7 +457,7 @@ const ListItemHeader = styled(Flex)`
 
 const ListItemTitle = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   white-space: nowrap;
   flex-basis: max-content;
@@ -421,9 +465,8 @@ const ListItemTitle = styled('div')`
 `;
 
 const ListItemSubtitle = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -454,12 +497,12 @@ const DurationBar = styled('div')<{
 `;
 
 const DurationText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
 `;
 
 const TransactionItem = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   padding: ${space(2)} ${space(0.5)} 0;
   white-space: nowrap;

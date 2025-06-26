@@ -1,11 +1,12 @@
+import Count from 'sentry/components/count';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -57,10 +58,6 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
   return undefined;
 }
 
-function formatCost(cost: string) {
-  return `US $${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
-}
-
 export function getHighlightedSpanAttributes({
   op,
   description,
@@ -80,7 +77,9 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
   const highlightedAttributes = [];
 
-  const model = getAttribute(attributeObject, 'gen_ai.request.model');
+  const model =
+    getAttribute(attributeObject, 'gen_ai.request.model') ||
+    getAttribute(attributeObject, 'gen_ai.response.model');
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -96,8 +95,10 @@ export function getHighlightedSpanAttributes({
       name: t('Tokens'),
       value: (
         <span>
-          {promptTokens} <IconArrow direction="right" size="xs" />{' '}
-          {`${completionTokens} (Σ ${totalTokens})`}
+          <Count value={promptTokens} /> <IconArrow direction="right" size="xs" />{' '}
+          <Count value={completionTokens} /> {' (Σ '}
+          <Count value={totalTokens} />
+          {')'}
         </span>
       ),
     });
@@ -107,7 +108,7 @@ export function getHighlightedSpanAttributes({
   if (totalCosts) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatCost(totalCosts),
+      value: formatLLMCosts(totalCosts),
     });
   }
 

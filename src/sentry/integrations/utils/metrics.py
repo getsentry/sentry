@@ -123,7 +123,10 @@ class EventLifecycle:
         self._extra.update(extras)
 
     def record_event(
-        self, outcome: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
+        self,
+        outcome: EventLifecycleOutcome,
+        outcome_reason: BaseException | str | None = None,
+        create_issue: bool = False,
     ) -> None:
         """Record a starting or halting event.
 
@@ -146,16 +149,26 @@ class EventLifecycle:
         }
 
         if isinstance(outcome_reason, BaseException):
-            # (iamrajjoshi): Log the full exception and the repr of the exception
-            # This is an experiment to dogfood Sentry logs
-            #  Logs are paid by bytes, we save money by mking optimizations like this - we should try to dogfood from a similar perspective
-            log_params["exc_info"] = outcome_reason
+            # Capture exception in Sentry if create_issue is True
+            if create_issue:
+                # If the outcome is halted, we want to set the level to warning
+                if outcome == EventLifecycleOutcome.HALTED:
+                    sentry_sdk.set_level("warning")
+
+                event_id = sentry_sdk.capture_exception(
+                    outcome_reason,
+                )
+
+                log_params["extra"]["slo_event_id"] = event_id
+
+            # Add exception summary but don't include full stack trace in logs
+            # TODO(iamrajjoshi): Phase this out once everyone is comfortable with just using the sentry issue
             log_params["extra"]["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
         if outcome == EventLifecycleOutcome.FAILURE:
-            logger.error(key, **log_params)
+            logger.warning(key, **log_params)
         elif outcome == EventLifecycleOutcome.HALTED:
             logger.warning(key, **log_params)
 
@@ -164,14 +177,17 @@ class EventLifecycle:
         logger.error("EventLifecycle flow error: %s", message)
 
     def _terminate(
-        self, new_state: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
+        self,
+        new_state: EventLifecycleOutcome,
+        outcome_reason: BaseException | str | None = None,
+        create_issue: bool = False,
     ) -> None:
         if self._state is None:
             self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state, outcome_reason)
+        self.record_event(new_state, outcome_reason, create_issue)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -184,14 +200,20 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, failure_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self,
+        failure_reason: BaseException | str | None = None,
+        extra: dict[str, Any] | None = None,
+        create_issue: bool = True,
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
 
         Calling it means that the feature is broken and requires immediate attention.
 
-        An error will be reported to Sentry.
+        An error will be reported to Sentry if create_issue is True (default).
+        The default is True because we want to create an issue for all failures
+        because it will provide a stack trace and help us debug the issue.
+        There needs to be a compelling reason to not create an issue for a failure
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -205,19 +227,26 @@ class EventLifecycle:
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason)
+        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason, create_issue)
 
     def record_halt(
-        self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self,
+        halt_reason: BaseException | str | None = None,
+        extra: dict[str, Any] | None = None,
+        create_issue: bool = False,
     ) -> None:
         """Record that the event halted in an ambiguous state.
 
-        It will be logged to GCP but no Sentry error will be reported.
+        It will be logged to GCP but no Sentry error will be reported by default.
+        The default is False because we don't want to create an issue for all halts.
+        However for certain debugging cases, we may want to create an issue.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or
         other expected condition, but there is some substantial chance that it
         represents a bug.
+
+        Set create_issue=True if you want to create a Sentry issue for this halt.
 
         Such cases usually mean that we want to:
           (1) document the ambiguity;
@@ -228,7 +257,7 @@ class EventLifecycle:
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.HALTED, halt_reason)
+        self._terminate(EventLifecycleOutcome.HALTED, halt_reason, create_issue)
 
     def __enter__(self) -> Self:
         if self._state is not None:
@@ -250,7 +279,8 @@ class EventLifecycle:
 
         if exc_value is not None:
             # We were forced to exit the context by a raised exception.
-            self.record_failure(exc_value)
+            # Default to creating a Sentry issue for unhandled exceptions
+            self.record_failure(exc_value, create_issue=True)
         else:
             # We exited the context without record_success or record_failure being
             # called. Assume success if we were told to do so. Else, log a halt

@@ -103,7 +103,7 @@ function SeenInfo({
 
 const dateTimeCss = (p: any) => css`
   color: ${p.theme.subText};
-  font-size: ${p.theme.fontSizeMedium};
+  font-size: ${p.theme.fontSize.md};
   display: flex;
   justify-content: center;
 `;
@@ -146,7 +146,7 @@ const TimeSinceWrapper = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.2;
 `;
 

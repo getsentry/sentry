@@ -108,8 +108,6 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
-  const chartWrapperRef = useRef<HTMLDivElement>(null);
-
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
@@ -262,8 +260,8 @@ export function ExploreCharts({
   );
 
   return (
-    <ChartList ref={chartWrapperRef}>
-      <WidgetSyncContextProvider>
+    <ChartList>
+      <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {chartInfos.map((chartInfo, index) => {
           return (
             <Chart
@@ -279,7 +277,6 @@ export function ExploreCharts({
               hideContextMenu={hideContextMenu}
               samplingMode={samplingMode}
               topEvents={topEvents}
-              chartWrapperRef={chartWrapperRef}
             />
           );
         })}
@@ -290,7 +287,6 @@ export function ExploreCharts({
 
 interface ChartProps {
   chartInfo: ChartInfo;
-  chartWrapperRef: React.RefObject<HTMLDivElement | null>;
   handleChartTypeChange: (chartType: ChartType, index: number) => void;
   index: number;
   interval: string;
@@ -315,7 +311,6 @@ function Chart({
   hideContextMenu,
   samplingMode,
   topEvents,
-  chartWrapperRef,
 }: ChartProps) {
   const theme = useTheme();
   const [visible, setVisible] = useState(true);
@@ -324,6 +319,7 @@ function Chart({
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const boxSelectOptions = useChartBoxSelect({
     chartRef,
@@ -479,7 +475,7 @@ function Chart({
         : Bars;
 
   return (
-    <ChartWrapper>
+    <ChartWrapper ref={chartWrapperRef}>
       <Widget
         key={index}
         height={chartHeight}
@@ -491,6 +487,7 @@ function Chart({
             ref={chartRef}
             brush={boxSelectOptions.brush}
             onBrushEnd={boxSelectOptions.onBrushEnd}
+            onBrushStart={boxSelectOptions.onBrushStart}
             toolBox={boxSelectOptions.toolBox}
             plottables={chartInfo.data.map(timeSeries => {
               return new DataPlottableConstructor(

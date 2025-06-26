@@ -215,7 +215,7 @@ const SliderOutput = chonkStyled('output')`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     position: absolute;
     height: 24px;
     width: calc(100% - 16px);

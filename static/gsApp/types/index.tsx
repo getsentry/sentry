@@ -172,11 +172,7 @@ export type Plan = {
 
 type PendingChanges = {
   customPrice: number | null;
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
-  // TODO(data categories): BIL-964
   customPrices: Partial<Record<DataCategory, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
@@ -185,14 +181,9 @@ type PendingChanges = {
   plan: string;
   planDetails: Plan;
   planName: string;
-  // TODO(data categories): BIL-964
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
-  reservedErrors: number | null;
-  reservedEvents: number;
-  reservedTransactions: number | null;
 };
 
 enum VatStatus {

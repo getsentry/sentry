@@ -99,7 +99,7 @@ const PartnerPlanEndingText = styled('div')`
 `;
 
 const PartnerPlanEndingBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   display: flex;
   gap: ${space(1)};
