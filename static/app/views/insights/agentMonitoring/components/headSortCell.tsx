@@ -40,15 +40,20 @@ export const HeadSortCell = memo(function HeadCell({
   align = 'left',
   forceCellGrow = false,
   cursorParamName = 'cursor',
+  onClick,
 }: {
   children: React.ReactNode;
   sortKey: string;
   align?: 'left' | 'right';
   cursorParamName?: string;
   forceCellGrow?: boolean;
+  onClick?: (sortKey: string, newDirection: 'asc' | 'desc') => void;
 }) {
   const location = useLocation();
   const {sortField, sortOrder} = useTableSortParams();
+  const newDirection =
+    sortField === sortKey ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc';
+
   return (
     <SortLink
       align={align}
@@ -61,9 +66,10 @@ export const HeadSortCell = memo(function HeadCell({
           ...location.query,
           [cursorParamName]: undefined,
           field: sortKey,
-          order: sortField === sortKey ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc',
+          order: newDirection,
         },
       })}
+      onClick={() => onClick?.(sortKey, newDirection)}
       title={
         <Fragment>
           {forceCellGrow && <CellExpander />}

@@ -8,6 +8,7 @@ import GridEditable, {
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,6 +64,7 @@ const rightAlignColumns = new Set([
 export function ToolsTable() {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
@@ -119,18 +121,34 @@ export function ToolsTable() {
     }));
   }, [toolsRequest.data]);
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        cursorParamName="toolsCursor"
-        forceCellGrow={column.key === 'tool'}
-        align={rightAlignColumns.has(column.key) ? 'right' : undefined}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const handleSort = useCallback(
+    (column: string, direction: 'asc' | 'desc') => {
+      trackAnalytics('agent-monitoring.column-sort', {
+        organization,
+        table: 'tools',
+        column,
+        direction,
+      });
+    },
+    [organization]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          cursorParamName="toolsCursor"
+          forceCellGrow={column.key === 'tool'}
+          align={rightAlignColumns.has(column.key) ? 'right' : undefined}
+          onClick={handleSort}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [handleSort]
+  );
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
