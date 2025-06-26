@@ -354,7 +354,7 @@ Sentry.profiler.stopProfiler();
 });
 
 export const getNodeAgentMonitoringOnboarding = ({
-  basePackage = '@sentry/node',
+  basePackage = 'node',
 }: {
   basePackage?: string;
 } = {}): OnboardingConfig => ({
@@ -404,7 +404,10 @@ export const getNodeAgentMonitoringOnboarding = ({
           language: 'javascript',
           code: [
             {
-              label: 'Javascript',
+              label:
+                params.platformKey === 'javascript-nextjs'
+                  ? 'config.server.ts'
+                  : 'JavaScript',
               value: 'javascript',
               language: 'javascript',
               code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
@@ -413,6 +416,7 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     // Add the Vercel AI SDK integration
+    ${basePackage === 'nextjs' && '// vercelAIIntegration should be included only to config.server'}
     Sentry.vercelAIIntegration({
       recordInputs: true,
       recordOutputs: true,
@@ -436,7 +440,7 @@ Sentry.init({
           ),
           code: [
             {
-              label: 'Javascript',
+              label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
               code: `import { generateText } from 'ai';

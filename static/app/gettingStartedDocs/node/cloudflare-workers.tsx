@@ -166,7 +166,7 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/cloudflare',
+    basePackage: 'cloudflare',
   }),
 };
 
