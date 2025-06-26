@@ -2059,13 +2059,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
     def test_autofix_automation_tuning(self):
         # Test without feature flag - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, autofixAutomationTuning="super_low", status_code=400
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off", status_code=400
         )
         assert (
             "trigger-autofix-on-issue-summary feature enabled"
             in resp.data["autofixAutomationTuning"][0]
         )
-        assert self.project.get_option("sentry:autofix_automation_tuning") == "super_low"  # default
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
 
         # Test with feature flag but invalid value - should fail
         with self.feature("organizations:trigger-autofix-on-issue-summary"):
@@ -2073,9 +2073,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
             )
             assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
-            assert (
-                self.project.get_option("sentry:autofix_automation_tuning") == "super_low"
-            )  # default
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
 
             # Test with feature flag and valid value - should succeed
             resp = self.get_success_response(
