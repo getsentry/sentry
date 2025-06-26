@@ -111,7 +111,9 @@ export function AISpanList({
           }
         }
 
-        const shouldIndent = aiRunNode && aiRunNode !== node;
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
 
         const uniqueKey = getNodeId(node);
         return (
