@@ -128,7 +128,7 @@ export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
   /**
    * @deprecated
-   * With chonk, `flat` variants always have a border and `floating` variants never do.
+   * With chonk, tabs never have a border.
    * Whether to hide the bottom border of the tab list.
    * Defaults to `false`.
    */
