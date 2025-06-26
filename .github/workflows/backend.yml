@@ -226,7 +226,7 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: uv pip install -q --constraint requirements-dev-frozen.txt pip-tools
+          install-cmd: uv pip install -q --constraint requirements-dev-frozen.txt
       - name: check requirements
         run: |
           python -S -m tools.freeze_requirements
