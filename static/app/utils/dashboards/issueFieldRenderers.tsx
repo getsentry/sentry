@@ -13,8 +13,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
-import type {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
+import type {FieldFormatterRenderFunctionPartial} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Container, FieldShortId, OverflowLink} from 'sentry/utils/discover/styles';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -28,11 +30,6 @@ type RenderFunctionBaggage = {
   organization: Organization;
   eventView?: EventView;
 };
-
-type FieldFormatterRenderFunctionPartial = (
-  data: EventData,
-  baggage: RenderFunctionBaggage
-) => React.ReactNode;
 
 type SpecialFieldRenderFunc = (
   data: EventData,
@@ -281,7 +278,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
   </div>
 ))`
   text-align: right;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(2)};
   color: ${p => p.theme.subText};
@@ -305,14 +302,13 @@ const LinksContainer = styled('span')`
  * @returns {Function}
  */
 export function getIssueFieldRenderer(
-  field: string
-): FieldFormatterRenderFunctionPartial | null {
+  field: string,
+  meta: MetaType
+): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
-  // Return null if there is no field renderer for this field
-  // Should check the discover field renderer for this field
-  return null;
+  return getFieldRenderer(field, meta, false);
 }

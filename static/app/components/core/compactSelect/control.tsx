@@ -606,12 +606,12 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const headerVerticalPadding: Record<FormSize, string> = {
+const headerVerticalPadding: Record<NonNullable<ControlProps['size']>, string> = {
   xs: space(0.25),
   sm: space(0.5),
   md: space(0.75),
 };
-const MenuHeader = styled('div')<{size: FormSize}>`
+const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   position: relative;
   display: flex;
   align-items: center;
@@ -639,7 +639,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -652,7 +652,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};

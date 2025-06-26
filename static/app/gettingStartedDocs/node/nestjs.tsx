@@ -286,7 +286,7 @@ const docs: Docs = {
     basePackage: '@sentry/nestjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/nestjs',
+    basePackage: 'nestjs',
   }),
 };
 

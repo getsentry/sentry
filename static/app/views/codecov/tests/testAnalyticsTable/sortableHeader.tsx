@@ -99,8 +99,8 @@ const HeaderCell = styled('div')<{alignment: string; hasRadio?: boolean}>`
   gap: ${space(1)};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
-  font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.hasRadio && 'padding-left: 56px;'}
+  padding-left: ${p => (p.hasRadio ? '56px' : '0')};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StyledLink = styled(Link)`

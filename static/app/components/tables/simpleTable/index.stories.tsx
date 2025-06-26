@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 
@@ -71,27 +71,21 @@ export default Storybook.story('SimpleTable', story => {
         </p>
         <SimpleTableWithColumns>
           <SimpleTable.Header>
-            <SimpleTable.HeaderCell name="name" sortKey="name">
-              Name
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
-              Monitors
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="action" sortKey="action">
-              Action
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+            <SimpleTable.HeaderCell sortKey="name">Name</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="monitors">Monitors</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="action">Action</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="lastTriggered">
               Last Triggered
             </SimpleTable.HeaderCell>
           </SimpleTable.Header>
           {data.map(row => (
             <SimpleTable.Row key={row.name}>
-              <SimpleTable.RowCell name="name">{row.name}</SimpleTable.RowCell>
-              <SimpleTable.RowCell name="monitors">
+              <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
                 {t('%s monitors', row.monitors.length)}
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell name="action">{row.action}</SimpleTable.RowCell>
-              <SimpleTable.RowCell name="lastTriggered">
+              <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
                 <TimeAgoCell date={row.lastTriggered} />
               </SimpleTable.RowCell>
             </SimpleTable.Row>
@@ -111,16 +105,10 @@ export default Storybook.story('SimpleTable', story => {
 
         <SimpleTableWithColumns>
           <SimpleTable.Header>
-            <SimpleTable.HeaderCell name="name" sortKey="name">
-              Name
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
-              Monitors
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="action" sortKey="action">
-              Action
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+            <SimpleTable.HeaderCell sortKey="name">Name</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="monitors">Monitors</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="action">Action</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell sortKey="lastTriggered">
               Last Triggered
             </SimpleTable.HeaderCell>
           </SimpleTable.Header>
@@ -155,27 +143,19 @@ export default Storybook.story('SimpleTable', story => {
     const tableContent = (
       <Fragment>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="name" sortKey="name">
-            Name
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="monitors" sortKey="monitors">
-            Monitors
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="action" sortKey="action">
-            Action
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="lastTriggered" sortKey="lastTriggered">
+          <SimpleTable.HeaderCell sortKey="name">Name</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell sortKey="monitors">Monitors</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell sortKey="action">Action</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell sortKey="lastTriggered">
             Last Triggered
           </SimpleTable.HeaderCell>
         </SimpleTable.Header>
         {data.map(row => (
           <SimpleTable.Row key={row.name}>
-            <SimpleTable.RowCell name="name">{row.name}</SimpleTable.RowCell>
-            <SimpleTable.RowCell name="monitors">
-              {row.monitors.length} monitors
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="action">{row.action}</SimpleTable.RowCell>
-            <SimpleTable.RowCell name="lastTriggered">
+            <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+            <SimpleTable.RowCell>
               <TimeAgoCell date={row.lastTriggered} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>

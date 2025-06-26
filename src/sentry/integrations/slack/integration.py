@@ -20,11 +20,12 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline_types import IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
@@ -128,7 +129,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def _identity_pipeline_view(self) -> IntegrationPipelineViewT:
+    def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         return NestedPipelineView(
             bind_key="identity",
             provider_key="slack",
@@ -140,7 +141,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             },
         )
 
-    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [self._identity_pipeline_view()]
 
     def _get_team_info(self, access_token: str) -> Any:

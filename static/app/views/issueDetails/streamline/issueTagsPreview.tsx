@@ -228,7 +228,7 @@ export default function IssueTagsPreview({
   const searchQuery = useEventQuery({groupId});
   const organization = useOrganization();
   const theme = useTheme();
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -348,7 +348,7 @@ const TagsPreview = styled('div')`
   column-gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSize.sm};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

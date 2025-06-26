@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
 from sentry.uptime.models import UptimeStatus
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -1124,7 +1124,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         self.create_project_uptime_subscription(
             name="Onboarding Uptime monitor",
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
 
         request_data = {"name": "Uptime", "project": [self.project.id]}
@@ -1146,7 +1146,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         self.create_project_uptime_subscription(
             name="Onboarding Uptime monitor",
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
 
         request_data = {"project": [self.project.id], "sort": "name"}
