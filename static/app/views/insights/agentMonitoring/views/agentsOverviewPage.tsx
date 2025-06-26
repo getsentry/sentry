@@ -19,6 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
@@ -61,13 +62,29 @@ function useShowOnboarding() {
     pageFilters.selection.projects,
     projects
   );
+
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+}
+
+function useShouldShowLegacyLLMAlert() {
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+  const selectedProjects = getSelectedProjectList(
+    pageFilters.selection.projects,
+    projects
+  );
+
+  const hasAgentMonitoring = selectedProjects.some(p => p.hasInsightsAgentMonitoring);
+  const hasLlmMonitoring = selectedProjects.some(p => p.hasInsightsLlmMonitoring);
+
+  return hasLlmMonitoring && !hasAgentMonitoring;
 }
 
 function AgentsMonitoringPage() {
   const location = useLocation();
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
+  const hasInsightsLlmMonitoring = useShouldShowLegacyLLMAlert();
   const datePageFilterProps = limitMaxPickableDays(organization);
 
   const {eventView, handleSearch} = useTransactionNameQuery();
@@ -108,7 +125,9 @@ function AgentsMonitoringPage() {
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
+
               <ModuleLayout.Full>
+                {hasInsightsLlmMonitoring && <LegacyLLMMonitoringInfoAlert />}
                 {showOnboarding ? (
                   <Onboarding />
                 ) : (
