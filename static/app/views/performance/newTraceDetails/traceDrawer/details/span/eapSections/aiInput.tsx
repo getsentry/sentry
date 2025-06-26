@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -29,7 +28,7 @@ function renderTextMessages(content: any) {
 }
 
 function renderToolMessage(content: any) {
-  return <StructuredData value={content} maxDefaultDepth={2} withAnnotatedText />;
+  return content;
 }
 
 function parseAIMessages(messages: string) {
@@ -172,9 +171,16 @@ export function AIInputSection({
               <TraceDrawerComponents.MultilineTextLabel>
                 {roleHeadings[message.role]}
               </TraceDrawerComponents.MultilineTextLabel>
-              <TraceDrawerComponents.MultilineText>
-                {message.content}
-              </TraceDrawerComponents.MultilineText>
+              {typeof message.content === 'string' ? (
+                <TraceDrawerComponents.MultilineText>
+                  {message.content}
+                </TraceDrawerComponents.MultilineText>
+              ) : (
+                <TraceDrawerComponents.MultilineJSON
+                  value={message.content}
+                  maxDefaultDepth={2}
+                />
+              )}
             </Fragment>
           ))}
         </Fragment>
