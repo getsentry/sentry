@@ -6,7 +6,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface OrganizationSeerSetupResponse {
+interface OrganizationSeerSetupResponse {
   billing: {
     hasAutofixQuota: boolean;
     hasScannerQuota: boolean;
