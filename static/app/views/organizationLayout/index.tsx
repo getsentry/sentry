@@ -1,4 +1,4 @@
-import {ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
@@ -34,7 +34,7 @@ const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function OrganizationLayout({children}: Props) {
+function OrganizationLayout() {
   useRouteAnalyticsHookSetup();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
@@ -54,7 +54,9 @@ function OrganizationLayout({children}: Props) {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
         <GlobalDrawer>
-          <App organization={organization}>{children}</App>
+          <App organization={organization}>
+            <Outlet />
+          </App>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />

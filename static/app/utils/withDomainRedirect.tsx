@@ -5,7 +5,7 @@ import trimStart from 'lodash/trimStart';
 
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
@@ -30,9 +30,9 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P extends RouteComponentProps>(
-  WrappedComponent: RouteComponent
-) {
+function withDomainRedirect<
+  P extends Omit<RouteComponentProps<any, any, any>, 'children'> & {children: any},
+>(WrappedComponent: React.ComponentType<P>): React.ComponentType<P> {
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
@@ -67,7 +67,7 @@ function withDomainRedirect<P extends RouteComponentProps>(
 
       if (orglessSlugRoute === fullRoute) {
         // :orgId is not present in the route, so we do not need to perform a redirect here.
-        return <WrappedComponent {...props} />;
+        return <WrappedComponent {...(props as any)} />;
       }
 
       const orglessRedirectPath = generatePath(orglessSlugRoute, params);
@@ -79,7 +79,7 @@ function withDomainRedirect<P extends RouteComponentProps>(
       return <Redirect to={redirectOrgURL} router={props.router} />;
     }
 
-    return <WrappedComponent {...props} />;
+    return <WrappedComponent {...(props as any)} />;
   };
 }
 
