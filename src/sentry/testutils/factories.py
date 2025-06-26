@@ -341,6 +341,22 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
     return orjson.dumps(manifest).decode()
 
 
+def _set_sample_rate_from_error_sampling(normalized_data: dict) -> None:
+    """Set 'sample_rate' on normalized_data if contexts.error_sampling.client_sample_rate is present and valid."""
+    client_sample_rate = None
+    try:
+        client_sample_rate = (
+            normalized_data.get("contexts", {}).get("error_sampling", {}).get("client_sample_rate")
+        )
+    except Exception:
+        pass
+    if client_sample_rate:
+        try:
+            normalized_data["sample_rate"] = float(client_sample_rate)
+        except Exception:
+            pass
+
+
 # TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
@@ -1030,22 +1046,7 @@ class Factories:
 
         normalized_data = manager.get_data()
 
-        # Patch: inject sample_weight if client_sample_rate is present
-        client_sample_rate = None
-        try:
-            client_sample_rate = (
-                normalized_data.get("contexts", {})
-                .get("error_sampling", {})
-                .get("client_sample_rate")
-            )
-        except Exception:
-            pass
-        if client_sample_rate:
-            try:
-
-                normalized_data["sample_rate"] = float(client_sample_rate)
-            except Exception:
-                pass
+        _set_sample_rate_from_error_sampling(normalized_data)
 
         event = None
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.http import QueryDict
 from django.test import RequestFactory
@@ -17,7 +17,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ErrorUpsamplingTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = Organization.objects.create(name="test-org")
         self.projects = [
             self.create_project(organization=self.organization, name="Project 1"),
@@ -35,7 +35,7 @@ class ErrorUpsamplingTest(TestCase):
         self.request.GET = QueryDict("")
 
     @patch("sentry.api.helpers.error_upsampling.options")
-    def test_are_all_projects_error_upsampled(self, mock_options):
+    def test_are_all_projects_error_upsampled(self, mock_options: Mock) -> None:
         # Test when all projects are allowlisted
         mock_options.get.return_value = self.project_ids
         assert _are_all_projects_error_upsampled(self.project_ids, self.organization) is True
@@ -51,7 +51,7 @@ class ErrorUpsamplingTest(TestCase):
         # Test when no project IDs provided
         assert _are_all_projects_error_upsampled([], self.organization) is False
 
-    def test_transform_query_columns_for_error_upsampling(self):
+    def test_transform_query_columns_for_error_upsampling(self) -> None:
         # Test count() transformation
         columns = ["count()", "other_column"]
         expected = [
@@ -74,7 +74,7 @@ class ErrorUpsamplingTest(TestCase):
         ]
         assert transform_query_columns_for_error_upsampling(columns) == expected
 
-    def test_is_error_focused_query(self):
+    def test_is_error_focused_query(self) -> None:
         # Test explicit error type
         self.request.GET = QueryDict("query=event.type:error")
         assert _is_error_focused_query(self.request) is True
@@ -87,7 +87,7 @@ class ErrorUpsamplingTest(TestCase):
         self.request.GET = QueryDict("")
         assert _is_error_focused_query(self.request) is False
 
-    def test_should_apply_sample_weight_transform(self):
+    def test_should_apply_sample_weight_transform(self) -> None:
         # Test errors dataset
         assert _should_apply_sample_weight_transform(errors, self.request) is True
 

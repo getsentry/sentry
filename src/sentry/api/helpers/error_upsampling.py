@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+from types import ModuleType
 from typing import Any
 
 from rest_framework.request import Request
@@ -10,7 +12,7 @@ from sentry.search.events.types import SnubaParams
 def is_errors_query_for_error_upsampled_projects(
     snuba_params: SnubaParams,
     organization: Organization,
-    dataset: Any,
+    dataset: ModuleType,
     request: Request,
 ) -> bool:
     """
@@ -23,7 +25,9 @@ def is_errors_query_for_error_upsampled_projects(
     return _should_apply_sample_weight_transform(dataset, request)
 
 
-def _are_all_projects_error_upsampled(project_ids: list[int], organization: Organization) -> bool:
+def _are_all_projects_error_upsampled(
+    project_ids: Sequence[int], organization: Organization
+) -> bool:
     """
     Check if ALL projects in the query are allowlisted for error upsampling.
     Only returns True if all projects pass the allowlist condition.
@@ -41,7 +45,7 @@ def _are_all_projects_error_upsampled(project_ids: list[int], organization: Orga
 
 
 def transform_query_columns_for_error_upsampling(
-    query_columns: list[str],
+    query_columns: Sequence[str],
 ) -> list[str]:
     """
     Transform aggregation functions to use sum(sample_weight) instead of count()
