@@ -1051,10 +1051,12 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-        for callback, futures in callback_and_futures:
-            has_alert = True
-            safe_execute(callback, group_event, futures)
+        if not features.has(
+            "organizations:workflow-engine-trigger-actions", group_event.project.organization
+        ):
+            for callback, futures in callback_and_futures:
+                has_alert = True
+                safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
