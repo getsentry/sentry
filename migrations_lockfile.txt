@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0935_drop_old_openperiod_exclusion_constraint
+sentry: 0936_prompts_activity_index
 
 social_auth: 0001_squashed_0002_default_auto_field
 
