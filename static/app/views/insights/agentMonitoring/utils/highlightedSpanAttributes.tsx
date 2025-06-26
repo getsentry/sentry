@@ -90,7 +90,7 @@ export function getHighlightedSpanAttributes({
   const promptTokens = getAttribute(attributeObject, 'gen_ai.usage.input_tokens');
   const completionTokens = getAttribute(attributeObject, 'gen_ai.usage.output_tokens');
   const totalTokens = getAttribute(attributeObject, 'gen_ai.usage.total_tokens');
-  if (promptTokens && completionTokens && totalTokens) {
+  if (promptTokens && completionTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
@@ -105,7 +105,7 @@ export function getHighlightedSpanAttributes({
   }
 
   const totalCosts = getAttribute(attributeObject, 'gen_ai.usage.total_cost');
-  if (totalCosts) {
+  if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
       value: formatLLMCosts(totalCosts),
