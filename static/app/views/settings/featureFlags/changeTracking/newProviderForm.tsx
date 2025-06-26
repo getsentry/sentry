@@ -163,6 +163,7 @@ export default function NewProviderForm({
       <TextField
         name="secret"
         label={t('Secret')}
+        maxLength={100}
         minLength={1}
         required
         help={t(
