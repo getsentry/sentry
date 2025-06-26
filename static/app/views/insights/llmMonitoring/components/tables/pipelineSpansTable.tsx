@@ -181,7 +181,6 @@ function renderBodyCell(
         to={generateLinkToEventInTraceView({
           organization,
           targetId: row[SpanIndexedField.TRANSACTION_SPAN_ID],
-          projectSlug: row[SpanIndexedField.PROJECT],
           traceSlug: row[SpanIndexedField.TRACE],
           timestamp: row[SpanIndexedField.TIMESTAMP],
           location: {

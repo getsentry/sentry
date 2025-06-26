@@ -81,7 +81,6 @@ export function EventSamplesTable({
         <Link
           to={generateLinkToEventInTraceView({
             eventId: row[eventIdKey],
-            projectSlug: row.project,
             traceSlug: row.trace,
             timestamp: row.timestamp,
             organization,

@@ -194,7 +194,6 @@ function EventDetailsContent(props: Props) {
                 projectId={projectId}
                 location={location}
                 errorDest="discover"
-                transactionDest="discover"
               />
             </Layout.Main>
             <Layout.Main fullWidth={!isSidebarVisible}>

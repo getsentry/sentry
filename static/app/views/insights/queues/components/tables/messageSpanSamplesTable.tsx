@@ -168,7 +168,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.QUEUE}
-        projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionSpanId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}

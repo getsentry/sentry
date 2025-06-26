@@ -32,10 +32,7 @@ import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
 
-type Props = Pick<
-  React.ComponentProps<typeof QuickTraceMeta>,
-  'errorDest' | 'transactionDest'
-> & {
+type Props = Pick<React.ComponentProps<typeof QuickTraceMeta>, 'errorDest'> & {
   event: Event;
   location: Location;
   meta: TraceMeta | null;
@@ -81,16 +78,8 @@ class EventMetas extends Component<Props, State> {
   };
 
   render() {
-    const {
-      event,
-      organization,
-      projectId,
-      location,
-      quickTrace,
-      meta,
-      errorDest,
-      transactionDest,
-    } = this.props;
+    const {event, organization, projectId, location, quickTrace, meta, errorDest} =
+      this.props;
     const {isLargeScreen} = this.state;
 
     // Replay preview gets rendered as part of the breadcrumb section. We need
@@ -206,7 +195,6 @@ class EventMetas extends Component<Props, State> {
                   traceMeta={meta}
                   anchor={isLargeScreen ? 'right' : 'left'}
                   errorDest={errorDest}
-                  transactionDest={transactionDest}
                 />
               </QuickTraceContainer>
             </EventDetailHeader>
