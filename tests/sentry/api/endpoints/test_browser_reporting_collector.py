@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.issues.endpoints.browser_reporting_collector import URL_MAX_LENGTH
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -76,7 +77,8 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_long_url(self, mock_metrics_incr: MagicMock) -> None:
         report = deepcopy(DEPRECATION_REPORT)
-        report["url"] = "https://sentry.io/" + "abcdefghi/" * 240  # Makes URL > 2048 characters
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar"
+        assert len(str(report["url"])) == URL_MAX_LENGTH
         response = self.client.post(self.url, [report])
         assert response.status_code == status.HTTP_200_OK
         mock_metrics_incr.assert_any_call(
@@ -89,7 +91,8 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_too_long_url(self, mock_metrics_incr: MagicMock) -> None:
         report = deepcopy(DEPRECATION_REPORT)
-        report["url"] = "https://sentry.io/" + "abcdefghi/" * 410  # Makes URL > 4096 characters
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar/"
+        assert len(str(report["url"])) > URL_MAX_LENGTH
         response = self.client.post(self.url, [report])
         self.assert_invalid_report_data(response, {"url": ["Enter a valid URL."]})
 
