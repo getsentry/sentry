@@ -135,7 +135,7 @@ export default ReplayTagsTableRow;
 
 const ValueContainer = styled('div')`
   span {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
   display: flex;
   padding: ${space(0.25)};

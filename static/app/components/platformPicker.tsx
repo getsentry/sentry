@@ -356,7 +356,7 @@ const PlatformCard = styled(
     width: 100%;
     color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

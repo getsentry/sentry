@@ -627,8 +627,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
 
-  font-size: ${p =>
-    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
+  font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
   color: ${p => p.theme.headingColor};
 `;
 

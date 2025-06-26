@@ -7,6 +7,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
+import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -20,8 +21,6 @@ import {
 } from 'sentry/views/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-
-const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
 function ReplaysList() {
   const organization = useOrganization();
@@ -61,7 +60,7 @@ function ReplaysList() {
   const {allMobileProj} = useAllMobileProj({});
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
-    minVersion: MIN_REPLAY_CLICK_SDK,
+    minVersion: MIN_REPLAY_CLICK_SDK.minVersion,
     organization,
     projectId: projects.map(String),
   });
@@ -90,7 +89,9 @@ function ReplaysList() {
         ReplayColumn.ACTIVITY,
       ];
 
-  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({replays});
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays,
+  });
 
   return (
     <Fragment>
@@ -110,7 +111,11 @@ function ReplaysList() {
               <EmptyStateSubheading>
                 {tct('Field [field] requires an [sdkPrompt]', {
                   field: <strong>'click'</strong>,
-                  sdkPrompt: <strong>{t('SDK version >= 7.44.0')}</strong>,
+                  sdkPrompt: (
+                    <strong>
+                      {t('SDK version >= %s', MIN_REPLAY_CLICK_SDK.minVersion)}
+                    </strong>
+                  ),
                 })}
               </EmptyStateSubheading>
             </Fragment>
@@ -136,7 +141,7 @@ function ReplaysList() {
 
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ReplayPagination = styled(Pagination)`

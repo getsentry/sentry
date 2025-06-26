@@ -1291,12 +1291,12 @@ const CardBody = styled('div')`
 `;
 
 const UsageSummaryTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0px;
   font-weight: 400;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 
@@ -1316,7 +1316,7 @@ const BaseRow = styled('div')`
 
 const SubText = styled('span')`
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const AcceptedSummary = styled('div')`
@@ -1372,12 +1372,12 @@ const CombinedLegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPriceSubText = styled(LegendPrice)`

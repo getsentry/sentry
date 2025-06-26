@@ -148,7 +148,7 @@ const OwnershipDetails = styled('div')`
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UnassignedLabel = styled('div')`
@@ -158,7 +158,7 @@ const UnassignedLabel = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
@@ -168,7 +168,7 @@ const ScheduleDetails = styled('small')`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MonitorStatuses = styled('div')`

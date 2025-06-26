@@ -301,7 +301,7 @@ const HeadingContainer = styled('div')`
 `;
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 
@@ -378,19 +378,19 @@ const TitleDescriptionWrapper = styled('div')`
 
 const SavedSearchItemTitle = styled('div')`
   text-align: left;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
 `;

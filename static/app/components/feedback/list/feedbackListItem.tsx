@@ -220,7 +220,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const PreviewRow = styled(Row)`
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-bottom: ${space(0.75)};
 `;
 
@@ -247,18 +247,18 @@ const StyledTextOverflow = styled(TextOverflow)`
 `;
 
 const ContactRow = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   grid-area: 'user';
   font-weight: bold;
 `;
 
 const ShortId = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   grid-area: 'time';
 `;
 

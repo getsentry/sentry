@@ -93,7 +93,7 @@ const StyledBox = styled('div')<{frequency?: number}>`
   border-right: 1px solid ${p => p.theme.gray200};
   padding-right: ${space(1)};
 
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   ${p => getBoxColors(p.theme, p.frequency)}
 
   z-index: 9;

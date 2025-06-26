@@ -160,7 +160,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -203,7 +203,7 @@ const StepContent = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
@@ -221,7 +221,7 @@ const Badge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.5;
 `;
@@ -232,7 +232,7 @@ const ConditionsBadge = styled('span')`
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
   width: fit-content;
   font-weight: ${p => p.theme.fontWeightNormal};
