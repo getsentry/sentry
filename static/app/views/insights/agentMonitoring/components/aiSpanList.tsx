@@ -114,12 +114,16 @@ export function AISpanList({
           }
         }
 
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
+
         const uniqueKey = getNodeId(node);
         return (
           <Fragment key={uniqueKey}>
             {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
             <TraceListItem
-              indent={aiRunNode === node ? 0 : 1}
+              indent={shouldIndent ? 1 : 0}
               traceBounds={getTimeBounds(currentAiRunNode)}
               key={uniqueKey}
               node={node}
