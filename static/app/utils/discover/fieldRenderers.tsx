@@ -106,7 +106,7 @@ type FieldFormatterRenderFunction = (
   baggage?: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type FieldFormatterRenderFunctionPartial = (
+export type FieldFormatterRenderFunctionPartial = (
   data: EventData,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;

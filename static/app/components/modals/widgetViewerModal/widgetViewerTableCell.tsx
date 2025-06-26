@@ -19,7 +19,6 @@ import {
 import type {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
@@ -199,9 +198,11 @@ export const renderGridBodyCell = ({
           return dataRow[column.key];
         }
 
-        cell = (
-          getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, tableData.meta)
-        )(dataRow, {organization, location, theme});
+        cell = getIssueFieldRenderer(columnKey, tableData.meta)(dataRow, {
+          organization,
+          location,
+          theme,
+        });
         break;
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
