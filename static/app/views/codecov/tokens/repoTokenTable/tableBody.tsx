@@ -9,24 +9,18 @@ import {
 
 interface TableBodyProps {
   column: Column;
-  onRepositorySelect: (repositoryName: string) => void;
   row: Row;
   selectedRepository: string | null;
 }
 
-export function renderTableBody({
-  column,
-  row,
-  selectedRepository,
-  onRepositorySelect,
-}: TableBodyProps) {
+export function renderTableBody({column, row, selectedRepository}: TableBodyProps) {
   const key = column.key;
   const value = row[key];
   const alignment = key === 'token' ? 'right' : 'left';
 
   if (key === 'name') {
     return (
-      <RadioContainer onClick={() => onRepositorySelect(value)}>
+      <RadioContainer>
         <Radio
           name={value}
           aria-label={value?.toString()}
