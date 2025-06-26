@@ -10,6 +10,7 @@ import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -143,6 +144,8 @@ const Container = styled('div')`
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 200px 180px auto;
+
+  margin-bottom: ${space(2)};
 
   /*
     The connected column can be added/removed depending on props, so in order to
