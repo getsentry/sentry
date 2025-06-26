@@ -144,7 +144,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   return (
     <div {...props} ref={ref}>
-      <EventInfoJumpToWrapper>
+      <EventInfoJumpToWrapper hasProcessingError={!!actionableItems}>
         <EventInfo>
           <EventIdWrapper>
             <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
@@ -205,7 +205,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         </EventInfo>
         {eventSectionConfigs.length > 0 && (
           <JumpTo>
-            <div aria-hidden>{t('Jump to:')}</div>
+            <JumpToLabel aria-hidden>{t('Jump to:')}</JumpToLabel>
             <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
               {eventSectionConfigs.map(config => (
                 <EventNavigationLink
@@ -271,20 +271,21 @@ const StyledTimeSince = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const EventInfoJumpToWrapper = styled('div')`
-  display: flex;
+const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
+  display: grid;
   gap: ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
+  grid-template-columns: 1fr auto;
   align-items: center;
   padding: 0 ${space(2)};
-  flex-wrap: nowrap;
   min-height: ${MIN_NAV_HEIGHT}px;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-wrap: wrap;
-    gap: 0;
-  }
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
+
+  @media (max-width: ${p =>
+      p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+    gap: ${space(0.5)};
+    padding: ${space(0.5)} ${space(2)};
+  }
 `;
 
 const EventInfo = styled('div')`
@@ -299,18 +300,19 @@ const EventInfo = styled('div')`
   }
 `;
 
+const JumpToLabel = styled('div')`
+  margin-top: ${space(0.25)};
+`;
+
 const JumpTo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
-  max-width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: 50%;
-  }
+  overflow: hidden;
 `;
 
 const ProcessingErrorButton = styled(Button)`
@@ -324,6 +326,7 @@ const ProcessingErrorButton = styled(Button)`
 
 const JsonLinkWrapper = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
 `;
 
@@ -361,6 +364,7 @@ const EventIdWrapper = styled('div')`
   gap: ${space(0.25)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeight.bold};
+  white-space: nowrap;
 
   button {
     visibility: hidden;
