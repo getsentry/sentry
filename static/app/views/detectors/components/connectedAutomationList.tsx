@@ -29,17 +29,17 @@ function Skeletons({canEdit}: {canEdit: boolean}) {
     <Fragment>
       {Array.from({length: AUTOMATIONS_PER_PAGE}).map((_, index) => (
         <SimpleTable.Row key={index}>
-          <SimpleTable.RowCell name="name">
+          <SimpleTable.RowCell className="name">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="last-triggered">
+          <SimpleTable.RowCell className="last-triggered">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="action-filters">
+          <SimpleTable.RowCell className="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell name="connected">
+            <SimpleTable.RowCell className="connected">
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -80,14 +80,14 @@ export function ConnectedAutomationsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="last-triggered">
+          <SimpleTable.HeaderCell className="name">{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell className="last-triggered">
             {t('Last Triggered')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="action-filters">
+          <SimpleTable.HeaderCell className="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell name="connected" />}
+          {canEdit && <SimpleTable.HeaderCell className="connected" />}
         </SimpleTable.Header>
         {isLoading && <Skeletons canEdit={canEdit} />}
         {isError && <LoadingError />}
@@ -100,17 +100,17 @@ export function ConnectedAutomationsList({
               key={automation.id}
               variant={automation.disabled ? 'faded' : 'default'}
             >
-              <SimpleTable.RowCell name="name">
+              <SimpleTable.RowCell className="name">
                 <AutomationTitleCell automation={automation} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell name="last-triggered">
+              <SimpleTable.RowCell className="last-triggered">
                 <TimeAgoCell date={automation.lastTriggered} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell name="action-filters">
+              <SimpleTable.RowCell className="action-filters">
                 <ActionCell actions={getAutomationActions(automation)} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell name="connected" justify="flex-end">
+                <SimpleTable.RowCell className="connected" justify="flex-end">
                   <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
