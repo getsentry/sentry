@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tag} from 'sentry/components/core/badge/tag';
 import * as Storybook from 'sentry/stories';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {
   TabularColumn,
   TabularData,
@@ -89,40 +92,66 @@ ${JSON.stringify(customColumns)}
   });
 
   story('Using Custom Cell Rendering', () => {
-    function customHeadRenderer(column: TabularColumn, _columnIndex: number) {
-      return <div>{column.name + ' column'}</div>;
-    }
-    function customBodyRenderer(
-      column: TabularColumn,
-      dataRow: TabularRow,
-      _rowIndex: number,
-      _columnIndex: number
-    ) {
-      if (column.key === 'http.request_method') {
-        return undefined;
+    function getRenderer(fieldName: string) {
+      if (fieldName === 'http.request_method') {
+        return function (dataRow: TabularRow) {
+          return <Tag>{dataRow[fieldName]}</Tag>;
+        };
       }
-      return <div>{dataRow[column.key]}</div>;
+
+      return getFieldRenderer(
+        fieldName,
+        sampleHTTPRequestTableData.meta as MetaType,
+        false
+      );
     }
     return (
       <Fragment>
-        <p>By default, the table falls back on predefined default rendering functions.</p>
         <p>
-          If custom cell rendering is required, pass the functions
-          <code>renderTableBodyCell</code> and <code>renderTableHeadCell</code>
-          which replace the rendering of table body cells and table headers respectively.
-          If the function returns <code>undefined</code>, fallback renderer will run
-          allowing for partial custom rendering
+          By default, the table uses the default field renderers. These renderers are
+          aware of special fields like projects and assignees, as well as common typed
+          numeric fields like durations and sizes. In most cases, you should use the
+          default renderers. If you are adding a new common field that should render the
+          same in all tables, please add it to the default renderers.
         </p>
         <p>
-          In the below example, a custom header renderer is passed which adds the word
-          "column" to each head cell. A custom body renderer is also provided which only
-          affects the second column:
+          If you need custom rendering, you can pass a <code>getRenderer</code> prop.{' '}
+          <code>getRenderer</code> is a function that accepts the name of a field, the
+          current data row, and the current table meta. It should return a renderer
+          function. A renderer function takes the current data row and a "baggage" object,
+          and returns a React node. If you need custom baggage, you can pass the{' '}
+          <code>makeBaggage</code> prop.{' '}
+          <em>
+            If you provide a custom renderer, you are fully responsible for rendering all
+            columns!{' '}
+          </em>{' '}
+          we suggest adding a fallback via the <code>getFieldRenderer</code> function.
+        </p>
+        <p>
+          In the below example, a custom renderer is used to wrap HTTP methods in a{' '}
+          <code>Tag</code> element.
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          renderTableHeadCell={customHeadRenderer}
-          renderTableBodyCell={customBodyRenderer}
+          getRenderer={getRenderer}
         />
+        <CodeSnippet language="tsx">
+          {`
+function getRenderer(fieldName: string) {
+  if (fieldName === 'http.request_method') {
+    return function (dataRow: TabularRow) {
+      return <Tag>{dataRow[fieldName]}</Tag>;
+    };
+  }
+
+  return getFieldRenderer(
+    fieldName,
+    sampleHTTPRequestTableData.meta as MetaType,
+    false
+  );
+}
+          `}
+        </CodeSnippet>
       </Fragment>
     );
   });
