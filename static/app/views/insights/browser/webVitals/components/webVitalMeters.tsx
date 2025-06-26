@@ -253,7 +253,7 @@ const MeterBarBody = styled('div')`
 
 const MeterHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   display: inline-block;
   text-align: center;

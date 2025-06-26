@@ -118,7 +118,7 @@ const SubText = styled('div')`
 const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(0.5)};
   text-transform: uppercase;
 `;

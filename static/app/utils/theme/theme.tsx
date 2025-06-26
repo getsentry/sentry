@@ -962,28 +962,19 @@ type ButtonColors = Record<
   }
 >;
 
-type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
+type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type Breakpoints = Record<Breakpoint, string>;
 
 const breakpoints = {
-  xsmall: '500px',
-  small: '800px',
-  medium: '992px',
-  large: '1200px',
-  xlarge: '1440px',
-  xxlarge: '2560px',
+  xs: '500px',
+  sm: '800px',
+  md: '992px',
+  lg: '1200px',
+  xl: '1440px',
+  '2xl': '2560px',
 } as const satisfies Breakpoints;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = Record<Size, string>;
-const iconNumberSizes: Record<Size, number> = {
-  xs: 12,
-  sm: 14,
-  md: 18,
-  lg: 24,
-  xl: 32,
-  xxl: 72,
-} as const;
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
 type IconDirection = 'up' | 'right' | 'down' | 'left';
@@ -1092,13 +1083,13 @@ const formTheme: FormTheme = {
   },
 };
 
-const iconSizes: Sizes = {
-  xs: `${iconNumberSizes.xs}px`,
-  sm: `${iconNumberSizes.sm}px`,
-  md: `${iconNumberSizes.md}px`,
-  lg: `${iconNumberSizes.lg}px`,
-  xl: `${iconNumberSizes.xl}px`,
-  xxl: `${iconNumberSizes.xxl}px`,
+const iconSizes: Record<Size, string> = {
+  xs: '12px',
+  sm: '14px',
+  md: '18px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '72px',
 } as const;
 
 /**
@@ -1112,7 +1103,6 @@ const commonTheme = {
 
   // Icons
   iconSizes,
-  iconNumberSizes,
   iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
@@ -1193,17 +1183,18 @@ const commonTheme = {
     xl: '18px' as const,
   },
 
+  fontWeight: {
+    normal: 400 as const,
+    bold: 600 as const,
+  },
+
   /**
    * @TODO(jonasbadalic) remove relative font sizes
    * @deprecated use fontSize instead
    */
   fontSizeRelativeSmall: '0.9em' as const,
-
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
-
-  fontWeightNormal: 400,
-  fontWeightBold: 600,
 
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",

@@ -277,7 +277,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     height: auto;
   }

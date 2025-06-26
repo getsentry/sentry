@@ -490,14 +490,14 @@ const TopRow = styled('div')`
   height: 18px;
   color: ${p => p.theme.tour.close};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.4;
   white-space: wrap;
 `;
@@ -505,7 +505,7 @@ const TitleRow = styled('div')`
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tour.text};
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
