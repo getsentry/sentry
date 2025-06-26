@@ -88,7 +88,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         if not features.has(
             "organizations:preprod-artifact-assemble", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=404)
+            return Response({"error": "Feature not enabled"}, status=403)
 
         with sentry_sdk.start_span(op="preprod_artifact.assemble"):
             data, error_message = validate_preprod_artifact_schema(request.body)

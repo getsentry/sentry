@@ -156,7 +156,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
-    def test_feature_flag_disabled_returns_404(self):
+    def test_feature_flag_disabled_returns_403(self):
         """Test that endpoint returns 404 when feature flag is disabled."""
         self.feature_context.__exit__(None, None, None)
 
@@ -172,7 +172,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 },
                 HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             )
-            assert response.status_code == 404
+            assert response.status_code == 403
         finally:
             self.feature_context = Feature("organizations:preprod-artifact-assemble")
             self.feature_context.__enter__()
