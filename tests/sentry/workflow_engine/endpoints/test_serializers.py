@@ -18,6 +18,7 @@ from sentry.workflow_engine.endpoints.serializers import (
     WorkflowGroupHistory,
     fetch_workflow_groups_paginated,
     fetch_workflow_hourly_stats,
+    leak_lots_of_connections,
 )
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
@@ -25,6 +26,11 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = [requires_snuba]
+
+
+class TestRuinTheFun(TestCase):
+    def test_leak_lots_of_connections(self):
+        leak_lots_of_connections()
 
 
 class TestDetectorSerializer(TestCase):
