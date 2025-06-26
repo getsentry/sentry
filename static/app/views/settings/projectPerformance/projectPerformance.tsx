@@ -104,7 +104,7 @@ export enum DetectorConfigCustomer {
   CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
   CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
   HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
-  DB_QUERY_INJECTION_QUERY_VALUE_LENGTH = 'db_query_injection_query_value_length_threshold',
+  SQL_INJECTION_QUERY_VALUE_LENGTH = 'sql_injection_query_value_length_threshold',
 }
 
 type ProjectThreshold = {
@@ -898,22 +898,25 @@ function ProjectPerformance() {
         title: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
         fields: [
           {
-            name: DetectorConfigCustomer.DB_QUERY_INJECTION_QUERY_VALUE_LENGTH,
+            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
             type: 'range',
-            label: t('Query Value Length'),
+            label: t('SQL Injection Query Value Length'),
             defaultValue: 3,
             help: t(
               'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
             ),
-            tickValues: [1, 20],
+            tickValues: [3, 10],
             showTickLabels: true,
-            allowedValues: [...Array.from({length: 20}, (_, i) => i + 1)],
+            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
             disabled: !(
               hasAccess &&
               performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
             ),
             formatLabel: value => value && value.toString(),
             disabledReason,
+            visible: organization.features.includes(
+              'issue-db-query-injection-vulnerability-visible'
+            ),
           },
         ],
         initiallyCollapsed: issueType !== IssueType.DB_QUERY_INJECTION_VULNERABILITY,
