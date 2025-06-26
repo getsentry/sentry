@@ -13,6 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
@@ -201,8 +202,9 @@ const BodyCell = memo(function BodyCell({
   dataRow: TableData;
 }) {
   const organization = useOrganization();
-
+  const {selection} = usePageFilters();
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     mode: Mode.SAMPLES,
     visualize: [
