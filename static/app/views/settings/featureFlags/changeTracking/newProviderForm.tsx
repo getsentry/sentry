@@ -163,8 +163,7 @@ export default function NewProviderForm({
       <TextField
         name="secret"
         label={t('Secret')}
-        maxLength={32}
-        minLength={32}
+        minLength={1}
         required
         help={t(
           'Paste the signing secret given by your provider when creating the webhook.'
