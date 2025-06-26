@@ -73,6 +73,7 @@ export default function ReplayTable({
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
           onClick={() => onClickRow?.({replay, rowIndex})}
+          data-clickable={onClickRow ? 'true' : ''}
         >
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${column.sortKey}`}>
@@ -123,6 +124,10 @@ const ReplayTableWithColumns = styled(
   ${p => getGridTemplateColumns(p.columns)}
   margin-bottom: 0;
   overflow: auto;
+
+  [data-clickable='true'] {
+    cursor: pointer;
+  }
 `;
 
 function getGridTemplateColumns(columns: readonly ReplayTableColumn[]) {
