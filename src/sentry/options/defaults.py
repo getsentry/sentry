@@ -3279,6 +3279,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.workflow_engine.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.alerts.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
