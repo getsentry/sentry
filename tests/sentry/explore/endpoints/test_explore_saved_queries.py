@@ -117,7 +117,10 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_get_all_paginated(self):
         for i in range(0, 10):
-            query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+            query = {
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+            }
             model = ExploreSavedQuery.objects.create(
                 organization=self.org,
                 created_by_id=self.user.id,
@@ -276,7 +279,10 @@ class ExploreSavedQueriesTest(APITestCase):
             date_added=before_now(days=90),
             date_updated=before_now(minutes=10),
         )
-        with self.options({"system.event-retention-days": 60}), self.feature(self.features):
+        with (
+            self.options({"system.event-retention-days": 60}),
+            self.feature(self.features),
+        ):
             response = self.client.get(self.url, {"query": "name:My expired query"})
 
         assert response.status_code == 200, response.content
@@ -627,7 +633,12 @@ class ExploreSavedQueriesTest(APITestCase):
                     "name": "New query",
                     "projects": [-1],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
         assert response.status_code == 201, response.content
@@ -729,7 +740,12 @@ class ExploreSavedQueriesTest(APITestCase):
                     "name": "without team query",
                     "projects": [],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
 
@@ -746,7 +762,12 @@ class ExploreSavedQueriesTest(APITestCase):
                     "name": "with team query",
                     "projects": [],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
 
@@ -866,7 +887,7 @@ class ExploreSavedQueriesTest(APITestCase):
             {"yAxes": ["count(span.duration)"]},
         ]
 
-    def test_save_aggregate_field(self):
+    def test_save_aggregate_field_and_orderby(self):
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -890,6 +911,7 @@ class ExploreSavedQueriesTest(APITestCase):
                                     "chartType": 0,
                                 },
                             ],
+                            "aggregateOrderby": "-avg(span.duration)",
                         }
                     ],
                     "interval": "1m",
@@ -911,6 +933,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 "chartType": 0,
             },
         ]
+        assert response.data["query"][0]["aggregateOrderby"] == "-avg(span.duration)"
 
     def test_save_invalid_ambiguous_aggregate_field(self):
         with self.feature(self.features):
