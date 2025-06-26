@@ -113,7 +113,7 @@ export function EventTagsDataSection({
 const StyledEventDataSection = styled(InterimSection)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(4)} ${space(1.5)};
   }
 `;

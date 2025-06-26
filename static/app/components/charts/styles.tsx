@@ -22,7 +22,7 @@ export const InlineContainer = styled('div')`
   display: grid;
   align-items: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: column;
     grid-column-gap: ${space(1)};
   }
@@ -32,7 +32,7 @@ export const ChartControls = styled('div')`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
@@ -51,7 +51,7 @@ export const HeaderTitle = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 

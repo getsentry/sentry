@@ -158,7 +158,7 @@ const IssueHeading = styled(Heading)`
   width: 66.66%;
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 50%;
   }
 `;
@@ -212,7 +212,7 @@ const IssueSummaryWrapper = styled('div')`
   flex: 1;
   width: 66.66%;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 50%;
   }
 `;

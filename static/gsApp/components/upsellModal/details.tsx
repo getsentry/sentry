@@ -459,7 +459,7 @@ const MainUpsell = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 200px;
     gap: ${space(4)};
   }

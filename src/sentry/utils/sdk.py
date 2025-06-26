@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
+from django.db.utils import OperationalError
 from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
@@ -248,12 +249,16 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     return event
 
 
-def before_send(event: Event, _: Hint) -> Event | None:
+def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
+
+    if hint.get("exc_info", [None])[0] == OperationalError:
+        event["level"] = "warning"
+
     return event
 
 
@@ -695,6 +700,13 @@ def bind_ambiguous_org_context(
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
+
+
+def get_trace_id():
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        return span.get_trace_context().get("trace_id")
+    return None
 
 
 def set_span_attribute(data_name, value):

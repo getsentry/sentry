@@ -313,13 +313,13 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   margin-top: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
   }
 `;
 
 const TitleWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 65%;
   }
 `;
@@ -338,7 +338,7 @@ const StatsWrapper = styled('div')`
   display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     justify-content: flex-end;
   }
 `;

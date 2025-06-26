@@ -42,6 +42,7 @@ export type InsightEventParameters = {
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
+  'insights.create_alert': {organization: string; referrer: string};
   'insights.eap.toggle': {
     isEapEnabled: boolean;
     page: ModuleName | 'overview';
@@ -100,4 +101,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
   'insights.eap.toggle': 'Insights: EAP Toggle',
   'insights.open_in_explore': 'Insights: Open in Explore',
+  'insights.create_alert': 'Insights: Create Alert',
 };

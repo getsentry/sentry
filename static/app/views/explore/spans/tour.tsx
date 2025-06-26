@@ -156,7 +156,7 @@ export function useExploreSpansTourModal() {
 // XXX: The negative margin is to undo the global modal styling
 const TourContainer = styled('div')`
   margin: -${space(4)} -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
@@ -180,13 +180,13 @@ const TextContainer = styled('div')`
 const Title = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Header = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
