@@ -4,27 +4,15 @@ import styled from '@emotion/styled';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   hasAgentInsightsFeature,
-  usePreferedAiModule,
+  useTogglePreferedAiModule,
 } from 'sentry/views/insights/agentMonitoring/utils/features';
 
 export function AiModuleToggleButton() {
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
-  const preferedAiModule = usePreferedAiModule();
+  const [preferedAiModule, togglePreferedModule] = useTogglePreferedAiModule();
   const organization = useOrganization();
-
-  const togglePreferedModule = () => {
-    const prefersAgentsInsightsModule = preferedAiModule === 'agents-insights';
-    const newPrefersAgentsInsightsModule = !prefersAgentsInsightsModule;
-    mutateUserOptions({
-      ['prefersAgentsInsightsModule']: newPrefersAgentsInsightsModule,
-    });
-
-    return newPrefersAgentsInsightsModule;
-  };
 
   const handleExperimentDropdownAction = (key: Key) => {
     if (key === 'ai-module') {
