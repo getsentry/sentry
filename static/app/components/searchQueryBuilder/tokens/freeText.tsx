@@ -429,6 +429,18 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
+          if (option.type === 'raw-search-filter-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.textValue,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
           const value = option.value;
 
           dispatch({
