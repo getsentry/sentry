@@ -192,12 +192,12 @@ const TextWrapper = styled('div')`
 const ActionTitle = styled('h5')`
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 0 ${space(0.5)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const SubText = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.muted};
 `;
 
 const SubHeaderText = styled(motion.h6)`
