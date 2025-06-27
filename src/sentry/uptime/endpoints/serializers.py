@@ -146,6 +146,8 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
     traceSampling: bool
     hostProviderId: str
     hostProviderName: str
+    headers: Sequence[tuple[str, str]]
+    body: str | None
 
 
 @register(UptimeSubscription)
@@ -163,4 +165,6 @@ class UptimeSubscriptionSerializer(Serializer):
             "traceSampling": obj.trace_sampling,
             "hostProviderId": obj.host_provider_id,
             "hostProviderName": obj.host_provider_name,
+            "headers": obj.headers,
+            "body": obj.body,
         }
