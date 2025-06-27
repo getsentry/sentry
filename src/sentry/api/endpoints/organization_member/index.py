@@ -57,12 +57,12 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
-        required=False, allow_null=False, default=[]
+        required=False, allow_null=False, default=list
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
         required=False,
         allow_null=True,
-        default=[],
+        default=list,
         child=serializers.JSONField(),
         help_text="""The team and team-roles assigned to the member. Team roles can be either:
         - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.

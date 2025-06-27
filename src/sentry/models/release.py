@@ -207,7 +207,7 @@ class Release(Model):
     date_started = models.DateTimeField(null=True, blank=True)
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
-    data = JSONField(default={})
+    data = JSONField(default=dict)
     # generally the release manager, or the person initiating the process
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
