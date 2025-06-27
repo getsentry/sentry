@@ -11,6 +11,7 @@ from sentry.uptime.consumers.eap_converter import (
     convert_uptime_result_to_trace_items,
     ms_to_us,
 )
+from sentry.uptime.types import IncidentStatus
 
 
 class TestHelperFunctions(TestCase):
@@ -96,7 +97,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, request_info, 0, item_id
+            self.project, result, request_info, 0, item_id, IncidentStatus.NO_INCIDENT
         )
 
         self._assert_trace_item_base_fields(trace_item)
@@ -132,7 +133,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, request_info, 0, item_id
+            self.project, result, request_info, 0, item_id, IncidentStatus.NO_INCIDENT
         )
 
         self._assert_trace_item_base_fields(trace_item)
@@ -159,7 +160,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, request_info, 0, item_id
+            self.project, result, request_info, 0, item_id, IncidentStatus.NO_INCIDENT
         )
 
         self._assert_trace_item_base_fields(trace_item)
@@ -186,7 +187,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, request_info, 0, item_id
+            self.project, result, request_info, 0, item_id, IncidentStatus.NO_INCIDENT
         )
 
         # Validate exact timestamp conversion
@@ -216,7 +217,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, request_info, 0, item_id
+            self.project, result, request_info, 0, item_id, IncidentStatus.NO_INCIDENT
         )
 
         attributes = trace_item.attributes
@@ -253,7 +254,12 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
         trace_item = convert_uptime_request_to_trace_item(
-            self.project, result, result["request_info_list"][0], 0, item_id
+            self.project,
+            result,
+            result["request_info_list"][0],
+            0,
+            item_id,
+            IncidentStatus.NO_INCIDENT,
         )
 
         attributes = trace_item.attributes
@@ -300,7 +306,9 @@ class TestFullDenormalizedConversion(SentryTestCase):
             ],
         )
 
-        trace_items = convert_uptime_result_to_trace_items(self.project, result)
+        trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.NO_INCIDENT
+        )
 
         assert len(trace_items) == 2
 
@@ -338,7 +346,9 @@ class TestFullDenormalizedConversion(SentryTestCase):
             },
         )
 
-        trace_items = convert_uptime_result_to_trace_items(self.project, result)
+        trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.NO_INCIDENT
+        )
 
         assert len(trace_items) == 1
         trace_item = trace_items[0]
@@ -356,7 +366,9 @@ class TestFullDenormalizedConversion(SentryTestCase):
         """Test conversion when there are no requests to convert (e.g., missed_window status)."""
         result = self._create_base_result()  # Has request_info=None and no request_info_list
 
-        trace_items = convert_uptime_result_to_trace_items(self.project, result)
+        trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.NO_INCIDENT
+        )
 
         # Should return empty list when there are legitimately no requests to convert
         assert len(trace_items) == 0
