@@ -147,7 +147,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
 
 
 def fetch_trace_connected_errors(
-    project: Project, trace_ids: list[str], start: float | None, end: float | None
+    project: Project, trace_ids: list[str], start: datetime | None, end: datetime | None
 ) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
     try:
