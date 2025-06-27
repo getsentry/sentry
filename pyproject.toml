@@ -381,6 +381,7 @@ module = [
     "sentry.stacktraces.platform",
     "sentry.status_checks.*",
     "sentry.tasks.beacon",
+    "sentry.tasks.codeowners.*",
     "sentry.tasks.commit_context",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.on_demand_metrics",
