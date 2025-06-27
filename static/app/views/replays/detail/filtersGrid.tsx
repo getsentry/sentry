@@ -11,7 +11,7 @@ const FiltersGrid = styled('div')`
     repeat(${p => Children.toArray(p.children).length - 1}, max-content)
     1fr;
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: ${space(1)};
   }
 `;

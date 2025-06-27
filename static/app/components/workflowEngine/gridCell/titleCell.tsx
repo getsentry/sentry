@@ -42,7 +42,7 @@ const Name = styled('div')<{disabled: boolean}>`
 `;
 
 const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
   width: auto;
 `;

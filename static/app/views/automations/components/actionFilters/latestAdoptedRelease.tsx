@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Environment} from 'sentry/types/project';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -43,13 +44,13 @@ export function LatestAdoptedReleaseNode() {
 function ReleaseAgeTypeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.release_age_type`}
       value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
-      onChange={(value: ModelAge) => {
+      onChange={(option: SelectValue<ModelAge>) => {
         onUpdate({
-          match: value,
+          match: option.value,
         });
       }}
     />
@@ -59,13 +60,13 @@ function ReleaseAgeTypeField() {
 function AgeComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.age_comparison`}
       value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
-      onChange={(value: AgeComparison) => {
+      onChange={(option: SelectValue<AgeComparison>) => {
         onUpdate({
-          match: value,
+          match: option.value,
         });
       }}
     />
@@ -82,14 +83,14 @@ function EnvironmentField() {
   }));
 
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.environment`}
       value={condition.comparison.environment}
       options={environmentOptions}
       placeholder={t('environment')}
-      onChange={(value: string) => {
+      onChange={(option: SelectValue<string>) => {
         onUpdate({
-          environment: value,
+          environment: option,
         });
       }}
     />

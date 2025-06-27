@@ -603,12 +603,12 @@ const DifferentialFlamegraphChangedFunctionsTitleContainer = styled('div')`
 `;
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   flex: 1;
 `;
 
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

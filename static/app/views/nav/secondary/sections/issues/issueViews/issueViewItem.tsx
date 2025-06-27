@@ -242,7 +242,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
 `;
 
 const BoldTooltipText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`

@@ -91,7 +91,7 @@ const Title = styled('h3')`
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.headerFontSize};
   }
 `;

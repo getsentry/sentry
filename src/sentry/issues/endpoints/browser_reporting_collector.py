@@ -30,11 +30,13 @@ BROWSER_REPORT_TYPES = [
     "permissions-policy-violation",
 ]
 
+URL_MAX_LENGTH = 6144  # 6KB should be sufficient for most browser reporting URLs
+
 
 class LongURLValidator(URLValidator):
     """URLValidator with a higher max_length for browser reporting URLs."""
 
-    max_length = 4096  # 4KB should be sufficient for most browser reporting URLs
+    max_length = URL_MAX_LENGTH
 
 
 class LongURLField(serializers.URLField):
