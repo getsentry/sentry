@@ -20,7 +20,8 @@ function AssignSection() {
   return (
     <Container>
       <Section title={t('Assign')}>
-        <AssigneeField />
+        {/* TODO: Add projectId from form context */}
+        <AssigneeField projectId="" />
       </Section>
     </Container>
   );
