@@ -107,8 +107,8 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
-                start=filter_params["start"].timestamp() if filter_params["start"] else None,
-                end=filter_params["end"].timestamp() if filter_params["end"] else None,
+                start=filter_params["start"],
+                end=filter_params["end"],
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -158,8 +158,8 @@ def fetch_trace_connected_errors(
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
                 projects=[project],
-                start=datetime.fromtimestamp(start) if start else None,
-                end=datetime.fromtimestamp(end) if end else None,
+                start=start,
+                end=end,
                 organization=project.organization,
             )
 
