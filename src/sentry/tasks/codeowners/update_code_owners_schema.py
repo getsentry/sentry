@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import Any
 
 from sentry import features
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -38,7 +41,22 @@ def update_code_owners_schema(
     )
     from sentry.models.projectcodeowners import ProjectCodeOwners
 
-    org = load_model_from_db(Organization, organization)
+    # This task is enqueued when projects and teams are deleted. If the
+    # organization itself has also been deleted we're all done here.
+    try:
+        org = load_model_from_db(Organization, organization)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Skipping update_code_owners_schema: organization does not exist",
+            extra={"organization_id": organization, "integration_id": integration},
+        )
+        return
+    if org.status == OrganizationStatus.DELETION_IN_PROGRESS:
+        logger.warning(
+            "Skipping update_code_owners_schema: organization deletion in progress",
+            extra={"organization_id": organization, "integration_id": integration},
+        )
+        return
 
     if not features.has("organizations:integrations-codeowners", org):
         return
