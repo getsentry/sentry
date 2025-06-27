@@ -119,10 +119,10 @@ class SearchResolver:
         )
 
     @sentry_sdk.trace
-    def resolve_query(
-        self, querystring: str | None
-    ) -> tuple[
-        TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnDefinition | None]
+    def resolve_query(self, querystring: str | None) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
     ]:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
@@ -177,10 +177,10 @@ class SearchResolver:
             )
         )
 
-    def __resolve_query(
-        self, querystring: str | None
-    ) -> tuple[
-        TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnDefinition | None]
+    def __resolve_query(self, querystring: str | None) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
     ]:
         if querystring is None:
             return None, None, []
@@ -210,10 +210,10 @@ class SearchResolver:
         else:
             return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(
-        self, terms: event_filter.ParsedTerms
-    ) -> tuple[
-        TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnDefinition | None]
+    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
     ]:
         if len(terms) == 0:
             return None, None, []
@@ -304,10 +304,10 @@ class SearchResolver:
 
         return where, having, contexts
 
-    def _resolve_terms(
-        self, terms: event_filter.ParsedTerms
-    ) -> tuple[
-        TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnDefinition | None]
+    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
     ]:
         where, where_contexts = self._resolve_where(terms)
         having, having_contexts = self._resolve_having(terms)
@@ -321,8 +321,8 @@ class SearchResolver:
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
                 resolved_term, resolved_context = self.resolve_term(item)
-                parsed_terms.append(resolved_term)
-                resolved_contexts.append(resolved_context)
+                parsed_terms.extend(resolved_term)
+                resolved_contexts.extend(resolved_context)
 
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms)), resolved_contexts
@@ -402,20 +402,33 @@ class SearchResolver:
             )
         return final_raw_value
 
-    def convert_term(self, term: event_search.SearchFilter) -> event_search.SearchFilter:
+    def convert_term(self, term: event_search.SearchFilter) -> list[event_search.SearchFilter]:
         name = term.key.name
 
         converter = self.definitions.filter_aliases.get(name)
         if converter is not None:
-            term = converter(self.params, term)
+            return converter(self.params, term)
 
-        return term
+        return [term]
 
     def resolve_term(
         self, term: event_search.SearchFilter
-    ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
-        term = self.convert_term(term)
+    ) -> tuple[list[TraceItemFilter], list[VirtualColumnDefinition | None]]:
+        terms = self.convert_term(term)
 
+        resolved_terms = []
+        resolved_contexts = []
+
+        for t in terms:
+            resolved_term, resolved_context = self._resolve_term(t)
+            resolved_terms.append(resolved_term)
+            resolved_contexts.append(resolved_context)
+
+        return resolved_terms, resolved_contexts
+
+    def _resolve_term(
+        self, term: event_search.SearchFilter
+    ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
@@ -760,7 +773,10 @@ class SearchResolver:
         return resolved_columns, resolved_contexts
 
     def resolve_column(
-        self, column: str, match: Match | None = None, public_alias_override: str | None = None
+        self,
+        column: str,
+        match: Match | None = None,
+        public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
         VirtualColumnDefinition | None,
@@ -875,7 +891,10 @@ class SearchResolver:
         return resolved_functions, resolved_contexts
 
     def resolve_function(
-        self, column: str, match: Match | None = None, public_alias_override: str | None = None
+        self,
+        column: str,
+        match: Match | None = None,
+        public_alias_override: str | None = None,
     ) -> tuple[
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
         VirtualColumnDefinition | None,
@@ -1028,7 +1047,9 @@ class SearchResolver:
         elif isinstance(operation, float):
             return (
                 ResolvedLiteral(
-                    public_alias=f"equation|{equation}", search_type="number", value=operation
+                    public_alias=f"equation|{equation}",
+                    search_type="number",
+                    value=operation,
                 ),
                 [],
             )

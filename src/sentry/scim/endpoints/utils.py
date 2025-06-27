@@ -84,7 +84,7 @@ class SCIMQueryParamSerializer(serializers.Serializer):
     excludedAttributes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        default=[],
+        default=list,
         source="excluded_attributes",
         help_text="Fields that should be left off of return values. Right now the only supported field for this query is members.",
     )

@@ -17,6 +17,17 @@ import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/ta
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 describe('TableWidgetVisualization', function () {
+  const columns: Array<Partial<TabularColumn>> = [
+    {
+      key: 'count(span.duration)',
+      name: 'Count of Span Duration',
+    },
+    {
+      key: 'http.request_method',
+      name: 'HTTP Request Method',
+    },
+  ];
+
   it('Basic table renders correctly', async function () {
     render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
@@ -27,17 +38,6 @@ describe('TableWidgetVisualization', function () {
   });
 
   it('Table applies custom order and column name if provided', function () {
-    const columns: Array<Partial<TabularColumn>> = [
-      {
-        key: 'count(span.duration)',
-        name: 'Count of Span Duration',
-      },
-      {
-        key: 'http.request_method',
-        name: 'HTTP Request Method',
-      },
-    ];
-
     render(
       <TableWidgetVisualization
         tableData={sampleHTTPRequestTableData}
@@ -117,5 +117,23 @@ describe('TableWidgetVisualization', function () {
 
     const $cells = await screen.findAllByRole('cell');
     expect($cells[0]).toHaveTextContent('relax, soon');
+  });
+
+  it('Uses aliases for column names if supplied', function () {
+    const aliases = {
+      'count(span.duration)': 'span duration count',
+      'http.request_method': 'request method http',
+    };
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        aliases={aliases}
+        columns={TabularColumnsFixture(columns)}
+      />
+    );
+
+    const $headers = screen.getAllByRole('columnheader');
+    expect($headers[0]).toHaveTextContent(aliases['count(span.duration)']);
+    expect($headers[1]).toHaveTextContent(aliases['http.request_method']);
   });
 });

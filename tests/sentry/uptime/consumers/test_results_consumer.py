@@ -21,12 +21,15 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry.conf.types import kafka_definition
+from sentry.conf.types.kafka_definition import Topic as KafkaTopic
+from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
     build_last_seen_interval_key,
@@ -47,7 +50,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     get_detector,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -1308,6 +1311,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         parsed_value = json.loads(mock_produce.call_args.args[1].value)
         assert parsed_value["incident_status"] == 1
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_produces_eap_uptime_results(self, mock_produce) -> None:
+        """
+        Validates that the consumer produces TraceItems to EAP's Kafka topic for uptime check results
+        """
+        with self.feature("organizations:uptime-eap-results"):
+            result = self.create_uptime_result(
+                self.subscription.subscription_id,
+                status=CHECKSTATUS_SUCCESS,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+            self.send_result(result)
+            mock_produce.assert_called_once()
+
+            assert "snuba-items" in mock_produce.call_args.args[0].name
+            payload = mock_produce.call_args.args[1]
+            assert payload.key is None
+            assert payload.headers == []
+
+            expected_trace_items = convert_uptime_result_to_trace_items(
+                self.project, result, IncidentStatus.NO_INCIDENT
+            )
+            codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
+            assert [codec.decode(payload.value)] == expected_trace_items
 
     def run_check_and_update_region_test(
         self,
