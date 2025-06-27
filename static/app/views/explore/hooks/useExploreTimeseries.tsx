@@ -73,17 +73,21 @@ function useExploreTimeseriesImpl({
   const groupBys = useExploreGroupBys();
   const mode = useExploreMode();
   const sortBys = useExploreSortBys();
-  const visualizes = useExploreVisualizes();
+  const visualizes = useExploreVisualizes({validate: true});
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
+
+  const validYAxes = useMemo(() => {
+    return visualizes.map(visualize => visualize.yAxis);
+  }, [visualizes]);
 
   const fields: string[] = useMemo(() => {
     if (mode === Mode.SAMPLES) {
       return [];
     }
 
-    return [...groupBys, ...visualizes.map(visualize => visualize.yAxis)].filter(Boolean);
-  }, [mode, groupBys, visualizes]);
+    return [...groupBys, ...validYAxes].filter(Boolean);
+  }, [mode, groupBys, validYAxes]);
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
@@ -94,14 +98,14 @@ function useExploreTimeseriesImpl({
   }, [sortBys]);
 
   const yAxes = useMemo(() => {
-    const allYAxes = visualizes.map(visualize => visualize.yAxis);
+    const allYAxes = [...validYAxes];
 
     // injects DEFAULT_VISUALIZATION here as it can be used to populate the
     // confidence footer as a fallback
     allYAxes.push(DEFAULT_VISUALIZATION);
 
     return dedupeArray(allYAxes).sort();
-  }, [visualizes]);
+  }, [validYAxes]);
 
   const options = useMemo(() => {
     const search = new MutableSearch(query);

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {
   AggregateFunction,
   FunctionArgument,
@@ -81,9 +81,8 @@ export function AggregateColumnEditorModal({
     onColumnsChange(
       tempColumns
         .filter(col => {
-          if (isVisualize(col) && col.isEquation) {
-            const expression = new Expression(stripEquationPrefix(col.yAxis));
-            return expression.isValid;
+          if (isVisualize(col)) {
+            return col.isValid();
           }
           return true;
         })
@@ -308,10 +307,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (
-    props.organization.features.includes('visibility-explore-equations') &&
-    props.visualize.isEquation
-  ) {
+  if (props.visualize.isEquation) {
     return <EquationSelector {...props} />;
   }
 
@@ -422,14 +418,12 @@ function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorPr
   );
 
   return (
-    <Fragment>
-      <ArithmeticBuilder
-        aggregateFunctions={aggregateFunctions}
-        functionArguments={functionArguments}
-        expression={expression}
-        setExpression={handleExpressionChange}
-      />
-    </Fragment>
+    <ArithmeticBuilder
+      aggregateFunctions={aggregateFunctions}
+      functionArguments={functionArguments}
+      expression={expression}
+      setExpression={handleExpressionChange}
+    />
   );
 }
 

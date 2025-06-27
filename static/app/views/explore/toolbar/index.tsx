@@ -20,7 +20,7 @@ interface ExploreToolbarProps {
   width?: number;
 }
 
-export function ExploreToolbar({width}: ExploreToolbarProps) {
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
@@ -29,7 +29,7 @@ export function ExploreToolbar({width}: ExploreToolbarProps) {
 
   return (
     <Container width={width}>
-      <ToolbarVisualize />
+      <ToolbarVisualize allowEquations={extras?.includes('equations') || false} />
       <ToolbarGroupBy autoSwitchToAggregates />
       <ToolbarSortBy
         fields={fields}
