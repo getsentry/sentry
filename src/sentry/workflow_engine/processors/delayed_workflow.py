@@ -9,7 +9,8 @@ from typing import Any, TypeAlias
 
 import sentry_sdk
 from celery import Task
-from celery.exceptions import MaxAttemptsExceededError
+from celery.exceptions import MaxRetriesExceededError
+from celery.exceptions import Retry as CeleryRetry
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -760,7 +761,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
-@retry(exclude=(MaxAttemptsExceededError,))
+@retry(exclude=(MaxRetriesExceededError, CeleryRetry))
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
