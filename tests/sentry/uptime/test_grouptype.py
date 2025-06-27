@@ -34,7 +34,6 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
     def test_build_detector_fingerprint_component(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         fingerprint_component = build_detector_fingerprint_component(detector)
         assert fingerprint_component == f"uptime-detector:{detector.id}"
@@ -44,7 +43,6 @@ class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
     def test_build_fingerprint_for_project_subscription(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         fingerprint = build_fingerprint(detector)
         expected_fingerprint = [build_detector_fingerprint_component(detector)]
@@ -68,7 +66,6 @@ class BuildEventDataTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert build_event_data(result, detector) == {
             "environment": "development",
@@ -107,7 +104,6 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
@@ -151,7 +147,6 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
@@ -207,7 +202,6 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 

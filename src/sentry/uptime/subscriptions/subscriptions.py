@@ -325,7 +325,6 @@ def update_project_uptime_subscription(
         )
 
         detector = get_detector(uptime_monitor.uptime_subscription)
-        assert detector
         detector.update(
             name=default_if_not_set(uptime_monitor.name, name),
             owner_user_id=owner_user_id,
