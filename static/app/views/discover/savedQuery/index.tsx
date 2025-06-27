@@ -713,7 +713,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 }
 
 const ResponsiveButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 0;
   }
 `;

@@ -314,7 +314,7 @@ const SliderLabelWrapper = styled('div')`
 `;
 
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 

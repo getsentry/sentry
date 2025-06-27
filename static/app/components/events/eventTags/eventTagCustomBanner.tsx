@@ -50,7 +50,7 @@ const Body = styled(PanelBody)`
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
@@ -69,7 +69,7 @@ const SentaurIllustration = styled('img')`
   margin: 20px 20px 10px 10px;
   pointer-events: none;
   justify-self: end;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

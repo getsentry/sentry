@@ -45,7 +45,7 @@ const Wrapper = styled('div')`
   flex: 1;
   text-align: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin: 40px;
   }
 `;
@@ -75,6 +75,6 @@ const Header = styled('div')`
 
 const Title = styled('h3')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: 0;
 `;

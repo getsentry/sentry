@@ -246,7 +246,7 @@ const HeaderRow = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 
@@ -270,7 +270,7 @@ const SummaryLinks = styled('div')`
   gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
@@ -334,7 +334,7 @@ const ScoreCardWrapper = styled('div')`
 
 const SubHeading = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 

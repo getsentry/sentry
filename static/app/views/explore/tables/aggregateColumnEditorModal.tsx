@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {
   AggregateFunction,
   FunctionArgument,
@@ -77,7 +78,16 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
+    onColumnsChange(
+      tempColumns
+        .filter(col => {
+          if (isVisualize(col)) {
+            return col.isValid();
+          }
+          return true;
+        })
+        .map(col => (isVisualize(col) ? col.toJSON() : col))
+    );
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -297,10 +307,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (
-    props.organization.features.includes('visibility-explore-equations') &&
-    props.visualize.isEquation
-  ) {
+  if (props.visualize.isEquation) {
     return <EquationSelector {...props} />;
   }
 
@@ -384,7 +391,7 @@ function AggregateSelector({
   );
 }
 
-function EquationSelector({numberTags, visualize}: VisualizeSelectorProps) {
+function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
   const aggregateFunctions: AggregateFunction[] = useMemo(() => {
@@ -403,14 +410,20 @@ function EquationSelector({numberTags, visualize}: VisualizeSelectorProps) {
     });
   }, [numberTags]);
 
+  const handleExpressionChange = useCallback(
+    (newExpression: Expression) => {
+      onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+    },
+    [onChange, visualize]
+  );
+
   return (
-    <Fragment>
-      <ArithmeticBuilder
-        aggregateFunctions={aggregateFunctions}
-        functionArguments={functionArguments}
-        expression={expression}
-      />
-    </Fragment>
+    <ArithmeticBuilder
+      aggregateFunctions={aggregateFunctions}
+      functionArguments={functionArguments}
+      expression={expression}
+      setExpression={handleExpressionChange}
+    />
   );
 }
 

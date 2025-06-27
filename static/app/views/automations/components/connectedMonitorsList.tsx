@@ -2,9 +2,10 @@ import type {Dispatch, SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -39,33 +40,37 @@ export default function ConnectedMonitorsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="type">{t('Type')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="last-issue">
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="type">
+            {t('Type')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="last-issue">
             {t('Last Issue')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="owner">{t('Assignee')}</SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell name="connected" />}
+          <SimpleTable.HeaderCell data-column-name="owner">
+            {t('Assignee')}
+          </SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
         {monitors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
         {monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
-            <SimpleTable.RowCell name="name">
+            <SimpleTable.RowCell>
               <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="type">
+            <SimpleTable.RowCell data-column-name="type">
               <DetectorTypeCell type={monitor.type} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="last-issue">
+            <SimpleTable.RowCell data-column-name="last-issue">
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell name="owner">
+            <SimpleTable.RowCell data-column-name="owner">
               <DetectorAssigneeCell assignee={monitor.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell name="connected" justify="flex-end">
+              <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
                 <Button onClick={() => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>
@@ -85,34 +90,36 @@ const Container = styled('div')`
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 100px auto auto auto;
 
+  margin-bottom: ${space(2)};
+
   /*
     The connected column can be added/removed depending on props, so in order to
     have a constant width we have an auto grid column and set the width here.
   */
-  .connected {
+  [data-column-name='connected'] {
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 100px auto auto;
 
-    .last-issue {
+    [data-column-name='last-issue'] {
       display: none;
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 100px auto;
 
-    .owner {
+    [data-column-name='owner'] {
       display: none;
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr 100px;
 
-    .type {
+    [data-column-name='type'] {
       display: none;
     }
   }

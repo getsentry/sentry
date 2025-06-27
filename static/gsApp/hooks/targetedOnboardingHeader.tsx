@@ -78,7 +78,7 @@ const HeaderActionBar = styled(ButtonBar)`
 `;
 
 const SecondaryCTAWrapper = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

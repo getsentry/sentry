@@ -131,7 +131,7 @@ const docs: Docs = {
     basePackage: '@sentry/google-cloud-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/google-cloud-serverless',
+    basePackage: 'google-cloud-serverless',
   }),
 };
 

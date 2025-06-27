@@ -155,7 +155,7 @@ export function OnboardingStatus({
           animate
           textCss={() => css`
             font-size: ${theme.fontSize.md};
-            font-weight: ${theme.fontWeightBold};
+            font-weight: ${theme.fontWeight.bold};
           `}
           text={
             doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length

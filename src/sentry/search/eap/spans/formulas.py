@@ -737,6 +737,64 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
+def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_NOT_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=["ok", "cancelled", "unknown"],
+                            ),
+                        ),
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0)),
+    )
+
+
+def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=divisor),
+        ),
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -919,5 +977,14 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "tpm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+    ),
+    "failure_count": FormulaDefinition(
+        default_search_type="integer",
+        arguments=[],
+        formula_resolver=failure_count,
+        is_aggregate=True,
+    ),
+    "eps": FormulaDefinition(
+        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
     ),
 }

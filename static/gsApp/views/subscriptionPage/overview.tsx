@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {isPartOfReservedBudget, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -198,7 +198,10 @@ function Overview({location, subscription, promotionData}: Props) {
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
-              !subscription.reservedBudgetCategories?.includes(categoryHistory.category)
+              !isPartOfReservedBudget(
+                categoryHistory.category,
+                subscription.reservedBudgets ?? []
+              )
           )
           .map(categoryHistory => {
             const category = categoryHistory.category;

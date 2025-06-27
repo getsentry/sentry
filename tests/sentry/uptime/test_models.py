@@ -13,7 +13,7 @@ from sentry.uptime.models import (
     get_detector,
     get_top_hosting_provider_names,
 )
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
 from sentry.workflow_engine.models import Condition, DataSourceDetector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -105,7 +105,7 @@ class GetDetectorTest(UptimeTestCase):
             name="My Uptime Monitor",
             config={
                 "environment": "production",
-                "mode": ProjectUptimeSubscriptionMode.MANUAL.value,
+                "mode": UptimeMonitorMode.MANUAL.value,
             },
         )
         DataSourceDetector.objects.create(data_source=data_source, detector=detector)

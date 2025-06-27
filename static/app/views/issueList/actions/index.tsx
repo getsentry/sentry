@@ -183,9 +183,7 @@ function IssueListActions({
   const theme = useTheme();
 
   const disableActions = useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const numIssues = selectedIdsSet.size;
@@ -509,7 +507,7 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
 `;
 
 const HeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
   flex: 1;
@@ -522,7 +520,7 @@ const HeaderButtonsWrapper = styled(motion.div)`
 `;
 
 const NarrowHeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
   flex: 1;

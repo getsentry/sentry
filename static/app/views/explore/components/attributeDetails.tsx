@@ -31,7 +31,7 @@ const Details = styled('div')`
 `;
 
 const DetailsLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   word-break: break-all;
   margin-bottom: ${space(1)};
 `;

@@ -381,11 +381,11 @@ const QueryGrid = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;
