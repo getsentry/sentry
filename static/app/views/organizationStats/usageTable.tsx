@@ -183,7 +183,7 @@ export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(7, auto);
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
 `;

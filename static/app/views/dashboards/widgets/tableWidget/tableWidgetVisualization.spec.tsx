@@ -1,7 +1,11 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import type {
   TabularColumn,
@@ -9,6 +13,7 @@ import type {
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
+import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 describe('TableWidgetVisualization', function () {
@@ -17,6 +22,8 @@ describe('TableWidgetVisualization', function () {
 
     expect(await screen.findByText('http.request_method')).toBeInTheDocument();
     expect(await screen.findByText('count(span.duration)')).toBeInTheDocument();
+    expect(await screen.findByText('PATCH')).toBeInTheDocument();
+    expect(await screen.findByText('14k')).toBeInTheDocument();
   });
 
   it('Table applies custom order and column name if provided', function () {
@@ -38,9 +45,9 @@ describe('TableWidgetVisualization', function () {
       />
     );
 
-    const headers = screen.getAllByTestId('grid-head-cell');
-    expect(headers[0]?.children[0]?.textContent).toEqual(columns[0]?.name);
-    expect(headers[1]?.children[0]?.textContent).toEqual(columns[1]?.name);
+    const $headers = screen.getAllByRole('columnheader');
+    expect($headers[0]).toHaveTextContent(columns[0]!.name!);
+    expect($headers[1]).toHaveTextContent(columns[1]!.name!);
   });
 
   it('Table renders unique number fields correctly', async function () {
@@ -66,7 +73,7 @@ describe('TableWidgetVisualization', function () {
     expect(await screen.findByText('6.00/min')).toBeInTheDocument();
   });
 
-  it('Table uses custom renderer over fallback renderer correctly', async function () {
+  it('Uses custom renderer over fallback renderer', async function () {
     const tableData: TabularData = {
       data: [{date: '2025-06-20T15:14:52+00:00'}],
       meta: {
@@ -77,31 +84,38 @@ describe('TableWidgetVisualization', function () {
       },
     };
 
-    function customDateHeadRenderer(
-      column: TabularColumn<keyof TabularRow>,
-      _columnIndex: number
-    ) {
-      return <div>{column.name + ' column'}</div>;
+    function getRenderer(fieldName: string): FieldRenderer {
+      if (fieldName === 'date') {
+        return (_dataRow: TabularRow, baggage: RenderFunctionBaggage) => {
+          if (baggage.projectSlug === 'sentry') {
+            return 'relax, soon';
+          }
+
+          return 'soon';
+        };
+      }
+
+      return dataRow => dataRow[fieldName];
     }
 
-    function customDateBodyRenderer(
-      column: TabularColumn,
-      dataRow: TabularRow,
-      _rowIndex: number,
-      _columnIndex: number
-    ) {
-      return <div>{dataRow[column.key]}</div>;
+    function makeBaggage(): RenderFunctionBaggage {
+      return {
+        location: LocationFixture(),
+        organization: OrganizationFixture(),
+        theme: ThemeFixture(),
+        projectSlug: 'sentry',
+      };
     }
 
     render(
       <TableWidgetVisualization
         tableData={tableData}
-        renderTableHeadCell={customDateHeadRenderer}
-        renderTableBodyCell={customDateBodyRenderer}
+        makeBaggage={makeBaggage}
+        getRenderer={getRenderer}
       />
     );
 
-    expect(await screen.findByText('date column')).toBeInTheDocument();
-    expect(await screen.findByText('2025-06-20T15:14:52+00:00')).toBeInTheDocument();
+    const $cells = await screen.findAllByRole('cell');
+    expect($cells[0]).toHaveTextContent('relax, soon');
   });
 });

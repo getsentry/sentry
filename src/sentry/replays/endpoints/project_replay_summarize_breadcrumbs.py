@@ -102,7 +102,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=functools.partial(analyze_recording_segments, error_events),
+            on_results=functools.partial(analyze_recording_segments, error_events, replay_id),
         )
 
 
@@ -176,17 +176,17 @@ def gen_request_data(
 @sentry_sdk.trace
 def analyze_recording_segments(
     error_events: list[ErrorEvent],
+    replay_id: str,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
-    # Log when the input tokens are too large. This is potential for timeout.
-    tokens = len(request_data) / 4
-    if tokens > 100000:
+    # Log when the input string is too large. This is potential for timeout.
+    if len(request_data) > 100000:
         logger.info(
-            "Replay AI summary: input tokens exceeded 100k.",
-            extra={"request_len": len(request_data), "num_tokens": len(request_data) / 4},
+            "Replay AI summary: input length exceeds 100k.",
+            extra={"request_len": len(request_data), "replay_id": replay_id},
         )
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
@@ -217,10 +217,13 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.CONSOLE:
             return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.UI_BLUR:
-            return f"User looked away from the tab at {timestamp}"
+            timestamp_ms = timestamp * 1000
+            return f"User looked away from the tab at {timestamp_ms}"
         case EventType.UI_FOCUS:
-            return f"User returned to tab at {timestamp}"
+            timestamp_ms = timestamp * 1000
+            return f"User returned to tab at {timestamp_ms}"
         case EventType.RESOURCE_FETCH:
+            timestamp_ms = timestamp * 1000
             payload = event["data"]["payload"]
             parsed_url = urlparse(payload["description"])
 
@@ -243,19 +246,21 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
 
             if response_size is None:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
             else:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
         case EventType.RESOURCE_XHR:
             return None
         case EventType.LCP:
+            timestamp_ms = timestamp * 1000
             duration = event["data"]["payload"]["data"]["size"]
             rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
         case EventType.FCP:
+            timestamp_ms = timestamp * 1000
             duration = event["data"]["payload"]["data"]["size"]
             rating = event["data"]["payload"]["data"]["rating"]
-            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
         case EventType.HYDRATION_ERROR:
             return f"There was a hydration error on the page at {timestamp}"
         case EventType.MUTATIONS:

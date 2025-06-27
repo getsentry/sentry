@@ -97,6 +97,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
@@ -311,7 +312,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "super_low", "low", "medium", "high", "always"],
+        choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
         help_text="The default automation tuning setting for new projects.",
     )

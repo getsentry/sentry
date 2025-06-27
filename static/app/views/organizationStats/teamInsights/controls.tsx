@@ -150,7 +150,7 @@ function TeamStatsControls({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              fontSize: theme.fontSizeMedium,
+              fontSize: theme.fontSize.md,
               ':before': {
                 ...provided[':before'],
                 color: theme.textColor,
@@ -209,7 +209,7 @@ function TeamStatsControls({
             }),
             singleValue: (base: any) => ({
               ...base,
-              fontSize: theme.fontSizeMedium,
+              fontSize: theme.fontSize.md,
               display: 'flex',
               ':before': {
                 ...base[':before'],
@@ -245,7 +245,7 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;
   }
 `;

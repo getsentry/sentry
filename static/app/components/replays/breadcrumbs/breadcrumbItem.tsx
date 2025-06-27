@@ -408,7 +408,7 @@ const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
@@ -460,7 +460,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
 
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   align-self: flex-start;
 `;
 
@@ -475,7 +475,7 @@ const ValueObjectKey = styled('span')`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: var(--prism-property);
 `;
 
@@ -484,9 +484,9 @@ const SelectorButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
   height: auto;

@@ -284,7 +284,7 @@ function DeprecatedLine({
                         <SourceMapsDebuggerModal
                           analyticsParams={sourceMapDebuggerAmplitudeData}
                           sourceResolutionResults={frameSourceResolutionResults}
-                          orgSlug={organization?.slug}
+                          organization={organization}
                           projectId={event.projectID}
                           {...modalProps}
                         />
@@ -404,7 +404,7 @@ const DefaultLine = styled('div')<{
   min-height: 32px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
@@ -428,9 +428,9 @@ const ToggleContextButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {
@@ -445,5 +445,5 @@ const SourceMapDebuggerButtonText = styled('span')`
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
   padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
-import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
-import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
+import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -21,15 +21,16 @@ export default function TestsPage() {
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
+  // TODO: ensure we call this hook when we have all codecov context values populated. Potentially abstract table + summaries into a new component
   const response = useInfiniteTestResults();
 
   return (
     <LayoutGap>
       <PageFilterBar condensed>
         <IntegratedOrgSelector />
-        <RepoPicker />
+        <RepoSelector />
         <BranchSelector />
-        <DatePicker />
+        <DateSelector />
       </PageFilterBar>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />

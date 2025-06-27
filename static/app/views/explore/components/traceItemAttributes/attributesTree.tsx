@@ -613,7 +613,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
