@@ -41,7 +41,7 @@ function AiContent() {
     isRefetching,
     refetch,
   } = useFetchReplaySummary({
-    staleTime: Infinity,
+    staleTime: 0,
     enabled: Boolean(
       replayRecord?.id &&
         project?.slug &&
