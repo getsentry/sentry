@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {isValidElement, useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
@@ -7,10 +7,10 @@ import beautify from 'js-beautify';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import {BreadcrumbItemDescription} from 'sentry/components/replays/breadcrumbs/breadcrumbItemDescription';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
@@ -119,48 +119,6 @@ function BreadcrumbItem({
     [onShowSnippet, organization, frame]
   );
 
-  const renderDescription = useCallback(() => {
-    return typeof description === 'string' ||
-      (description !== undefined && isValidElement(description)) ? (
-      <DescriptionWrapper>
-        <Description title={description} showOnlyOnOverflow isHoverable>
-          {description}
-        </Description>
-
-        {allowShowSnippet &&
-          !showSnippet &&
-          frame.data?.nodeId !== undefined &&
-          (!isSpanFrame(frame) || !isWebVitalFrame(frame)) && (
-            <ViewHtmlButton priority="link" onClick={handleViewHtml} size="xs">
-              {t('View HTML')}
-            </ViewHtmlButton>
-          )}
-      </DescriptionWrapper>
-    ) : (
-      <Wrapper>
-        <StructuredEventData
-          initialExpandedPaths={expandPaths ?? []}
-          onToggleExpand={(expandedPaths, path) => {
-            onInspectorExpanded(
-              path,
-              Object.fromEntries(expandedPaths.map(item => [item, true]))
-            );
-          }}
-          data={description}
-          withAnnotatedText
-        />
-      </Wrapper>
-    );
-  }, [
-    description,
-    expandPaths,
-    frame,
-    onInspectorExpanded,
-    showSnippet,
-    allowShowSnippet,
-    handleViewHtml,
-  ]);
-
   const renderComparisonButton = useCallback(() => {
     return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) && replay ? (
       <CrumbHydrationButton replay={replay} frame={frame} />
@@ -237,7 +195,14 @@ function BreadcrumbItem({
       onMouseLeave={() => onMouseLeave(frame)}
     >
       <ErrorBoundary mini>
-        {renderDescription()}
+        <BreadcrumbItemDescription
+          description={description}
+          frame={frame}
+          allowShowSnippet={allowShowSnippet}
+          showSnippet={showSnippet}
+          onClickViewHtml={handleViewHtml}
+          onInspectorExpanded={onInspectorExpanded}
+        />
         {renderComparisonButton()}
         {renderWebVital()}
         {renderCodeSnippet()}
@@ -412,24 +377,6 @@ const CrumbIssueWrapper = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const Description = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis};
-  font-size: 0.7rem;
-  font-variant-numeric: tabular-nums;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.subText};
-`;
-
-const DescriptionWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
-
-const ViewHtmlButton = styled(Button)`
-  white-space: nowrap;
-`;
-
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
@@ -443,7 +390,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   }
   cursor: pointer;
   /* vertical line connecting items */
-  &:not(:last-child)::before {
+  &::before {
     content: '';
     position: absolute;
     left: 16.5px;
