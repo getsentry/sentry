@@ -108,7 +108,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
 
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEvent]:
-    """Fetch error details given error IDs and return a list of ErrorEvent objects."""
+    """Fetch error details given error IDs and return a list of GroupEvent objects."""
     try:
         node_ids = [Event.generate_node_id(project_id, event_id=id) for id in error_ids]
         events = nodestore.backend.get_multi(node_ids)
@@ -129,23 +129,27 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def fetch_feedback_details(feedback_id: str, project_id: int | None = None):
+def fetch_feedback_details(feedback_id: str | None, project_id: int | None = None):
     """
     Fetch user feedback associated with a specific feedback event ID.
     """
-    if project_id is None:
+    if project_id is None or feedback_id is None:
         return None
 
     try:
         node_id = Event.generate_node_id(project_id, event_id=feedback_id)
         event = nodestore.backend.get(node_id)
 
-        return GroupEvent(
-            category="feedback",
-            id=feedback_id,
-            title="User Feedback",
-            timestamp=event.get("timestamp", 0.0) * 1000,  # feedback timestamp is in seconds
-            message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
+        return (
+            GroupEvent(
+                category="feedback",
+                id=feedback_id,
+                title="User Feedback",
+                timestamp=event.get("timestamp", 0.0) * 1000,  # feedback timestamp is in seconds
+                message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
+            )
+            if event
+            else None
         )
 
     except Exception as e:
@@ -239,7 +243,7 @@ def as_log_message(event: dict[str, Any], project_id: int | None = None) -> str 
 
     match event_type:
         case EventType.FEEDBACK:
-            feedback_id = event["data"]["payload"]["data"]["feedback_id"]
+            feedback_id = event["data"]["payload"].get("data", {}).get("feedback_id", None)
             feedback = fetch_feedback_details(feedback_id, project_id)
             if feedback:
                 message = feedback["message"]
