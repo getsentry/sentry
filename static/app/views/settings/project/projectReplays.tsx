@@ -5,6 +5,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
+import ReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -27,7 +28,11 @@ type Props = RouteComponentProps<RouteParams> & {
   project: Project;
 };
 
-function ProjectReplaySettings({organization, project, params: {projectId}}: Props) {
+export default function ProjectReplaySettings({
+  organization,
+  project,
+  params: {projectId},
+}: Props) {
   const formGroups: JsonFormObject[] = [
     {
       title: 'Settings',
@@ -100,8 +105,8 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
           )}
         </Access>
       </Form>
+
+      <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
     </SentryDocumentTitle>
   );
 }
-
-export default ProjectReplaySettings;
