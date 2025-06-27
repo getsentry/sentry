@@ -538,6 +538,7 @@ module = [
     "tests.sentry.security.*",
     "tests.sentry.snuba.metrics.test_metrics_query_layer.*",
     "tests.sentry.tasks.integrations.*",
+    "tests.sentry.tasks.test_code_owners",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.types.*",
     "tests.sentry.types.test_actor",
