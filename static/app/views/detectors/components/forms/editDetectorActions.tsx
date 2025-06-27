@@ -21,7 +21,7 @@ export function EditDetectorActions({detectorId}: EditDetectorActionsProps) {
 
   const handleDelete = useCallback(() => {
     openConfirmModal({
-      message: t('Are you sure you want to delete this detector?'),
+      message: t('Are you sure you want to delete this monitor?'),
       confirmText: t('Delete'),
       priority: 'danger',
       onConfirm: () => {

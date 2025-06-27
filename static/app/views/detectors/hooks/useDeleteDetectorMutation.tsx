@@ -22,10 +22,10 @@ export function useDeleteDetectorMutation() {
         predicate: query =>
           (query.queryKey as ApiQueryKey)[0] === `/organizations/${org.slug}/detectors/`,
       });
-      addSuccessMessage(t('Detector deleted.'));
+      addSuccessMessage(t('Monitor deleted.'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete detector: %s', error.message));
+      addErrorMessage(t('Unable to delete monitor: %s', error.message));
     },
   });
 }
