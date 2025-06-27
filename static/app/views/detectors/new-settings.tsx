@@ -22,8 +22,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {DetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
@@ -125,7 +125,7 @@ export default function DetectorNewSettings() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricDetectorForm />
+            <DetectorForm detectorType={location.query.detectorType as DetectorType} />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

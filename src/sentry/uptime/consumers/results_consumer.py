@@ -24,6 +24,7 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
+from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.grouptype import UptimePacketValue
@@ -582,6 +583,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # may mutate the UptimeSubscription when we determine we're in an incident
         if options.get("uptime.snuba_uptime_results.enabled"):
             produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
+
+        if features.has("organizations:uptime-eap-results", detector.project.organization):
+            produce_eap_uptime_result(subscription, detector.project, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(
