@@ -75,7 +75,7 @@ if #sunionstore_args > 0 then
     redis.call("unlink", unpack(sunionstore_args))
 
     if span_count > max_spans then
-        redis.call("zpopmin", set_key, 0, span_count - max_spans)
+        redis.call("zpopmin", set_key, span_count - max_spans)
     end
 end
 
