@@ -269,6 +269,7 @@ def child_process(
                                 "namespace": inflight.activation.namespace,
                                 "taskname": inflight.activation.taskname,
                                 "processing_pool": processing_pool_name,
+                                "error": str(err),
                             },
                         )
                         next_state = TASK_ACTIVATION_STATUS_RETRY
