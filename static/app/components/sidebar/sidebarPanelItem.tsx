@@ -101,10 +101,10 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`}
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold};`}
 
   .culprit {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

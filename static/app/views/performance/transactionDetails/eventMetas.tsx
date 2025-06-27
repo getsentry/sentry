@@ -52,8 +52,7 @@ type State = {
 /**
  * This should match the breakpoint chosen for the `EventDetailHeader` below
  */
-const BREAKPOINT_MEDIA_QUERY = (theme: Theme) =>
-  `(min-width: ${theme.breakpoints.large})`;
+const BREAKPOINT_MEDIA_QUERY = (theme: Theme) => `(min-width: ${theme.breakpoints.lg})`;
 
 class EventMetas extends Component<Props, State> {
   state: State = {
@@ -286,12 +285,12 @@ const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }
 
   /* This should match the breakpoint chosen for BREAKPOINT_MEDIA_QUERY above. */
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     ${p => getEventDetailHeaderCols(p)};
     grid-row-gap: 0;
   }
@@ -302,7 +301,7 @@ const ReplayButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     order: 4;
   }
 `;
@@ -310,7 +309,7 @@ const ReplayButtonContainer = styled('div')`
 const QuickTraceContainer = styled('div')`
   grid-column: 1 / -2;
   order: 1;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     order: 5;
     justify-self: flex-end;
     min-width: 325px;

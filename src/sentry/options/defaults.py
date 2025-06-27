@@ -3115,6 +3115,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.sandbox-redirect-logout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3176,11 +3182,6 @@ register(
 register(
     "sentry.demo_mode.sync_debug_artifacts.source_org_id",
     type=Int,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry.demo_mode.sync_debug_artifacts.lookback_days",
-    default=3,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3274,6 +3275,11 @@ register(
 )
 register(
     "taskworker.selfhosted.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.workflow_engine.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

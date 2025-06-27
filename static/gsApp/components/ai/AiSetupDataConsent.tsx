@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh, IconSeer} from 'sentry/icons';
@@ -28,23 +29,36 @@ import {getPotentialProductTrial} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
-  groupId: string;
+  groupId?: string;
 };
 
 function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {data: autofixSetupData, hasAutofixQuota, refetch} = useAutofixSetup({groupId});
   const navigate = useNavigate();
   const subscription = useSubscription();
+
+  // Use group-specific setup if groupId is provided, otherwise use organization setup
+  const groupSetup = useAutofixSetup({groupId: groupId!}, {enabled: Boolean(groupId)});
+  const orgSetup = useOrganizationSeerSetup({enabled: !groupId});
+
+  // Determine which data to use based on whether groupId is provided
+  const isGroupMode = Boolean(groupId);
+  const setupData = isGroupMode ? groupSetup.data : null;
+  const hasAutofixQuota = isGroupMode
+    ? groupSetup.hasAutofixQuota
+    : orgSetup.billing.hasAutofixQuota;
+  const orgHasAcknowledged = isGroupMode
+    ? setupData?.setupAcknowledgement.orgHasAcknowledged
+    : orgSetup.setupAcknowledgement.orgHasAcknowledged;
+  const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
   const trial = getPotentialProductTrial(
     subscription?.productTrials ?? null,
     DataCategory.SEER_AUTOFIX
   );
 
-  const orgHasAcknowledged = autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
   const canStartTrial = Boolean(trial && !trial.isStarted);
@@ -60,7 +74,8 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const userHasBillingAccess = organization.access.includes('org:billing');
 
   const warnAboutGithubIntegration =
-    !autofixSetupData?.integration.ok &&
+    isGroupMode &&
+    !setupData?.integration.ok &&
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
@@ -74,12 +89,18 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       });
     },
     onSuccess: () => {
-      // Make sure this query key doesn't go out of date with the one on the Sentry side!
-      queryClient.invalidateQueries({
-        queryKey: [
-          `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
-        ],
-      });
+      // Invalidate the appropriate query based on mode
+      if (isGroupMode && groupId) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+          ],
+        });
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: [`/organizations/${organization.slug}/seer/setup-check/`],
+        });
+      }
     },
   });
 
@@ -331,7 +352,7 @@ const SingleCard = styled('div')`
 
 const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -345,7 +366,7 @@ const Paragraph = styled('p')`
 
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.pink400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(2)};
 `;
 

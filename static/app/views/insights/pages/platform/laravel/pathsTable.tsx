@@ -3,12 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Placeholder from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Placeholder from 'sentry/components/placeholder';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';

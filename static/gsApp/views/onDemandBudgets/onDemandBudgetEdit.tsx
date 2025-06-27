@@ -154,7 +154,6 @@ class OnDemandBudgetEdit extends Component<Props> {
                           };
                           setOnDemandBudget({
                             ...onDemandBudget,
-                            ...{[categoryBudgetKey]: inputValue},
                             budgets: updatedBudgets,
                           });
                         }}

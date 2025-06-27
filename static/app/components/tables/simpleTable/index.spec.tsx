@@ -1,25 +1,25 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', function () {
   it('renders headers andcells', function () {
     render(
       <SimpleTable>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell name="a">A</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="b">B</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell name="c">C</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>C</SimpleTable.HeaderCell>
         </SimpleTable.Header>
         <SimpleTable.Row data-test-id="row-1">
-          <SimpleTable.RowCell name="a">0</SimpleTable.RowCell>
-          <SimpleTable.RowCell name="b">1</SimpleTable.RowCell>
-          <SimpleTable.RowCell name="c">2</SimpleTable.RowCell>
+          <SimpleTable.RowCell>0</SimpleTable.RowCell>
+          <SimpleTable.RowCell>1</SimpleTable.RowCell>
+          <SimpleTable.RowCell>2</SimpleTable.RowCell>
         </SimpleTable.Row>
         <SimpleTable.Row data-test-id="row-2">
-          <SimpleTable.RowCell name="a">3</SimpleTable.RowCell>
-          <SimpleTable.RowCell name="b">4</SimpleTable.RowCell>
-          <SimpleTable.RowCell name="c">5</SimpleTable.RowCell>
+          <SimpleTable.RowCell>3</SimpleTable.RowCell>
+          <SimpleTable.RowCell>4</SimpleTable.RowCell>
+          <SimpleTable.RowCell>5</SimpleTable.RowCell>
         </SimpleTable.Row>
       </SimpleTable>
     );

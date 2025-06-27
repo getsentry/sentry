@@ -271,7 +271,7 @@ const Wrapper = styled('div')`
   align-items: center;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;
@@ -282,13 +282,13 @@ const Filters = styled('div')`
   align-items: center;
   justify-content: flex-end;
   gap: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   margin-bottom: 0;

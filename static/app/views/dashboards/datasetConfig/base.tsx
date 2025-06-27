@@ -133,7 +133,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     widget?: Widget,
     organization?: Organization
-  ) => ReturnType<typeof getFieldRenderer> | null;
+  ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column
    * names to more desirable values in tables.

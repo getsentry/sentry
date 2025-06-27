@@ -22,9 +22,10 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -148,7 +149,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -282,12 +283,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return has_credentials
 
 
-class DiscordInstallPipeline(IntegrationPipelineViewT):
+class DiscordInstallPipeline:
     def __init__(self, params):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
             state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
             redirect_uri = (
