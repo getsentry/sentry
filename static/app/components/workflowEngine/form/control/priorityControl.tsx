@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -26,15 +27,6 @@ const priorities = [
   DetectorPriorityLevel.MEDIUM,
   DetectorPriorityLevel.HIGH,
 ] as const;
-
-const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
-  (typeof priorities)[number],
-  PriorityLevel
-> = {
-  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
-  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
-  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
-};
 
 const conditionKindAndTypeToLabel: Record<
   'static' | 'percent',
