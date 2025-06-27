@@ -64,36 +64,37 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         raise NotImplementedError
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
-        instance.name = validated_data.get("name", instance.name)
-        instance.type = validated_data.get("detector_type", instance.group_type).slug
+        with transaction.atomic(router.db_for_write(Detector)):
+            instance.name = validated_data.get("name", instance.name)
+            instance.type = validated_data.get("detector_type", instance.group_type).slug
 
-        # Handle enable/disable detector
-        if "enabled" in validated_data:
-            enabled = validated_data.get("enabled")
-            assert isinstance(enabled, bool)
-            toggle_detector(instance, enabled)
+            # Handle enable/disable detector
+            if "enabled" in validated_data:
+                enabled = validated_data.get("enabled")
+                assert isinstance(enabled, bool)
+                toggle_detector(instance, enabled)
 
-        # Handle owner field update
-        if "owner" in validated_data:
-            owner = validated_data.get("owner")
-            if owner:
-                if owner.is_user:
-                    instance.owner_user_id = owner.id
-                    instance.owner_team_id = None
-                elif owner.is_team:
+            # Handle owner field update
+            if "owner" in validated_data:
+                owner = validated_data.get("owner")
+                if owner:
+                    if owner.is_user:
+                        instance.owner_user_id = owner.id
+                        instance.owner_team_id = None
+                    elif owner.is_team:
+                        instance.owner_user_id = None
+                        instance.owner_team_id = owner.id
+                else:
+                    # Clear owner if None is passed
                     instance.owner_user_id = None
-                    instance.owner_team_id = owner.id
-            else:
-                # Clear owner if None is passed
-                instance.owner_user_id = None
-                instance.owner_team_id = None
+                    instance.owner_team_id = None
 
-        condition_group = validated_data.pop("condition_group")
-        data_conditions: list[DataConditionType] = condition_group.get("conditions")
+            condition_group = validated_data.pop("condition_group")
+            data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
-        if data_conditions and instance.workflow_condition_group:
-            group_validator = BaseDataConditionGroupValidator()
-            group_validator.update(instance.workflow_condition_group, condition_group)
+            if data_conditions and instance.workflow_condition_group:
+                group_validator = BaseDataConditionGroupValidator()
+                group_validator.update(instance.workflow_condition_group, condition_group)
 
         instance.save()
 
