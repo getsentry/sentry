@@ -9,7 +9,7 @@ from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
-from celery.exceptions import Ignore, Reject, Retry
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry
 from django.conf import settings
 from django.db.models import Model
 
@@ -245,7 +245,7 @@ def retry(
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
-            except (RetryError, Retry, Ignore, Reject):
+            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
