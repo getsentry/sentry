@@ -17,7 +17,6 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   hasCategoryFeature,
-  isSeer,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -399,16 +398,5 @@ describe('listDisplayNames', function () {
     ).toBe(
       'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
     );
-  });
-});
-
-describe('isSeer', () => {
-  it.each([
-    [DataCategory.SEER_AUTOFIX, true],
-    [DataCategory.SEER_SCANNER, true],
-    [DataCategory.ERRORS, false],
-    [DataCategory.TRANSACTIONS, false],
-  ])('returns %s for category %s', (category, expected) => {
-    expect(isSeer(category)).toBe(expected);
   });
 });
