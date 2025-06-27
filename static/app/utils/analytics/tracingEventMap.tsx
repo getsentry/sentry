@@ -71,6 +71,7 @@ export type TracingEventParameters = {
     referrer: string | null;
     shape: string;
     source: TraceWaterFallSource;
+    trace_age: string;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {
