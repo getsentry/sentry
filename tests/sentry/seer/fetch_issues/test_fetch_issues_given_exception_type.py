@@ -1,6 +1,7 @@
 from sentry.models.group import Group
 from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_issues_related_to_exception_type,
+    get_latest_issue_stack_trace,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -23,7 +24,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -53,6 +58,18 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"issues": []}
 
+        # Assert stack trace is returned
+        results = get_latest_issue_stack_trace(group, "KeyError")["stacktrace"]
+        assert len(results) == 1
+        assert results[0]["type"] == "KeyError"
+        assert results[0]["value"] == "This a bad error"
+        assert results[0]["frames"] is not None
+        assert results[0]["frames"][0]
+        assert "filename" in results[0]["frames"][0]
+        assert "function" in results[0]["frames"][0]
+        assert "module" in results[0]["frames"][0]
+        assert "context" in results[0]["frames"][0]
+
     def test_multiple_projects(self):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -69,7 +86,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -111,7 +132,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=project_3.id,
         )
@@ -131,6 +156,18 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert {group_1.id, group_2.id} == set(group_ids["issues"])
         assert group_3.id not in group_ids
 
+        # Assert stack trace is returned
+        results = get_latest_issue_stack_trace(group_1, "KeyError")["stacktrace"]
+        assert len(results) == 1
+        assert results[0]["type"] == "KeyError"
+        assert results[0]["value"] == "This a bad error"
+        assert results[0]["frames"] is not None
+        assert results[0]["frames"][0]
+        assert "filename" in results[0]["frames"][0]
+        assert "function" in results[0]["frames"][0]
+        assert "module" in results[0]["frames"][0]
+        assert "context" in results[0]["frames"][0]
+
     def test_last_seen_filter(self):
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
@@ -146,7 +183,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -177,6 +218,18 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"issues": []}
 
+        # Assert stack trace is returned
+        results = get_latest_issue_stack_trace(group, "KeyError")["stacktrace"]
+        assert len(results) == 1
+        assert results[0]["type"] == "KeyError"
+        assert results[0]["value"] == "This a bad error"
+        assert results[0]["frames"] is not None
+        assert results[0]["frames"][0]
+        assert "filename" in results[0]["frames"][0]
+        assert "function" in results[0]["frames"][0]
+        assert "module" in results[0]["frames"][0]
+        assert "context" in results[0]["frames"][0]
+
     def test_multiple_exception_types(self):
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
@@ -205,7 +258,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "ValueError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "ValueError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -233,6 +290,18 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="ValueError",
         )
         assert group_ids == {"issues": [group_2.id]}
+
+        # Assert stack trace is returned
+        results = get_latest_issue_stack_trace(group_2, "ValueError")["stacktrace"]
+        assert len(results) == 1
+        assert results[0]["type"] == "ValueError"
+        assert results[0]["value"] == "This a bad error"
+        assert results[0]["frames"] is not None
+        assert results[0]["frames"][0]
+        assert "filename" in results[0]["frames"][0]
+        assert "function" in results[0]["frames"][0]
+        assert "module" in results[0]["frames"][0]
+        assert "context" in results[0]["frames"][0]
 
     def test_repo_does_not_exist(self):
         group_ids = get_issues_related_to_exception_type(
