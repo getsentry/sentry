@@ -34,6 +34,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
+const ASK_SEER_ITEM_KEY = 'ask_seer';
+
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
   sections: Section[];
@@ -145,7 +147,7 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
-      key: 'ask_seer',
+      key: ASK_SEER_ITEM_KEY,
       'aria-label': 'Ask Seer',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
@@ -264,7 +266,6 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  // Check if ask-seer item should be shown
   const showAskSeerOption = traceExploreAiQueryContext && areAiFeaturesAllowed;
 
   return (
@@ -365,7 +366,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     ];
 
     if (traceExploreAiQueryContext && areAiFeaturesAllowed) {
-      baseHidden.push('ask_seer');
+      baseHidden.push(ASK_SEER_ITEM_KEY);
     }
 
     return new Set(baseHidden);
