@@ -106,7 +106,11 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const [tableTab, setTableTab] = useState('logs');
+  const [tableTab, setTableTab] = useState<'aggregates' | 'logs'>(
+    (aggregateFunction && aggregateFunction !== 'count') || groupBy
+      ? 'aggregates'
+      : 'logs'
+  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
