@@ -18,8 +18,8 @@ import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {DetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   getMetricDetectorFormData,
@@ -117,7 +117,7 @@ export default function DetectorEdit() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricDetectorForm />
+            <DetectorForm detectorType={detector.type} />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
