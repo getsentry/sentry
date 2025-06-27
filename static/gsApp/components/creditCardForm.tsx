@@ -131,18 +131,21 @@ function CreditCardForm({
     }
     const stripeElementStyles = {
       base: {
-        backgroundColor: theme.background,
-        color: theme.textColor,
+        backgroundColor: theme.isChonk
+          ? theme.tokens.background.primary
+          : theme.background,
+        color: theme.isChonk ? theme.tokens.content.primary : theme.textColor,
         fontFamily: theme.text.family,
         fontWeight: 400,
         fontSize: theme.fontSize.lg,
         '::placeholder': {
-          color: theme.gray300,
+          color: theme.isChonk ? theme.tokens.content.muted : theme.gray300,
         },
+        iconColor: theme.isChonk ? theme.tokens.content.primary : theme.gray300,
       },
       invalid: {
-        color: theme.red300,
-        iconColor: theme.red300,
+        color: theme.isChonk ? theme.tokens.content.danger : theme.red300,
+        iconColor: theme.isChonk ? theme.tokens.content.danger : theme.red300,
       },
     };
 
@@ -286,7 +289,11 @@ function CreditCardForm({
   );
 }
 
-const FormControl = Input.withComponent('div');
+const FormControl = styled(Input.withComponent('div'))`
+  /* Allow stripe form element to fill whatever height it needs to based
+   * on the config that we are providing it with. */
+  height: ${p => (p.theme.isChonk ? 'auto' : undefined)};
+`;
 
 const fieldCss = css`
   padding-right: 0;
@@ -296,6 +303,7 @@ const fieldCss = css`
 const StyledField = styled(FieldGroup)`
   ${fieldCss};
   padding-top: 0;
+  height: auto;
 `;
 
 const Info = styled('div')`
@@ -307,7 +315,7 @@ const Info = styled('div')`
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray300};
+  color: ${p => (p.theme.isChonk ? p.theme.tokens.content.muted : p.theme.gray300)};
 `;
 
 const CreditCardInfoWrapper = styled('div')<{isLoading?: boolean}>`
