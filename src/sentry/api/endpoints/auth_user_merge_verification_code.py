@@ -27,6 +27,11 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
         user = User.objects.get(id=request.user.id)
+        if UserMergeVerificationCode.objects.filter(user_id=user.id).first() is not None:
+            return Response(
+                status=400,
+                data={"error": "A verification code already exists for this user."},
+            )
         code = UserMergeVerificationCode.objects.create(user_id=user.id)
         code.send_email(user, code.token)
         return Response("Successfully posted merge account verification code.")
