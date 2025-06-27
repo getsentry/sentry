@@ -1,4 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
@@ -464,9 +465,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <button onClick={this.unlinkIssue} className="btn btn-danger">
-              {t('Unlink Issue')}
-            </button>
+            <Button onClick={this.unlinkIssue}>{t('Unlink Issue')}</Button>
           </div>
         );
       default:
