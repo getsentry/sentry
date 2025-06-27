@@ -18,7 +18,7 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.trace.span-select': Record<string, unknown>;
   'agent-monitoring.trace.view-full-trace-click': Record<string, unknown>;
   'agent-monitoring.ui-toggle': {
-    enabled: boolean;
+    isEnabled: boolean;
   };
   'agent-monitoring.view-ai-trace-click': Record<string, unknown>;
 };
