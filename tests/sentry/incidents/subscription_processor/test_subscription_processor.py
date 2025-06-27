@@ -304,19 +304,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             processor.process_update(message)
         return processor
 
-    def assert_slack_calls(self, trigger_labels):
-        expected_result = [f"{label}: some rule 2" for label in trigger_labels]
-        actual = [
-            (call_kwargs["text"], json.loads(call_kwargs["attachments"]))
-            for (_, call_kwargs) in self.slack_client.call_args_list
-        ]
-
-        assert len(expected_result) == len(actual)
-        for expected, (text, attachments) in zip(expected_result, actual):
-            assert expected in text
-            assert len(attachments) > 0
-        self.slack_client.reset_mock()
-
     def test_removed_alert_rule(self):
         """
         Test that when an alert rule has been removed
@@ -500,31 +487,72 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_alert_multiple_triggers_non_consecutive(self):
-        # Verify that a rule that expects two consecutive updates to be over the
-        # alert threshold doesn't trigger if there are two updates that are above with
-        # an update that is below the threshold in the middle
+    def test_no_new_incidents_within_ten_minutes(self):
+        # Verify that a new incident is not made for the same rule, trigger, and
+        # subscription if an incident was already made within the last 10 minutes.
         rule = self.rule
-        rule.update(threshold_period=2)
         trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-3))
-        self.assert_trigger_counts(processor, self.trigger, 1, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(self.trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-2))
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(self.trigger)
-        self.assert_action_handler_called_with_actions(None, [])
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=10))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
 
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-1))
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), subscription=self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again within 10 minutes; no new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
         self.assert_trigger_counts(processor, self.trigger, 1, 0)
         self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(self.trigger)
-        self.assert_action_handler_called_with_actions(None, [])
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_incident_is_latest_for_rule(original_incident)
+        self.metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.hit_rate_limit",
+                    tags={
+                        "last_incident_id": original_incident.id,
+                        "project_id": self.sub.project.id,
+                        "trigger_id": trigger.id,
+                    },
+                ),
+            ],
+            any_order=True,
+        )
 
+    def test_incident_made_after_ten_minutes(self):
+        # Verify that a new incident will be made for the same rule, trigger, and
+        # subscription if the last incident made for those was made more tha 10 minutes
+        # ago
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=11))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again after more than 10 minutes have passed; a new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        new_incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_incident_is_latest_for_rule(new_incident)
+
+
+class ProcessUpdateResolveTest(ProcessUpdateTest):
     def test_no_active_incident_resolve(self):
         # Test that we don't track stats for resolving if there are no active incidents
         # related to the alert rule.
@@ -808,73 +836,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_auto_resolve_multiple_trigger(self):
-        # Test auto resolving works correctly when multiple triggers are present.
-        rule = self.rule
-        rule.update(resolve_threshold=None)
-        trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 10
-        )
-        other_action = create_alert_rule_trigger_action(
-            other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
-        )
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [other_action, self.action],
-            [
-                {
-                    "action": other_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        processor = self.send_update(rule, other_trigger.alert_threshold - 1, timedelta(minutes=-1))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [other_action, self.action],
-            [
-                {
-                    "action": other_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": other_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": other_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
     def test_reversed_threshold_alert(self):
         # Test that inverting thresholds correctly alerts
         rule = self.rule
@@ -1112,6 +1073,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(other_incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_action_handler_called_with_actions(other_incident, [])
 
+
+class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
     def test_multiple_triggers(self):
         rule = self.rule
         rule.update(threshold_period=1)
@@ -1216,6 +1179,31 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 }
             ],
         )
+
+    def test_alert_multiple_triggers_non_consecutive(self):
+        # Verify that a rule that expects two consecutive updates to be over the
+        # alert threshold doesn't trigger if there are two updates that are above with
+        # an update that is below the threshold in the middle
+        rule = self.rule
+        rule.update(threshold_period=2)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-3))
+        self.assert_trigger_counts(processor, self.trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(self.trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(self.trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(self.trigger)
+        self.assert_action_handler_called_with_actions(None, [])
 
     def test_multiple_triggers_no_warning_action(self):
         rule = self.rule
@@ -1422,836 +1410,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def setup_for_distinct_actions_test(self):
-        """Helper function to do the setup for the following multiple trigger + distinct action tests"""
-        rule = self.rule
-        rule.update(resolve_threshold=None)
-        critical_trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(
-            self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
-        )
-        critical_action = self.action
-        warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            # "warning" prefix differentiates this action from the critical action, so it
-            # doesn't get deduplicated
-            "warning" + str(self.user.id),
-        )
-        return (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        )
-
-    def test_distinct_actions_warning_to_resolved(self):
-        """Tests distinct action behavior when alert status goes from Warning -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_distinct_actions_test()
-        self.send_update(
-            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_does_not_exist(critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": warning_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_distinct_actions_critical_to_resolved(self):
-        """Tests distinct action behavior when alert status goes from Critical -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_distinct_actions_test()
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_distinct_actions_warning_to_critical_to_resolved(self):
-        """Tests distinct action behavior when alert status goes from Warning -> Critical -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_distinct_actions_test()
-        self.send_update(
-            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": warning_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_distinct_actions_critical_to_warning_to_resolved(self):
-        """Tests distinct action behavior when alert status goes from Critical -> Warning -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_distinct_actions_test()
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-15),
-            subscription=self.sub,
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold - 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": critical_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": critical_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action, critical_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-                {
-                    "action": critical_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def setup_for_duplicate_actions_test(self):
-        """Helper function to do the setup for the following multiple trigger + duplicate action tests"""
-        rule = self.rule
-        rule.update(resolve_threshold=None)
-        critical_trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(
-            self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
-        )
-        critical_action = self.action
-        warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            # same as critical action, so the critical should get deduplicated
-            str(self.user.id),
-        )
-        return (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        )
-
-    def test_duplicate_actions_warning_to_resolved(self):
-        """Tests duplicate action behavior when alert status goes from Warning -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_duplicate_actions_test()
-        self.send_update(
-            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_does_not_exist(critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": warning_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_duplicate_actions_critical_to_resolved(self):
-        """Tests duplicate action behavior when alert status goes from Critical -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_duplicate_actions_test()
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_duplicate_actions_warning_to_critical_to_resolved(self):
-        """Tests duplicate action behavior when alert status goes from Warning -> Critical -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_duplicate_actions_test()
-        self.send_update(
-            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": warning_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_duplicate_actions_critical_to_warning_to_resolved(self):
-        """Tests duplicate action behavior when alert status goes from Critical -> Warning -> Resolved"""
-        rule = self.rule
-        (
-            critical_trigger,
-            warning_trigger,
-            critical_action,
-            warning_action,
-        ) = self.setup_for_duplicate_actions_test()
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold + 1,
-            timedelta(minutes=-15),
-            subscription=self.sub,
-        )
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": critical_trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule,
-            critical_trigger.alert_threshold - 1,
-            timedelta(minutes=-10),
-            subscription=self.sub,
-        )
-        self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": critical_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        self.send_update(
-            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": warning_trigger.alert_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def _register_slack_handler(self) -> None:
-        from sentry.integrations.slack.spec import SlackMessagingSpec
-
-        factory = SlackMessagingSpec().get_incident_handler_factory()
-        AlertRuleTriggerAction.register_factory(factory)
-
-    def test_slack_multiple_triggers_critical_before_warning(self):
-        """
-        Test that ensures that when we get a critical update is sent followed by a warning update,
-        the warning update is not swallowed and an alert is triggered as a warning alert granted
-        the count is above the warning trigger threshold
-        """
-
-        # Create Slack Integration
-        integration, _ = self.create_provider_integration_for(
-            self.project.organization,
-            self.user,
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-
-        self._register_slack_handler()
-
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule 2",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-        )
-
-        trigger = create_alert_rule_trigger(rule, "critical", 100)
-        trigger_warning = create_alert_rule_trigger(rule, "warning", 10)
-
-        for t in [trigger, trigger_warning]:
-            create_alert_rule_trigger_action(
-                t,
-                AlertRuleTriggerAction.Type.SLACK,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                integration_id=integration.id,
-                input_channel_id="#workflow",
-            )
-
-        # Send Critical Update
-        self.send_update(
-            rule,
-            trigger.alert_threshold + 5,
-            timedelta(minutes=-10),
-            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-        )
-        self.assert_slack_calls(["Critical"])
-
-        # Send Warning Update
-        self.send_update(
-            rule,
-            trigger_warning.alert_threshold + 5,
-            timedelta(minutes=0),
-            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-        )
-        self.assert_slack_calls(["Warning"])
-        self.assert_active_incident(rule)
-
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_slack_metric_alert_chart(self, mock_generate_chart):
-        # Create Slack Integration
-        integration, _ = self.create_provider_integration_for(
-            self.project.organization,
-            self.user,
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-
-        self._register_slack_handler()
-
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule 2",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-        )
-
-        trigger = create_alert_rule_trigger(rule, "critical", 100)
-        channel_name = "#workflow"
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.SLACK,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration_id=integration.id,
-            input_channel_id=channel_name,
-            target_identifier=channel_name,
-        )
-
-        # Send Critical Update
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:discover",
-                "organizations:discover-basic",
-                "organizations:metric-alert-chartcuterie",
-            ]
-        ):
-            self.send_update(
-                rule,
-                trigger.alert_threshold + 5,
-                timedelta(minutes=-10),
-                subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-            )
-
-        self.assert_slack_calls(["Critical"])
-        incident = self.assert_active_incident(rule)
-
-        assert len(mock_generate_chart.mock_calls) == 1
-        chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["rule"]["id"] == str(rule.id)
-        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
-        series_data = chart_data["timeseriesData"][0]["data"]
-        assert len(series_data) > 0
-
-    def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
-        """
-        Test that ensures that when we get a critical update is sent followed by a warning update,
-        the warning update is not swallowed and an alert is triggered as a warning alert granted
-        the count is above the warning trigger threshold
-        """
-
-        # Create Slack Integration
-        integration, _ = self.create_provider_integration_for(
-            self.project.organization,
-            self.user,
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-
-        self._register_slack_handler()
-
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule 2",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-        )
-
-        trigger = create_alert_rule_trigger(rule, "critical", 100)
-        trigger_warning = create_alert_rule_trigger(rule, "warning", 10)
-
-        for t in [trigger, trigger_warning]:
-            create_alert_rule_trigger_action(
-                t,
-                AlertRuleTriggerAction.Type.SLACK,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                integration_id=integration.id,
-                input_channel_id="#workflow",
-            )
-
-        self.assert_slack_calls([])
-
-        # Send update above critical
-        self.send_update(
-            rule,
-            trigger.alert_threshold + 5,
-            timedelta(minutes=-10),
-            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-        )
-
-        self.assert_slack_calls(["Critical"])
-
-        # Send second update above critical
-        self.send_update(
-            rule,
-            trigger.alert_threshold + 6,
-            timedelta(minutes=-9),
-            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-        )
-        self.assert_slack_calls([])
-
-        # Send update below critical but above warning
-        self.send_update(
-            rule,
-            trigger_warning.alert_threshold + 5,
-            timedelta(minutes=0),
-            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
-        )
-        self.assert_active_incident(rule)
-        self.assert_slack_calls(["Warning"])
-
     def test_multiple_triggers_at_same_time(self):
         # Check that both triggers fire if an update comes through that exceeds both of
         # their thresholds
@@ -2392,6 +1550,73 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+    def test_auto_resolve_multiple_trigger(self):
+        # Test auto resolving works correctly when multiple triggers are present.
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        other_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 10
+        )
+        other_action = create_alert_rule_trigger_action(
+            other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
+        )
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [other_action, self.action],
+            [
+                {
+                    "action": other_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": self.action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        processor = self.send_update(rule, other_trigger.alert_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [other_action, self.action],
+            [
+                {
+                    "action": other_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": other_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": self.action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": other_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
     def test_multiple_triggers_resolve_separately(self):
         # Check that resolve triggers fire separately
         rule = self.rule
@@ -2496,6 +1721,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+
+class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_comparison_alert_above(self, helper_metrics):
         rule = self.comparison_rule_above
@@ -3010,69 +2237,854 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_no_new_incidents_within_ten_minutes(self):
-        # Verify that a new incident is not made for the same rule, trigger, and
-        # subscription if an incident was already made within the last 10 minutes.
+
+class ProcessUpdateDistinctActionsTest(ProcessUpdateTest):
+    def setup_for_distinct_actions_test(self):
+        """Helper function to do the setup for the following multiple trigger + distinct action tests"""
         rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        rule.update(resolve_threshold=None)
+        critical_trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
         )
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        original_incident = self.assert_active_incident(rule)
-        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=10))
-        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+        critical_action = self.action
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            # "warning" prefix differentiates this action from the critical action, so it
+            # doesn't get deduplicated
+            "warning" + str(self.user.id),
+        )
+        return (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        )
 
-        # resolve the trigger
-        self.send_update(rule, 6, timedelta(minutes=-1), subscription=self.sub)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
-
-        # fire trigger again within 10 minutes; no new incident should be made
-        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
-        self.assert_trigger_counts(processor, self.trigger, 1, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_incident_is_latest_for_rule(original_incident)
-        self.metrics.incr.assert_has_calls(
+    def test_distinct_actions_warning_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_distinct_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist(critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
             [
-                call(
-                    "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": original_incident.id,
-                        "project_id": self.sub.project.id,
-                        "trigger_id": trigger.id,
-                    },
-                ),
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": warning_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
             ],
-            any_order=True,
         )
 
-    def test_incident_made_after_ten_minutes(self):
-        # Verify that a new incident will be made for the same rule, trigger, and
-        # subscription if the last incident made for those was made more tha 10 minutes
-        # ago
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
         )
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        original_incident = self.assert_active_incident(rule)
-        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=11))
-        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
-
-        # resolve the trigger
-        self.send_update(rule, 6, timedelta(minutes=-1), self.sub)
         self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
 
-        # fire trigger again after more than 10 minutes have passed; a new incident should be made
-        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        new_incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_incident_is_latest_for_rule(new_incident)
+    def test_distinct_actions_critical_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_distinct_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    def test_distinct_actions_warning_to_critical_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Warning -> Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_distinct_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": warning_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    def test_distinct_actions_critical_to_warning_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Critical -> Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_distinct_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-15),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": critical_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": critical_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action, critical_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+                {
+                    "action": critical_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+
+class ProcessUpdateDuplicateActionsTest(ProcessUpdateTest):
+    def setup_for_duplicate_actions_test(self):
+        """Helper function to do the setup for the following multiple trigger + duplicate action tests"""
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        critical_trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
+        )
+        critical_action = self.action
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            # same as critical action, so the critical should get deduplicated
+            str(self.user.id),
+        )
+        return (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        )
+
+    def test_duplicate_actions_warning_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist(critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": warning_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    def test_duplicate_actions_critical_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    def test_duplicate_actions_warning_to_critical_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Warning -> Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": warning_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    def test_duplicate_actions_critical_to_warning_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Critical -> Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-15),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": critical_trigger.alert_threshold + 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": critical_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": warning_trigger.alert_threshold - 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+
+class ProcessUpdateSlackTest(ProcessUpdateTest):
+    def _register_slack_handler(self) -> None:
+        from sentry.integrations.slack.spec import SlackMessagingSpec
+
+        factory = SlackMessagingSpec().get_incident_handler_factory()
+        AlertRuleTriggerAction.register_factory(factory)
+
+    def assert_slack_calls(self, trigger_labels):
+        expected_result = [f"{label}: some rule 2" for label in trigger_labels]
+        actual = [
+            (call_kwargs["text"], json.loads(call_kwargs["attachments"]))
+            for (_, call_kwargs) in self.slack_client.call_args_list
+        ]
+
+        assert len(expected_result) == len(actual)
+        for expected, (text, attachments) in zip(expected_result, actual):
+            assert expected in text
+            assert len(attachments) > 0
+        self.slack_client.reset_mock()
+
+    def test_slack_multiple_triggers_critical_before_warning(self):
+        """
+        Test that ensures that when we get a critical update is sent followed by a warning update,
+        the warning update is not swallowed and an alert is triggered as a warning alert granted
+        the count is above the warning trigger threshold
+        """
+
+        # Create Slack Integration
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+
+        self._register_slack_handler()
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        trigger_warning = create_alert_rule_trigger(rule, "warning", 10)
+
+        for t in [trigger, trigger_warning]:
+            create_alert_rule_trigger_action(
+                t,
+                AlertRuleTriggerAction.Type.SLACK,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                integration_id=integration.id,
+                input_channel_id="#workflow",
+            )
+
+        # Send Critical Update
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 5,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_slack_calls(["Critical"])
+
+        # Send Warning Update
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 5,
+            timedelta(minutes=0),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_slack_calls(["Warning"])
+        self.assert_active_incident(rule)
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_slack_metric_alert_chart(self, mock_generate_chart):
+        # Create Slack Integration
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+
+        self._register_slack_handler()
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        channel_name = "#workflow"
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.SLACK,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration_id=integration.id,
+            input_channel_id=channel_name,
+            target_identifier=channel_name,
+        )
+
+        # Send Critical Update
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            self.send_update(
+                rule,
+                trigger.alert_threshold + 5,
+                timedelta(minutes=-10),
+                subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+            )
+
+        self.assert_slack_calls(["Critical"])
+        incident = self.assert_active_incident(rule)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+
+    def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
+        """
+        Test that ensures that when we get a critical update is sent followed by a warning update,
+        the warning update is not swallowed and an alert is triggered as a warning alert granted
+        the count is above the warning trigger threshold
+        """
+
+        # Create Slack Integration
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+
+        self._register_slack_handler()
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        trigger_warning = create_alert_rule_trigger(rule, "warning", 10)
+
+        for t in [trigger, trigger_warning]:
+            create_alert_rule_trigger_action(
+                t,
+                AlertRuleTriggerAction.Type.SLACK,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                integration_id=integration.id,
+                input_channel_id="#workflow",
+            )
+
+        self.assert_slack_calls([])
+
+        # Send update above critical
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 5,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+
+        self.assert_slack_calls(["Critical"])
+
+        # Send second update above critical
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 6,
+            timedelta(minutes=-9),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_slack_calls([])
+
+        # Send update below critical but above warning
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 5,
+            timedelta(minutes=0),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_active_incident(rule)
+        self.assert_slack_calls(["Warning"])
 
 
 @freeze_time()
@@ -3091,7 +3103,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         rule.snuba_query.update(time_window=15 * 60)
         return rule
 
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @with_feature("organizations:incidents")
@@ -3254,7 +3266,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
             ],
         )
 
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @with_feature("organizations:incidents")
@@ -3402,10 +3414,10 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
@@ -3449,10 +3461,10 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
         rule = self.dynamic_rule
         processor = SubscriptionProcessor(self.sub)
@@ -3486,7 +3498,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
@@ -3520,7 +3532,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_enable_dynamic_alert_rule(self, mock_seer_request):
@@ -3555,7 +3567,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
@@ -3606,10 +3618,10 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
@@ -3627,10 +3639,10 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
@@ -3660,10 +3672,10 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
@@ -3850,7 +3862,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
+    @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_crash_rate_alert_for_sessions_with_auto_resolve_critical(
