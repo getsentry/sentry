@@ -13,9 +13,9 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PriorityLevel} from 'sentry/types/group';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -23,16 +23,6 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
-
-const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
-  DetectorPriorityLevel,
-  PriorityLevel
-> = {
-  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
-  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
-  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
-  [DetectorPriorityLevel.OK]: PriorityLevel.LOW,
-};
 
 function getDetectorEnvironment(detector: Detector) {
   return (
@@ -118,7 +108,7 @@ function DetectorPriorities({detector}: {detector: Detector}) {
             showLabel
             priority={
               DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
-                condition.conditionResult as DetectorPriorityLevel
+                condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
               ]
             }
           />
