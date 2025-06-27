@@ -22,7 +22,6 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -65,17 +64,6 @@ def fetch_file_blames(
                 and rate_limit_info
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
-                metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-                logger.error(
-                    "get_blame_for_files.rate_limit_too_low",
-                    extra={
-                        **extra,
-                        "num_files": len(files),
-                        "remaining_requests": rate_limit_info.remaining,
-                        "total_requests": rate_limit_info.limit,
-                        "next_window": rate_limit_info.next_window(),
-                    },
-                )
                 raise ApiRateLimitedError("Approaching GitLab API rate limit")
 
     return blames
@@ -94,7 +82,6 @@ def _fetch_file_blame(
     cache_key = client.get_cache_key(request_path, orjson.dumps(params).decode())
     response = client.check_cache(cache_key)
     if response:
-        metrics.incr("integrations.gitlab.get_blame_for_files.got_cached")
         logger.info(
             "sentry.integrations.gitlab.get_blame_for_files.got_cached",
             extra=extra,
@@ -107,7 +94,7 @@ def _fetch_file_blame(
             )
             client.set_cache(cache_key, response, 60)
         except ApiError:
-            logger.exception(
+            logger.warning(
                 "fetch_file_blame_ApiError",
                 extra={
                     "file_path": file.path,
@@ -134,7 +121,6 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 
 
 def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]):
-    metrics.incr("integrations.gitlab.get_blame_for_files.api_error", tags={"status": error.code})
 
     # Ignore expected error codes
     if error.code in (401, 403, 404):

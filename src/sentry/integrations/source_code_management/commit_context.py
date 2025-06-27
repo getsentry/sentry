@@ -28,7 +28,6 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
 from sentry.integrations.source_code_management.language_parsers import (
@@ -56,6 +55,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -187,25 +187,16 @@ class CommitContextIntegration(ABC):
                 sentry_sdk.capture_exception(e)
                 lifecycle.record_halt(e)
                 return []
-            except ApiInvalidRequestError as e:
+            except (ApiInvalidRequestError, ApiRetryError, ApiHostError) as e:
                 # Ignore invalid request errors for GitLab
+                # Ignore retry * host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if self.integration_name == ExternalProviderEnum.GITLAB.value:
                     lifecycle.record_halt(e)
                     return []
                 else:
                     raise
-            except ApiRetryError as e:
-                # Ignore retry errors for GitLab
-                # TODO(ecosystem): Remove this once we have a better way to handle this
-                if (
-                    self.integration_name == ExternalProviderEnum.GITLAB.value
-                    and client.base_url != GITLAB_CLOUD_BASE_URL
-                ):
-                    lifecycle.record_halt(e)
-                    return []
-                else:
-                    raise
+
             return response
 
     def get_commit_context_all_frames(
