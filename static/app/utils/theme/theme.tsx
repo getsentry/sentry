@@ -451,7 +451,6 @@ const generateThemeAliases = (colors: Colors) => ({
 });
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
-
 type AlertColors = Record<
   Alert,
   {
