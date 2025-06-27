@@ -7,7 +7,6 @@ from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganization
 from sentry.toolbar.utils.url import is_origin_allowed
 from sentry.web.frontend.base import ProjectView, region_silo_view
 
@@ -43,7 +42,6 @@ class IframeView(ProjectView):
     def handle_permission_required(
         self,
         request: HttpRequest,
-        organization: Organization | RpcOrganization | None,
         reason: str,
         *args,
         **kwargs,

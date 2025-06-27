@@ -405,7 +405,6 @@ class BaseView(View, OrganizationMixin):
         if not has_permission:
             return self.handle_permission_required(
                 request,
-                self.active_organization.organization if self.active_organization else None,
                 reason,
                 *args,
                 **kwargs,
@@ -466,8 +465,8 @@ class BaseView(View, OrganizationMixin):
     def handle_permission_required(
         self,
         request: HttpRequest,
-        organization: Organization | RpcOrganization | None,
         reason: str,
+        organization: Organization | RpcOrganization | None,
         *args: Any,
         **kwargs: Any,
     ) -> HttpResponse:
@@ -595,8 +594,8 @@ class AbstractOrganizationView(BaseView, abc.ABC):
     def handle_permission_required(
         self,
         request: HttpRequest,
-        organization: Organization | RpcOrganization | None,
         reason: str,
+        organization: Organization | RpcOrganization | None,
         *args: Any,
         **kwargs: Any,
     ) -> HttpResponse:
