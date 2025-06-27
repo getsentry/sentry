@@ -70,7 +70,7 @@ export function TraceItemAttributeProvider({
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(numberAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
-        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.TAG}])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
     );
 
     return {
