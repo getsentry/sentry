@@ -106,6 +106,16 @@ def test_should_retry_error_allow_list() -> None:
     assert not retry.should_retry(state, value_err)
 
 
+def test_max_attempts_reached() -> None:
+    retry = Retry(times=5)
+    state = retry.initial_state()
+
+    assert not retry.max_attempts_reached(state)
+
+    state.attempts = 4
+    assert retry.max_attempts_reached(state)
+
+
 def test_should_retry_allow_list_ignore_parent() -> None:
     retry = Retry(times=3, on=(Exception,), ignore=(RuntimeError,))
     state = retry.initial_state()
