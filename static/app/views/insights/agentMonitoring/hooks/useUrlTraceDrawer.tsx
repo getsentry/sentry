@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
 
 export function useUrlTraceDrawer() {

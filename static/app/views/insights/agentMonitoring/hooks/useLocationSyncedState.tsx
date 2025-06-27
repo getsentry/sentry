@@ -41,8 +41,9 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
   const urlParam = fields[key];
   const [state, setState] = useState(urlParam);
 
+  // Sync URL updates to the local state
   const stateRef = useRef(state);
-  stateRef.current = urlParam;
+  stateRef.current = state;
   useEffect(() => {
     if (stateRef.current !== urlParam) {
       setState(urlParam);
