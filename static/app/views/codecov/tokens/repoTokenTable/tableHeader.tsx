@@ -17,7 +17,6 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
       fieldName={key}
       label={name}
       enableToggle={false}
-      hasRadio={key === 'name'}
     />
   );
 };

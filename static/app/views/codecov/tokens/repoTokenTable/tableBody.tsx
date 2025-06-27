@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Radio} from 'sentry/components/core/radio';
-import {space} from 'sentry/styles/space';
+import {Button} from 'sentry/components/core/button';
 import {
   type Column,
   type Row,
@@ -10,27 +9,31 @@ import {
 interface TableBodyProps {
   column: Column;
   row: Row;
-  selectedRepository: string | null;
 }
 
-export function renderTableBody({column, row, selectedRepository}: TableBodyProps) {
+export function renderTableBody({column, row}: TableBodyProps) {
   const key = column.key;
+  const alignment = key === 'token' || key === 'regenerateToken' ? 'right' : 'left';
+
+  if (key === 'regenerateToken') {
+    return (
+      <Container alignment={alignment}>
+        <StyledButton
+          size="sm"
+          priority="default"
+          onClick={() => {}}
+          aria-label="regenerate token"
+        >
+          Regenerate token
+        </StyledButton>
+      </Container>
+    );
+  }
+
   const value = row[key];
-  const alignment = key === 'token' ? 'right' : 'left';
 
   if (key === 'name') {
-    return (
-      <RadioContainer>
-        <Radio
-          name={value}
-          aria-label={value?.toString()}
-          disabled={false}
-          checked={selectedRepository === value}
-          onChange={() => {}} // No-op since selection is handled at row level
-        />
-        <NameContainer>{value}</NameContainer>
-      </RadioContainer>
-    );
+    return <Container alignment={alignment}>{value}</Container>;
   }
 
   if (key === 'token') {
@@ -44,19 +47,11 @@ export function renderTableBody({column, row, selectedRepository}: TableBodyProp
   return <Container alignment={alignment}>{value}</Container>;
 }
 
-export const RadioContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(4)};
-`;
-
-export const NameContainer = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  text-align: left;
+const StyledButton = styled(Button)`
+  max-width: 175px;
 `;
 
 export const Container = styled('div')<{alignment: string}>`
-  font-family: ${p => p.theme.text.familyMono};
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
 `;
 

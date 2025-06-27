@@ -12,16 +12,17 @@ type RepoTokenTableResponse = {
 };
 
 export type Row = Pick<RepoTokenTableResponse, 'name' | 'token' | 'createdAt'>;
-export type Column = GridColumnHeader<'name' | 'token' | 'createdAt'>;
+export type Column = GridColumnHeader<'name' | 'token' | 'createdAt' | 'regenerateToken'>;
 
 export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
 const COLUMNS_ORDER: Column[] = [
-  {key: 'name', name: t('Repository Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'token', name: t('Token'), width: COL_WIDTH_UNDEFINED},
+  {key: 'name', name: t('Repository Name'), width: 350},
+  {key: 'token', name: t('Token'), width: 275},
   {key: 'createdAt', name: t('Created Date'), width: COL_WIDTH_UNDEFINED},
+  {key: 'regenerateToken', name: '', width: 100},
 ];
 
 export const SORTABLE_FIELDS = ['name', 'createdAt'] as const;
@@ -36,22 +37,15 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 interface Props {
-  onRepositorySelect: (repositoryName: string) => void;
   response: {
     data: Row[];
     isLoading: boolean;
     error?: Error | null;
   };
-  selectedRepository: string | null;
   sort: ValidSort;
 }
 
-export default function RepoTokenTable({
-  response,
-  sort,
-  selectedRepository,
-  onRepositorySelect,
-}: Props) {
+export default function RepoTokenTable({response, sort}: Props) {
   const {data, isLoading} = response;
 
   return (
@@ -77,11 +71,7 @@ export default function RepoTokenTable({
           renderTableBody({
             column,
             row,
-            selectedRepository,
           }),
-      }}
-      onRowClick={(row, _key, _event) => {
-        onRepositorySelect(row.name);
       }}
     />
   );
