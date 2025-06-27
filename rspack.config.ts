@@ -54,9 +54,9 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 // React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
-// Sentry toolbar is enabled by default, but can be disabled by setting the USE_SENTRY_TOOLBAR env var to 'false'
-const USE_SENTRY_TOOLBAR =
-  typeof env.USE_SENTRY_TOOLBAR === 'string' ? !env.USE_SENTRY_TOOLBAR : true;
+// Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
+const DISABLE_SENTRY_TOOLBAR =
+  typeof env.DISABLE_SENTRY_TOOLBAR === 'string' ? !env.DISABLE_SENTRY_TOOLBAR : false;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -389,7 +389,7 @@ const appConfig: Configuration = {
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
       'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-      'process.env.USE_SENTRY_TOOLBAR': JSON.stringify(USE_SENTRY_TOOLBAR),
+      'process.env.DISABLE_SENTRY_TOOLBAR': JSON.stringify(DISABLE_SENTRY_TOOLBAR),
     }),
 
     ...(SHOULD_FORK_TS
