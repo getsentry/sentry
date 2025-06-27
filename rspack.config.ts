@@ -56,7 +56,7 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 // Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
 const DISABLE_SENTRY_TOOLBAR =
-  typeof env.DISABLE_SENTRY_TOOLBAR === 'string' ? !env.DISABLE_SENTRY_TOOLBAR : false;
+  typeof env.DISABLE_SENTRY_TOOLBAR === 'string' ? !!env.DISABLE_SENTRY_TOOLBAR : false;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
