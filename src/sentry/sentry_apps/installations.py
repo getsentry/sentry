@@ -117,7 +117,7 @@ class SentryAppInstallationCreator:
     def run(self, *, user: User | RpcUser, request: HttpRequest | None) -> SentryAppInstallation:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
-            event_type=SentryAppEventType.WEBHOOK_UPDATE,
+            event_type=SentryAppEventType.INSTALLATION_CREATE,
         ).capture() as lifecycle:
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
