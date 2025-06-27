@@ -69,26 +69,33 @@ export default function ReplayTable({
   return (
     <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
       {replays.length === 0 && <SimpleTable.Empty>No data</SimpleTable.Empty>}
-      {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row
-          key={replay.id}
-          variant={replay.is_archived ? 'faded' : 'default'}
-        >
-          <RowContentButton onClick={() => onClickRow?.({replay, rowIndex})}>
-            {onClickRow && <InteractionStateLayer />}
-            {columns.map((column, columnIndex) => (
-              <RowCell key={`${replay.id}-${column.sortKey}`}>
-                <column.Component
-                  columnIndex={columnIndex}
-                  replay={replay}
-                  rowIndex={rowIndex}
-                  showDropdownFilters={showDropdownFilters}
-                />
-              </RowCell>
-            ))}
-          </RowContentButton>
-        </SimpleTable.Row>
-      ))}
+      {replays.map((replay, rowIndex) => {
+        const rows = columns.map((column, columnIndex) => (
+          <RowCell key={`${replay.id}-${column.sortKey}`}>
+            <column.Component
+              columnIndex={columnIndex}
+              replay={replay}
+              rowIndex={rowIndex}
+              showDropdownFilters={showDropdownFilters}
+            />
+          </RowCell>
+        ));
+        return (
+          <SimpleTable.Row
+            key={replay.id}
+            variant={replay.is_archived ? 'faded' : 'default'}
+          >
+            {onClickRow ? (
+              <RowContentButton onClick={() => onClickRow({replay, rowIndex})}>
+                <InteractionStateLayer />
+                {rows}
+              </RowContentButton>
+            ) : (
+              rows
+            )}
+          </SimpleTable.Row>
+        );
+      })}
     </ReplayTableWithColumns>
   );
 }
