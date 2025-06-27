@@ -1,0 +1,7 @@
+Here is the verification code you requested. It expires in 30 minutes.
+
+{{code}}
+
+If you weren't expecting this email, please ignore it.
+
+The Sentry Team

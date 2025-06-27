@@ -1,0 +1,13 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <p>Here is the verification code you requested. It expires in 30 minutes.</p>
+
+    <p>{{code}}</p>
+
+    <p>If you weren't expecting this email, please ignore it.</p>
+
+    <p>The Sentry Team</p>
+{% endblock %}
