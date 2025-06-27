@@ -12,6 +12,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.repository import Repository
@@ -22,6 +23,7 @@ from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
@@ -290,7 +292,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert org_integration.default_auth_id is not None
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
-    def test_default_identity_does_update(self, *args):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_default_identity_does_update(self, mock_record, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
         integration = self.create_provider_integration(
@@ -328,6 +331,16 @@ class FinishPipelineTestCase(IntegrationTestCase):
         )
         identity = Identity.objects.get(external_id="AccountId")
         assert org_integration.default_auth_id == identity.id
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
 
     def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args):
         # The reinstall flow will result in an existing identity provider, identity
@@ -564,8 +577,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
         self.assertDialogSuccess(resp)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.pipeline.logger")
-    def test_disallow_with_removed_membership(self, mock_logger, *args):
+    def test_disallow_with_removed_membership(self, mock_logger, mock_record, *args):
         member_user = self.create_user()
         om = self.create_member(user=member_user, organization=self.organization, role="manager")
         self.login_as(member_user)
@@ -609,6 +623,16 @@ class FinishPipelineTestCase(IntegrationTestCase):
             "provider_key": "example",
         }
         mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
 
 
 @control_silo_test
