@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 
 
-class AuthV2Flag(BasePermission):
+class AuthV2Permission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         if settings.IS_DEV:
             return True
@@ -15,4 +15,4 @@ class AuthV2Flag(BasePermission):
 
 
 class AuthV2Endpoint(Endpoint):
-    permission_classes = (AuthV2Flag,)
+    permission_classes = (AuthV2Permission,)
