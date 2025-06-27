@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.10.10'
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
           version: '0.7.15'
 
