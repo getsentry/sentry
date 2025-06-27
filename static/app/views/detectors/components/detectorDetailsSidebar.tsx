@@ -91,7 +91,7 @@ function DetectorPriorities({detector}: {detector: Detector}) {
     .sort((a, b) => (a.conditionResult || 0) - (b.conditionResult || 0));
 
   if (priorityConditions.length === 0) {
-    return <div>{t('No priority thresholds configured')}</div>;
+    return null;
   }
 
   const getConditionLabel = (condition: (typeof priorityConditions)[0]) => {
@@ -103,8 +103,9 @@ function DetectorPriorities({detector}: {detector: Detector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
+    const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
 
-    return `${typeLabel} ${comparisonValue}`;
+    return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
 
   return (
@@ -136,12 +137,14 @@ function DetectorResolve({detector}: {detector: Detector}) {
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
 
+  const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
+
   const description = getResolutionDescription({
     detectionType,
     conditionType: mainCondition?.type,
     conditionValue: mainCondition?.comparison,
     comparisonDelta: (detector.config as any)?.comparison_delta,
-    thresholdSuffix: '', // TODO: determine suffix
+    thresholdSuffix,
   });
 
   return <div>{description}</div>;

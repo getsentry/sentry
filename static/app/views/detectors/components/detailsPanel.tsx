@@ -32,7 +32,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
           )}
         </Query>
       </Flex>
-      <Flex gap={space(0.5)}>
+      <Flex gap={space(0.5)} align="center">
         <Heading>{t('Threshold:')}</Heading>
         <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow, true)}</Value>
       </Flex>
