@@ -114,7 +114,7 @@ class NodeData(MutableMapping[str, Any]):
             self.data["_ref"] = ref
             self.data["_ref_version"] = self.ref_version
 
-    def save(self, subkeys=None):
+    def save(self, subkeys=None, force_cache_write=False):
         """
         Write current data back to nodestore.
 
@@ -137,4 +137,4 @@ class NodeData(MutableMapping[str, Any]):
         subkeys = subkeys or {}
         subkeys[None] = to_write
 
-        nodestore.backend.set_subkeys(self.id, subkeys)
+        nodestore.backend.set_subkeys(self.id, subkeys, force_cache_write=force_cache_write)

@@ -115,3 +115,25 @@ def test_set_subkeys(ns: NodeStorage) -> None:
     ns.delete("node_1")
     assert ns.get("node_1") is None
     assert ns.get("node_1", subkey="other") is None
+
+
+@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+def test_set_subkeys_force_cache_write(ns):
+    """
+    Test that set_subkeys writes to cache when force_cache_write is True,
+    even when the option is disabled.
+    """
+    node_id1 = "test_force_cache_write"
+    data = {"foo": "bar"}
+
+    # With force_cache_write=True, should write to cache even when option is disabled
+    ns.set_subkeys(node_id1, {None: data}, force_cache_write=True)
+
+    # Verify it's in the cache without a `get` call.
+    assert ns.cache.get(node_id1) == data
+
+    node_id2 = "test_force_cache_write_2"
+    ns.set_subkeys(node_id2, {None: data}, force_cache_write=False)
+
+    # Verify it's not in the cache without a `get` call.
+    assert ns.cache.get(node_id2) is None

@@ -1080,9 +1080,10 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         # Write the event to Nodestore
         subkeys = {}
 
-        event = job["event"]
+        event: Event = job["event"]
         # We only care about `unprocessed` for error events
-        if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
+        event_type = event.get_event_type()
+        if event_type not in ("transaction", "generic") and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
@@ -1102,7 +1103,10 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
                 usage_type=UsageUnit.BYTES,
             )
         job["event"].data["nodestore_insert"] = inserted_time
-        job["event"].data.save(subkeys=subkeys)
+        # Error events are nearly all expected to be read shortly after ingestion by
+        # post-processing tasks, so it's worth writing to cache.
+        force_cache_write = event_type == "error"
+        job["event"].data.save(subkeys=subkeys, force_cache_write=force_cache_write)
 
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
