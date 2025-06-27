@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -425,7 +426,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onTraceLoad = useCallback(() => {
     const traceNode = props.tree.root.children[0];
     const traceTimestamp = traceNode?.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
-    const traceAge = traceTimestamp ? getRelativeDate(traceTimestamp, 'ago') : 'unknown';
+    const traceAge = defined(traceTimestamp)
+      ? getRelativeDate(traceTimestamp, 'ago')
+      : 'unknown';
 
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
