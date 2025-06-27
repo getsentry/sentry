@@ -1,5 +1,5 @@
 ---
-created: '2025-04-29T22:29:14.124783+00:00'
+created: '2025-06-27T19:26:06.340999+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   contributing component: null
   component:
-    app (logentry takes precedence)
+    app (message takes precedence)
       threads
         stacktrace
           frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
@@ -68,7 +68,7 @@ system:
   hash: null
   contributing component: null
   component:
-    system (logentry takes precedence)
+    system (message takes precedence)
       threads
         stacktrace
           frame

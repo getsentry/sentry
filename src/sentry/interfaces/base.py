@@ -79,6 +79,7 @@ class Interface:
     def external_type(cls):
         """The external name of the interface.  This is mostly the same as
         path with some small differences (message, debugmeta).
+        Also used as the display name for grouping strategy hints.
         """
         return cls.path
 
