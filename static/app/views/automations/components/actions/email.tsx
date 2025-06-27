@@ -39,8 +39,8 @@ export function EmailDetails({action}: {action: Action}) {
   if (target_type === ActionTarget.ISSUE_OWNERS) {
     return tct('Notify Suggested Assignees and, if none found, notify [fallthrough]', {
       fallthrough:
-        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthroughType)
-          ?.label || String(action.data.fallthroughType),
+        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthrough_type)
+          ?.label || String(action.data.fallthrough_type),
     });
   }
 
@@ -79,9 +79,9 @@ function TargetTypeField() {
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(option: SelectValue<string>) =>
-        onUpdate({config: {target_type: option.value, target_identifier: undefined}})
-      }
+      onChange={(option: SelectValue<string>) => {
+        onUpdate({config: {target_type: option.value, target_identifier: undefined}});
+      }}
     />
   );
 }
@@ -96,9 +96,9 @@ function IdentifierField() {
         <TeamSelector
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
-          onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}, data: {}})
-          }
+          onChange={(value: any) => {
+            onUpdate({config: {target_identifier: value.actor.id}, data: {}});
+          }}
           useId
           styles={selectControlStyles}
         />
@@ -120,8 +120,8 @@ function IdentifierField() {
       </SelectWrapper>
     );
   }
-  return tct('and, if none found, notify [fallThrough]', {
-    fallThrough: <FallthroughField />,
+  return tct('and, if none found, notify [fallthrough]', {
+    fallthrough: <FallthroughField />,
   });
 }
 
@@ -129,11 +129,11 @@ function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.data.fallthroughType`}
-      value={action.data.fallthroughType}
+      name={`${actionId}.data.fallthrough_type`}
+      value={action.data.fallthrough_type}
       options={FALLTHROUGH_CHOICES}
       onChange={(option: SelectValue<string>) =>
-        onUpdate({data: {fallthroughType: option.value}})
+        onUpdate({data: {fallthrough_type: option.value}})
       }
     />
   );
