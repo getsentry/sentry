@@ -1,7 +1,7 @@
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {CronDetectorForm} from 'sentry/views/detectors/components/forms/cron';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
+import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric/metric';
 import {UptimeDetectorForm} from 'sentry/views/detectors/components/forms/uptime';
 
 type DetectorFormProps = {
