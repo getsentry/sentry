@@ -8,7 +8,6 @@ import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
@@ -27,6 +26,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
@@ -173,10 +173,12 @@ function AutomateSection() {
 }
 
 function AssignSection() {
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+
   return (
     <Container>
       <Section title={t('Assign')}>
-        <OwnerField />
+        <AssigneeField projectId={projectId} />
       </Section>
     </Container>
   );
@@ -408,26 +410,6 @@ function DetectSection() {
   );
 }
 
-function OwnerField() {
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-  const {projects} = useProjects();
-  const memberOfProjectSlugs = useMemo(() => {
-    const project = projects.find(p => p.id === projectId);
-    return project ? [project.slug] : undefined;
-  }, [projects, projectId]);
-
-  return (
-    <StyledMemberTeamSelectorField
-      placeholder={t('Select a member or team')}
-      label={t('Owner')}
-      help={t('Sentry will assign new issues to this owner.')}
-      name={METRIC_DETECTOR_FORM_FIELDS.owner}
-      flexibleControlStateSize
-      memberOfProjectSlugs={memberOfProjectSlugs}
-    />
-  );
-}
-
 const FormStack = styled('div')`
   display: flex;
   flex-direction: column;
@@ -450,10 +432,6 @@ const StyledSelectField = styled(SelectField)`
   > div {
     padding-left: 0;
   }
-`;
-
-const StyledMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
-  padding-left: 0;
 `;
 
 const DirectionField = styled(SelectField)`
