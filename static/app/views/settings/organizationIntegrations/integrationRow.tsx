@@ -187,13 +187,13 @@ const TagsContainer = styled('div')`
 `;
 
 const IntegrationName = styled(Link)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const IntegrationDetails = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledLink = styled(Link)`
@@ -222,7 +222,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     content: '|';
     color: ${p => p.theme.subText};
     margin-right: ${space(0.75)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

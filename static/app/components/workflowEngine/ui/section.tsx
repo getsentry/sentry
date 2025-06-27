@@ -20,14 +20,14 @@ export default function Section({children, title, description}: SectionProps) {
 }
 
 const SectionHeading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 `;
 
 const SectionDescription = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   margin: 0;
 `;

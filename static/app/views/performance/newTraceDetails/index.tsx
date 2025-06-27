@@ -9,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -105,7 +104,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
-    rootEventResults,
     logs: logsData,
   });
 
@@ -149,13 +147,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 hideIfNoData={hideTraceWaterfallIfEmpty}
                 traceWaterfallScrollHandlers={traceWaterfallScroll}
                 traceWaterfallModels={traceWaterfallModels}
-                isVisible={currentTab === TraceLayoutTabKeys.WATERFALL}
               />
             </TabsWaterfallWrapper>
-            {currentTab === TraceLayoutTabKeys.TAGS ||
-            currentTab === TraceLayoutTabKeys.ATTRIBUTES ? (
-              <TraceContextTags rootEventResults={rootEventResults} />
-            ) : null}
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}

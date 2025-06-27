@@ -13,7 +13,9 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
+    ServiceRpcSignatureAuthentication,
     UserAuthTokenAuthentication,
+    compare_service_signature,
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
@@ -28,6 +30,7 @@ from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.silo.base import SiloMode
+from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
@@ -407,6 +410,264 @@ class TestRpcSignatureAuthentication(TestCase):
         with override_settings(RPC_SHARED_SECRET=None):
             with pytest.raises(RpcAuthenticationSetupException):
                 self.auth.authenticate(request)
+
+
+class TestServiceRpcSignatureAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        # Create a concrete implementation for testing
+        class TestServiceAuth(ServiceRpcSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+
+        self.auth = TestServiceAuth()
+
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_authenticate_success(self):
+        data = b'{"test": "data"}'
+        request = drf_request_from_request(
+            RequestFactory().post("/test", data=data, content_type="application/json")
+        )
+
+        signature = generate_service_request_signature(
+            request.path_info, request.body, ["test-secret-key"], "TestService"
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = self.auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["new-key", "old-key"])
+    def test_authenticate_old_key_validates(self):
+        data = b'{"test": "data"}'
+        request = drf_request_from_request(
+            RequestFactory().post("/test", data=data, content_type="application/json")
+        )
+
+        # Sign with old key
+        signature = generate_service_request_signature(
+            request.path_info, request.body, ["old-key"], "TestService"
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = self.auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+    def test_authenticate_without_signature(self):
+        request = drf_request_from_request(
+            RequestFactory().post(
+                "/test", data=b'{"test": "data"}', content_type="application/json"
+            )
+        )
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abcdef"
+
+        assert self.auth.authenticate(request) is None
+
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_authenticate_invalid_signature(self):
+        request = drf_request_from_request(
+            RequestFactory().post(
+                "/test", data=b'{"test": "data"}', content_type="application/json"
+            )
+        )
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature invalid_signature"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_authenticate_no_shared_secret(self):
+        request = drf_request_from_request(
+            RequestFactory().post(
+                "/test", data=b'{"test": "data"}', content_type="application/json"
+            )
+        )
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature test_signature"
+
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=None):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
+    def test_authenticate_empty_shared_secret(self):
+        request = drf_request_from_request(
+            RequestFactory().post(
+                "/test", data=b'{"test": "data"}', content_type="application/json"
+            )
+        )
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature test_signature"
+
+        # Test with empty string secret
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=[""]):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
+        # Test with whitespace-only secret
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=[" "]):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
+
+class TestCompareServiceSignature(TestCase):
+    def test_valid_signature(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        # Generate valid signature
+        signature = generate_service_request_signature(url, body, shared_secrets, service_name)
+
+        result = compare_service_signature(url, body, signature, shared_secrets, service_name)
+        assert result is True
+
+    def test_valid_signature_with_multiple_keys(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["new-key", "old-key"]
+        service_name = "TestService"
+
+        # Sign with first key
+        signature = generate_service_request_signature(url, body, ["new-key"], service_name)
+        result = compare_service_signature(url, body, signature, shared_secrets, service_name)
+        assert result is True
+
+        # Sign with second key
+        signature = generate_service_request_signature(url, body, ["old-key"], service_name)
+        result = compare_service_signature(url, body, signature, shared_secrets, service_name)
+        assert result is True
+
+    def test_invalid_signature(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        result = compare_service_signature(
+            url, body, "rpc0:invalid_signature", shared_secrets, service_name
+        )
+        assert result is False
+
+    def test_no_shared_secrets(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        service_name = "TestService"
+
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(url, body, "rpc0:signature", [], service_name)
+
+    def test_empty_shared_secrets(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        service_name = "TestService"
+
+        # Test list with empty string
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(url, body, "rpc0:signature", [""], service_name)
+
+        # Test list with whitespace-only string
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(url, body, "rpc0:signature", [" "], service_name)
+
+        # Test list with empty string mixed with valid secret
+        with pytest.raises(RpcAuthenticationSetupException):
+            compare_service_signature(
+                url, body, "rpc0:signature", ["valid-secret", ""], service_name
+            )
+
+    def test_invalid_signature_prefix(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        result = compare_service_signature(
+            url, body, "invalid:signature", shared_secrets, service_name
+        )
+        assert result is False
+
+    def test_empty_body(self):
+        url = "/test/endpoint"
+        body = b""
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        result = compare_service_signature(
+            url, body, "rpc0:signature", shared_secrets, service_name
+        )
+        assert result is False
+
+    def test_malformed_signature(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        # Test signature without colon
+        result = compare_service_signature(url, body, "rpc0signature", shared_secrets, service_name)
+        assert result is False
+
+
+class TestGenerateServiceRequestSignature(TestCase):
+    def test_generate_signature(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        signature = generate_service_request_signature(url, body, shared_secrets, service_name)
+
+        assert signature.startswith("rpc0:")
+        assert len(signature) > 5  # Should have actual signature data after prefix
+
+    def test_generate_signature_uses_first_key(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["first-key", "second-key"]
+        service_name = "TestService"
+
+        signature = generate_service_request_signature(url, body, shared_secrets, service_name)
+
+        # Verify it uses the first key by checking it validates with first key only
+        result = compare_service_signature(url, body, signature, ["first-key"], service_name)
+        assert result is True
+
+        # Should not validate with second key only
+        result = compare_service_signature(url, body, signature, ["second-key"], service_name)
+        assert result is False
+
+    def test_generate_signature_no_shared_secrets(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        service_name = "TestService"
+
+        with pytest.raises(RpcAuthenticationSetupException):
+            generate_service_request_signature(url, body, [], service_name)
+
+    def test_consistent_signatures(self):
+        url = "/test/endpoint"
+        body = b'{"test": "data"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        signature1 = generate_service_request_signature(url, body, shared_secrets, service_name)
+        signature2 = generate_service_request_signature(url, body, shared_secrets, service_name)
+
+        assert signature1 == signature2
+
+    def test_different_bodies_different_signatures(self):
+        url = "/test/endpoint"
+        body1 = b'{"test": "data1"}'
+        body2 = b'{"test": "data2"}'
+        shared_secrets = ["secret-key"]
+        service_name = "TestService"
+
+        signature1 = generate_service_request_signature(url, body1, shared_secrets, service_name)
+        signature2 = generate_service_request_signature(url, body2, shared_secrets, service_name)
+
+        assert signature1 != signature2
 
 
 @no_silo_test

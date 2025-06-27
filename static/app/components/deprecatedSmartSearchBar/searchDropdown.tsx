@@ -504,7 +504,7 @@ const LoadingWrapper = styled('div')`
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {
@@ -520,8 +520,8 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -551,7 +551,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: 4px ${space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
@@ -587,8 +587,8 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
 
@@ -622,7 +622,7 @@ const Documentation = styled('span')`
   min-width: 0;
 
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.subText};
   white-space: pre;
@@ -646,7 +646,7 @@ const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -654,7 +654,7 @@ const HotkeyGlyphWrapper = styled('span')`
 const IconWrapper = styled('span')`
   display: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     margin-right: ${space(0.5)};
     align-items: center;
@@ -663,7 +663,7 @@ const IconWrapper = styled('span')`
 `;
 
 const QueryItemWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: 100%;
   gap: ${space(1)};
   display: flex;
@@ -674,7 +674,7 @@ const QueryItemWrapper = styled('span')`
 
 const Value = styled('span')<{hasDocs?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
@@ -686,7 +686,7 @@ const IconOpenWithMargin = styled(IconOpen)`
 `;
 
 const RecommendedItem = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const RecommendedItemTitle = styled('div')`

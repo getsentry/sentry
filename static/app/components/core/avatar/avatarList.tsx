@@ -195,7 +195,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.subText};
   font-size: ${p => Math.floor(p.size / 2.3)}px;

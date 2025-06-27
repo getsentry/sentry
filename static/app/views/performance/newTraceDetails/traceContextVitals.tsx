@@ -39,7 +39,7 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, rootEventResults, logs: undefined});
+  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
@@ -173,8 +173,8 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
@@ -198,7 +198,7 @@ const VitalPillValue = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const VitalMetersContainer = styled('div')`
@@ -212,7 +212,7 @@ const VitalMetersContainer = styled('div')`
 
 const SecondaryVitalsCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`
@@ -235,11 +235,11 @@ function getPrimaryVitalsCount(
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.xxlarge, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
     if (type === 'web') {
       return totalCount;
     }

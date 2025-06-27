@@ -27,7 +27,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.seer_utils import FixabilityScoreThresholds
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -248,17 +248,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == "super_low":
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == "low":
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == "medium":
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == "high":
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == "always":
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 
@@ -304,22 +304,6 @@ def _run_automation(
     if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
         return
 
-    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        group.project, group.organization
-    )
-    if is_rate_limited:
-        logger.warning(
-            "Autofix auto-trigger rate limit hit",
-            extra={
-                "group_id": group.id,
-                "auto_run_count": current,
-                "auto_run_limit": limit,
-                "org_slug": group.organization.slug,
-                "project_slug": group.project.slug,
-            },
-        )
-        return
-
     has_budget: bool = quotas.backend.has_available_reserved_budget(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
@@ -327,16 +311,20 @@ def _run_automation(
     if not has_budget:
         return
 
-    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-        autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
 
-    if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
-        _trigger_autofix_task.delay(
-            group_id=group.id,
-            event_id=event.event_id,
-            user_id=user_id,
-            auto_run_source=auto_run_source,
-        )
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    if is_rate_limited:
+        return
+
+    _trigger_autofix_task.delay(
+        group_id=group.id,
+        event_id=event.event_id,
+        user_id=user_id,
+        auto_run_source=auto_run_source,
+    )
 
 
 def _generate_summary(

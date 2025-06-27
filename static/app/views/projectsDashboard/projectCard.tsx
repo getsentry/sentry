@@ -246,7 +246,7 @@ const HeaderRow = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 
@@ -270,10 +270,10 @@ const SummaryLinks = styled('div')`
   gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
@@ -315,7 +315,7 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     margin-bottom: ${space(0.5)};
   }
@@ -334,7 +334,7 @@ const ScoreCardWrapper = styled('div')`
 
 const SubHeading = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 

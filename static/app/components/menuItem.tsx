@@ -260,7 +260,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
     p.header &&
     css`
       padding: ${space(0.25)} ${space(0.5)};
-      font-size: ${p.theme.fontSizeSmall};
+      font-size: ${p.theme.fontSize.sm};
       line-height: 1.4;
       color: ${p.theme.subText};
     `}

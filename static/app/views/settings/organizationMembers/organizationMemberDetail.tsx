@@ -424,8 +424,8 @@ export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Details = styled('div')`
@@ -435,14 +435,14 @@ const Details = styled('div')`
   gap: ${space(2)};
   width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-template-columns: auto;
   }
 `;
 
 const DetailLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
 `;

@@ -1105,7 +1105,6 @@ describe('Customer Details', function () {
       organization,
       plan: 'am3_f',
       planTier: 'am3',
-      hasReservedBudgets: true,
     });
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({
@@ -3450,7 +3449,6 @@ describe('Customer Details', function () {
     it('shows gift budget action when org has reserved budgets', async function () {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
-        hasReservedBudgets: true,
       });
       setUpMocks(organization, am3Sub);
 
@@ -3474,7 +3472,6 @@ describe('Customer Details', function () {
     it('hides gift budget action when org has no reserved budgets', async function () {
       const nonDsSub = SubscriptionFixture({
         organization,
-        hasReservedBudgets: false,
       });
       setUpMocks(organization, nonDsSub);
 

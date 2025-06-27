@@ -41,7 +41,7 @@ describe('ErrorsConfig', function () {
     it('links trace ids to performance', async function () {
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('trace', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {trace: 'abcd'},
           {
             organization,
@@ -73,7 +73,7 @@ describe('ErrorsConfig', function () {
       const project = ProjectFixture();
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('id', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {id: 'defg', 'project.name': project.slug},
           {
             organization,

@@ -26,13 +26,30 @@ describe('DetectorNew', function () {
     // Set detectorType
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
-    // Set project
-    await userEvent.click(screen.getByRole('textbox', {name: 'Select Project'}));
-    await userEvent.click(await screen.findByText('project-2'));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    // Set environment
-    await userEvent.click(screen.getByRole('textbox', {name: 'Select Environment'}));
-    await userEvent.click(await screen.findByText('prod-2'));
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
+        query: {
+          detectorType: 'uptime_domain_failure',
+          project: '1',
+        },
+      })
+    );
+  });
+
+  it('preserves project query parameter when navigating to the next step', async function () {
+    const {router} = render(<DetectorNew />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/monitors/new/',
+          query: {project: '2'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
@@ -40,9 +57,8 @@ describe('DetectorNew', function () {
       expect.objectContaining({
         pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
         query: {
-          detectorType: 'uptime',
+          detectorType: 'uptime_domain_failure',
           project: '2',
-          environment: 'prod-2',
         },
       })
     );
