@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+from datetime import timedelta
 from typing import Any
 
 from django.db import router, transaction
@@ -7,6 +8,11 @@ from django.forms import ValidationError
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.logic import (
+    get_alert_resolution,
+    owner_kwargs_from_actor,
+    subscribe_projects_to_alert_rule,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -18,8 +24,13 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
@@ -83,6 +94,10 @@ class UnresolvableResolveThreshold(Exception):
 
 
 class CouldNotCreateDataSource(Exception):
+    pass
+
+
+class CouldNotCreateDetector(Exception):
     pass
 
 
@@ -450,7 +465,8 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 
 
 def create_workflow(
-    alert_rule: AlertRule,
+    user_id: int,
+    team: Team,
     name: str,
     organization_id: int,
     user: RpcUser | None = None,
@@ -460,9 +476,9 @@ def create_workflow(
         organization_id=organization_id,
         when_condition_group=None,
         enabled=True,
-        created_by_id=user.id if user else None,
-        owner_user_id=alert_rule.user_id,
-        owner_team=alert_rule.team,
+        created_by_id=user_id if user_id else None,
+        owner_user_id=user_id,
+        owner_team=team,
         config={},
     )
 
@@ -547,7 +563,9 @@ def migrate_alert_rule(
     detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
     workflow_name = get_workflow_name(alert_rule)
-    workflow = create_workflow(alert_rule, workflow_name, organization_id, user)
+    workflow = create_workflow(
+        alert_rule.user_id, alert_rule.team, workflow_name, organization_id, user
+    )
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:
@@ -600,6 +618,96 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
         # if the alert rule is an anomaly detection alert, then this is handled by the anomaly detection data condition
         if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC:
             migrate_resolve_threshold_data_condition(alert_rule)
+
+
+def single_write_workflow_engine_models(
+    data: dict[str, Any], organization: Organization, user: User
+):
+    """
+    Take in an alert rule payload and create workflow engine models
+    """
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
+        time_window = data.get("time_window")
+        # TODO: calculating resolution depends on the detection type and whether or not there is a comparison delta
+        resolution = get_alert_resolution(time_window, organization)
+
+        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
+        snuba_query = create_snuba_query(
+            query_type=data.get("query_type", SnubaQuery.Type.ERROR),
+            dataset=data.get("dataset", Dataset.Events),
+            query=data.get("query"),
+            aggregate=data.get("aggregate"),
+            time_window=timedelta(minutes=time_window),
+            resolution=timedelta(minutes=resolution),
+            environment=data.get("environment"),
+            event_types=data.get("event_types", ()),
+        )
+        subscribe_projects_to_alert_rule(snuba_query, data.get("projects"))
+
+    with transaction.atomic(router.db_for_write(Detector)):
+        data_source = create_data_source(organization.id, snuba_query)
+        if not data_source:
+            raise CouldNotCreateDataSource
+
+        detector_data_condition_group = create_data_condition_group(organization.id)
+        detector = single_write_create_detector(
+            data, organization, user, detector_data_condition_group
+        )
+
+        # generating the workflow name is gonna suck, hardcode for now
+        owner_kwargs = owner_kwargs_from_actor(data.get("owner"))
+        team = Team.objects.filter(id=owner_kwargs.get("team_id")).first()
+        name = "placeholder name"
+        create_workflow(owner_kwargs.get("user_id"), team, name, organization.id, user)
+
+        data_source.detectors.set([detector])
+        DetectorState.objects.create(
+            detector=detector,
+            is_triggered=False,  # TODO if we reuse this function to update ACI models from an alert rule payload we'll need to check for open incidents
+            state=DetectorPriorityLevel.OK,
+        )
+        return detector  # TODO create the data conditions, actions, etc.
+
+
+def single_write_create_detector(
+    data: dict[str, Any],
+    organization: Organization,
+    user: User,
+    data_condition_group: DataConditionGroup,
+) -> Detector:
+    """
+    Create a Detector out of alert rule payload data
+    """
+    name = data.get("name")
+    detector_field_values = {
+        "name": name if len(name) < 200 else name[:197] + "...",
+        "description": data.get("description"),
+        "workflow_condition_group": data_condition_group,
+        "owner_user_id": data.get("user_id"),
+        "owner_team": data.get("team"),
+        "config": {
+            "threshold_period": data.get("threshold_period"),
+            "sensitivity": data.get("sensitivity"),
+            "seasonality": data.get("seasonality"),
+            "comparison_delta": data.get("comparison_delta"),
+            "detection_type": data.get("detection_type"),
+        },
+    }
+    projects = data.get("projects")
+    if projects is None:
+        raise CouldNotCreateDetector
+
+    # these fields are only set on create, not update
+    detector_field_values.update(
+        {
+            "project_id": projects[0].id,
+            "enabled": True,
+            "created_by_id": user.id if user else None,
+            "type": MetricIssue.slug,
+        }
+    )
+    detector = Detector.objects.create(**detector_field_values)
+    return detector
 
 
 def dual_update_alert_rule(alert_rule: AlertRule) -> None:

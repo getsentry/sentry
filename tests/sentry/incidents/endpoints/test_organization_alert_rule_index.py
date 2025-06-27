@@ -264,6 +264,17 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    @with_feature("organizations:workflow-engine-rule-single-write")
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:performance-view")
+    def test_single_write_workflow_engine(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            status_code=201,
+            **self.alert_rule_dict,
+        )
+        assert resp
+
     def test_workflow_engine_serializer(self):
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)

@@ -75,6 +75,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.workflow_engine.migration_helpers.alert_rule import single_write_workflow_engine_models
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -122,21 +123,36 @@ def create_metric_alert(
         find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
         return Response({"uuid": client.uuid}, status=202)
     else:
-        alert_rule = validator.save()
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
-            try:
-                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-                return Response(
-                    serialize(
-                        detector,
-                        request.user,
-                        WorkflowEngineDetectorSerializer(),
-                    ),
-                    status=status.HTTP_201_CREATED,
-                )
-            except Detector.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+        if features.has("organizations:workflow-engine-rule-single-write", organization):
+            # only write to aci models here
+            detector = single_write_workflow_engine_models(
+                data=validator.validated_data, organization=organization, user=request.user
+            )
+            return Response(
+                serialize(
+                    detector,
+                    request.user,
+                    WorkflowEngineDetectorSerializer(),
+                ),
+                status=status.HTTP_201_CREATED,
+            )
+
+        else:
+            alert_rule = validator.save()
+            if features.has("organizations:workflow-engine-rule-serializers", organization):
+                try:
+                    detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                    return Response(
+                        serialize(
+                            detector,
+                            request.user,
+                            WorkflowEngineDetectorSerializer(),
+                        ),
+                        status=status.HTTP_201_CREATED,
+                    )
+                except Detector.DoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
 class AlertRuleIndexMixin(Endpoint):

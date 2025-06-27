@@ -501,7 +501,7 @@ class _OwnerKwargs(TypedDict):
     team_id: int | None
 
 
-def _owner_kwargs_from_actor(actor: Actor | None) -> _OwnerKwargs:
+def owner_kwargs_from_actor(actor: Actor | None) -> _OwnerKwargs:
     if actor and actor.is_user:
         return _OwnerKwargs(user_id=actor.id, team_id=None)
     if actor and actor.is_team:
@@ -629,7 +629,7 @@ def create_alert_rule(
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
-            **_owner_kwargs_from_actor(owner),
+            **owner_kwargs_from_actor(owner),
         )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
@@ -651,7 +651,7 @@ def create_alert_rule(
         AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        subscribe_projects_to_alert_rule(alert_rule.snuba_query, projects)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -665,7 +665,7 @@ def create_alert_rule(
 
 
 def subscribe_projects_to_alert_rule(
-    alert_rule: AlertRule,
+    snuba_query: SnubaQuery,
     projects: Iterable[Project],
     query_extra: str | None = None,
 ):
@@ -674,7 +674,7 @@ def subscribe_projects_to_alert_rule(
     :return: The list of created subscriptions
     """
     return bulk_create_snuba_subscriptions(
-        projects, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query, query_extra
+        projects, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query, query_extra
     )
 
 
@@ -983,7 +983,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
+            subscribe_projects_to_alert_rule(alert_rule.snuba_query, new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
