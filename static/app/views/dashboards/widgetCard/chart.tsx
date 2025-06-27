@@ -164,6 +164,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.() ?? {};
       const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
       const columns = decodeColumnOrder(
         fields.map(field => ({
@@ -175,7 +176,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         width: minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
       }));
-      const aliases = decodeColumnAliases(columns, fieldAliases);
+      const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
       return (

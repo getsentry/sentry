@@ -32,15 +32,15 @@ export function convertTableDataToTabularData(tableData?: TableData): TabularDat
 export function decodeColumnAliases(
   columns: TabularColumn[],
   fieldAliases: string[],
-  fieldHeaderMap: Record<string, string> = {}
+  fieldHeaderMap?: Record<string, string>
 ): Record<string, string> {
   if (columns.length !== fieldAliases.length) {
-    return fieldHeaderMap;
+    return fieldHeaderMap ?? {};
   }
   const fieldAliasesMap: Record<string, string> = {};
   columns.forEach((column, index) => {
     fieldAliasesMap[column.key] =
-      (fieldAliases[index] || fieldHeaderMap[column.key]) ?? '';
+      (fieldAliases[index] || fieldHeaderMap?.[column.key]) ?? '';
   });
 
   return fieldAliasesMap;
