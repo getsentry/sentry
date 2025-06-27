@@ -100,6 +100,8 @@ def serialize_meta(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
 ) -> dict:
+    internal_name = ""
+    attribute = {}
     for attribute in attributes:
         internal_name = attribute["name"]
         if internal_name.startswith("sentry._meta"):
@@ -126,11 +128,8 @@ def serialize_meta(
                 external_name = translate_internal_to_public_alias(key, item_type, trace_item_type)
                 if external_name:
                     key = external_name
-                else:
-                    if item_type == "number":
-                        key = f"tags[{key},number]"
-                    else:
-                        key = internal_name
+                elif item_type == "number":
+                    key = f"tags[{key},number]"
             mapped_result[key] = value
         return mapped_result
     except json.JSONDecodeError:
