@@ -610,7 +610,25 @@ def test_compression_functionality(compression_level):
 
 
 def test_max_segment_spans_limit(buffer: SpansBuffer):
-    spans = [
+    batch1 = [
+        Span(
+            payload=_payload("e" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000002.0,
+        ),
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000003.0,
+        ),
+    ]
+    batch2 = [
         Span(
             payload=_payload("a" * 16),
             trace_id="a" * 32,
@@ -618,7 +636,7 @@ def test_max_segment_spans_limit(buffer: SpansBuffer):
             parent_span_id=None,
             project_id=1,
             is_segment_span=True,
-            end_timestamp_precise=1700000005.0,  # keep
+            end_timestamp_precise=1700000005.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -626,7 +644,7 @@ def test_max_segment_spans_limit(buffer: SpansBuffer):
             span_id="b" * 16,
             parent_span_id="a" * 16,
             project_id=1,
-            end_timestamp_precise=1700000001.0,  # remove (lowest)
+            end_timestamp_precise=1700000001.0,
         ),
         Span(
             payload=_payload("c" * 16),
@@ -634,33 +652,13 @@ def test_max_segment_spans_limit(buffer: SpansBuffer):
             span_id="c" * 16,
             parent_span_id="a" * 16,
             project_id=1,
-            end_timestamp_precise=1700000004.0,  # keep
-        ),
-        Span(
-            payload=_payload("d" * 16),
-            trace_id="a" * 32,
-            span_id="d" * 16,
-            parent_span_id="a" * 16,
-            project_id=1,
-            end_timestamp_precise=1700000002.0,  # remove (second)
-        ),
-        Span(
-            payload=_payload("e" * 16),
-            trace_id="a" * 32,
-            span_id="e" * 16,
-            parent_span_id="a" * 16,
-            project_id=1,
-            end_timestamp_precise=1700000003.0,  # keep
+            end_timestamp_precise=1700000004.0,
         ),
     ]
 
-    with override_options(
-        {
-            "spans.buffer.max-segment-spans": 3,
-            "spans.buffer.compression.level": -1,  # Disable compression so zpopmin works on individual spans
-        }
-    ):
-        buffer.process_spans(spans, now=0)
+    with override_options({"spans.buffer.max-segment-spans": 3}):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
 
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
