@@ -121,7 +121,7 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @patch("sentry_sdk.set_tag")
     @responses.activate
