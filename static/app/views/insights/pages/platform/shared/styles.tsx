@@ -70,7 +70,7 @@ const StyledGrid = styled('div')`
     'pos5'
     'pos6';
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: 190px 300px 300px 300px;
     grid-template-areas:
@@ -80,7 +80,7 @@ const StyledGrid = styled('div')`
       'pos5 pos6';
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: 190px 190px 300px;
     grid-template-areas:

@@ -3,9 +3,10 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useTimezone} from 'sentry/components/timezoneProvider';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 interface AutomationHistoryData {
   dateSent: Date;
@@ -23,22 +24,22 @@ export default function AutomationHistoryList({history}: Props) {
   return (
     <SimpleTableWithColumns>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell name="dateSent">
+        <SimpleTable.HeaderCell>
           {tct('Time Sent ([timezone])', {timezone: moment.tz(timezone).zoneAbbr()})}
         </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="monitor">Monitor</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell name="groupId">Issue</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>Monitor</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>Issue</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {history.length === 0 && <SimpleTable.Empty>No history found</SimpleTable.Empty>}
       {history.map((row, index) => (
         <SimpleTable.Row key={index}>
-          <SimpleTable.RowCell name="dateSent">
+          <SimpleTable.RowCell>
             <DateTime date={row.dateSent} forcedTimezone={timezone} />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="monitor">
+          <SimpleTable.RowCell>
             <Link to={row.monitor.link}>{row.monitor.name}</Link>
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell name="groupId">
+          <SimpleTable.RowCell>
             <Link to={`/issues/${row.groupId}`}>{`#${row.groupId}`}</Link>
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -49,4 +50,6 @@ export default function AutomationHistoryList({history}: Props) {
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 2fr 2fr;
+
+  margin-bottom: ${space(2)};
 `;

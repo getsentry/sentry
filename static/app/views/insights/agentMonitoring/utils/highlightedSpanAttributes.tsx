@@ -1,11 +1,14 @@
+import Count from 'sentry/components/count';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -57,10 +60,6 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
   return undefined;
 }
 
-function formatCost(cost: string) {
-  return `US $${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
-}
-
 export function getHighlightedSpanAttributes({
   op,
   description,
@@ -86,30 +85,32 @@ export function getHighlightedSpanAttributes({
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: model,
+      value: <ModelName modelId={model} gap={space(0.5)} />,
     });
   }
 
   const promptTokens = getAttribute(attributeObject, 'gen_ai.usage.input_tokens');
   const completionTokens = getAttribute(attributeObject, 'gen_ai.usage.output_tokens');
   const totalTokens = getAttribute(attributeObject, 'gen_ai.usage.total_tokens');
-  if (promptTokens && completionTokens && totalTokens) {
+  if (promptTokens && completionTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
         <span>
-          {promptTokens} <IconArrow direction="right" size="xs" />{' '}
-          {`${completionTokens} (Σ ${totalTokens})`}
+          <Count value={promptTokens} /> <IconArrow direction="right" size="xs" />{' '}
+          <Count value={completionTokens} /> {' (Σ '}
+          <Count value={totalTokens} />
+          {')'}
         </span>
       ),
     });
   }
 
   const totalCosts = getAttribute(attributeObject, 'gen_ai.usage.total_cost');
-  if (totalCosts) {
+  if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatCost(totalCosts),
+      value: formatLLMCosts(totalCosts),
     });
   }
 

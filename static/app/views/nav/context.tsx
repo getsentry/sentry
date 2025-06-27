@@ -56,7 +56,7 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     useState<PrimaryNavGroup | null>(null);
 
   const theme = useTheme();
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const startInteraction = useCallback(() => {
     isInteractingRef.current = true;

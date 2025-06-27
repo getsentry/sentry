@@ -305,7 +305,7 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   font-size: 1rem;
   line-height: 1.2;
   padding-left: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SuperHeader = styled(PanelHeader)`
@@ -372,7 +372,7 @@ export function IssuesWidget() {
       queryParams={queryParams}
       canSelectGroups={false}
       renderEmptyMessage={renderEmptyMessage}
-      withChart={breakpoints.xlarge}
+      withChart={breakpoints.xl}
       useFilteredStats={false}
       source="laravel-insights"
     />

@@ -455,7 +455,7 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    basePackage: '@sentry/tanstackstart-react',
+    basePackage: 'tanstackstart-react',
   }),
 };
 

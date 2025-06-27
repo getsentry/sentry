@@ -113,7 +113,7 @@ const _SlideOverPanel = styled(motion.div, {
 
   text-align: left;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
       p.slidePosition === 'bottom'
         ? css`
