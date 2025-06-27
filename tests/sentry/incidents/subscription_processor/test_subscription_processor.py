@@ -15,7 +15,6 @@ from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.constants import ObjectStatus
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -51,14 +50,9 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.types import (
-    AnomalyDetectionSeasonality,
-    AnomalyDetectionSensitivity,
-    AnomalyDetectionThresholdType,
     AnomalyType,
     DetectAnomaliesResponse,
     TimeSeriesPoint,
@@ -73,14 +67,9 @@ from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.types.group import PriorityLevel
 from sentry.utils import json
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 EMPTY = object()
-
-
 pytestmark = [pytest.mark.sentry_metrics]
 
 
@@ -272,20 +261,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return rule
 
     @cached_property
-    def dynamic_rule(self):
-        rule = self.rule
-        rule.update(
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.HIGH,
-            seasonality=AlertRuleSeasonality.AUTO,
-            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value,
-        )
-        # dynamic alert rules have a threshold of 0.0
-        self.trigger.update(alert_threshold=0)
-        rule.snuba_query.update(time_window=15 * 60)
-        return rule
-
-    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
@@ -442,959 +417,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(self.trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    def test_seer_call(self, mock_seer_request: MagicMock):
-        # trigger a warning
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        seer_return_value_1: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.7,
-                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
-        processor = self.send_update(rule, 5, timedelta(minutes=-3))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 5
-
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.WARNING,
-                    "metric_value": 5,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        # trigger critical
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(rule, 10, timedelta(minutes=-2))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 10
-
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": 10,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        # trigger a resolution
-        seer_return_value_3: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
-                    "timestamp": 1,
-                    "value": 1,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
-        processor = self.send_update(rule, 1, timedelta(minutes=-1))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 1
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
-        )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-
-        seer_return_value_1: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.7,
-                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
-        processor = self.send_update(rule, 5, timedelta(minutes=-3))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 5
-
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        self.assert_no_active_incident(rule)  # there is no warning for dynamic alerts
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
-        )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(rule, 10, timedelta(minutes=-2))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 10
-
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": 10,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
-        )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-
-        # trigger critical first
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(rule, 10, timedelta(minutes=-2))
-        incident = self.assert_active_incident(rule)
-        # trigger a resolution
-        seer_return_value_3: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
-                    "timestamp": 1,
-                    "value": 1,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
-        processor = self.send_update(rule, 1, timedelta(minutes=-1))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 1
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [warning_action],
-            [
-                {
-                    "action": warning_action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @with_feature("organizations:performance-view")
-    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
-        throughput_rule = self.dynamic_rule
-        throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
-        # trigger critical
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(throughput_rule, 10, timedelta(minutes=-2))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert (
-            deserialized_body["config"]["time_period"]
-            == throughput_rule.snuba_query.time_window / 60
-        )
-        assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
-        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
-        assert deserialized_body["config"]["direction"] == translate_direction(
-            throughput_rule.threshold_type
-        )
-        assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 10
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(throughput_rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": 10,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-        # trigger a resolution
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
-                    "timestamp": 1,
-                    "value": 1,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(throughput_rule, 1, timedelta(minutes=-1))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert (
-            deserialized_body["config"]["time_period"]
-            == throughput_rule.snuba_query.time_window / 60
-        )
-        assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
-        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
-        assert deserialized_body["config"]["direction"] == translate_direction(
-            throughput_rule.threshold_type
-        )
-        assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 1
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(throughput_rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": 1,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    def test_has_anomaly(self):
-        rule = self.dynamic_rule
-        # test alert ABOVE
-        anomaly1: TimeSeriesPoint = {
-            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
-            "timestamp": 1,
-            "value": 10,
-        }
-
-        anomaly2: TimeSeriesPoint = {
-            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
-            "timestamp": 1,
-            "value": 10,
-        }
-
-        not_anomaly: TimeSeriesPoint = {
-            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
-            "timestamp": 1,
-            "value": 10,
-        }
-
-        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        warning_label = warning_trigger.label
-
-        label = self.trigger.label
-
-        assert has_anomaly(anomaly1, label)
-        assert has_anomaly(anomaly1, warning_label)
-        assert not has_anomaly(anomaly2, label)
-        assert has_anomaly(anomaly2, warning_label)
-        assert not has_anomaly(not_anomaly, label)
-        assert not has_anomaly(not_anomaly, warning_label)
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = SubscriptionProcessor(self.sub)
-        processor.alert_rule = self.dynamic_rule
-        result = get_anomaly_data_from_seer_legacy(
-            alert_rule=processor.alert_rule,
-            subscription=processor.subscription,
-            last_update=processor.last_update.timestamp(),
-            aggregation_value=None,
-        )
-        logger_extra = {
-            "subscription_id": self.sub.id,
-            "organization_id": self.sub.project.organization.id,
-            "project_id": self.sub.project_id,
-            "alert_rule_id": self.dynamic_rule.id,
-            "threshold_type": self.dynamic_rule.threshold_type,
-            "sensitivity": self.dynamic_rule.sensitivity,
-            "seasonality": self.dynamic_rule.seasonality,
-            "aggregation_value": None,
-            "dataset": "events",
-        }
-        mock_logger.warning.assert_called_with(
-            "Aggregation value is none",
-            extra=logger_extra,
-        )
-        assert result is not None
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
-        rule = self.dynamic_rule
-        processor = SubscriptionProcessor(self.sub)
-        from urllib3.exceptions import TimeoutError
-
-        mock_seer_request.side_effect = TimeoutError
-        aggregation_value = 10
-        result = get_anomaly_data_from_seer_legacy(
-            alert_rule=processor.alert_rule,
-            subscription=processor.subscription,
-            last_update=processor.last_update.timestamp(),
-            aggregation_value=aggregation_value,
-        )
-        timeout_extra = {
-            "subscription_id": self.sub.id,
-            "dataset": self.sub.snuba_query.dataset,
-            "organization_id": self.sub.project.organization.id,
-            "project_id": self.sub.project_id,
-            "alert_rule_id": rule.id,
-            "threshold_type": rule.threshold_type,
-            "sensitivity": rule.sensitivity,
-            "seasonality": rule.seasonality,
-            "aggregation_value": aggregation_value,
-        }
-        mock_logger.warning.assert_called_with(
-            "Timeout error when hitting anomaly detection endpoint",
-            extra=timeout_extra,
-        )
-
-        assert result is None
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
-        rule = self.dynamic_rule
-        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-
-        rule.refresh_from_db()
-
-        # test that we don't activate if we get "no_data"
-        seer_return_value = {
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.0,
-                        "anomaly_type": AnomalyType.NO_DATA.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ]
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, 5)
-
-        rule.refresh_from_db()
-
-        assert mock_seer_request.call_count == 1
-        assert rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_enable_dynamic_alert_rule(self, mock_seer_request):
-        rule = self.dynamic_rule
-        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-
-        rule.refresh_from_db()
-
-        # test that we activate but don't fire an alert if we get "none"
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.2,
-                        "anomaly_type": AnomalyType.NONE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, 5)
-
-        rule.refresh_from_db()
-
-        assert mock_seer_request.call_count == 1
-        assert rule.status == AlertRuleStatus.PENDING.value
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
-        rule = self.dynamic_rule
-        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-
-        rule.refresh_from_db()
-
-        # test that we can activate and fire an alert
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.7,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, 10)
-
-        rule.refresh_from_db()
-
-        assert mock_seer_request.call_count == 1
-        assert rule.status == AlertRuleStatus.PENDING.value
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": 10,
-                    "notification_uuid": mock.ANY,
-                },
-            ],
-        )
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
-        processor = SubscriptionProcessor(self.sub)
-        seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        result = get_anomaly_data_from_seer_legacy(
-            alert_rule=self.dynamic_rule,
-            subscription=processor.subscription,
-            last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
-        )
-        assert mock_logger.warning.call_args[0] == (
-            "Seer anomaly detection response returned no potential anomalies",
-        )
-        assert result is None
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
-        processor = SubscriptionProcessor(self.sub)
-        mock_seer_request.return_value = HTTPResponse(status=403)
-        aggregation_value = 10
-        result = get_anomaly_data_from_seer_legacy(
-            alert_rule=self.dynamic_rule,
-            subscription=processor.subscription,
-            last_update=processor.last_update.timestamp(),
-            aggregation_value=aggregation_value,
-        )
-        mock_logger.info.assert_called_with(
-            "Error when hitting Seer detect anomalies endpoint",
-            extra={
-                "subscription_id": self.sub.id,
-                "dataset": "events",
-                "organization_id": self.organization.id,
-                "project_id": self.project.id,
-                "alert_rule_id": self.rule.id,
-                "threshold_type": self.rule.threshold_type,
-                "sensitivity": self.rule.sensitivity,
-                "seasonality": self.rule.seasonality,
-                "aggregation_value": aggregation_value,
-                "response_data": None,
-            },
-        )
-        assert result is None
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
-        processor = SubscriptionProcessor(self.sub)
-        mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
-        result = get_anomaly_data_from_seer_legacy(
-            alert_rule=self.dynamic_rule,
-            subscription=processor.subscription,
-            last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
-        )
-        mock_logger.exception.assert_called_with(
-            "Failed to parse Seer anomaly detection response", extra=mock.ANY
-        )
-        assert result is None
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_alert(self, create_metric_issue_mock, mock_metrics):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": uuid,
-                }
-            ],
-        )
-        create_metric_issue_mock.assert_not_called()
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-            ],
-        )
-
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.subscription_processor.logger")
-    def test_alert_metrics_logging(self, mock_logger, mock_metrics):
-        """
-        Test that we are logging when we enter workflow engine at the same rate as we store a metric for firing an alert
-        """
-        rule = self.rule
-        trigger = self.trigger
-        # create a warning trigger
-        create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
-        self.send_update(rule, trigger.alert_threshold + 1)
-        logger_extra = {
-            "results": [],
-            "num_results": 0,
-            "value": trigger.alert_threshold + 1,
-            "rule_id": rule.id,
-        }
-        assert mock_logger.info.call_count == 1
-        mock_logger.info.assert_called_with(
-            "dual processing results for alert rule",
-            extra=logger_extra,
-        )
-        # assert that we only create a metric for `dual_processing.alert_rules.fire` once despite having 2 triggers
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
-                ),
-                call(
-                    "dual_processing.alert_rules.fire",
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-            ],
-        )
-
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
@@ -1513,94 +535,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_resolve(self, create_metric_issue_mock, mock_metrics):
-        # Verify that an alert rule that only expects a single update to be under the
-        # resolve threshold triggers correctly
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                }
-            ],
-        )
-
-        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": rule.resolve_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                }
-            ],
-        )
-        create_metric_issue_mock.assert_not_called()
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-                call(
-                    "incidents.alert_rules.threshold.resolve",
-                    tags={"detection_type": "static"},
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
-            ]
-        )
-
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_resolve_metrics(self, mock_metrics):
-        rule = self.rule
-        trigger = self.trigger
-        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
-                ),
-                call(
-                    "dual_processing.alert_rules.fire",
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-                call(
-                    "incidents.alert_rules.threshold.resolve",
-                    tags={"detection_type": "static"},
-                ),
-                call(
-                    "dual_processing.alert_rules.resolve",
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
-            ]
-        )
 
     def test_resolve_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be under the
@@ -4140,59 +3074,197 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
+
+@freeze_time()
+class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
+    @cached_property
+    def dynamic_rule(self):
         rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1)
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        rule.update(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value,
         )
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": uuid,
-                }
-            ],
-        )
+        # dynamic alert rules have a threshold of 0.0
+        self.trigger.update(alert_threshold=0)
+        rule.snuba_query.update(time_window=15 * 60)
+        return rule
 
-        # Verify that a metric issue is created when an alert fires
-        mock_produce_occurrence_to_kafka.assert_called_once()
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.issue_title == incident.title
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_dynamic_alert_creates_metric_issue(
-        self, mock_produce_occurrence_to_kafka: MagicMock, mock_seer_request: MagicMock
-    ):
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    def test_seer_call(self, mock_seer_request: MagicMock):
+        # trigger a warning
         rule = self.dynamic_rule
         trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        seer_return_value_1: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ],
+        }
 
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
+        processor = self.send_update(rule, 5, timedelta(minutes=-3))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
+        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 5
+
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.WARNING,
+                    "metric_value": 5,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        # trigger critical
+        seer_return_value_2: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
+        processor = self.send_update(rule, 10, timedelta(minutes=-2))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
+        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 10
+
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": 10,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+        # trigger a resolution
+        seer_return_value_3: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
+                    "timestamp": 1,
+                    "value": 1,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
+        processor = self.send_update(rule, 1, timedelta(minutes=-1))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
+        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 1
+
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                {
+                    "action": warning_action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CLOSED,
+                    "metric_value": 1,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:performance-view")
+    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
+        throughput_rule = self.dynamic_rule
+        throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
+        # trigger critical
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -4208,51 +3280,27 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, trigger.alert_threshold + 1)
+        processor = self.send_update(throughput_rule, 10, timedelta(minutes=-2))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert (
+            deserialized_body["config"]["time_period"]
+            == throughput_rule.snuba_query.time_window / 60
+        )
+        assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
+        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
+        assert deserialized_body["config"]["direction"] == translate_direction(
+            throughput_rule.threshold_type
+        )
+        assert deserialized_body["context"]["id"] == throughput_rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 10
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": uuid,
-                }
-            ],
-        )
-
-        # Verify that a metric issue is created when an alert fires
-        mock_produce_occurrence_to_kafka.assert_called_once()
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.issue_title == incident.title
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
-        from sentry.models.group import GroupStatus
-
-        # Trigger an incident at critical status
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
+        incident = self.assert_active_incident(throughput_rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
@@ -4263,24 +3311,46 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "incident": incident,
                     "project": self.project,
                     "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
+                    "metric_value": 10,
                     "notification_uuid": mock.ANY,
-                }
+                },
             ],
         )
 
-        # Check that a metric issue is created
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-        mock_produce_occurrence_to_kafka.reset_mock()
+        # trigger a resolution
+        seer_return_value_2: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
+                    "timestamp": 1,
+                    "value": 1,
+                }
+            ],
+        }
 
-        # Resolve the incident
-        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
+        processor = self.send_update(throughput_rule, 1, timedelta(minutes=-1))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert (
+            deserialized_body["config"]["time_period"]
+            == throughput_rule.snuba_query.time_window / 60
+        )
+        assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
+        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
+        assert deserialized_body["config"]["direction"] == translate_direction(
+            throughput_rule.threshold_type
+        )
+        assert deserialized_body["context"]["id"] == throughput_rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 1
+
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
+        self.assert_no_active_incident(throughput_rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
@@ -4291,58 +3361,322 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "incident": incident,
                     "project": self.project,
                     "new_status": IncidentStatus.CLOSED,
-                    "metric_value": rule.resolve_threshold - 1,
+                    "metric_value": 1,
                     "notification_uuid": mock.ANY,
-                }
+                },
             ],
         )
 
-        # Verify that the metric issue is updated
-        assert mock_produce_occurrence_to_kafka.call_count == 2
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.priority == PriorityLevel.MEDIUM
-        assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
+    def test_has_anomaly(self):
+        rule = self.dynamic_rule
+        # test alert ABOVE
+        anomaly1: TimeSeriesPoint = {
+            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
+            "timestamp": 1,
+            "value": 10,
+        }
 
-        status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
-        assert status_change.new_status == GroupStatus.RESOLVED
-        assert occurrence.fingerprint == status_change.fingerprint
+        anomaly2: TimeSeriesPoint = {
+            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
+            "timestamp": 1,
+            "value": 10,
+        }
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
-    def test_process_data_packets_called(self, mock_process_data_packets):
-        rule = self.rule
-        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.send_update(rule, 10)
-        assert mock_process_data_packets.call_count == 1
-        assert (
-            mock_process_data_packets.call_args_list[0][0][1]
-            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        not_anomaly: TimeSeriesPoint = {
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
+            "timestamp": 1,
+            "value": 10,
+        }
+
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_label = warning_trigger.label
+
+        label = self.trigger.label
+
+        assert has_anomaly(anomaly1, label)
+        assert has_anomaly(anomaly1, warning_label)
+        assert not has_anomaly(anomaly2, label)
+        assert has_anomaly(anomaly2, warning_label)
+        assert not has_anomaly(not_anomaly, label)
+        assert not has_anomaly(not_anomaly, warning_label)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = SubscriptionProcessor(self.sub)
+        processor.alert_rule = self.dynamic_rule
+        result = get_anomaly_data_from_seer_legacy(
+            alert_rule=processor.alert_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=None,
         )
-        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"value": 10}
-
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
-    @mock.patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
-    def test_process_data_packets_not_called(
-        self, mock_get_comparison_aggregation_value, mock_process_data_packets
-    ):
-        rule = self.comparison_rule_above
-        trigger = self.trigger
-
-        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-
-        mock_get_comparison_aggregation_value.return_value = None
-        self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        logger_extra = {
+            "subscription_id": self.sub.id,
+            "organization_id": self.sub.project.organization.id,
+            "project_id": self.sub.project_id,
+            "alert_rule_id": self.dynamic_rule.id,
+            "threshold_type": self.dynamic_rule.threshold_type,
+            "sensitivity": self.dynamic_rule.sensitivity,
+            "seasonality": self.dynamic_rule.seasonality,
+            "aggregation_value": None,
+            "dataset": "events",
+        }
+        mock_logger.warning.assert_called_with(
+            "Aggregation value is none",
+            extra=logger_extra,
         )
-        assert mock_process_data_packets.call_count == 0
+        assert result is not None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+        rule = self.dynamic_rule
+        processor = SubscriptionProcessor(self.sub)
+        from urllib3.exceptions import TimeoutError
+
+        mock_seer_request.side_effect = TimeoutError
+        aggregation_value = 10
+        result = get_anomaly_data_from_seer_legacy(
+            alert_rule=processor.alert_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=aggregation_value,
+        )
+        timeout_extra = {
+            "subscription_id": self.sub.id,
+            "dataset": self.sub.snuba_query.dataset,
+            "organization_id": self.sub.project.organization.id,
+            "project_id": self.sub.project_id,
+            "alert_rule_id": rule.id,
+            "threshold_type": rule.threshold_type,
+            "sensitivity": rule.sensitivity,
+            "seasonality": rule.seasonality,
+            "aggregation_value": aggregation_value,
+        }
+        mock_logger.warning.assert_called_with(
+            "Timeout error when hitting anomaly detection endpoint",
+            extra=timeout_extra,
+        )
+
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we don't activate if we get "no_data"
+        seer_return_value = {
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.0,
+                        "anomaly_type": AnomalyType.NO_DATA.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_enable_dynamic_alert_rule(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we activate but don't fire an alert if we get "none"
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.2,
+                        "anomaly_type": AnomalyType.NONE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we can activate and fire an alert
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 10)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [
+                {
+                    "action": self.action,
+                    "incident": incident,
+                    "project": self.project,
+                    "new_status": IncidentStatus.CRITICAL,
+                    "metric_value": 10,
+                    "notification_uuid": mock.ANY,
+                },
+            ],
+        )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        result = get_anomaly_data_from_seer_legacy(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
+        assert mock_logger.warning.call_args[0] == (
+            "Seer anomaly detection response returned no potential anomalies",
+        )
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        mock_seer_request.return_value = HTTPResponse(status=403)
+        aggregation_value = 10
+        result = get_anomaly_data_from_seer_legacy(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=aggregation_value,
+        )
+        mock_logger.info.assert_called_with(
+            "Error when hitting Seer detect anomalies endpoint",
+            extra={
+                "subscription_id": self.sub.id,
+                "dataset": "events",
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "alert_rule_id": self.rule.id,
+                "threshold_type": self.rule.threshold_type,
+                "sensitivity": self.rule.sensitivity,
+                "seasonality": self.rule.seasonality,
+                "aggregation_value": aggregation_value,
+                "response_data": None,
+            },
+        )
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
+        result = get_anomaly_data_from_seer_legacy(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
+        mock_logger.exception.assert_called_with(
+            "Failed to parse Seer anomaly detection response", extra=mock.ANY
+        )
+        assert result is None
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
