@@ -54,7 +54,7 @@ interface RenderProps {
   showDropdownFilters: boolean;
 }
 
-export interface ReplayTableColumn {
+interface ReplayTableColumn {
   Component: (props: RenderProps) => ReactNode;
   name: string;
   sortKey: undefined | ReplayRecordNestedFieldName;
