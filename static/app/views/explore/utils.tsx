@@ -340,7 +340,7 @@ export function viewSamplesTarget({
     mode: Mode.SAMPLES,
     fields: newFields,
     query: search.formatString(),
-    sortBys: [sortBy],
+    sampleSortBys: [sortBy],
   });
 }
 
