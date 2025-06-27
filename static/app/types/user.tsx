@@ -21,12 +21,6 @@ export type AvatarUser = {
   };
 };
 
-// This object tracks the status of the quick start display for each organization.
-// The key is the organization ID, and the value represents the display status:
-// Null = Hidden on the first visit
-// 1 = Shown once (on the second visit)
-// 2 = Hidden automatically after the second visit
-type QuickStartDisplay = Record<string, number>;
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
@@ -56,7 +50,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersIssueDetailsStreamlinedUI: boolean | null;
     prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean | null;
-    quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
