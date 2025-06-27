@@ -126,6 +126,7 @@ function BreadcrumbItem({
           allowShowSnippet={allowShowSnippet}
           showSnippet={showSnippet}
           onClickViewHtml={handleViewHtml}
+          expandPaths={expandPaths}
           onInspectorExpanded={onInspectorExpanded}
         />
         <BreadcrumbComparisonButton frame={frame} replay={replay} />
@@ -162,7 +163,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   }
   cursor: pointer;
   /* vertical line connecting items */
-  &::before {
+  &:not(:last-child)::before {
     content: '';
     position: absolute;
     left: 16.5px;

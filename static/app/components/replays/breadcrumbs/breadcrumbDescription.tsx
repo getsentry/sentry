@@ -8,7 +8,7 @@ import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/types';
-import {isSpanFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 interface Props {
@@ -44,7 +44,7 @@ export function BreadcrumbDescription({
         {allowShowSnippet &&
           !showSnippet &&
           frame.data?.nodeId !== undefined &&
-          (!isSpanFrame(frame) || !isWebVitalFrame(frame)) && (
+          !isSpanFrame(frame) && (
             <ViewHtmlButton priority="link" onClick={onClickViewHtml} size="xs">
               {t('View HTML')}
             </ViewHtmlButton>
