@@ -9,6 +9,7 @@ from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry
 from django.conf import settings
 from django.db.models import Model
 
@@ -16,7 +17,7 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.retry import retry_task
+from sentry.taskworker.retry import RetryError, retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -244,6 +245,10 @@ def retry(
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
+                # We shouldn't interfere with exceptions that exist to communicate
+                # retry state.
+                raise
             except ignore:
                 return
             except ignore_and_capture:
