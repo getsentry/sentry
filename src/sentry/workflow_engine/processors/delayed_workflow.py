@@ -578,7 +578,7 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
-                workflow_event_data = WorkflowEventData(event=group_event)
+                workflow_event_data = WorkflowEventData(event=group_event, group=group)
                 detector = get_detector_by_event(workflow_event_data)
 
                 workflow_triggers: set[DataConditionGroup] = set()
@@ -624,13 +624,18 @@ def fire_actions_for_groups(
                     tags={"event_type": group_event.group.type},
                 )
 
+                event_id = (
+                    workflow_event_data.event.event_id
+                    if isinstance(workflow_event_data.event, GroupEvent)
+                    else workflow_event_data.event.id
+                )
                 logger.info(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
                         "actions": [action.id for action in filtered_actions],
                         "event_data": workflow_event_data,
-                        "event_id": workflow_event_data.event.event_id,
+                        "event_id": event_id,
                     },
                 )
 
