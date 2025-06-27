@@ -81,10 +81,12 @@ function StacktraceLinkModal({
   );
 
   const suggestions = uniq(
-    suggestedCodeMappings?.map(suggestion => {
-      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
-    })
-  ).slice(0, 2);
+    suggestedCodeMappings
+      ?.map(suggestion => {
+        return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+      })
+      .slice(0, 2)
+  );
 
   const onHandleChange = (input: string) => {
     setSourceCodeInput(input);
