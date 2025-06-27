@@ -6,13 +6,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
@@ -73,9 +69,6 @@ function ReplayTable({
   onClickRow,
   referrerLocation,
 }: Props) {
-  const routes = useRoutes();
-  const location = useLocation();
-
   const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const tableHeaders = visibleColumns
@@ -98,9 +91,6 @@ function ReplayTable({
       </StyledPanelTable>
     );
   }
-
-  const referrer = getRouteStringFromRoutes(routes);
-  const eventView = EventView.fromLocation(location);
 
   return (
     <StyledPanelTable
@@ -198,16 +188,7 @@ function ReplayTable({
                     );
 
                   case ReplayColumn.REPLAY:
-                    return (
-                      <ReplayCell
-                        key="session"
-                        replay={replay}
-                        rowIndex={index}
-                        eventView={eventView}
-                        referrer={referrer}
-                        referrerTable="main"
-                      />
-                    );
+                    return <ReplayCell key="session" replay={replay} rowIndex={index} />;
 
                   case ReplayColumn.PLAY_PAUSE:
                     return <PlayPauseCell key="play" replay={replay} rowIndex={index} />;
