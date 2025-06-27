@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from functools import lru_cache
 from typing import Any
 
 import orjson
@@ -23,11 +24,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -173,6 +175,33 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
+@lru_cache(maxsize=1)
+def create_fixability_connection_pool():
+    return connection_from_url(
+        settings.SEER_SEVERITY_URL,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    )
+
+
+def _generate_fixability_score_via_conn_pool(group: Group):
+    payload = {
+        "group_id": group.id,
+        "organization_slug": group.organization.slug,
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+    }
+    response = make_signed_seer_api_request(
+        create_fixability_connection_pool(),
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    )
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
+    response_data = orjson.loads(response.data)
+    return SummarizeIssueResponse.validate(response_data)
+
+
 def _generate_fixability_score(group: Group):
     path = "/v1/automation/summarize/fixability"
     body = orjson.dumps(
@@ -295,7 +324,10 @@ def _run_automation(
     )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+        if group.organization.id == 1:  # TODO(kddubey): rm temp guard
+            issue_summary = _generate_fixability_score_via_conn_pool(group)
+        else:
+            issue_summary = _generate_fixability_score(group)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
