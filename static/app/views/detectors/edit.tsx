@@ -115,7 +115,7 @@ export default function DetectorEdit() {
             <DetectorBreadcrumbs detectorId={params.detectorId} />
             <DetectorBaseFields />
           </Layout.HeaderContent>
-          <EditDetectorActions detector={detector} />
+          <EditDetectorActions detectorId={detector.id} />
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>

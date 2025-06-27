@@ -7,18 +7,14 @@ import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {useDeleteDetectorMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorMutation';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface EditDetectorActionsProps {
-  detector: Detector;
-  formData?: MetricDetectorFormData;
-  isValid?: boolean;
-  onSave?: () => void;
+  detectorId: Detector['id'];
 }
 
-export function EditDetectorActions({detector}: EditDetectorActionsProps) {
+export function EditDetectorActions({detectorId}: EditDetectorActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {mutate: deleteDetector, isPending: isDeleting} = useDeleteDetectorMutation();
@@ -29,14 +25,14 @@ export function EditDetectorActions({detector}: EditDetectorActionsProps) {
       confirmText: t('Delete'),
       priority: 'danger',
       onConfirm: () => {
-        deleteDetector(detector.id, {
+        deleteDetector(detectorId, {
           onSuccess: () => {
             navigate(makeMonitorBasePathname(organization.slug));
           },
         });
       },
     });
-  }, [deleteDetector, detector.id, navigate, organization.slug]);
+  }, [deleteDetector, detectorId, navigate, organization.slug]);
 
   return (
     <div>

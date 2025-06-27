@@ -21,7 +21,7 @@ describe('EditDetectorActions', () => {
       method: 'DELETE',
     });
 
-    const {router} = render(<EditDetectorActions detector={detector} />);
+    const {router} = render(<EditDetectorActions detectorId={detector.id} />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
