@@ -273,9 +273,10 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilder();
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    filterValue,
-  });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
+    useFilterKeyListBox({
+      filterValue,
+    });
   const sortedFilteredItems = useSortedFilterKeyItems({
     filterValue,
     inputValue,
@@ -392,6 +393,13 @@ function SearchQueryBuilderInputInternal({
         items={items}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
+          if (handleOptionSelected) {
+            handleOptionSelected(option);
+            if (option.type === 'ask-seer') {
+              return;
+            }
+          }
+
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
