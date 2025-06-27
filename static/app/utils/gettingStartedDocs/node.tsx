@@ -383,7 +383,7 @@ export const getNodeAgentMonitoringOnboarding = ({
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage,
+        basePackage: `@sentry/${basePackage}`,
       }),
     },
   ],

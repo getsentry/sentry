@@ -9,11 +9,16 @@ import {space} from 'sentry/styles/space';
 interface RowProps {
   children: React.ReactNode;
   onDelete: () => void;
+  isConflicting?: boolean;
 }
 
-export default function AutomationBuilderRow({onDelete, children}: RowProps) {
+export default function AutomationBuilderRow({
+  onDelete,
+  children,
+  isConflicting,
+}: RowProps) {
   return (
-    <RowContainer>
+    <RowContainer incompatible={isConflicting}>
       <RowLine>{children}</RowLine>
       <DeleteButton
         aria-label={t('Delete Condition')}
@@ -32,7 +37,7 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.innerBorder} solid;
-  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
+  border-color: ${p => (p.incompatible ? p.theme.dangerFocus : 'none')};
   position: relative;
   padding: ${space(0.75)} ${space(1.5)};
   min-height: 46px;

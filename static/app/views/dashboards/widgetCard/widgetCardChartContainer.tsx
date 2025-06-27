@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -40,7 +41,7 @@ type Props = {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -91,6 +92,7 @@ export function WidgetCardChartContainer({
   showLoadingText,
 }: Props) {
   const location = useLocation();
+  const theme = useTheme();
 
   function keepLegendState({
     selected,
@@ -167,6 +169,8 @@ export function WidgetCardChartContainer({
                 widget={widget}
                 location={location}
                 selection={selection}
+                theme={theme}
+                organization={organization}
               />
             </Fragment>
           );
@@ -210,6 +214,7 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
+              theme={theme}
             />
           </Fragment>
         );

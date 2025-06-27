@@ -48,6 +48,14 @@ export class Visualize {
     this.stack = 'all';
   }
 
+  isValid(): boolean {
+    if (this.isEquation) {
+      const expression = new Expression(this.yAxis);
+      return expression.isValid;
+    }
+    return defined(parseFunction(this.yAxis));
+  }
+
   clone(): Visualize {
     return new Visualize(this.yAxis, {
       chartType: this.selectedChartType,
@@ -112,12 +120,13 @@ export function parseBaseVisualize(
       return null;
     }
 
-    const yAxes = organization.features.includes('visibility-explore-equations')
-      ? parsed.yAxes.filter((yAxis: string) => {
-          const expression = new Expression(yAxis);
-          return expression.isValid;
-        })
-      : parsed.yAxes.filter(parseFunction);
+    const allowEquations = organization.features.includes('visibility-explore-equations');
+    const yAxes = parsed.yAxes.filter((yAxis: string) => {
+      if (isEquation(yAxis)) {
+        return allowEquations;
+      }
+      return defined(parseFunction(yAxis));
+    });
     if (yAxes.length <= 0) {
       return null;
     }

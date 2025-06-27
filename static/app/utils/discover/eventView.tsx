@@ -7,8 +7,8 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';

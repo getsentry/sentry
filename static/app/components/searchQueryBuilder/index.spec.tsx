@@ -3505,6 +3505,30 @@ describe('SearchQueryBuilder', function () {
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
     });
+
+    describe('secondary aliases provided', function () {
+      it('should not mark secondary aliases as invalid', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowUnsupportedFilters
+            initialQuery="foo:bar"
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+          />
+        );
+
+        expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+          'aria-invalid',
+          'false'
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('{ArrowLeft}');
+        expect(
+          screen.queryByText('Invalid key. "foo" is not a supported search key.')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('invalidMessages', function () {

@@ -23,8 +23,14 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -52,6 +58,7 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
@@ -245,7 +252,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
             meta=RequestMeta(
                 organization_id=org_id,
                 cogs_category="events_analytics_platform",
-                referrer="seer-rpc",
+                referrer=Referrer.SEER_RPC.value,
                 project_ids=project_ids,
                 start_timestamp=start_time_proto,
                 end_timestamp=end_time_proto,
@@ -309,7 +316,7 @@ def get_attribute_values(
                 meta=RequestMeta(
                     organization_id=org_id,
                     cogs_category="events_analytics_platform",
-                    referrer="seer_rpc",
+                    referrer=Referrer.SEER_RPC.value,
                     project_ids=project_ids,
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
@@ -372,7 +379,7 @@ def get_attribute_values_with_substring(
                 meta=RequestMeta(
                     organization_id=org_id,
                     cogs_category="events_analytics_platform",
-                    referrer="seer_rpc",
+                    referrer=Referrer.SEER_RPC.value,
                     project_ids=project_ids,
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
@@ -392,6 +399,67 @@ def get_attribute_values_with_substring(
     return {"values": values}
 
 
+def get_attributes_and_values(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str,
+    max_values: int = 100,
+    max_attributes: int = 1000,
+) -> dict:
+    """
+    Fetches all string attributes and the corresponding values with counts for a given period.
+    """
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    meta = RequestMeta(
+        organization_id=org_id,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        project_ids=project_ids,
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    )
+
+    filter = TraceItemFilter()
+    stats_type = StatsType(
+        attribute_distributions=AttributeDistributionsRequest(
+            max_buckets=max_values,
+            max_attributes=max_attributes,
+        )
+    )
+    rpc_request = TraceItemStatsRequest(
+        filter=filter,
+        meta=meta,
+        stats_types=[stats_type],
+    )
+    rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
+
+    attributes_and_values = [
+        {
+            attribute.attribute_name: [
+                {"value": value.label, "count": value.value} for value in attribute.buckets
+            ]
+        }
+        for result in rpc_response.results
+        for attribute in result.attribute_distributions.attributes
+        if attribute.buckets
+    ]
+
+    return {"attributes_and_values": attributes_and_values}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -405,6 +473,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values": get_attribute_values,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
+    "get_attributes_and_values": get_attributes_and_values,
 }
 
 
