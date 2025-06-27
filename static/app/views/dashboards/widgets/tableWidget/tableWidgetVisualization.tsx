@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,9 +74,19 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
+   * A callback function that is invoked after a user clicks a sortable column header
+   * @param sortBy the field that should be sorted
+   * @param sortDirection whether to sort by 'asc' or 'desc'
+   */
+  onColumnSortChange?: (sort: Sort) => void;
+  /**
    * If true, the table will scroll on overflow. Note that the table headers will also be sticky
    */
   scrollable?: boolean;
+  /**
+   * The current sort order to display
+   */
+  sort?: Sort;
 }
 
 const FRAMELESS_STYLES = {
@@ -99,6 +109,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     scrollable,
     fit,
     aliases,
+    onColumnSortChange,
+    sort,
   } = props;
 
   const theme = useTheme();
@@ -147,11 +159,22 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const column = columnOrder[columnIndex]!;
           const align = fieldAlignment(column.name, column.type as ColumnValueType);
           const name = aliases?.[column.key] || column.name;
+          const direction = sort?.field === column.key ? sort?.kind : undefined;
 
           return (
-            <CellWrapper align={align}>
-              <StyledTooltip title={name}>{name}</StyledTooltip>
-            </CellWrapper>
+            <SortLink
+              align={align}
+              canSort={column?.sortable ?? true}
+              onClick={() =>
+                onColumnSortChange?.({
+                  field: column.key,
+                  kind: direction === 'desc' ? 'asc' : 'desc',
+                })
+              }
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              direction={direction}
+              generateSortLink={() => location}
+            />
           );
         },
         renderBodyCell: (tableColumn, dataRow, rowIndex, columnIndex) => {
@@ -184,11 +207,4 @@ TableWidgetVisualization.LoadingPlaceholder = function () {
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
-`;
-
-const CellWrapper = styled('div')<{align: Alignments}>`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;

@@ -17,7 +17,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -56,6 +56,7 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onTableColumnSort?: (sort: Sort) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -90,6 +91,7 @@ export function WidgetCardChartContainer({
   onDataFetchStart,
   disableZoom,
   showLoadingText,
+  onTableColumnSort,
 }: Props) {
   const location = useLocation();
   const theme = useTheme();
@@ -171,6 +173,7 @@ export function WidgetCardChartContainer({
                 selection={selection}
                 theme={theme}
                 organization={organization}
+                onTableColumnSort={onTableColumnSort}
               />
             </Fragment>
           );
@@ -215,6 +218,7 @@ export function WidgetCardChartContainer({
               isSampled={isSampled}
               showLoadingText={showLoadingText}
               theme={theme}
+              onTableColumnSort={onTableColumnSort}
             />
           </Fragment>
         );
