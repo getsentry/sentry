@@ -14,7 +14,7 @@ class PostVerificationCodeTest(APITestCase):
 
     def test_simple(self):
         self.get_success_response()
-        code = UserMergeVerificationCode.objects.filter(user=self.user)
+        code = UserMergeVerificationCode.objects.filter(user=self.user).first()
         assert code is not None
 
 
