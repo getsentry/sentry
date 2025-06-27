@@ -43,7 +43,7 @@ def create_workflow_fire_histories(
         WorkflowFireHistory(
             detector_id=detector.id,
             workflow_id=workflow_id,
-            group=event_data.event.group,
+            group=event_data.group,
             event_id=event_id,
         )
         for workflow_id in workflow_ids
