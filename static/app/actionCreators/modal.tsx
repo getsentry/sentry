@@ -67,12 +67,12 @@ export async function openEmailVerification({
 export async function openMissingPrimaryEmailModal({
   onClose,
   ...args
-}: EmailVerificationModalOptions = {}) {
+}: ModalOptions = {}) {
   const {default: Modal} = await import(
     'sentry/components/modals/missingPrimaryEmailModal'
   );
   Sentry.captureMessage(
-    'Displaying MissingPrimaryEmailModel to user without primary email address',
+    'Displaying MissingPrimaryEmailModal to user without primary email address',
     'info'
   );
   openModal(deps => <Modal {...deps} {...args} />, {onClose});

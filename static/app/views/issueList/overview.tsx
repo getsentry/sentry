@@ -218,7 +218,7 @@ function IssueListOverview({
     if (showSetEmailModal) {
       openMissingPrimaryEmailModal();
     }
-  });
+  }, [showSetEmailModal]);
 
   useIssuesINPObserver();
 
