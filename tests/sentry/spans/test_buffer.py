@@ -607,3 +607,65 @@ def test_compression_functionality(compression_level):
 
         buffer.done_flush_segments(segments)
         assert_clean(buffer.client)
+
+
+def test_max_segment_spans_limit(buffer: SpansBuffer):
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            project_id=1,
+            is_segment_span=True,
+            end_timestamp_precise=1700000005.0,  # keep
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000001.0,  # remove (lowest)
+        ),
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000004.0,  # keep
+        ),
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="a" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000002.0,  # remove (second)
+        ),
+        Span(
+            payload=_payload("e" * 16),
+            trace_id="a" * 32,
+            span_id="e" * 16,
+            parent_span_id="a" * 16,
+            project_id=1,
+            end_timestamp_precise=1700000003.0,  # keep
+        ),
+    ]
+
+    with override_options(
+        {
+            "spans.buffer.max-segment-spans": 3,
+            "spans.buffer.compression.level": -1,  # Disable compression so zpopmin works on individual spans
+        }
+    ):
+        buffer.process_spans(spans, now=0)
+        rv = buffer.flush_segments(now=11)
+
+    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
+    retained_span_ids = {span.payload["span_id"] for span in segment.spans}
+    assert retained_span_ids == {"a" * 16, "c" * 16, "e" * 16}
+
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
