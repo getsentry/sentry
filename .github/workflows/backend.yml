@@ -220,8 +220,13 @@ jobs:
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: astral-sh/setup-uv@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.7.15'
+
       - name: check requirements
         run: |
           python -S -m tools.freeze_requirements
@@ -323,7 +328,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.7.15'
+          # we just cache the venv-dir directly in action-setup-venv
+          enable-cache: false
 
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
