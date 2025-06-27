@@ -80,7 +80,7 @@ jobs:
     needs: files-changed
     name: typescript (native preview) - optional
     runs-on: ubuntu-24.04
-    continue-on-error: true  # Make this job optional - don't fail the build if it fails
+    continue-on-error: true # Make this job optional - don't fail the build if it fails
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -111,7 +111,7 @@ jobs:
       - name: tsgo (experimental native TypeScript)
         id: tsgo
         run: pnpm run tsc:native-preview
-        continue-on-error: true  # Don't fail if the native preview has issues
+        continue-on-error: true # Don't fail if the native preview has issues
 
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
