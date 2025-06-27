@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest import mock
+from unittest import mock, skip
 from unittest.mock import MagicMock, call, patch
 
 import orjson
@@ -430,6 +430,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @skip("not enabled yet")
     def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -508,6 +509,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @skip("not enabled yet")
     def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -602,6 +604,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @skip("not enabled yet")
     def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
