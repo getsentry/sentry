@@ -284,7 +284,7 @@ function DeprecatedLine({
                         <SourceMapsDebuggerModal
                           analyticsParams={sourceMapDebuggerAmplitudeData}
                           sourceResolutionResults={frameSourceResolutionResults}
-                          orgSlug={organization?.slug}
+                          organization={organization}
                           projectId={event.projectID}
                           {...modalProps}
                         />
