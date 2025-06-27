@@ -120,8 +120,8 @@ function IdentifierField() {
       </SelectWrapper>
     );
   }
-  return tct('and, if none found, notify [fallThrough]', {
-    fallThrough: <FallthroughField />,
+  return tct('and, if none found, notify [fallthrough]', {
+    fallthrough: <FallthroughField />,
   });
 }
 
@@ -129,8 +129,8 @@ function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.data.fallthroughType`}
-      value={action.data.fallthroughType}
+      name={`${actionId}.data.fallthrough_type`}
+      value={action.data.fallthrough_type}
       options={FALLTHROUGH_CHOICES}
       onChange={(option: SelectValue<string>) =>
         onUpdate({data: {fallthroughType: option.value}})
