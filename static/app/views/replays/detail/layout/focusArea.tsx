@@ -1,5 +1,5 @@
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import Ai from 'sentry/views/replays/detail/ai';
+import Ai from 'sentry/views/replays/detail/ai/ai';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
