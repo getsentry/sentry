@@ -1,4 +1,7 @@
-import {METRIC_DETECTOR_FORM_FIELDS, useMetricDetectorFormField} from './metricFormData';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metric/metricFormData';
 
 /**
  * Returns the threshold suffix for the detector
