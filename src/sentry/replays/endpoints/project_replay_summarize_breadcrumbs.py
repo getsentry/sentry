@@ -107,8 +107,8 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=filter_params["start"].timestamp() if filter_params["start"] else None,
+                end=filter_params["end"].timestamp() if filter_params["end"] else None,
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -147,7 +147,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
 
 
 def fetch_trace_connected_errors(
-    project: Project, trace_ids: list[str], start: float, end: float
+    project: Project, trace_ids: list[str], start: float | None, end: float | None
 ) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
     try:
