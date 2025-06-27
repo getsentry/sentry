@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {isPartOfReservedBudget, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -198,18 +198,14 @@ function Overview({location, subscription, promotionData}: Props) {
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
-              !subscription.reservedBudgetCategories?.includes(categoryHistory.category)
+              !isPartOfReservedBudget(
+                categoryHistory.category,
+                subscription.reservedBudgets ?? []
+              )
           )
           .map(categoryHistory => {
             const category = categoryHistory.category;
 
-            // XXX: need to hide these categories for developer plans
-            if (
-              category === DataCategory.SEER_AUTOFIX ||
-              category === DataCategory.SEER_SCANNER
-            ) {
-              return null;
-            }
             // The usageData does not include details for seat-based categories.
             // For now we will handle the monitor category specially
             let monitor_usage: number | undefined = 0;
@@ -224,7 +220,7 @@ function Overview({location, subscription, promotionData}: Props) {
               category === DataCategory.SPANS_INDEXED &&
               !subscription.hadCustomDynamicSampling
             ) {
-              return null; // TODO(data categories): DS enterprise trial should have a reserved budget too, but currently just has unlimited
+              return null; // TODO(trial limits): DS enterprise trial should have a reserved budget too, but currently just has unlimited
             }
 
             const categoryTotals: BillingStatTotal =

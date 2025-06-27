@@ -2,90 +2,23 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
-
-function getDefaultProject(projects: Project[]) {
-  return projects.find(p => p.isMember) ?? projects[0];
-}
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 
 export function DetectorTypeForm() {
   return (
     <FormContainer>
-      <div>
-        <Header>
-          <h3>{t('Monitor type')}</h3>
-          <p>
-            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-            <a href="#">{t('Learn more about monitor types.')}</a>
-          </p>
-        </Header>
-        <MonitorTypeField />
-      </div>
-      <div>
-        <Header>
-          <h3>{t('Project and Environment')}</h3>
-        </Header>
-        <Flex>
-          <ProjectField />
-          <EnvironmentField />
-        </Flex>
-      </div>
+      <Header>
+        <h3>{t('Monitor type')}</h3>
+        <p>
+          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+          <a href="#">{t('Learn more about monitor types.')}</a>
+        </p>
+      </Header>
+      <MonitorTypeField />
     </FormContainer>
-  );
-}
-
-function ProjectField() {
-  const {projects, fetching} = useProjects();
-
-  return (
-    <StyledProjectField
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      projects={projects}
-      groupProjects={project => (project.isMember ? 'member' : 'all')}
-      groups={[
-        {key: 'member', label: t('My Projects')},
-        {key: 'all', label: t('All Projects')},
-      ]}
-      name="project"
-      placeholder={t('Project')}
-      aria-label={t('Select Project')}
-      disabled={fetching}
-    />
-  );
-}
-
-function EnvironmentField() {
-  const {projects} = useProjects();
-  const projectId = useFormField<string>('project');
-  const currentProject = projectId
-    ? projects.find(p => p.id === projectId)
-    : getDefaultProject(projects);
-
-  const environments = currentProject?.environments ?? [];
-
-  return (
-    <StyledEnvironmentField
-      choices={[
-        ['', t('All Environments')],
-        ...(environments?.map(environment => [environment, environment]) ?? []),
-      ]}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      name="environment"
-      placeholder={t('Environment')}
-      aria-label={t('Select Environment')}
-    />
   );
 }
 
@@ -95,37 +28,39 @@ function MonitorTypeField() {
       inline={false}
       flexibleControlStateSize
       name="detectorType"
-      choices={[
+      choices={
         [
-          'metric',
-          t('Metric'),
-          <Description
-            key="description"
-            text={t('Monitor error counts, transaction duration, and more!')}
-            visualization={<MetricVisualization />}
-          />,
-        ],
-        [
-          'crons',
-          t('Crons'),
-          <Description
-            key="description"
-            text={t(
-              'Monitor the uptime and performance of any scheduled, recurring jobs.'
-            )}
-            visualization={<CronsVisualization />}
-          />,
-        ],
-        [
-          'uptime',
-          t('Uptime'),
-          <Description
-            key="description"
-            text={t('Monitor the uptime of specific endpoint in your applications.')}
-            visualization={<UptimeVisualization />}
-          />,
-        ],
-      ]}
+          [
+            'metric_issue',
+            t('Metric'),
+            <Description
+              key="description"
+              text={t('Monitor error counts, transaction duration, and more!')}
+              visualization={<MetricVisualization />}
+            />,
+          ],
+          [
+            'uptime_subscription',
+            t('Crons'),
+            <Description
+              key="description"
+              text={t(
+                'Monitor the uptime and performance of any scheduled, recurring jobs.'
+              )}
+              visualization={<CronsVisualization />}
+            />,
+          ],
+          [
+            'uptime_domain_failure',
+            t('Uptime'),
+            <Description
+              key="description"
+              text={t('Monitor the uptime of specific endpoint in your applications.')}
+              visualization={<UptimeVisualization />}
+            />,
+          ],
+        ] satisfies Array<[DetectorType, string, React.ReactNode]>
+      }
       required
     />
   );
@@ -134,19 +69,7 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xlarge};
-`;
-
-const StyledProjectField = styled(SentryProjectSelectorField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
-`;
-
-const StyledEnvironmentField = styled(SelectField)`
-  flex-grow: 1;
-  max-width: 360px;
-  padding-left: 0;
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const StyledRadioField = styled(RadioField)`
@@ -175,7 +98,7 @@ const StyledRadioField = styled(RadioField)`
 
     /* Markup for choice name and description is all divs :( */
     div:nth-child(2) {
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
     }
 
     &[aria-checked='true'] {
@@ -204,7 +127,7 @@ const Header = styled('div')`
 
   h3 {
     margin: 0;
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
   p {
     margin: 0;
@@ -236,7 +159,7 @@ const Visualization = styled('div')`
   right: ${space(2)};
   margin-block: auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
   }
 `;

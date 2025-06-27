@@ -211,9 +211,9 @@ const OrgAndUserWrapper = styled('div')`
   text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
   text-shadow: ${p =>
     isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0)'};
@@ -221,7 +221,7 @@ const OrgOrUserName = styled(TextOverflow)`
 `;
 
 const UserNameOrEmail = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 16px;
   transition: 0.15s color linear;
 `;
@@ -252,7 +252,7 @@ const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   box-shadow: ${isChonkTheme(p.theme) ? 'none' : '0 2px 0 rgba(0, 0, 0, 0.08)'};
   border-radius: 6px; /* Fixes background bleeding on corners */
 
-  @media (max-width: ${p.theme.breakpoints.medium}) {
+  @media (max-width: ${p.theme.breakpoints.md}) {
     margin-right: 0;
   }
 `;

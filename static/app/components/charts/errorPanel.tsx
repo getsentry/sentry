@@ -14,7 +14,7 @@ const ErrorPanel = styled('div')<{height?: string}>`
   border-color: transparent;
   margin-bottom: 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default ErrorPanel;

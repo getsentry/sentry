@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from functools import lru_cache
 from typing import Any
 
 import orjson
@@ -23,11 +24,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.seer_utils import FixabilityScoreThresholds
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -173,6 +175,33 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
+@lru_cache(maxsize=1)
+def create_fixability_connection_pool():
+    return connection_from_url(
+        settings.SEER_SEVERITY_URL,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    )
+
+
+def _generate_fixability_score_via_conn_pool(group: Group):
+    payload = {
+        "group_id": group.id,
+        "organization_slug": group.organization.slug,
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+    }
+    response = make_signed_seer_api_request(
+        create_fixability_connection_pool(),
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+    )
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
+    response_data = orjson.loads(response.data)
+    return SummarizeIssueResponse.validate(response_data)
+
+
 def _generate_fixability_score(group: Group):
     path = "/v1/automation/summarize/fixability"
     body = orjson.dumps(
@@ -251,17 +280,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == "super_low":
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == "low":
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == "medium":
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == "high":
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == "always":
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 
@@ -272,8 +301,11 @@ def _run_automation(
     event: GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
-    if not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+    if (
+        not features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+        )
+        or source == SeerAutomationSource.ISSUE_DETAILS
     ):
         return
 
@@ -292,7 +324,10 @@ def _run_automation(
     )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+        if group.organization.id == 1:  # TODO(kddubey): rm temp guard
+            issue_summary = _generate_fixability_score_via_conn_pool(group)
+        else:
+            issue_summary = _generate_fixability_score(group)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
@@ -304,19 +339,6 @@ def _run_automation(
     if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
         return
 
-    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        group.project, group.organization
-    )
-    if is_rate_limited:
-        sentry_sdk.set_tags(
-            {
-                "auto_run_count": current,
-                "auto_run_limit": limit,
-            }
-        )
-        logger.error("Autofix auto-trigger rate limit hit", extra={"group_id": group.id})
-        return
-
     has_budget: bool = quotas.backend.has_available_reserved_budget(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
@@ -324,16 +346,20 @@ def _run_automation(
     if not has_budget:
         return
 
-    with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-        autofix_state = get_autofix_state(group_id=group.id)
+    autofix_state = get_autofix_state(group_id=group.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
 
-    if not autofix_state:  # Only trigger autofix if we don't have an autofix on this issue already.
-        _trigger_autofix_task.delay(
-            group_id=group.id,
-            event_id=event.event_id,
-            user_id=user_id,
-            auto_run_source=auto_run_source,
-        )
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    if is_rate_limited:
+        return
+
+    _trigger_autofix_task.delay(
+        group_id=group.id,
+        event_id=event.event_id,
+        user_id=user_id,
+        auto_run_source=auto_run_source,
+    )
 
 
 def _generate_summary(
@@ -396,6 +422,10 @@ def get_issue_summary_cache_key(group_id: int) -> str:
     return f"ai-group-summary-v2:{group_id}"
 
 
+def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
+    return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
+
+
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
@@ -423,7 +453,7 @@ def get_issue_summary(
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
-    lock_key = f"ai-group-summary-v2-lock:{group.id}"
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock_duration = 10  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
@@ -442,9 +472,9 @@ def get_issue_summary(
     # 2. Try to acquire lock
     try:
         # Acquire lock context manager. This will poll and wait.
-        with locks.get(
-            key=lock_key, duration=lock_duration, name="get_issue_summary"
-        ).blocking_acquire(initial_delay=0.25, timeout=wait_timeout):
+        with locks.get(key=lock_key, duration=lock_duration, name=lock_name).blocking_acquire(
+            initial_delay=0.25, timeout=wait_timeout
+        ):
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):

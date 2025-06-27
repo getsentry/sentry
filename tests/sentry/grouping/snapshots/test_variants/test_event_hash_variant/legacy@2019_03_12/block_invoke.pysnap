@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:37.643566+00:00'
+created: '2025-06-27T19:26:06.169641+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   contributing component: null
   component:
-    app (logentry takes precedence)
+    app (message takes precedence)
       threads
         stacktrace
           frame
@@ -32,7 +32,7 @@ system:
   hash: null
   contributing component: null
   component:
-    system (logentry takes precedence)
+    system (message takes precedence)
       threads
         stacktrace
           frame

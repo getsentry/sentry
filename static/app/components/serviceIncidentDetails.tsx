@@ -27,7 +27,7 @@ import type {
   StatusPageServiceStatus,
 } from 'sentry/types/system';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 interface Props {
   incident: StatuspageIncident;
@@ -138,7 +138,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 }
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(1)};
 `;
 
@@ -177,16 +177,23 @@ const UpdatesList = styled(List)`
   }
 `;
 
-type UpdateStatus = StatusPageIncidentUpdate['status'];
+function getIndicatorColor({
+  theme,
+  status,
+}: {
+  status: StatusPageIncidentUpdate['status'];
+  theme: Theme;
+}): string {
+  const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
+    investigating: theme.red200,
+    identified: theme.blue200,
+    monitoring: theme.yellow200,
+    resolved: theme.green200,
+  };
+  return indicatorColor[status];
+}
 
-const indicatorColor: Record<UpdateStatus, ColorOrAlias> = {
-  investigating: 'red200',
-  identified: 'blue200',
-  monitoring: 'yellow200',
-  resolved: 'green200',
-};
-
-const UpdateHeading = styled('div')<{status: UpdateStatus}>`
+const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
   margin-bottom: ${space(0.5)};
   display: flex;
   align-items: center;
@@ -201,13 +208,13 @@ const UpdateHeading = styled('div')<{status: UpdateStatus}>`
     width: 8px;
     margin-left: -15px;
     border-radius: 50%;
-    background: ${p => p.theme[indicatorColor[p.status]]};
+    background: ${getIndicatorColor};
   }
 `;
 
 const StatusTitle = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StatusDate = styled('div')`
@@ -222,6 +229,6 @@ const ComponentList = styled(List)`
 `;
 
 const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 2;
 `;

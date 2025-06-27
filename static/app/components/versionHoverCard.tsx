@@ -225,7 +225,7 @@ const ConnectRepo = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const VersionWrapper = styled('div')`
@@ -237,7 +237,7 @@ const VersionWrapper = styled('div')`
 
 const StyledVersion = styled(Version)`
   max-width: 190px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const CountSince = styled('div')`

@@ -12,7 +12,6 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
@@ -25,7 +24,6 @@ from tests.sentry.grouping import (
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
@@ -110,15 +108,7 @@ def _assert_and_snapshot_results(
     # Check that we didn't end up with a caught but unexpected error in any of our `newstyle`
     # strategies
     if not config_name.startswith("legacy"):
-        if input_file not in [
-            "exception-groups-bad-inner-self-parenting-duplicate-id.json",
-            "exception-groups-bad-no-root.json",
-            "exception-groups-bad-root-self-parenting.json",
-        ]:
-            # TODO: An upcoming fix will make this pass for the above inputs
-            assert mock_newstyle_exception_logger.call_count == 0
-        else:
-            assert mock_newstyle_exception_logger.call_count > 0
+        assert mock_newstyle_exception_logger.call_count == 0
 
     lines: list[str] = []
 

@@ -17,7 +17,6 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   hasCategoryFeature,
-  isSeer,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -147,6 +146,18 @@ describe('hasCategoryFeature', function () {
         prepaid: 1,
         order: 9,
       }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        prepaid: 0,
+        order: 14,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        prepaid: 0,
+        order: 15,
+      }),
     ]);
   });
 
@@ -205,6 +216,24 @@ describe('hasCategoryFeature', function () {
           reserved: 1,
           prepaid: 1,
           order: 9,
+        }),
+      ],
+      [
+        'seerAutofix',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_AUTOFIX,
+          reserved: 0,
+          prepaid: 0,
+          order: 14,
+        }),
+      ],
+      [
+        'seerScanner',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_SCANNER,
+          reserved: 0,
+          prepaid: 0,
+          order: 15,
         }),
       ],
     ]);
@@ -369,16 +398,5 @@ describe('listDisplayNames', function () {
     ).toBe(
       'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
     );
-  });
-});
-
-describe('isSeer', () => {
-  it.each([
-    [DataCategory.SEER_AUTOFIX, true],
-    [DataCategory.SEER_SCANNER, true],
-    [DataCategory.ERRORS, false],
-    [DataCategory.TRANSACTIONS, false],
-  ])('returns %s for category %s', (category, expected) => {
-    expect(isSeer(category)).toBe(expected);
   });
 });

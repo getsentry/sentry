@@ -26,6 +26,14 @@ export function getMemoryInfoContext({
           subject: t('Allocated Bytes'),
           value: data.allocated_bytes ? formatMemory(data.allocated_bytes) : undefined,
         };
+      case MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES:
+        return {
+          key: ctxKey,
+          subject: t('Total Allocated Bytes'),
+          value: data.total_allocated_bytes
+            ? formatMemory(data.total_allocated_bytes)
+            : undefined,
+        };
       case MemoryInfoContextKey.FRAGMENTED_BYTES:
         return {
           key: ctxKey,

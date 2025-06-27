@@ -1566,13 +1566,6 @@ function buildRoutes() {
           () => import('sentry/views/performance/transactionSummary/transactionProfiles')
         )}
       />
-      <Route
-        path="aggregateWaterfall/"
-        component={make(
-          () =>
-            import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
-        )}
-      />
       <Route path="spans/">
         <IndexRoute
           component={make(
@@ -1777,7 +1770,7 @@ function buildRoutes() {
       component={make(() => import('sentry/views/performance'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <IndexRedirect to="/insights/frontend/" />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -2003,6 +1996,12 @@ function buildRoutes() {
       component={make(() => import('sentry/views/codecov/index'))}
     >
       {codecovChildrenRoutes}
+    </Route>
+  );
+
+  const preprodRoutes = (
+    <Route path="/preprod/" component={make(() => import('sentry/views/preprod/index'))}>
+      <IndexRoute component={make(() => import('sentry/views/preprod/sizeAnalysis'))} />
     </Route>
   );
 
@@ -2414,6 +2413,7 @@ function buildRoutes() {
       {issueRoutes}
       {alertRoutes}
       {codecovRoutes}
+      {preprodRoutes}
       {replayRoutes}
       {releasesRoutes}
       {statsRoutes}

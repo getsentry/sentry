@@ -35,7 +35,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     projects = ListField(
         child=serializers.IntegerField(),
         required=False,
-        default=[],
+        default=list,
         help_text="The saved projects filter for this query.",
     )
     queryDataset = serializers.ChoiceField(

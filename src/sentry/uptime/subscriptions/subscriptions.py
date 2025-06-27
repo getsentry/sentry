@@ -31,7 +31,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -174,7 +174,7 @@ def create_project_uptime_subscription(
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
-    mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    mode: UptimeMonitorMode = UptimeMonitorMode.MANUAL,
     status: int = ObjectStatus.ACTIVE,
     name: str = "",
     owner: Actor | None = None,
@@ -185,11 +185,11 @@ def create_project_uptime_subscription(
     """
     Creates an UptimeSubscription and associated ProjectUptimeSubscription
     """
-    if mode == ProjectUptimeSubscriptionMode.MANUAL:
+    if mode == UptimeMonitorMode.MANUAL:
         manual_subscription_count = Detector.objects.filter(
             type=UptimeDomainCheckFailure.slug,
             project__organization=project.organization,
-            config__mode=ProjectUptimeSubscriptionMode.MANUAL,
+            config__mode=UptimeMonitorMode.MANUAL,
         ).count()
 
         # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
@@ -197,7 +197,7 @@ def create_project_uptime_subscription(
         if project.organization.get_option("sentry:uptime_autodetection", False):
             project.organization.update_option("sentry:uptime_autodetection", False)
             for detector in get_auto_monitored_detectors_for_project(
-                project, modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING]
+                project, modes=[UptimeMonitorMode.AUTO_DETECTED_ONBOARDING]
             ):
                 delete_uptime_detector(detector)
 
@@ -245,7 +245,7 @@ def create_project_uptime_subscription(
         detector = create_detector_from_project_subscription(uptime_monitor)
 
         # Don't consume a seat if we're still in onboarding mode
-        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+        if mode != UptimeMonitorMode.AUTO_DETECTED_ONBOARDING:
             # Update status. This may have the side effect of removing or creating a
             # remote subscription. When a new monitor is created we will ensure seat
             # assignment, which may cause the monitor to be disabled if there are no
@@ -281,7 +281,7 @@ def update_project_uptime_subscription(
     owner: Actor | None | NotSet = NOT_SET,
     trace_sampling: bool | NotSet = NOT_SET,
     status: int = ObjectStatus.ACTIVE,
-    mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    mode: UptimeMonitorMode = UptimeMonitorMode.MANUAL,
     ensure_assignment: bool = False,
 ):
     """
@@ -337,7 +337,7 @@ def update_project_uptime_subscription(
         )
 
         # Don't consume a seat if we're still in onboarding mode
-        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+        if mode != UptimeMonitorMode.AUTO_DETECTED_ONBOARDING:
             # Update status. This may have the side effect of removing or creating a
             # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
             # assignment fails.
@@ -468,8 +468,8 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
             type=UptimeDomainCheckFailure.slug,
             project=project,
             config__mode__in=(
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
+                UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
+                UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
             ),
         )
         .select_related("data_sources")
@@ -484,12 +484,12 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
 
 def get_auto_monitored_detectors_for_project(
     project: Project,
-    modes: Sequence[ProjectUptimeSubscriptionMode] | None = None,
+    modes: Sequence[UptimeMonitorMode] | None = None,
 ) -> list[Detector]:
     if modes is None:
         modes = [
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         ]
     return list(
         Detector.objects.filter(

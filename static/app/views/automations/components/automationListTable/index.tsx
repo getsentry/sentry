@@ -1,13 +1,14 @@
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   AutomationListRow,
   AutomationListRowSkeleton,
@@ -18,6 +19,8 @@ type AutomationListTableProps = {
   automations: Automation[];
   isError: boolean;
   isPending: boolean;
+  isSuccess: boolean;
+  sort: Sort | undefined;
 };
 
 function LoadingSkeletons() {
@@ -26,28 +29,40 @@ function LoadingSkeletons() {
   ));
 }
 
-function TableHeader() {
+function HeaderCell({
+  children,
+  sortKey,
+  sort,
+  ...props
+}: {
+  children: React.ReactNode;
+  sort: Sort | undefined;
+  divider?: boolean;
+  sortKey?: string;
+} & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isSortedByField = sort?.field === sortKey;
+  const handleSort = () => {
+    if (!sortKey) {
+      return;
+    }
+    const newSort =
+      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, sort: newSort, cursor: undefined},
+    });
+  };
+
   return (
-    <StyledPanelHeader>
-      <Flex className="name">
-        <Heading>{t('Name')}</Heading>
-      </Flex>
-      <Flex className="last-triggered">
-        <Heading>{t('Last Triggered')}</Heading>
-      </Flex>
-      <Flex className="action">
-        <HeaderDivider />
-        <Heading>{t('Actions')}</Heading>
-      </Flex>
-      <Flex className="projects">
-        <HeaderDivider />
-        <Heading>{t('Projects')}</Heading>
-      </Flex>
-      <Flex className="connected-monitors">
-        <HeaderDivider />
-        <Heading>{t('Monitors')}</Heading>
-      </Flex>
-    </StyledPanelHeader>
+    <SimpleTable.HeaderCell
+      {...props}
+      sort={sort && sortKey === sort?.field ? sort.kind : undefined}
+      handleSortClick={sortKey ? handleSort : undefined}
+    >
+      {children}
+    </SimpleTable.HeaderCell>
   );
 }
 
@@ -55,104 +70,88 @@ function AutomationListTable({
   automations,
   isPending,
   isError,
+  isSuccess,
+  sort,
 }: AutomationListTableProps) {
-  if (isError) {
-    return (
-      <PanelGrid>
-        <TableHeader />
-        <PanelBody>
-          <LoadingError />
-        </PanelBody>
-      </PanelGrid>
-    );
-  }
-
-  if (isPending) {
-    return (
-      <PanelGrid>
-        <TableHeader />
-        <LoadingSkeletons />
-      </PanelGrid>
-    );
-  }
-
   return (
-    <PanelGrid>
-      <TableHeader />
-      {automations.map(automation => (
-        <AutomationListRow key={automation.id} automation={automation} />
-      ))}
-    </PanelGrid>
+    <AutomationsSimpleTable>
+      <SimpleTable.Header>
+        <HeaderCell sort={sort} sortKey="name">
+          {t('Name')}
+        </HeaderCell>
+        <HeaderCell data-column-name="last-triggered" sort={sort}>
+          {t('Last Triggered')}
+        </HeaderCell>
+        <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
+          {t('Actions')}
+        </HeaderCell>
+        <HeaderCell data-column-name="projects" sort={sort}>
+          {t('Projects')}
+        </HeaderCell>
+        <HeaderCell
+          data-column-name="connected-monitors"
+          sort={sort}
+          sortKey="connectedDetectors"
+        >
+          {t('Monitors')}
+        </HeaderCell>
+      </SimpleTable.Header>
+      {isSuccess && automations.length === 0 && (
+        <SimpleTable.Empty>{t('No automations found')}</SimpleTable.Empty>
+      )}
+      {isError && <LoadingError message={t('Error loading automations')} />}
+      {isPending && <LoadingSkeletons />}
+      {isSuccess &&
+        automations.map(automation => (
+          <AutomationListRow key={automation.id} automation={automation} />
+        ))}
+    </AutomationsSimpleTable>
   );
 }
 
-const PanelGrid = styled(Panel)`
-  display: grid;
+const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
-  .last-triggered,
-  .action,
-  .projects,
-  .connected-monitors {
+  margin-bottom: ${space(2)};
+
+  [data-column-name='last-triggered'],
+  [data-column-name='action'],
+  [data-column-name='projects'],
+  [data-column-name='connected-monitors'] {
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2.5fr 1fr;
 
-    .projects {
+    [data-column-name='projects'] {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
-    .action {
+    [data-column-name='action'] {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 2.5fr 1fr 1fr 1fr;
 
-    .last-triggered {
+    [data-column-name='last-triggered'] {
       display: flex;
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
 
-    .connected-monitors {
+    [data-column-name='connected-monitors'] {
       display: flex;
     }
   }
-`;
-
-const HeaderDivider = styled('div')`
-  background-color: ${p => p.theme.gray200};
-  width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const Heading = styled('div')`
-  display: flex;
-  padding: 0 ${space(2)};
-  color: ${p => p.theme.subText};
-  align-items: center;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
-
-  justify-content: left;
-  padding: ${space(0.75)} ${space(2)};
-  min-height: 40px;
-  align-items: center;
-  text-transform: none;
 `;
 
 export default AutomationListTable;

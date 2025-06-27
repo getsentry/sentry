@@ -10,9 +10,8 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.identity.gitlab import get_oauth_data, get_user_info
-from sentry.identity.gitlab.provider import GitlabIdentityProvider
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -20,7 +19,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
@@ -43,7 +42,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -555,8 +555,8 @@ class InstallationForm(forms.Form):
         return self.cleaned_data["url"].rstrip("/")
 
 
-class InstallationConfigView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class InstallationConfigView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -597,8 +597,8 @@ class InstallationConfigView(IntegrationPipelineViewT):
         )
 
 
-class InstallationGuideView(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class InstallationGuideView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -634,7 +634,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def _make_identity_pipeline_view(self) -> IntegrationPipelineViewT:
+    def _make_identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         """
         Make the nested identity provider view. It is important that this view is
         not constructed until we reach this step and the
@@ -654,7 +654,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return NestedPipelineView(
             bind_key="identity",
             provider_key=IntegrationProviderSlug.GITLAB.value,
-            pipeline_cls=IdentityProviderPipeline,
+            pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
 
@@ -689,7 +689,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
         return (
             InstallationGuideView(),
             InstallationConfigView(),

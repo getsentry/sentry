@@ -89,7 +89,6 @@ class ReleaseFileDetailsMixin:
     def download_from_archive(release, entry):
         archive_ident = entry["archive_ident"]
 
-        # Do not use ReleaseFileCache here, we view download as a singular event
         archive_file = ReleaseFile.objects.get(release_id=release.id, ident=archive_ident)
         archive_file_fp = archive_file.file.getfile()
         fp = ZipFile(archive_file_fp).open(entry["filename"])

@@ -3,6 +3,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
@@ -11,17 +12,17 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
-    AbstractDataConditionValidator,
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
-class MetricIssueComparisonConditionValidator(
-    AbstractDataConditionValidator[float, DetectorPriorityLevel]
-):
-    supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
+class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
+    supported_conditions = frozenset(
+        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+    )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
@@ -37,13 +38,19 @@ class MetricIssueComparisonConditionValidator(
 
         return type
 
-    def validate_comparison(self, value: float | int | str) -> float:
-        try:
-            value = float(value)
-        except ValueError:
-            raise serializers.ValidationError("A valid number is required.")
+    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
+        if isinstance(value, (float, int)):
+            try:
+                value = float(value)
+            except ValueError:
+                raise serializers.ValidationError("A valid number is required.")
+            return value
 
-        return value
+        elif isinstance(value, dict):
+            return super().validate_comparison(value)
+
+        else:
+            raise serializers.ValidationError("A valid number or dict is required.")
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
@@ -109,6 +116,17 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         super().update(instance, validated_data)
+
+        # Handle enable/disable query subscriptions
+        if "enabled" in validated_data:
+            enabled = validated_data.get("enabled")
+            assert isinstance(enabled, bool)
+
+            query_subscriptions = QuerySubscription.objects.filter(
+                id__in=[data_source.source_id for data_source in instance.data_sources.all()]
+            )
+            if query_subscriptions:
+                enable_disable_subscriptions(query_subscriptions, enabled)
 
         data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
         if data_source:

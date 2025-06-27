@@ -1,14 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import type {Location} from 'history';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {StatusContainer} from 'sentry/views/profiling/landing/styles';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 
@@ -70,9 +69,6 @@ export default function ExampleReplaysList({
     perPage: 3,
   });
 
-  const routes = useRoutes();
-  const referrer = getRouteStringFromRoutes(routes);
-
   return (
     <Fragment>
       {fetchError || (!isFetching && !replays?.length) ? (
@@ -84,19 +80,11 @@ export default function ExampleReplaysList({
           <LoadingIndicator />
         </StatusContainer>
       ) : (
-        replays?.map(r => {
-          return (
-            <ReplayCell
-              key={r.id}
-              replay={r}
-              eventView={eventView}
-              organization={organization}
-              referrer={referrer}
-              referrer_table="selector-widget"
-              isWidget
-            />
-          );
-        })
+        <AnalyticsArea name="example-replays-list">
+          {replays?.map(r => {
+            return <ReplayCell key={r.id} replay={r} rowIndex={0} />;
+          })}
+        </AnalyticsArea>
       )}
     </Fragment>
   );

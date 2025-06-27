@@ -17,11 +17,9 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -32,7 +30,7 @@ import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
   errorBeforeReplayStart,
@@ -56,12 +54,10 @@ export default function ReplayPreviewPlayer({
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
-  const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
-  const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -77,7 +73,12 @@ export default function ReplayPreviewPlayer({
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
-    if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
+    if (
+      !replayRecord.is_archived &&
+      !replayRecord.has_viewed &&
+      !isFetching &&
+      isPlaying
+    ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
@@ -94,10 +95,8 @@ export default function ReplayPreviewPlayer({
       <HeaderWrapper>
         <StyledReplayCell
           key="session"
-          replay={replayRecord}
-          eventView={eventView}
-          organization={organization}
-          referrer="issue-details-replay-header"
+          replay={replayRecord as ReplayListRecord}
+          rowIndex={0}
         />
         <LinkButton
           size="sm"

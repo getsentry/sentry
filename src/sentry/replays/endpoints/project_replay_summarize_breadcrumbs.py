@@ -2,6 +2,7 @@ import functools
 import logging
 from collections.abc import Generator, Iterator
 from typing import Any, TypedDict
+from urllib.parse import urlparse
 
 import requests
 import sentry_sdk
@@ -21,7 +22,11 @@ from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
-from sentry.replays.usecases.ingest.event_parser import as_log_message
+from sentry.replays.usecases.ingest.event_parser import (
+    EventType,
+    parse_network_content_lengths,
+    which,
+)
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
@@ -97,7 +102,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=functools.partial(analyze_recording_segments, error_events),
+            on_results=functools.partial(analyze_recording_segments, error_events, replay_id),
         )
 
 
@@ -112,7 +117,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[ErrorEven
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp", 0.0),
+                timestamp=data.get("timestamp", 0.0) * 1000,  # error timestamp is in seconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
@@ -171,14 +176,101 @@ def gen_request_data(
 @sentry_sdk.trace
 def analyze_recording_segments(
     error_events: list[ErrorEvent],
+    replay_id: str,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
 
+    # Log when the input string is too large. This is potential for timeout.
+    if len(request_data) > 100000:
+        logger.info(
+            "Replay AI summary: input length exceeds 100k.",
+            extra={"request_len": len(request_data), "replay_id": replay_id},
+        )
+
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
     # paginate method. This is less than ideal.
     return json.loads(make_seer_request(request_data).decode("utf-8"))
+
+
+def as_log_message(event: dict[str, Any]) -> str | None:
+    """Return an event as a log message.
+
+    Useful in AI contexts where the event's structure is an impediment to the AI's understanding
+    of the interaction log. Not every event produces a log message. This function is overly coupled
+    to the AI use case. In later iterations, if more or all log messages are desired, this function
+    should be forked.
+    """
+    event_type = which(event)
+    timestamp = event.get("timestamp", 0.0)
+
+    match event_type:
+        case EventType.CLICK:
+            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
+        case EventType.DEAD_CLICK:
+            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+        case EventType.RAGE_CLICK:
+            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+        case EventType.NAVIGATION:
+            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
+        case EventType.CONSOLE:
+            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
+        case EventType.UI_BLUR:
+            timestamp_ms = timestamp * 1000
+            return f"User looked away from the tab at {timestamp_ms}"
+        case EventType.UI_FOCUS:
+            timestamp_ms = timestamp * 1000
+            return f"User returned to tab at {timestamp_ms}"
+        case EventType.RESOURCE_FETCH:
+            timestamp_ms = timestamp * 1000
+            payload = event["data"]["payload"]
+            parsed_url = urlparse(payload["description"])
+
+            path = f"{parsed_url.path}?{parsed_url.query}"
+
+            # Safely get (request_size, response_size)
+            sizes_tuple = parse_network_content_lengths(event)
+            response_size = None
+
+            # Check if the tuple is valid and response size exists
+            if sizes_tuple and sizes_tuple[1] is not None:
+                response_size = str(sizes_tuple[1])
+
+            status_code = payload["data"]["statusCode"]
+            duration = payload["endTimestamp"] - payload["startTimestamp"]
+            method = payload["data"]["method"]
+
+            # if status code is successful, ignore it
+            if str(status_code).startswith("2"):
+                return None
+
+            if response_size is None:
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
+            else:
+                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+        case EventType.RESOURCE_XHR:
+            return None
+        case EventType.LCP:
+            timestamp_ms = timestamp * 1000
+            duration = event["data"]["payload"]["data"]["size"]
+            rating = event["data"]["payload"]["data"]["rating"]
+            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+        case EventType.FCP:
+            timestamp_ms = timestamp * 1000
+            duration = event["data"]["payload"]["data"]["size"]
+            rating = event["data"]["payload"]["data"]["rating"]
+            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+        case EventType.HYDRATION_ERROR:
+            return f"There was a hydration error on the page at {timestamp}"
+        case EventType.MUTATIONS:
+            return None
+        case EventType.UNKNOWN:
+            return None
+        case EventType.CANVAS:
+            return None
+        case EventType.OPTIONS:
+            return None
 
 
 def make_seer_request(request_data: str) -> bytes:

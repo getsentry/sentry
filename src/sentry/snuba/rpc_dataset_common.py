@@ -31,11 +31,13 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
+    AnyResolved,
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
     ResolvedEquation,
     ResolvedFormula,
+    ResolvedLiteral,
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
@@ -86,26 +88,21 @@ def process_timeseries_list(timeseries_list: list[TimeSeries]) -> ProcessedTimes
 
 
 def categorize_column(
-    column: (
-        ResolvedAttribute
-        | ResolvedAggregate
-        | ResolvedConditionalAggregate
-        | ResolvedFormula
-        | ResolvedEquation
-    ),
+    column: AnyResolved,
 ) -> Column:
-    if isinstance(column, (ResolvedFormula, ResolvedEquation)):
+    # Can't do bare literals, so they're actually formulas with +0
+    if isinstance(column, (ResolvedFormula, ResolvedEquation, ResolvedLiteral)):
         return Column(formula=column.proto_definition, label=column.public_alias)
-    if isinstance(column, ResolvedAggregate):
+    elif isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
-    if isinstance(column, ResolvedConditionalAggregate):
+    elif isinstance(column, ResolvedConditionalAggregate):
         return Column(conditional_aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
 def categorize_aggregate(
-    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula | ResolvedEquation,
+    column: AnyResolved,
 ) -> Expression:
     if isinstance(column, (ResolvedFormula, ResolvedEquation)):
         # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
@@ -192,7 +189,7 @@ def get_timeseries_query(
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
-    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedEquation],
+    list[AnyResolved],
     list[ResolvedAttribute],
 ]:
     timeseries_filter, params = update_timestamps(params, search_resolver)
@@ -277,13 +274,7 @@ class TableRequest:
     """Container for rpc requests"""
 
     rpc_request: TraceItemTableRequest
-    columns: list[
-        ResolvedAttribute
-        | ResolvedAggregate
-        | ResolvedConditionalAggregate
-        | ResolvedFormula
-        | ResolvedEquation
-    ]
+    columns: list[AnyResolved]
 
 
 @sentry_sdk.trace
@@ -313,6 +304,8 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
     sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
     meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
     where, having, query_contexts = resolver.resolve_query(query.query_string)
+
+    all_columns: list[AnyResolved] = []
     equations, equation_contexts = resolver.resolve_equations(
         query.equations if query.equations else []
     )
@@ -320,11 +313,12 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
         query.selected_columns,
         has_aggregates=any(equation for equation in equations if equation.is_aggregate),
     )
+    all_columns = columns + equations
     contexts = resolver.resolve_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
     # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
     orderby_aliases = {
-        resolved_column.public_alias: resolved_column for resolved_column in columns + equations
+        resolved_column.public_alias: resolved_column for resolved_column in all_columns
     }
     for alias_column in columns:
         orderby_aliases[get_function_alias(alias_column.public_alias)] = alias_column
@@ -348,7 +342,17 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
         col for col in equations if col.is_aggregate
     )
 
-    labeled_columns = [categorize_column(col) for col in columns + equations]
+    labeled_columns = [categorize_column(col) for col in all_columns]
+    if has_aggregations:
+        group_by = []
+        for col in equations:
+            if isinstance(col, ResolvedAttribute) and not col.is_aggregate:
+                group_by.append(col.proto_definition)
+        for col in columns:
+            if isinstance(col.proto_definition, AttributeKey):
+                group_by.append(col.proto_definition)
+    else:
+        group_by = []
 
     return TableRequest(
         TraceItemTableRequest(
@@ -356,21 +360,13 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
             filter=where,
             aggregation_filter=having,
             columns=labeled_columns,
-            group_by=(
-                [
-                    col.proto_definition
-                    for col in columns
-                    if isinstance(col.proto_definition, AttributeKey)
-                ]
-                if has_aggregations
-                else []
-            ),
+            group_by=group_by,
             order_by=resolved_orderby,
             limit=query.limit,
             page_token=PageToken(offset=query.offset),
             virtual_column_contexts=[context for context in contexts if context is not None],
         ),
-        columns + equations,
+        all_columns,
     )
 
 
@@ -389,7 +385,9 @@ def run_table_query(
 
 
 def process_table_response(
-    rpc_response: TraceItemTableResponse, table_request: TableRequest, debug: bool = False
+    rpc_response: TraceItemTableResponse,
+    table_request: TableRequest,
+    debug: bool = False,
 ) -> EAPResponse:
     """Process the results"""
     final_data: SnubaData = []
@@ -466,7 +464,7 @@ def build_top_event_conditions(
                 )
             )
             if resolved_term is not None:
-                row_conditions.append(resolved_term)
+                row_conditions.extend(resolved_term)
             other_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
@@ -475,7 +473,7 @@ def build_top_event_conditions(
                 )
             )
             if other_term is not None:
-                other_row_conditions.append(other_term)
+                other_row_conditions.extend(other_term)
         conditions.append(TraceItemFilter(and_filter=AndFilter(filters=row_conditions)))
         other_conditions.append(TraceItemFilter(or_filter=OrFilter(filters=other_row_conditions)))
     return (
