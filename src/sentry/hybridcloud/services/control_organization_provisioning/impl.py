@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from django.db import router, transaction
+from django.utils import timezone as django_timezone
 
 from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -19,6 +20,7 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
@@ -226,6 +228,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 region_name=region_name,
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
+
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrgAuthToken))):
+            # Changing a slug invalidates all org tokens, so revoke them all.
+            auth_tokens = OrgAuthToken.objects.filter(
+                organization_id=organization_id, date_deactivated__isnull=True
+            )
+            auth_tokens.update(date_deactivated=django_timezone.now())
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base
