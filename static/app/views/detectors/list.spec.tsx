@@ -158,10 +158,11 @@ describe('DetectorsList', function () {
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
       const options = await screen.findAllByRole('option');
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
       expect(options[1]).toHaveTextContent('metric_issue');
-      expect(options[2]).toHaveTextContent('uptime_domain_failure');
+      expect(options[2]).toHaveTextContent('uptime_subscription');
+      expect(options[3]).toHaveTextContent('uptime_domain_failure');
       await userEvent.click(screen.getByText('error'));
 
       await screen.findByText('Error Detector');
