@@ -350,9 +350,10 @@ def process_workflows(
             detector = Detector.objects.get(id=detector_id)
         elif isinstance(event_data.event, GroupEvent):
             detector = get_detector_by_event(event_data)
+        else:
+            raise ValueError("Unable to determine the detector_id for the event")
 
         log_context.add_extras(detector_id=detector.id)
-
         organization = detector.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
