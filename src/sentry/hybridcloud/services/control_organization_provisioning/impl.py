@@ -3,7 +3,7 @@ from copy import deepcopy
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
 
-from sentry import roles
+from sentry import features, roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
@@ -13,6 +13,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -229,11 +230,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
 
-            # Changing a slug invalidates all org tokens, so revoke them all.
-            auth_tokens = OrgAuthToken.objects.filter(
-                organization_id=organization_id, date_deactivated__isnull=True
-            )
-            auth_tokens.update(date_deactivated=django_timezone.now())
+            org = Organization(id=organization_id)
+            if features.has("organizations:revoke-org-auth-on-slug-rename", org):
+                # Changing a slug invalidates all org tokens, so revoke them all.
+                auth_tokens = OrgAuthToken.objects.filter(
+                    organization_id=organization_id, date_deactivated__isnull=True
+                )
+                auth_tokens.update(date_deactivated=django_timezone.now())
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base
