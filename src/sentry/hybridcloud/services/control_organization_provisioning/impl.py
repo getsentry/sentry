@@ -229,7 +229,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
 
-        with outbox_context(transaction.atomic(using=router.db_for_write(OrgAuthToken))):
             # Changing a slug invalidates all org tokens, so revoke them all.
             auth_tokens = OrgAuthToken.objects.filter(
                 organization_id=organization_id, date_deactivated__isnull=True
