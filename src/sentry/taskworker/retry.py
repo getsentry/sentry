@@ -46,7 +46,7 @@ def retry_task(exc: Exception | None = None) -> None:
     Helper for triggering retry errors.
     If all retries have been consumed, this will raise a
     sentry.taskworker.retry.NoRetriesRemaining or
-    celery.exceptions.MaxAttemptsExceeded depending on how
+    celery.exceptions.MaxRetriesExceededError depending on how
     the task is operated.
 
     During task conversion, this function will shim
@@ -81,10 +81,14 @@ class Retry:
         self._times_exceeded = times_exceeded
         self._delay = delay
 
-    def should_retry(self, state: RetryState, exc: Exception) -> bool:
+    def max_attempts_reached(self, state: RetryState) -> bool:
         # We subtract one, as attempts starts at 0, but `times`
         # starts at 1.
-        if state.attempts >= (self._times - 1):
+        return state.attempts >= (self._times - 1)
+
+    def should_retry(self, state: RetryState, exc: Exception) -> bool:
+        # If there are no retries remaining we should not retry
+        if self.max_attempts_reached(state):
             return False
 
         # Explicit RetryError with attempts left.
