@@ -9,14 +9,14 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 
 
 @control_silo_endpoint
-class AuthMergeUserAccountsEndpoint(Endpoint):
+class AuthUserMergeVerificationCodeEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SentryIsAuthenticated,)
     """
-    List and merge user accounts with the same primary email address.
+    Generate and update verification codes for the user account merge flow.
     """
 
     def post(self, request: Request) -> Response:
@@ -27,7 +27,7 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
-        UserMergeVerificationCode.objects.create(user=user)
+        UserMergeVerificationCode.objects.create(user_id=user.id)
         # TODO: send email
         return Response("Successfully posted merge account verification code.")
 
@@ -40,7 +40,7 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             )
 
         try:
-            code: UserMergeVerificationCode = UserMergeVerificationCode.objects.get(user=user)
+            code: UserMergeVerificationCode = UserMergeVerificationCode.objects.get(user_id=user.id)
         except UserMergeVerificationCode.DoesNotExist:
             return Response(
                 status=404,
