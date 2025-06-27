@@ -7,7 +7,6 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.incidents.logic import enable_disable_detector
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -16,7 +15,10 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionValidator,
     BaseDataSourceValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    get_unknown_detector_type_error,
+    toggle_detector,
+)
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataSource,
@@ -69,7 +71,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         if "enabled" in validated_data:
             enabled = validated_data.get("enabled")
             assert isinstance(enabled, bool)
-            enable_disable_detector(instance, enabled)
+            toggle_detector(instance, enabled)
 
         # Handle owner field update
         if "owner" in validated_data:

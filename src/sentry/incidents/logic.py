@@ -100,6 +100,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -1039,12 +1040,6 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
     update_dual_written_detector(alert_rule=alert_rule, enabled=False)
 
 
-def enable_disable_detector(detector: Detector, enabled: bool) -> None:
-    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-    detector.update(status=updated_detector_status)
-    detector.update(enabled=enabled)
-
-
 def enable_disable_subscriptions(
     query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
 ) -> None:
@@ -1056,7 +1051,7 @@ def enable_disable_subscriptions(
 
 def update_detector(detector: Detector, enabled: bool) -> None:
     with transaction.atomic(router.db_for_write(Detector)):
-        enable_disable_detector(detector, enabled)
+        toggle_detector(detector, enabled)
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
