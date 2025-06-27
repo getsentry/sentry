@@ -5810,9 +5810,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
     def test_short_trace_id_filter(self):
         trace_ids = [
             "0" * 32,
-            ("7" * 16) + ("0" * 16),
+            ("7" * 8) + ("0" * 24),
             "7" * 32,
-            ("7" * 16) + ("f" * 16),
+            ("7" * 8) + ("f" * 24),
             "f" * 32,
         ]
         self.store_spans(
@@ -5831,7 +5831,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "field": ["trace"],
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "query": f"trace:{'7' * 16}",
+                "query": f"trace:{'7' * 8}",
                 "orderby": "trace",
             }
         )

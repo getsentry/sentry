@@ -219,10 +219,10 @@ def trace_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
     value = search_filter.value.value
 
     # special handling for 16 char trace id
-    if operator == "=" and isinstance(value, str) and len(value) == 16:
+    if operator == "=" and isinstance(value, str) and len(value) == 8:
         return [
-            SearchFilter(SearchKey(constants.TRACE), ">=", SearchValue(value + "0" * 16)),
-            SearchFilter(SearchKey(constants.TRACE), "<=", SearchValue(value + "f" * 16)),
+            SearchFilter(SearchKey(constants.TRACE), ">=", SearchValue(value + "0" * 24)),
+            SearchFilter(SearchKey(constants.TRACE), "<=", SearchValue(value + "f" * 24)),
         ]
 
     return [search_filter]
