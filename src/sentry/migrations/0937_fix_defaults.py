@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0935_drop_old_openperiod_exclusion_constraint"),
+        ("sentry", "0936_prompts_activity_index"),
     ]
 
     operations = [
