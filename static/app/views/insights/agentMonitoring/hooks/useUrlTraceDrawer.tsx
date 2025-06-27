@@ -4,14 +4,10 @@ import omit from 'lodash/omit';
 import useDrawer from 'sentry/components/globalDrawer';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-
-const DRAWER_TRACE_SLUG = 'trace';
+import {useTransitionedLocationUpdate} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
+import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
 
 export function useUrlTraceDrawer() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const {
     openDrawer: baseOpenDrawer,
     closeDrawer: baseCloseDrawer,
@@ -21,19 +17,22 @@ export function useUrlTraceDrawer() {
 
   const {trace} = useLocationQuery({
     fields: {
-      [DRAWER_TRACE_SLUG]: decodeScalar,
+      [DrawerUrlParams.SELECTED_TRACE]: decodeScalar,
     },
   });
 
+  const updateLocation = useTransitionedLocationUpdate();
+
   const removeQueryParams = useCallback(() => {
-    navigate(
-      {
-        pathname: location.pathname,
-        query: omit(location.query, DRAWER_TRACE_SLUG),
-      },
-      {replace: true}
-    );
-  }, [navigate, location.pathname, location.query]);
+    updateLocation(prevLocation => ({
+      pathname: prevLocation.pathname,
+      query: omit(
+        prevLocation.query,
+        DrawerUrlParams.SELECTED_TRACE,
+        DrawerUrlParams.SELECTED_SPAN
+      ),
+    }));
+  }, [updateLocation]);
 
   const closeDrawer = useCallback(() => {
     removeQueryParams();
@@ -48,23 +47,20 @@ export function useUrlTraceDrawer() {
       const {traceSlug: optionsTraceSlug, onClose, ariaLabel, ...rest} = options || {};
 
       if (optionsTraceSlug) {
-        navigate(
-          {
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              [DRAWER_TRACE_SLUG]: optionsTraceSlug,
-            },
+        updateLocation(prevLocation => ({
+          pathname: prevLocation.pathname,
+          query: {
+            ...prevLocation.query,
+            [DrawerUrlParams.SELECTED_TRACE]: optionsTraceSlug,
           },
-          {replace: true}
-        );
+        }));
       }
 
       return baseOpenDrawer(renderer, {
         ...rest,
         ariaLabel: ariaLabel || 'Trace Drawer',
         shouldCloseOnLocationChange: nextLocation => {
-          return !nextLocation.query[DRAWER_TRACE_SLUG];
+          return !nextLocation.query[DrawerUrlParams.SELECTED_TRACE];
         },
         onClose: () => {
           removeQueryParams();
@@ -72,7 +68,7 @@ export function useUrlTraceDrawer() {
         },
       });
     },
-    [baseOpenDrawer, removeQueryParams, navigate, location.pathname, location.query]
+    [baseOpenDrawer, updateLocation, removeQueryParams]
   );
 
   return {
