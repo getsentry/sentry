@@ -1,12 +1,12 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {SelectContext} from 'sentry/components/core/compactSelect/control';
 import {Flex} from 'sentry/components/core/layout';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
-import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {MenuListItem, type MenuListItemProps} from 'sentry/components/core/menuListItem';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {
@@ -130,12 +130,13 @@ function ExternalIssueMenu(props: ReturnType<typeof useGroupExternalIssues>) {
       <CompositeSelect
         trigger={triggerProps => (
           <Button {...triggerProps} size="zero" icon={<IconAdd />}>
-            {props.linkedIssues.length === 0 ? t('Link') : null}
+            {props.linkedIssues.length === 0 ? t('Add Linked Issue') : null}
           </Button>
         )}
+        // Required for submenu interactions
+        isDismissable={false}
         menuTitle={t('Add Linked Issue')}
         hideOptions={props.integrations.length === 0}
-        isDismissable={false}
         menuBody={props.integrations.length === 0 && <ExternalIssueMenuEmpty />}
         menuFooter={props.integrations.length > 0 && <ExternalIssueManageLink />}
       >
@@ -189,6 +190,7 @@ function ExternalIssueMenu(props: ReturnType<typeof useGroupExternalIssues>) {
 
 function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
   const {integration} = props;
+  const {overlayState} = useContext(SelectContext);
   return integration.actions.map(action => {
     const itemProps: MenuListItemProps = {
       tooltip: action.disabled ? action.disabledText : undefined,
@@ -198,7 +200,13 @@ function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
         integrationDisplayName: integration.displayName,
       }),
     };
-    return <MenuListItem key={action.id} {...itemProps} />;
+    const callbackProps: Record<string, () => void> = {
+      onPointerDown: () => {
+        overlayState?.close();
+        action.onClick();
+      },
+    };
+    return <MenuListItem key={action.id} {...callbackProps} {...itemProps} />;
   });
 }
 
