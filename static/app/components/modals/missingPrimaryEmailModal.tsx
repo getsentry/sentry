@@ -45,7 +45,7 @@ function MissingPrimaryEmailModal({Header, Body}: Props) {
 export default MissingPrimaryEmailModal;
 
 const Heading = styled('h1')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
   margin-bottom: ${space(0.75)};
