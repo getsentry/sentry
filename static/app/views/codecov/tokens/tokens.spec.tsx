@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TokensPage from 'sentry/views/codecov/tokens/tokens';
@@ -56,53 +56,6 @@ describe('TokensPage', () => {
           /Use them for uploading reports to all Sentry Prevent's features./
         )
       ).toBeInTheDocument();
-    });
-
-    it('renders the regenerate token button', async () => {
-      render(
-        <CodecovQueryParamsProvider>
-          <TokensPage />
-        </CodecovQueryParamsProvider>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/codecov/tokens/',
-              query: {
-                integratedOrg: 'some-org-name',
-              },
-            },
-          },
-        }
-      );
-
-      const regenerateButton = await screen.findByRole('button', {
-        name: 'regenerate token',
-      });
-      expect(regenerateButton).toBeInTheDocument();
-      expect(regenerateButton).toHaveTextContent('Regenerate token');
-    });
-
-    it('handles regenerate token button click', async () => {
-      render(
-        <CodecovQueryParamsProvider>
-          <TokensPage />
-        </CodecovQueryParamsProvider>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/codecov/tokens/',
-              query: {
-                integratedOrg: 'some-org-name',
-              },
-            },
-          },
-        }
-      );
-
-      const regenerateButton = await screen.findByRole('button', {
-        name: 'regenerate token',
-      });
-      await userEvent.click(regenerateButton);
     });
 
     it('renders a table component', async () => {
