@@ -502,11 +502,12 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+# 1020 was DBQueryInjectionVulnerabilityGroupType, 1921 is a visible, experimental group type
 @dataclass(frozen=True)
-class DBQueryInjectionVulnerabilityGroupType(GroupType):
-    type_id = 1020
-    slug = "db_query_injection_vulnerability"
-    description = "Potential Database Query Injection Vulnerability"
+class QueryInjectionVulnerabilityExperimentalGroupType(GroupType):
+    type_id = 1921
+    slug = "query_injection_vulnerability_experimental"
+    description = "Potential Query Injection Vulnerability"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
