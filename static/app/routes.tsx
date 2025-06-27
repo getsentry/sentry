@@ -1566,13 +1566,6 @@ function buildRoutes() {
           () => import('sentry/views/performance/transactionSummary/transactionProfiles')
         )}
       />
-      <Route
-        path="aggregateWaterfall/"
-        component={make(
-          () =>
-            import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
-        )}
-      />
       <Route path="spans/">
         <IndexRoute
           component={make(
