@@ -44,6 +44,7 @@ class UserMergeVerificationCode(Model):
     def regenerate_token(self) -> None:
         self.token = generate_token()
         self.refresh_expires_at()
+        self.save()
 
     def refresh_expires_at(self) -> None:
         now = timezone.now()
