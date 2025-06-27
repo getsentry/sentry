@@ -612,12 +612,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing(self, mock_seer_request: MagicMock):
-        # trigger a warning
+    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
-        warning_action = create_alert_rule_trigger_action(
+        create_alert_rule_trigger_action(
             warning_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
@@ -684,7 +683,51 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         self.assert_no_active_incident(rule)  # there is no warning for dynamic alerts
 
-        # trigger critical
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+
+        data_condition_group = self.create_data_condition_group()
+        detector = self.create_detector(
+            name="hojicha",
+            type=MetricIssue.slug,
+            config={
+                "detection_type": AlertRuleDetectionType.DYNAMIC,
+                "sensitivity": AlertRuleSensitivity.HIGH,
+                "seasonality": AlertRuleSeasonality.AUTO,
+                "threshold_period": rule.threshold_period,
+            },
+            workflow_condition_group=data_condition_group,
+        )
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_workflow(organization=self.organization)
+        comparison = {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        self.create_data_condition(
+            condition_group=data_condition_group,
+            type=Condition.ANOMALY_DETECTION,
+            comparison=comparison,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
         seer_return_value_2: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -734,6 +777,69 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+
+        data_condition_group = self.create_data_condition_group()
+        detector = self.create_detector(
+            name="hojicha",
+            type=MetricIssue.slug,
+            config={
+                "detection_type": AlertRuleDetectionType.DYNAMIC,
+                "sensitivity": AlertRuleSensitivity.HIGH,
+                "seasonality": AlertRuleSeasonality.AUTO,
+                "threshold_period": rule.threshold_period,
+            },
+            workflow_condition_group=data_condition_group,
+        )
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_workflow(organization=self.organization)
+        comparison = {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        self.create_data_condition(
+            condition_group=data_condition_group,
+            type=Condition.ANOMALY_DETECTION,
+            comparison=comparison,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        # trigger critical first
+        seer_return_value_2: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
+        processor = self.send_update(rule, 10, timedelta(minutes=-2))
+        incident = self.assert_active_incident(rule)
         # trigger a resolution
         seer_return_value_3: DetectAnomaliesResponse = {
             "success": True,
