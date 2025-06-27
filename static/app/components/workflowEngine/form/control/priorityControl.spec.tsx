@@ -23,7 +23,7 @@ describe('PriorityControl', function () {
       </Form>
     );
 
-    expect(await screen.findByText('Above 0s')).toBeInTheDocument();
+    expect(await screen.findByText('Above 0ms')).toBeInTheDocument();
     expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
     expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
