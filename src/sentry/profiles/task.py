@@ -1319,6 +1319,15 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # dict directly to the PyO3 module to avoid json serialization/deserialization
             with sentry_sdk.start_span(op="json.dumps"):
                 json_profile = json.dumps(profile)
+                metric_tags = (
+                    {
+                        "type": "chunk" if "profiler_id" in profile else "profile",
+                        "platform": profile["platform"],
+                    },
+                )
+                metrics.distribution(
+                    "profiling.profile.payload.size", len(json_profile), tags=metric_tags
+                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
