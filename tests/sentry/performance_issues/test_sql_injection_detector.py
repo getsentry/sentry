@@ -33,9 +33,12 @@ class SQLInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-d9460b7b6c17b64a51f0390b53390cb1b4c39662"
+        assert problem.fingerprint == "1-1020-53ed51b6ab22e4acdefa33bfc73c39ac33be7e41"
         assert problem.op == "db"
-        assert problem.desc == "SELECT * FROM users WHERE username = '?' ORDER BY username ASC"
+        assert (
+            problem.desc
+            == "SELECT * FROM users WHERE username = [UNTRUSTED_INPUT] ORDER BY username ASC"
+        )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
@@ -47,9 +50,9 @@ class SQLInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
+        assert problem.fingerprint == "1-1020-55d5da306c0665487d2cf852301b6a8811a514bd"
         assert problem.op == "db"
-        assert problem.desc == "SELECT * FROM users WHERE username = '?'"
+        assert problem.desc == "SELECT * FROM users WHERE username = [UNTRUSTED_INPUT]"
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
