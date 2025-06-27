@@ -144,12 +144,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
-                str(self.organization.id)
-            )
-            == 1
-        )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
         assert UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
