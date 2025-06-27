@@ -1018,6 +1018,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Whether the category has spike protection support
+   */
+  hasSpikeProtection: boolean;
+  /**
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;

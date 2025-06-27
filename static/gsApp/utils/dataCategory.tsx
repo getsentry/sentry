@@ -286,7 +286,3 @@ export function getChunkCategoryFromDuration(category: DataCategory) {
   }
   return '';
 }
-
-export function isSeer(category: DataCategory): boolean {
-  return category === DataCategory.SEER_AUTOFIX || category === DataCategory.SEER_SCANNER;
-}
