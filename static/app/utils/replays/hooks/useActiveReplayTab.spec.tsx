@@ -1,12 +1,12 @@
 import * as qs from 'query-string';
 
+import {MockApiClient} from 'sentry-test/api';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {TestStubs} from 'sentry-test/testStubs';
 
+import {OrganizationContext} from 'sentry/contexts/organizationContext';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {OrganizationContext} from 'sentry/contexts/organizationContext';
-import {MockApiClient} from 'sentry-test/api';
-import {TestStubs} from 'sentry-test/testStubs';
 
 function mockLocation(query = '') {
   window.location.search = qs.stringify({query});
@@ -88,7 +88,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: ['replay-ai-summaries']})}>
+          <OrganizationContext.Provider
+            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          >
             {children}
           </OrganizationContext.Provider>
         ),
@@ -103,7 +105,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: ['replay-ai-summaries']})}>
+          <OrganizationContext.Provider
+            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          >
             {children}
           </OrganizationContext.Provider>
         ),
@@ -116,7 +120,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: ['replay-ai-summaries']})}>
+          <OrganizationContext.Provider
+            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          >
             {children}
           </OrganizationContext.Provider>
         ),
