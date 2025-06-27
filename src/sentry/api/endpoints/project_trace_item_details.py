@@ -109,7 +109,30 @@ def serialize_meta(
         return {}
 
     try:
-        return json.loads(attribute["value"]["valStr"])
+        result = json.loads(attribute["value"]["valStr"])
+        attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
+        mapped_result = {}
+        for key, value in result.items():
+            if key in attribute_map:
+                item_type: Literal["string", "number"]
+                if (
+                    "valInt" in attribute_map[key]
+                    or "valFloat" in attribute_map[key]
+                    or "valDouble" in attribute_map[key]
+                ):
+                    item_type = "number"
+                else:
+                    item_type = "string"
+                external_name = translate_internal_to_public_alias(key, item_type, trace_item_type)
+                if external_name:
+                    key = external_name
+                else:
+                    if item_type == "number":
+                        key = f"tags[{key},number]"
+                    else:
+                        key = internal_name
+            mapped_result[key] = value
+        return mapped_result
     except json.JSONDecodeError:
         return {}
 
