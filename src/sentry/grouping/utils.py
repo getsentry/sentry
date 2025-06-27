@@ -90,58 +90,52 @@ def bool_from_string(value: str) -> bool | None:
 def resolve_fingerprint_variable(
     variable_key: str, event_data: NodeData | Mapping[str, Any]
 ) -> str | None:
-    if variable_key == "transaction":
-        return event_data.get("transaction") or "<no-transaction>"
+    frame = get_crash_frame_from_event_data(event_data)
+    exception = get_path(event_data, "exception", "values", -1)
 
-    elif variable_key == "message":
-        message = (
-            get_path(event_data, "logentry", "formatted")
-            or get_path(event_data, "logentry", "message")
-            or get_path(event_data, "exception", "values", -1, "value")
-        )
-        return message or "<no-message>"
+    # For ease of reading, let's try to keep all these ifs alphabetized
+    if variable_key in ("error.type", "type"):
+        return get_path(exception, "type") or "<no-type>"
 
-    elif variable_key in ("type", "error.type"):
-        exception_type = get_path(event_data, "exception", "values", -1, "type")
-        return exception_type or "<no-type>"
-
-    elif variable_key in ("value", "error.value"):
-        value = get_path(event_data, "exception", "values", -1, "value")
-        return value or "<no-value>"
-
-    elif variable_key in ("function", "stack.function"):
-        frame = get_crash_frame_from_event_data(event_data)
-        func = frame.get("function") if frame else None
-        return func or "<no-function>"
-
-    elif variable_key in ("path", "stack.abs_path"):
-        frame = get_crash_frame_from_event_data(event_data)
-        abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
-        return abs_path or "<no-abs-path>"
-
-    elif variable_key == "stack.filename":
-        frame = get_crash_frame_from_event_data(event_data)
-        filename = frame.get("filename") or frame.get("abs_path") if frame else None
-        return filename or "<no-filename>"
-
-    elif variable_key in ("module", "stack.module"):
-        frame = get_crash_frame_from_event_data(event_data)
-        module = frame.get("module") if frame else None
-        return module or "<no-module>"
-
-    elif variable_key in ("package", "stack.package"):
-        frame = get_crash_frame_from_event_data(event_data)
-        pkg = frame.get("package") if frame else None
-        if pkg:
-            # If the package is formatted as either a POSIX or Windows path, grab the last segment
-            pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        return pkg or "<no-package>"
+    elif variable_key in ("error.value", "value"):
+        return get_path(exception, "value") or "<no-value>"
 
     elif variable_key == "level":
         return event_data.get("level") or "<no-level>"
 
     elif variable_key == "logger":
         return event_data.get("logger") or "<no-logger>"
+
+    elif variable_key == "message":
+        return (
+            get_path(event_data, "logentry", "formatted")
+            or get_path(event_data, "logentry", "message")
+            or get_path(exception, "value")
+            or "<no-message>"
+        )
+
+    elif variable_key in ("stack.abs_path", "path"):
+        abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
+        return abs_path or "<no-abs-path>"
+
+    elif variable_key == "stack.filename":
+        filename = frame.get("filename") or frame.get("abs_path") if frame else None
+        return filename or "<no-filename>"
+
+    elif variable_key in ("stack.function", "function"):
+        func = frame.get("function") if frame else None
+        return func or "<no-function>"
+
+    elif variable_key in ("stack.module", "module"):
+        module = frame.get("module") if frame else None
+        return module or "<no-module>"
+
+    elif variable_key in ("stack.package", "package"):
+        pkg = frame.get("package") if frame else None
+        if pkg:
+            # If the package is formatted as either a POSIX or Windows path, grab the last segment
+            pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        return pkg or "<no-package>"
 
     elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
@@ -150,6 +144,10 @@ def resolve_fingerprint_variable(
             if tag_name == requested_tag and tag_value is not None:
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
+
+    elif variable_key == "transaction":
+        return event_data.get("transaction") or "<no-transaction>"
+
     else:
         return None
 
