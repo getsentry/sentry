@@ -1,4 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -495,14 +496,14 @@ class IssueActions extends PluginComponentBase<Props, State> {
       }
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="info">
             {'You need to associate an identity with ' +
               this.props.plugin.name +
               ' before you can create issues with this service.'}
           </Alert>
-          <a className="btn btn-primary" href={authUrl}>
+          <LinkButton priority="primary" href={authUrl!}>
             Associate Identity
-          </a>
+          </LinkButton>
         </Alert.Container>
       );
     }
@@ -510,11 +511,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return (
         <Alert type="info">
           {error.has_auth_configured ? (
-            <p>
+            <Alert type="info">
               You still need to{' '}
               <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
               can use it.
-            </p>
+            </Alert>
           ) : (
             <div>
               <p>
@@ -543,11 +544,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return <Alert type="error">{errors}</Alert>;
     }
     if (error.message) {
-      return (
-        <Alert type="error">
-          <p>{error.message}</p>
-        </Alert>
-      );
+      return <Alert type="error">{error.message}</Alert>;
     }
     return <LoadingError />;
   }
