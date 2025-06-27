@@ -81,7 +81,7 @@ export function StreamlinedExternalIssueList({
   }
 
   return (
-    <Fragment>
+    <Flex direction="row" wrap="wrap" gap={space(1)} flex={1}>
       {linkedIssues.length > 0 && (
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
@@ -104,21 +104,21 @@ export function StreamlinedExternalIssueList({
                 }
                 isHoverable
               >
-                <LinkedIssue
+                <LinkButton
                   href={linkedIssue.url}
                   external
                   size="zero"
                   icon={linkedIssue.displayIcon}
                 >
                   <IssueActionName>{linkedIssue.displayName}</IssueActionName>
-                </LinkedIssue>
+                </LinkButton>
               </Tooltip>
             </ErrorBoundary>
           ))}
         </IssueActionWrapper>
       )}
       <ExternalIssueMenu linkedIssues={linkedIssues} integrations={integrations} />
-    </Fragment>
+    </Flex>
   );
 }
 
@@ -250,15 +250,6 @@ const IssueActionWrapper = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   line-height: 1.2;
-`;
-
-const LinkedIssue = styled(LinkButton)`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
 `;
 
 const IssueActionName = styled('div')`
