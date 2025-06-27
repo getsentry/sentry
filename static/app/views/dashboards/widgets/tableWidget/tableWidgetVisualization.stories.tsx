@@ -43,17 +43,21 @@ export default Storybook.story('TableWidgetVisualization', story => {
     const customColumns: TabularColumn[] = [
       {
         key: 'count(span.duration)',
-        name: 'Count of Span Duration',
+        name: 'count(span.duration)',
         type: 'number',
-        width: -1,
+        width: 200,
       },
       {
         key: 'http.request_method',
-        name: 'HTTP Request Method',
+        name: 'http.request_method',
         type: 'string',
         width: -1,
       },
     ];
+    const aliases = {
+      'count(span.duration)': 'Count of Span Duration',
+      'http.request_method': 'HTTP Request Method',
+    };
     return (
       <Fragment>
         <p>
@@ -74,19 +78,36 @@ ${JSON.stringify(tableWithEmptyData)}
           The prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
-        <p>
-          This prop is useful for reordering and giving custom display names to columns:
-        </p>
+        <p>This prop is used for reordering columns and setting column widths:</p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={customColumns}
+        />
         <CodeSnippet language="json">
           {`
 ${JSON.stringify(customColumns)}
           `}
         </CodeSnippet>
-        <p>Resulting table:</p>
+        <p>
+          To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
+          which maps column key to the alias. In some cases you may have both field
+          aliases set by user (ex. in dashboards) as well as a static mapping. The util
+          function <code>decodeColumnAliases</code> is provided to consolidate them, with
+          priority given to user field aliases.
+        </p>
+        <p>
+          Below is an example of setting aliases to make column headers more human
+          readable.
+        </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          columns={customColumns}
+          aliases={aliases}
         />
+        <CodeSnippet language="json">
+          {`
+${JSON.stringify(aliases)}
+          `}
+        </CodeSnippet>
       </Fragment>
     );
   });

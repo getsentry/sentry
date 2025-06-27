@@ -62,7 +62,10 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
@@ -161,6 +164,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.() ?? {};
       const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
       const columns = decodeColumnOrder(
         fields.map(field => ({
@@ -172,6 +176,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         width: minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
       }));
+      const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
 
       return (
@@ -183,6 +188,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               frameless
               scrollable
               fit="max-content"
+              aliases={aliases}
               getRenderer={(field, _dataRow, meta) => {
                 const customRenderer = datasetConfig.getCustomFieldRenderer?.(
                   field,
