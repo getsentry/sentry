@@ -114,125 +114,64 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
-        ]
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(features),
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=2,
-            ),
-        ):
-            self.send_result(result)
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                    call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "TEST",
-                            "uptime_region": "us-west",
-                        },
-                    ),
-                ]
-            )
-            metrics.incr.reset_mock()
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                ]
-            )
-
-        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
-        hashed_fingerprint = md5(fingerprint).hexdigest()
-        group = Group.objects.get(grouphash__hash=hashed_fingerprint)
-        assert group.issue_type == UptimeDomainCheckFailure
-        assignee = group.get_assignee()
-        assert assignee and (assignee.id == self.user.id)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
-
-    def test_detector_handler(self) -> None:
-        """
-        Simple test that the detector handler works as expected end-to-end.
-        """
-        features = [
-            "organizations:uptime",
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
-            "organizations:uptime-detector-create-issues",
         ]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
-
         with (
             self.feature(features),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
-            # Only needed to make sure we don't inadvertently also create an
-            # issue using the legacy issue creation.
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=2,
-            ),
         ):
+            # First processed result does NOT create an occurrence since we
+            # have not yet met the active threshold
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
                     scheduled_check_time=datetime.now() - timedelta(minutes=5),
                 )
             )
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
+                            "host_provider": "TEST",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
             assert not Group.objects.filter(grouphash__hash=hashed_fingerprint).exists()
+            metrics.incr.reset_mock()
+
+            # Second processed result DOES create an occurrence since we met
+            # the threshold
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
                     scheduled_check_time=datetime.now() - timedelta(minutes=4),
                 )
             )
-            # Issue is created
-            assert Group.objects.filter(grouphash__hash=hashed_fingerprint).exists()
-
-            # Be sure we did NOT create this issue using the legacy metrics
-            legacy_sent_occurrence_calls = [
-                c
-                for c in metrics.incr.mock_calls
-                if c[1][0] == "uptime.result_processor.active.sent_occurrence"
-            ]
-            assert len(legacy_sent_occurrence_calls) == 0
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
+                            "host_provider": "TEST",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
 
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
@@ -244,15 +183,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # Issue is resolved
         with (
             self.feature(features),
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.grouptype.get_active_recovery_threshold", return_value=2),
-            # Only needed to make sure we don't inadvertently also attempt to
-            # resolve the issue using the legacy system.
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_recovery_threshold",
-                return_value=2,
-            ),
         ):
+            # First processed result does NOT resolve since we have not yet met
+            # the recovery threshold
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
@@ -263,6 +197,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not Group.objects.filter(
                 grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
             ).exists()
+
+            # Issue is resolved once the threshold is met
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
@@ -270,24 +206,14 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     scheduled_check_time=datetime.now() - timedelta(minutes=2),
                 )
             )
-            # Issue is resolved
             assert Group.objects.filter(
                 grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
             ).exists()
 
-            # Be sure we did NOT create this issue using the legacy metrics
-            legacy_resolve_calls = [
-                c
-                for c in metrics.incr.mock_calls
-                if c[1][0] == "uptime.result_processor.active.resolved"
-            ]
-            assert len(legacy_resolve_calls) == 0
-
-    def test_does_nothing_when_missing_project_subscription(self) -> None:
+    def test_does_nothing_when_missing_detector(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         self.detector.delete()
 
@@ -307,167 +233,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not logger.exception.called
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
-    def test_restricted_host_provider_id(self) -> None:
-        """
-        Test that we do NOT create an issue when the host provider identifier
-        has been restricted using the
-        `restrict-issue-creation-by-hosting-provider-id` option.
-        """
-        features = [
-            "organizations:uptime",
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
-        ]
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(features),
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=1,
-            ),
-            override_options({"uptime.restrict-issue-creation-by-hosting-provider-id": ["TEST"]}),
-        ):
-            self.send_result(result)
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.restricted_by_provider",
-                        sample_rate=1.0,
-                        tags={
-                            "host_provider_id": "TEST",
-                            "uptime_region": "us-west",
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "TEST",
-                        },
-                    ),
-                ],
-                any_order=True,
-            )
-
-        # Issue is not created
-        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
-        hashed_fingerprint = md5(fingerprint).hexdigest()
-        with pytest.raises(Group.DoesNotExist):
-            Group.objects.get(grouphash__hash=hashed_fingerprint)
-
-        # subscription status is still updated
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
-
-    def test_reset_fail_count(self) -> None:
-        features = [
-            "organizations:uptime",
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
-        ]
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(features),
-        ):
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                    call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "uptime_region": "us-west",
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "TEST",
-                        },
-                    ),
-                ]
-            )
-            metrics.incr.reset_mock()
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    status=CHECKSTATUS_SUCCESS,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_SUCCESS,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                ]
-            )
-            metrics.incr.reset_mock()
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                    call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "TEST",
-                            "uptime_region": "us-west",
-                        },
-                    ),
-                ]
-            )
-
-        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
-        hashed_fingerprint = md5(fingerprint).hexdigest()
-        with pytest.raises(Group.DoesNotExist):
-            Group.objects.get(grouphash__hash=hashed_fingerprint)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
-
     def test_no_create_issues_feature(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
         with (
+            self.feature(["organizations:uptime"]),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=1,
-            ),
+            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -493,107 +264,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.subscription.refresh_from_db()
         assert self.subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_resolve(self) -> None:
-        features = [
-            "organizations:uptime",
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
-        ]
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(features),
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=2,
-            ),
-        ):
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                ]
-            )
-            metrics.incr.reset_mock()
-            self.send_result(
-                self.create_uptime_result(
-                    self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
-                )
-            )
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_FAILURE,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    ),
-                ]
-            )
-
-        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
-        hashed_fingerprint = md5(fingerprint).hexdigest()
-        group = Group.objects.get(grouphash__hash=hashed_fingerprint)
-        assert group.issue_type == UptimeDomainCheckFailure
-        assert group.status == GroupStatus.UNRESOLVED
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
-
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            status=CHECKSTATUS_SUCCESS,
-            scheduled_check_time=datetime.now() - timedelta(minutes=3),
-        )
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
-        ):
-            self.send_result(result)
-            metrics.incr.assert_has_calls(
-                [
-                    call(
-                        "uptime.result_processor.handle_result_for_project",
-                        tags={
-                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
-                            "status": CHECKSTATUS_SUCCESS,
-                            "mode": "auto_detected_active",
-                            "uptime_region": "us-west",
-                            "host_provider": "TEST",
-                        },
-                        sample_rate=1.0,
-                    )
-                ]
-            )
-        group.refresh_from_db()
-        assert group.status == GroupStatus.RESOLVED
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
-
     def test_no_subscription(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id, uptime_region="default")
@@ -736,7 +410,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         result = self.create_uptime_result(self.subscription.subscription_id)
         _get_cluster().set(
@@ -783,7 +456,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         region_name = "shadow"
         self.create_uptime_subscription_region(
@@ -822,7 +494,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         result = self.create_uptime_result(
             self.subscription.subscription_id, status=CHECKSTATUS_MISSED_WINDOW
@@ -857,7 +528,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
         self.detector.update(
@@ -974,7 +644,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
             mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
@@ -1027,7 +696,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         self.project_subscription.update(
             mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
@@ -1206,7 +874,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
-            "organizations:uptime-detector-handler",
         ]
         subscription = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex,
@@ -1217,29 +884,28 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.uuid4().hex,
             host_provider_name="test_provider",
         )
-        result = self.create_uptime_result(
-            subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
-        result_2 = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=4),
-        )
 
         with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature(features),
-            mock.patch(
-                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-                return_value=2,
-            ),
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS",
                 new=1,
             ),
         ):
-            self.send_result(result)
-            self.send_result(result_2)
+            self.send_result(
+                self.create_uptime_result(
+                    subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                )
+            )
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                )
+            )
 
             metrics.incr.assert_has_calls(
                 [
@@ -1255,15 +921,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         sample_rate=1.0,
                     ),
                     call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "test_provider",
-                            "uptime_region": "us-west",
-                        },
-                    ),
-                    call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
                             "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -1273,15 +930,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                             "host_provider": "other",
                         },
                         sample_rate=1.0,
-                    ),
-                    call(
-                        "uptime.result_processor.active.under_threshold",
-                        sample_rate=1.0,
-                        tags={
-                            "status": CHECKSTATUS_FAILURE,
-                            "host_provider": "other",
-                            "uptime_region": "us-west",
-                        },
                     ),
                 ]
             )
@@ -1309,10 +957,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert parsed_value["retention_days"] == 90
 
     @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
-    @mock.patch(
-        "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
-        return_value=1,
-    )
+    @mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1)
     @override_options({"uptime.snuba_uptime_results.enabled": True})
     def test_produces_snuba_uptime_results_in_incident(
         self, _: MagicMock, mock_produce: MagicMock
