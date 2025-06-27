@@ -192,10 +192,9 @@ def traces_sampler(sampling_context):
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
-    if "celery_job" in sampling_context:
-        task_name = sampling_context.get("celery.job.task")
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
+    task_name = sampling_context.get("celery.job.task")
+    if task_name in SAMPLED_TASKS:
+        return SAMPLED_TASKS[task_name]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
