@@ -105,7 +105,7 @@ export function LaravelOverviewPage() {
         <TableControl value={currentView} onChange={handleViewChange} size="sm">
           <TableControlItem key={TableType.PATHS}>{t('Paths')}</TableControlItem>
           <TableControlItem key={TableType.COMMANDS}>{t('Commands')}</TableControlItem>
-          <TableControlItem key={TableType.JOBS}>{t('Jobs')}</TableControlItem>
+          <TableControlItem key={TableType.JOBS}>{t('Queues')}</TableControlItem>
         </TableControl>
       </ControlsWrapper>
       {currentView === TableType.JOBS && <JobsTable />}
