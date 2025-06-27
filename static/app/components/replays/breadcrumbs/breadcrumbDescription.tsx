@@ -22,7 +22,7 @@ interface Props {
   expandPaths?: string[];
 }
 
-export function BreadcrumbItemDescription({
+export function BreadcrumbDescription({
   description,
   allowShowSnippet,
   showSnippet,
