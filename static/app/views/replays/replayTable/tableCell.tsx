@@ -1,46 +1,42 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import invariant from 'invariant';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
+import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
+import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {
   IconCalendar,
   IconCursorArrow,
   IconDelete,
-  IconEllipsis,
   IconFire,
   IconNot,
   IconPlay,
 } from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
@@ -49,241 +45,6 @@ type Props = {
 };
 
 export type ReferrerTableType = 'main' | 'selector-widget';
-
-type EditType = 'set' | 'remove';
-
-function generateAction({
-  key,
-  value,
-  edit,
-  location,
-  navigate,
-}: {
-  edit: EditType;
-  key: string;
-  location: Location<ReplayListLocationQuery>;
-  navigate: ReturnType<typeof useNavigate>;
-  value: string;
-}) {
-  const search = new MutableSearch(decodeScalar(location.query.query) || '');
-
-  const modifiedQuery =
-    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
-
-  const onAction = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: modifiedQuery.formatString(),
-      },
-    });
-  };
-
-  return onAction;
-}
-
-function OSBrowserDropdownFilter({
-  type,
-  name,
-  version,
-}: {
-  name: string | null;
-  type: string;
-  version: string | null;
-}) {
-  const location = useLocation<ReplayListLocationQuery>();
-  const navigate = useNavigate();
-
-  return (
-    <DropdownMenu
-      items={[
-        ...(name
-          ? [
-              {
-                key: 'name',
-                label: tct('[type] name: [name]', {
-                  type: <b>{type}</b>,
-                  name: <b>{name}</b>,
-                }),
-                children: [
-                  {
-                    key: 'name_add',
-                    label: t('Add to filter'),
-                    onAction: generateAction({
-                      key: `${type}.name`,
-                      value: name ?? '',
-                      edit: 'set',
-                      location,
-                      navigate,
-                    }),
-                  },
-                  {
-                    key: 'name_exclude',
-                    label: t('Exclude from filter'),
-                    onAction: generateAction({
-                      key: `${type}.name`,
-                      value: name ?? '',
-                      edit: 'remove',
-                      location,
-                      navigate,
-                    }),
-                  },
-                ],
-              },
-            ]
-          : []),
-        ...(version
-          ? [
-              {
-                key: 'version',
-                label: tct('[type] version: [version]', {
-                  type: <b>{type}</b>,
-                  version: <b>{version}</b>,
-                }),
-                children: [
-                  {
-                    key: 'version_add',
-                    label: t('Add to filter'),
-                    onAction: generateAction({
-                      key: `${type}.version`,
-                      value: version ?? '',
-                      edit: 'set',
-                      location,
-                      navigate,
-                    }),
-                  },
-                  {
-                    key: 'version_exclude',
-                    label: t('Exclude from filter'),
-                    onAction: generateAction({
-                      key: `${type}.version`,
-                      value: version ?? '',
-                      edit: 'remove',
-                      location,
-                      navigate,
-                    }),
-                  },
-                ],
-              },
-            ]
-          : []),
-      ]}
-      usePortal
-      size="xs"
-      offset={4}
-      position="bottom"
-      preventOverflowOptions={{padding: 4}}
-      flipOptions={{
-        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
-      }}
-      trigger={triggerProps => (
-        <ActionMenuTrigger
-          {...triggerProps}
-          translucentBorder
-          aria-label={t('Actions')}
-          icon={<IconEllipsis size="xs" />}
-          size="zero"
-        />
-      )}
-    />
-  );
-}
-
-const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
-
-function NumericDropdownFilter({
-  type,
-  val,
-  triggerOverlay,
-  formatter = DEFAULT_NUMERIC_DROPDOWN_FORMATTER,
-}: {
-  type: string;
-  val: number;
-  formatter?: (val: number) => string;
-  triggerOverlay?: boolean;
-}) {
-  const location = useLocation<ReplayListLocationQuery>();
-  const navigate = useNavigate();
-
-  return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'add',
-          label: 'Add to filter',
-          onAction: generateAction({
-            key: type,
-            value: formatter(val),
-            edit: 'set',
-            location,
-            navigate,
-          }),
-        },
-        {
-          key: 'greater',
-          label: 'Show values greater than',
-          onAction: generateAction({
-            key: type,
-            value: '>' + formatter(val),
-            edit: 'set',
-            location,
-            navigate,
-          }),
-        },
-        {
-          key: 'less',
-          label: 'Show values less than',
-          onAction: generateAction({
-            key: type,
-            value: '<' + formatter(val),
-            edit: 'set',
-            location,
-            navigate,
-          }),
-        },
-        {
-          key: 'exclude',
-          label: t('Exclude from filter'),
-          onAction: generateAction({
-            key: type,
-            value: formatter(val),
-            edit: 'remove',
-            location,
-            navigate,
-          }),
-        },
-      ]}
-      usePortal
-      size="xs"
-      offset={4}
-      position="bottom"
-      preventOverflowOptions={{padding: 4}}
-      flipOptions={{
-        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
-      }}
-      trigger={triggerProps =>
-        triggerOverlay ? (
-          <OverlayActionMenuTrigger
-            {...triggerProps}
-            translucentBorder
-            aria-label={t('Actions')}
-            icon={<IconEllipsis size="xs" />}
-            size="zero"
-          />
-        ) : (
-          <NumericActionMenuTrigger
-            {...triggerProps}
-            translucentBorder
-            aria-label={t('Actions')}
-            icon={<IconEllipsis size="xs" />}
-            size="zero"
-          />
-        )
-      }
-    />
-  );
-}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -651,11 +412,7 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
           radius={0}
         />
         {showDropdownFilters ? (
-          <NumericDropdownFilter
-            type="activity"
-            val={replay?.activity ?? 0}
-            triggerOverlay
-          />
+          <NumericDropdownFilter type="activity" val={replay?.activity ?? 0} />
         ) : null}
       </Container>
     </Item>
@@ -697,6 +454,10 @@ const Item = styled('div')<{
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
   ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
+
+  &:hover [data-visible-on-hover='true'] {
+    opacity: 1;
+  }
 `;
 
 const Count = styled('span')`
@@ -736,32 +497,4 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-const ActionMenuTrigger = styled(Button)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: ${space(0.75)};
-  left: -${space(0.75)};
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.1s;
-  &:focus-visible,
-  &[aria-expanded='true'],
-  ${Container}:hover & {
-    opacity: 1;
-  }
-`;
-
-const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
-  left: 100%;
-  margin-left: ${space(0.75)};
-  z-index: 1;
-`;
-
-const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
-  right: 0%;
-  left: unset;
 `;
