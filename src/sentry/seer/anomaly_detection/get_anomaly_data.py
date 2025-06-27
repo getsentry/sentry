@@ -1,10 +1,10 @@
 import logging
-from typing import Any
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -166,7 +166,7 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: dict[str, Any],
+    subscription_update: AnomalyDetectionUpdate,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
     aggregation_value = subscription_update.get("value")
