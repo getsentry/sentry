@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
@@ -13,13 +14,17 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ignored import handle_ignored
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
+from sentry.rules.match import MatchType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import process_data_sources, process_detectors
+from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
+from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -193,6 +198,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 
 
 @mock.patch("sentry.workflow_engine.processors.workflow.Action.trigger")
+@mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self):
         (
@@ -218,7 +224,13 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             yield
 
     def create_error_event(
-        self, project=None, detector=None, environment=None, fingerprint=None, level="error"
+        self,
+        project=None,
+        detector=None,
+        environment=None,
+        fingerprint=None,
+        level="error",
+        tags: list[list[str]] | None = None,
     ) -> Event:
         if project is None:
             project = self.project
@@ -232,6 +244,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             fingerprint=fingerprint,
             environment=environment,
             level=level,
+            tags=tags,
         )
         event_processing_store.store({**event.data, "project": project.id})
         return event
@@ -328,8 +341,130 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_without_env)
         assert not mock_trigger.called  # Should not trigger for events without the environment
 
-    def test_slow_condition_workflow_with_filter(self, mock_trigger):
-        pass
+    def test_slow_condition_workflow_with_conditions(self, mock_trigger):
+        self.project.flags.has_high_priority_alerts = True
+        self.project.save()
+
+        # slow condition + trigger, and filter condition
+        self.workflow_triggers.update(logic_type="all")
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            condition_result=True,
+            comparison={
+                "interval": "1h",
+                "value": 1,
+            },
+        )
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.NEW_HIGH_PRIORITY_ISSUE,
+            condition_result=True,
+            comparison=True,
+        )
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.TAGGED_EVENT,
+            condition_result=True,
+            comparison={
+                "match": MatchType.EQUAL,
+                "key": "hello",
+                "value": "world",
+            },
+        )
+
+        # event that is not high priority = no enqueue
+        event_1 = self.create_error_event(fingerprint="abcd", level="warning")
+        self.post_process_error(event_1, is_new=True)
+        assert not mock_trigger.called
+
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert not project_ids
+
+        # event that does not have the tags = no fire
+        event_2 = self.create_error_event(fingerprint="asdf")
+        self.post_process_error(event_2, is_new=True)
+        assert not mock_trigger.called
+
+        event_3 = self.create_error_event(fingerprint="asdf")
+        self.post_process_error(event_3)
+        assert not mock_trigger.called
+
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+
+        process_delayed_workflows(project_ids[0][0])
+        assert not mock_trigger.called
+
+        # event that fires
+        event_4 = self.create_error_event(tags=[["hello", "world"]])
+        self.post_process_error(event_4, is_new=True)
+        assert not mock_trigger.called
+
+        event_5 = self.create_error_event(tags=[["hello", "world"]])
+        self.post_process_error(event_5)
+        assert not mock_trigger.called
+
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+
+        process_delayed_workflows(project_ids[0][0])
+        mock_trigger.assert_called_once()
 
     def test_slow_condition_subqueries(self, mock_trigger):
-        pass
+        env = self.create_environment(self.project, name="production")
+        self.workflow.update(environment=env)
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            condition_result=True,
+            comparison={
+                "interval": "1h",
+                "value": 2,
+                "filters": [
+                    {
+                        "match": MatchType.EQUAL,
+                        "key": "hello",
+                        "value": "world",
+                    },
+                ],
+            },
+        )
+        now = timezone.now()
+
+        with freeze_time(now):
+            event_1 = self.create_error_event(environment="production", tags=[["hello", "world"]])
+            self.post_process_error(event_1)
+            assert not mock_trigger.called
+
+            event_2 = self.create_error_event(environment="production", tags=[["hello", "world"]])
+            self.post_process_error(event_2)
+            assert not mock_trigger.called
+
+            event_3 = self.create_error_event(tags=[["abc", "def"]])
+            self.post_process_error(event_3)
+            assert not mock_trigger.called
+
+            project_ids = buffer.backend.get_sorted_set(
+                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            )
+
+            process_delayed_workflows(project_ids[0][0])
+            assert not mock_trigger.called
+
+        with freeze_time(now + timedelta(minutes=1)):
+            # 3 events with matching tags should trigger the workflow
+            event_4 = self.create_error_event(environment="production", tags=[["hello", "world"]])
+            self.post_process_error(event_4)
+            assert not mock_trigger.called
+
+            project_ids = buffer.backend.get_sorted_set(
+                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            )
+
+            process_delayed_workflows(project_ids[0][0])
+            mock_trigger.assert_called_once()
