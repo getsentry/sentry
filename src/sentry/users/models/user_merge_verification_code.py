@@ -56,4 +56,23 @@ class UserMergeVerificationCode(DefaultFieldsModel):
 
     @classmethod
     def send_email(cls, user: User | RpcUser, token: str) -> None:
-        pass
+        from sentry import options
+        from sentry.http import get_server_hostname
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            "user": user,
+            "domain": get_server_hostname(),
+            "code": token,
+            "datetime": timezone.now(),
+        }
+
+        subject = "Your Verification Code"
+        template = "verification-code"
+        msg = MessageBuilder(
+            subject="{} {}".format(options.get("mail.subject-prefix"), subject),
+            template=f"sentry/emails/{template}.txt",
+            html_template=f"sentry/emails/{template}.html",
+            context=context,
+        )
+        msg.send_async([user.email])
