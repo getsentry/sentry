@@ -14,6 +14,7 @@ from sentry.search.events.types import SAMPLING_MODES
 SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.LOGS: TraceItemType.TRACE_ITEM_TYPE_LOG,
     SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
 }
 
 OPERATOR_MAP = {
