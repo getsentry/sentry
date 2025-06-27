@@ -17,11 +17,9 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -56,12 +54,10 @@ export default function ReplayPreviewPlayer({
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
-  const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
-  const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -98,9 +94,7 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <StyledReplayCell
-          eventView={eventView}
           key="session"
-          referrer="issue-details-replay-header"
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
         />
