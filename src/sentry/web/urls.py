@@ -898,7 +898,7 @@ urlpatterns += [
     ),
     # Dev toolbar
     re_path(
-        r"^toolbar/(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/",
+        r"^toolbar/(?P<project_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/",
         include(
             [
                 re_path(
