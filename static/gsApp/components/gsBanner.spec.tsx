@@ -1661,7 +1661,7 @@ describe('GSBanner Overage Alerts', function () {
       organization,
       plan: 'am1_team',
       categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true}),
+        errors: MetricHistoryFixture({sentUsageWarning: true, usageExceeded: true}),
         transactions: MetricHistoryFixture({sentUsageWarning: false}),
         replays: MetricHistoryFixture({usageExceeded: false}),
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
