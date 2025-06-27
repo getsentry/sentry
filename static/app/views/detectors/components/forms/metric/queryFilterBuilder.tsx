@@ -8,11 +8,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   SectionLabel,
   SectionLabelSecondary,

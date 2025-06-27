@@ -21,12 +21,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {DetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorActions} from 'sentry/views/detectors/components/forms/editDetectorActions';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   getMetricDetectorFormData,
   getNewMetricDetectorData,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useDetectorQuery, useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,

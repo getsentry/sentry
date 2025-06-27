@@ -10,7 +10,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {NewMetricDetector} from 'sentry/views/detectors/components/forms/metricFormData';
+import type {NewMetricDetector} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {

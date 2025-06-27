@@ -17,14 +17,14 @@ import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
-import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/customMeasurements';
-import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
+import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/metric/customMeasurements';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
 import {
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
-import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/queryFilterBuilder';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
