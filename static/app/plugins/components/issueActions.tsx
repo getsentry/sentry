@@ -1,3 +1,6 @@
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -5,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import GroupStore from 'sentry/stores/groupStore';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -493,27 +497,29 @@ class IssueActions extends PluginComponentBase<Props, State> {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
       }
       return (
-        <div>
-          <div className="alert alert-warning m-b-1">
+        <Flex direction="column" gap={space(2)}>
+          <Alert type="info">
             {'You need to associate an identity with ' +
               this.props.plugin.name +
               ' before you can create issues with this service.'}
+          </Alert>
+          <div>
+            <LinkButton priority="primary" href={authUrl!}>
+              Associate Identity
+            </LinkButton>
           </div>
-          <a className="btn btn-primary" href={authUrl}>
-            Associate Identity
-          </a>
-        </div>
+        </Flex>
       );
     }
     if (error.error_type === 'config') {
       return (
         <div className="alert alert-block">
           {error.has_auth_configured ? (
-            <p>
+            <Alert type="info">
               You still need to{' '}
               <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
               can use it.
-            </p>
+            </Alert>
           ) : (
             <div>
               <p>
@@ -535,18 +541,16 @@ class IssueActions extends PluginComponentBase<Props, State> {
       );
     }
     if (error.error_type === 'validation') {
-      const errors: React.ReactElement[] = [];
-      for (const name in error.errors) {
-        errors.push(<p key={name}>{error.errors[name]}</p>);
-      }
-      return <div className="alert alert-error alert-block">{errors}</div>;
+      return (
+        <Alert type="error">
+          {Object.entries(error.errors || {}).map(([name, e]) => (
+            <p key={name}>{e}</p>
+          ))}
+        </Alert>
+      );
     }
     if (error.message) {
-      return (
-        <div className="alert alert-error alert-block">
-          <p>{error.message}</p>
-        </div>
-      );
+      return <Alert type="error">{error.message}</Alert>;
     }
     return <LoadingError />;
   }
