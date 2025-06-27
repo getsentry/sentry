@@ -110,7 +110,7 @@ jobs:
 
       - name: tsgo (experimental native TypeScript)
         id: tsgo
-        run: pnpm run tsc:native-preview
+        run: npx --yes @typescript/native-preview
         continue-on-error: true # Don't fail if the native preview has issues
 
   eslint:
