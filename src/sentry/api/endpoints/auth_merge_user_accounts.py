@@ -31,6 +31,11 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
             )
 
         shared_email = user.email
+        if not shared_email:
+            return Response(
+                status=400,
+                data={"error": "Shared email is empty or null"},
+            )
         queryset = User.objects.filter(email=shared_email).order_by("last_active")
         return self.paginate(
             request=request,
