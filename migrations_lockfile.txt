@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0939_rm_eventattachment_fileid_part2
+sentry: 0940_auditlog_json_field
 
 social_auth: 0001_squashed_0002_default_auto_field
 
