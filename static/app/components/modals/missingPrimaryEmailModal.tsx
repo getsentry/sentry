@@ -12,7 +12,7 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Header'>;
 
 function MissingPrimaryEmailModal({Header, Body}: Props) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const deadline = isSelfHosted ? 'as soon as possible' : ' before August 1, 2025';
+  const deadline = isSelfHosted ? 'as soon as possible' : 'before August 1, 2025';
   return (
     <Fragment>
       <Header>
