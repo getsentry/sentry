@@ -454,6 +454,10 @@ const Item = styled('div')<{
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
   ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
+
+  &:hover [data-visible-on-hover='true'] {
+    opacity: 1;
+  }
 `;
 
 const Count = styled('span')`

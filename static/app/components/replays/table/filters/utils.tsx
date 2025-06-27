@@ -43,7 +43,7 @@ export function generateAction({
 
 export const ActionMenuTrigger = styled(Button)`
   position: absolute;
-  left: 100%;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   padding: ${space(0.75)};
