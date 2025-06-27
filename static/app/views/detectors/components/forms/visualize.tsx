@@ -308,14 +308,6 @@ export function Visualize() {
           {aggregateMetadata?.parameters?.map((param, index) => {
             return (
               <FieldContainer key={index}>
-                <SectionLabel>
-                  {param.kind === 'column'
-                    ? t('Metric')
-                    : param.kind === 'dropdown'
-                      ? t('Value')
-                      : t('Parameter %s', index + 1)}
-                </SectionLabel>
-
                 {param.kind === 'column' ? (
                   <StyledVisualizeSelect
                     searchable
@@ -386,7 +378,7 @@ const AggregateContainer = styled('div')<{hasParameters: boolean}>`
   padding: ${space(2)} ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }
@@ -403,6 +395,7 @@ const StyledAggregateSelect = styled(CompactSelect)`
   width: 100%;
   & > button {
     width: 100%;
+    font-weight: normal;
   }
 `;
 
@@ -410,6 +403,7 @@ const StyledVisualizeSelect = styled(CompactSelect)`
   width: 100%;
   & > button {
     width: 100%;
+    font-weight: normal;
   }
 `;
 

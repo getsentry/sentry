@@ -450,7 +450,7 @@ const StyledInput = styled(Input)`
     box-shadow: none;
     font-size: 13px;
     padding: ${space(1)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
   }
 `;
@@ -506,7 +506,7 @@ const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   &:first-child {
     border-top: none;
   }

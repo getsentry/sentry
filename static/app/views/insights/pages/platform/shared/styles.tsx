@@ -18,7 +18,7 @@ const getColumns = (props: {columns?: number}) => {
 export const WidgetFooterTable = styled('div')<{columns?: number}>`
   display: grid;
   grid-template-columns: max-content 1fr repeat(${p => getColumns(p) - 2}, max-content);
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   & > * {
     padding: ${space(1)} ${space(0.5)};
@@ -70,7 +70,7 @@ const StyledGrid = styled('div')`
     'pos5'
     'pos6';
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: 190px 300px 300px 300px;
     grid-template-areas:
@@ -80,7 +80,7 @@ const StyledGrid = styled('div')`
       'pos5 pos6';
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: 190px 190px 300px;
     grid-template-areas:

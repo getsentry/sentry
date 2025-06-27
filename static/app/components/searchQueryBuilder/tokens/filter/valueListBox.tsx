@@ -198,7 +198,7 @@ const FooterContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};

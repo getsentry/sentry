@@ -272,7 +272,7 @@ const SenderContainer = styled('div')`
   padding-left: ${space(1)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -284,7 +284,7 @@ const AttributeGroup = styled('div')`
   gap: ${space(2)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -344,6 +344,6 @@ const RefundRow = styled('tr')`
 
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray300};
 `;

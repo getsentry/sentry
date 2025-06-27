@@ -58,6 +58,6 @@ export function StorySourceLinks(props: {story: StoryDescriptor}) {
 }
 
 const LastEdited = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.tokens.content.muted};
 `;

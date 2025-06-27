@@ -10,6 +10,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
+import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
@@ -37,8 +38,6 @@ import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useSelectedReplayIndex} from 'sentry/views/issueDetails/groupReplays/selectedReplayIndexContext';
-import useSelectReplayIndex from 'sentry/views/issueDetails/groupReplays/useSelectReplayIndex';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -415,7 +414,7 @@ export function ReplayCell({
 }
 
 const ArchivedId = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledIconDelete = styled(IconDelete)`
@@ -430,13 +429,13 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 `;
 
 const DisplayNameLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   &[data-has-viewed='true'] {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 
@@ -477,7 +476,7 @@ export function TransactionCell({replay}: Props) {
 export function OSCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.os;
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -504,7 +503,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 export function BrowserCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.browser;
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.lg})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -664,8 +663,8 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
 }
 
 export function PlayPauseCell({rowIndex}: Props) {
-  const selectedReplayIndex = useSelectedReplayIndex();
-  const {select: setSelectedReplayIndex} = useSelectReplayIndex();
+  const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
+    useSelectedReplayIndex();
   const inner =
     rowIndex === selectedReplayIndex ? (
       <ReplayPlayPauseButton size="sm" priority="default" borderless />
@@ -728,7 +727,7 @@ const SpanOperationBreakdown = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: right;
 `;
 

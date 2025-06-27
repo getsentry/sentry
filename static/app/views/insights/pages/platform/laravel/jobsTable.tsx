@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 
+import Link from 'sentry/components/links/link';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
@@ -19,7 +19,7 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'messaging.destination.name', name: t('Job Name'), width: COL_WIDTH_UNDEFINED},
+  {key: 'messaging.destination.name', name: t('Queue Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Processed'), width: 124},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {

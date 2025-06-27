@@ -272,7 +272,7 @@ export const StyledBreadcrumbPanelTable = styled(PanelTable)`
     }
   }
 
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-columns: 48px 1fr 74px 82px;
     > * {
       :nth-child(-n + 6) {

@@ -158,7 +158,7 @@ const Wrapper = styled('div')`
     width: 100%;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }
@@ -168,7 +168,7 @@ const FilterButtons = styled(ButtonBar)`
   display: grid;
   gap: ${space(1.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: flex-start;
     gap: ${space(1.5)};

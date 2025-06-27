@@ -1,5 +1,5 @@
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';

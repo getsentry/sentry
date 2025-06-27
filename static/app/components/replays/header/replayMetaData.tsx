@@ -119,18 +119,18 @@ const KeyMetrics = styled('dl')`
   color: ${p => p.theme.subText};
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     justify-self: flex-end;
   }
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   gap: ${space(1)};

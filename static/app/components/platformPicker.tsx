@@ -262,7 +262,7 @@ const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  grid-template-columns: 1fr minmax(0, 200px);
   align-items: start;
 
   &.centered {
@@ -356,7 +356,7 @@ const PlatformCard = styled(
     width: 100%;
     color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

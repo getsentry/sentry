@@ -224,14 +224,14 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 `;
 
 const AlertDetails = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-left: ${space(1.5)};
   ${p => p.theme.overflowEllipsis}
   line-height: 1.35;
 `;
 
 const AlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   overflow: hidden;
   text-overflow: ellipsis;
 `;
