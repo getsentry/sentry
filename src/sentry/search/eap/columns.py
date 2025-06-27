@@ -222,7 +222,6 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
-
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
@@ -287,7 +286,9 @@ class FunctionDefinition:
     private: bool = False
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -388,7 +389,9 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -450,7 +453,9 @@ def datetime_processor(datetime_value: str | float) -> str:
     return datetime.fromisoformat(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
 
 
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
+def project_context_constructor(
+    column_name: str,
+) -> Callable[[SnubaParams], VirtualColumnContext]:
     def context_constructor(params: SnubaParams) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -492,4 +497,4 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
-    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], SearchFilter]]
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
