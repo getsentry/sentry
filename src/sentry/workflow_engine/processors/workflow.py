@@ -179,7 +179,7 @@ def evaluate_workflow_triggers(
     logger.info(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
-            "group_id": event_data.event.group_id,
+            "group_id": event_data.group.id,
             "event_id": event_id,
             "event_data": asdict(event_data),
             "event_environment_id": environment.id,
@@ -321,7 +321,7 @@ def _get_associated_workflows(
             "workflow_engine.process_workflows",
             extra={
                 "payload": event_data,
-                "group_id": event_data.event.group_id,
+                "group_id": event_data.group.id,
                 "event_id": event_id,
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id,
