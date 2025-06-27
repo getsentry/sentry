@@ -10,7 +10,7 @@ class AuthV2Permission(BasePermission):
         if settings.IS_DEV:
             return True
 
-        secret = request.META.get("X-Sentry-Auth-V2")
+        secret = request.META.get("HTTP_X_SENTRY_AUTH_V2")
         return secret == settings.AUTH_V2_SECRET
 
 
