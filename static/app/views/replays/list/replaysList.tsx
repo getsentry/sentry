@@ -19,7 +19,7 @@ import {JetpackComposePiiNotice} from 'sentry/views/replays/jetpackComposePiiNot
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
-const MIN_REPLAY_CLICK_SDK = '7.44.0';
+const MIN_REPLAY_CLICK_SDK = '7.45.0';
 
 function ReplaysList() {
   const organization = useOrganization();
