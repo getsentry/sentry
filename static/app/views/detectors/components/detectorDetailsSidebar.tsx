@@ -42,8 +42,17 @@ function getDetectorEnvironment(detector: Detector) {
 }
 
 function AssignToTeam({teamId}: {teamId: string}) {
-  const {teams} = useTeamsById({ids: [teamId]});
+  const {teams, isLoading} = useTeamsById({ids: [teamId]});
   const team = teams.find(tm => tm.id === teamId);
+
+  if (isLoading) {
+    return (
+      <Flex align="center" gap={space(0.5)}>
+        {t('Assign to')} <Placeholder width="80px" height="16px" />
+      </Flex>
+    );
+  }
+
   return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
 }
 
