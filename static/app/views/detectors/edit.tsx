@@ -18,9 +18,8 @@ import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
+import {DetectorForm} from 'sentry/views/detectors/components/forms';
+import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
 import {
   getMetricDetectorFormData,
@@ -113,20 +112,12 @@ export default function DetectorEdit() {
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detectorId={params.detectorId} />
-            <Flex gap={space(1)} direction="column">
-              <Layout.Title>
-                <EditableDetectorName />
-              </Layout.Title>
-              <DetectorSubtitle
-                projectId={initialData.projectId}
-                environment={initialData.environment}
-              />
-            </Flex>
+            <DetectorBaseFields />
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricDetectorForm />
+            <DetectorForm detectorType={detector.type} />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

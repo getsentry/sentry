@@ -36,6 +36,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
@@ -155,7 +156,7 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   };
   projectId: string;
   sourceResolutionResults: FrameSourceMapDebuggerData;
-  orgSlug?: string;
+  organization?: Organization;
 }
 
 export const projectPlatformToDocsMap: Record<string, string> = {
@@ -270,10 +271,9 @@ export function getSourceMapsDocLinks(platform: string) {
 
 function SentryWizardCallout({
   analyticsParams,
-  orgSlug = 'example-org',
-  projectSlug = 'example-project',
-}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'> & {
-  orgSlug?: string;
+  organization,
+  projectSlug,
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
   projectSlug?: string;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -300,7 +300,11 @@ function SentryWizardCallout({
           );
         }}
       >
-        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
+        {getSourceMapsWizardSnippet({
+          isSelfHosted,
+          organization,
+          projectSlug,
+        })}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -490,7 +494,7 @@ export function SourceMapsDebuggerModal({
   Footer,
   sourceResolutionResults,
   analyticsParams,
-  orgSlug,
+  organization,
   projectId,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
@@ -614,13 +618,13 @@ export function SourceMapsDebuggerModal({
           ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
             <MetaFrameworkConfigInfo
               framework={platform}
-              orgSlug={orgSlug}
+              orgSlug={organization?.slug}
               projectSlug={project?.slug}
             />
           ) : (
             <SentryWizardCallout
               analyticsParams={analyticsParams}
-              orgSlug={orgSlug}
+              organization={organization}
               projectSlug={project?.slug}
             />
           )}

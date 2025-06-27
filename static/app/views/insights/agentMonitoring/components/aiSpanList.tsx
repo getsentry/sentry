@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -146,7 +146,7 @@ export function AISpanList({
   );
 }
 
-function TraceListItem({
+const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
@@ -188,7 +188,7 @@ function TraceListItem({
       </ListItemContent>
     </ListItemContainer>
   );
-}
+});
 
 const keyToTag = (key: string, type: 'string' | 'number') => {
   return `tags[${key},${type}]`;

@@ -5734,3 +5734,109 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "timestamp": three_days_ago.isoformat(),
             },
         ]
+
+    def test_disable_extrapolation(self):
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "orderby": "-count()",
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "disableAggregateExtrapolation": 1,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
+        assert data[0]["count()"] == 1
+        assert "count()" not in confidence[0]
+        assert data[1]["count()"] == 1
+        assert "count()" not in confidence[1]
+
+    def test_failure_count(self):
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status": status}},
+                    start_ts=self.ten_mins_ago,
+                )
+                for status in trace_statuses
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_count()"] == 1
+        assert meta["dataset"] == self.dataset
+
+    def test_eps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "eps()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "eps()": 1 / (90 * 24 * 60 * 60),
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "eps()": "1/second"}
+        assert meta["fields"] == {"description": "string", "eps()": "rate"}

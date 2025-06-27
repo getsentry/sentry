@@ -1,18 +1,19 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
@@ -201,8 +202,9 @@ const BodyCell = memo(function BodyCell({
   dataRow: TableData;
 }) {
   const organization = useOrganization();
-
+  const {selection} = usePageFilters();
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     mode: Mode.SAMPLES,
     visualize: [

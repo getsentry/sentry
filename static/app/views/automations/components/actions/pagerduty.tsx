@@ -1,6 +1,7 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
@@ -47,16 +48,16 @@ export function PagerdutyNode() {
 function SeverityField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.data.priority`}
       value={action.data.priority}
       options={PAGERDUTY_SEVERITIES.map(severity => ({
         label: severity,
         value: severity,
       }))}
-      onChange={(value: string) => {
+      onChange={(option: SelectValue<string>) => {
         onUpdate({
-          data: {priority: value},
+          data: {priority: option.value},
         });
       }}
     />

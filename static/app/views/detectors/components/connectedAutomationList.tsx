@@ -10,6 +10,7 @@ import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,17 +30,17 @@ function Skeletons({canEdit}: {canEdit: boolean}) {
     <Fragment>
       {Array.from({length: AUTOMATIONS_PER_PAGE}).map((_, index) => (
         <SimpleTable.Row key={index}>
-          <SimpleTable.RowCell className="name">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell className="last-triggered">
+          <SimpleTable.RowCell data-column-name="last-triggered">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell className="action-filters">
+          <SimpleTable.RowCell data-column-name="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell className="connected">
+            <SimpleTable.RowCell data-column-name="connected">
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -80,14 +81,14 @@ export function ConnectedAutomationsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell className="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell className="last-triggered">
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="last-triggered">
             {t('Last Triggered')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell className="action-filters">
+          <SimpleTable.HeaderCell data-column-name="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell className="connected" />}
+          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
         {isLoading && <Skeletons canEdit={canEdit} />}
         {isError && <LoadingError />}
@@ -100,17 +101,17 @@ export function ConnectedAutomationsList({
               key={automation.id}
               variant={automation.disabled ? 'faded' : 'default'}
             >
-              <SimpleTable.RowCell className="name">
+              <SimpleTable.RowCell>
                 <AutomationTitleCell automation={automation} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell className="last-triggered">
+              <SimpleTable.RowCell data-column-name="last-triggered">
                 <TimeAgoCell date={automation.lastTriggered} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell className="action-filters">
+              <SimpleTable.RowCell data-column-name="action-filters">
                 <ActionCell actions={getAutomationActions(automation)} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell className="connected" justify="flex-end">
+                <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
                   <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
@@ -144,18 +145,20 @@ const Container = styled('div')`
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 200px 180px auto;
 
+  margin-bottom: ${space(2)};
+
   /*
     The connected column can be added/removed depending on props, so in order to
     have a constant width we have an auto grid column and set the width here.
     */
-  .connected {
+  [data-column-name='connected'] {
     width: 140px;
   }
 
   @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 180px auto;
 
-    .last-triggered {
+    [data-column-name='last-triggered'] {
       display: none;
     }
   }
@@ -163,7 +166,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr auto;
 
-    .action-filters {
+    [data-column-name='action-filters'] {
       display: none;
     }
   }
