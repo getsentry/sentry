@@ -193,9 +193,11 @@ def _generate_fixability_score_via_conn_pool(group: Group):
     response = make_signed_seer_api_request(
         create_fixability_connection_pool(),
         "/v1/automation/summarize/fixability",
-        body=orjson.dumps(payload),
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
 
