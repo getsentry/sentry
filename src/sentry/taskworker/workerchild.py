@@ -283,7 +283,6 @@ def child_process(
                                 inflight.activation.namespace,
                                 inflight.activation.taskname,
                             ]
-                            scope.set_level("error")
                             scope.set_transaction_name(inflight.activation.taskname)
                             sentry_sdk.capture_exception(retry_error)
                             captured_error = True
