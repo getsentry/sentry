@@ -348,7 +348,7 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+def get_detector(uptime_subscription: UptimeSubscription) -> Detector:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
@@ -358,11 +358,13 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id=str(uptime_subscription.id),
         )
-        return Detector.objects.get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
-        )
-    except (DataSource.DoesNotExist, Detector.DoesNotExist):
-        return None
+    except DataSource.DoesNotExist:
+        raise Detector.DoesNotExist
+
+    return Detector.objects.get(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        data_sources=data_source,
+    )
 
 
 def get_uptime_subscription(detector: Detector) -> UptimeSubscription:

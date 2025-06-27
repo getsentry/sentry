@@ -230,7 +230,6 @@ def broken_monitor_checker(**kwargs):
         )
     ):
         detector = get_detector(uptime_subscription)
-        assert detector
         if detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE:
             disable_uptime_detector(detector)
             count += 1
