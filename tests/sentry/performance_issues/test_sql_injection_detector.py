@@ -33,7 +33,7 @@ class SQLInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-53ed51b6ab22e4acdefa33bfc73c39ac33be7e41"
+        assert problem.fingerprint == "1-1020-29c2b54639697556914d1bbb843f0bbb8cdd3397"
         assert problem.op == "db"
         assert (
             problem.desc
@@ -50,7 +50,7 @@ class SQLInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-55d5da306c0665487d2cf852301b6a8811a514bd"
+        assert problem.fingerprint == "1-1020-197d2a9a95568a75551e4448423a7fe658ac21d2"
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = [UNTRUSTED_INPUT]"
         assert problem.evidence_data is not None
