@@ -27,10 +27,12 @@ export function getWizardInstallSnippet({
       code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ${platformWithFlags}`,
     },
     {
-      label: 'npx',
-      value: 'npx',
-      language: 'bash',
-      code: `npx @sentry/wizard@latest -i ${platformWithFlags}`,
+      label: 'Windows',
+      value: 'windows',
+      language: 'powershell',
+      code: `$downloadUrl = "https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-win-x64.exe"
+Invoke-WebRequest $downloadUrl -OutFile sentry-wizard.exe
+./sentry-wizard.exe -i ${platformWithFlags}`,
     },
     {
       label: 'macOS (Apple Silicon/arm64)',
@@ -69,19 +71,22 @@ chmod +x sentry-wizard
 ./sentry-wizard -i ${platformWithFlags}`,
     },
     {
-      label: 'Windows',
-      value: 'windows',
-      language: 'powershell',
-      code: `$downloadUrl = "https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-win-x64.exe"
-Invoke-WebRequest $downloadUrl -OutFile sentry-wizard.exe
-./sentry-wizard.exe -i ${platformWithFlags}`,
+      label: 'npx',
+      value: 'npx',
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i ${platformWithFlags}`,
     },
   ];
 
   // If user is on Windows, move the Windows option to the beginning
   if (isWindows) {
-    const windowsOption = installOptions.pop()!;
-    installOptions.unshift(windowsOption);
+    const windowsIndex = installOptions.findIndex(opt => opt.value === 'windows');
+    if (windowsIndex > 0) {
+      const windowsOption = installOptions.splice(windowsIndex, 1)[0];
+      if (windowsOption) {
+        installOptions.unshift(windowsOption);
+      }
+    }
   }
 
   return installOptions;
