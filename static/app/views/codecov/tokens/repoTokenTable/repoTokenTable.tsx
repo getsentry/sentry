@@ -1,5 +1,7 @@
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {renderTableBody} from 'sentry/views/codecov/tokens/repoTokenTable/tableBody';
@@ -14,8 +16,14 @@ type RepoTokenTableResponse = {
 export type Row = Pick<RepoTokenTableResponse, 'name' | 'token' | 'createdAt'>;
 export type Column = GridColumnHeader<'name' | 'token' | 'createdAt' | 'regenerateToken'>;
 
+type ValidField = (typeof SORTABLE_FIELDS)[number];
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.includes(sort.field as ValidField);
+}
+
 export type ValidSort = Sort & {
-  field: (typeof SORTABLE_FIELDS)[number];
+  field: ValidField;
 };
 
 const COLUMNS_ORDER: Column[] = [
@@ -31,10 +39,6 @@ export const DEFAULT_SORT: ValidSort = {
   field: 'createdAt',
   kind: 'desc',
 };
-
-export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
-}
 
 interface Props {
   response: {
@@ -62,12 +66,12 @@ export default function RepoTokenTable({response, sort}: Props) {
         },
       ]}
       grid={{
-        renderHeadCell: column =>
+        renderHeadCell: (column: Column) =>
           renderTableHeader({
             column,
             sort,
           }),
-        renderBodyCell: (column, row) =>
+        renderBodyCell: (column: Column, row: Row) =>
           renderTableBody({
             column,
             row,
