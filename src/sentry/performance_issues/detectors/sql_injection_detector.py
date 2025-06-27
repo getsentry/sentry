@@ -137,8 +137,7 @@ class SQLInjectionDetector(PerformanceDetector):
         if len(vulnerable_parameters) == 0:
             return
 
-        parameterized_description = span.get("sentry_tags", {}).get("description")
-        fingerprint = self._fingerprint(parameterized_description)
+        fingerprint = self._fingerprint(description)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             type=DBQueryInjectionVulnerabilityGroupType,
