@@ -1,6 +1,7 @@
 import {startTransition, useCallback, useEffect, useRef, useState} from 'react';
-import type {LocationDescriptor, LocationDescriptorObject} from 'history';
+import {type LocationDescriptor, type LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
 import type {
   decodeBoolean,
@@ -11,7 +12,6 @@ import type {
   QueryValue,
 } from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type KnownDecoder =
@@ -32,7 +32,6 @@ type Decoder = KnownDecoder | GenericDecoder;
  */
 export function useLocationSyncedState<T extends Decoder>(key: string, decoder: T) {
   const navigate = useNavigate();
-  const location = useLocation();
   const fields = useLocationQuery({
     fields: {
       [key]: decoder,
@@ -52,11 +51,18 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
 
   const updateLocation = useCallback(
     (updater: (query: LocationDescriptorObject) => LocationDescriptor) => {
+      // We need to operate on the up-to-date location, to avoid race conditions
+      const previousLocation = {
+        ...window.location,
+        query: {
+          ...qs.parse(window.location.search),
+        },
+      };
       startTransition(() => {
-        navigate(updater(location), {replace: true, preventScrollReset: true});
+        navigate(updater(previousLocation), {replace: true, preventScrollReset: true});
       });
     },
-    [navigate, location]
+    [navigate]
   );
 
   const removeQueryParam = useCallback(() => {
