@@ -212,6 +212,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "str_attr", "type": "str", "value": "1"},
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
+            "meta": {},
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -353,3 +354,102 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             trace_details_response.data["timestamp"]
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
+
+    def test_logs_with_a_meta_key(self):
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "[Filtered]",
+                    "trace_id": self.trace_uuid,
+                },
+                attributes={
+                    "str_attr": {
+                        "string_value": "1",
+                    },
+                    # This is a guess on how this will look, the key & storage may change at some point
+                    "sentry._meta.fields.attributes": '{"sentry.body": {"length": 300, "reason": "value too long"}, "float_attr": {"unit": "float"}}',
+                    "int_attr": {"int_value": 2},
+                    "float_attr": {
+                        "double_value": 3.0,
+                    },
+                    "bool_attr": {
+                        "bool_value": True,
+                    },
+                },
+                timestamp=self.one_min_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        item_list_url = reverse(
+            "sentry-api-0-organization-events",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+        with self.feature(self.features):
+            item_list_response = self.client.get(
+                item_list_url,
+                {
+                    "field": ["message", "sentry.item_id", "sentry.trace_id"],
+                    "query": "",
+                    "orderby": "sentry.item_id",
+                    "project": self.project.id,
+                    "dataset": "ourlogs",
+                },
+            )
+        assert item_list_response.data is not None
+        item_id = item_list_response.data["data"][0]["sentry.item_id"]
+
+        trace_details_response = self.do_request("logs", item_id)
+
+        assert trace_details_response.status_code == 200, trace_details_response.content
+
+        timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
+        assert trace_details_response.data == {
+            "attributes": [
+                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "severity_number", "type": "float", "value": 0.0},
+                {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
+                {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+                {
+                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "type": "float",
+                    "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+                },
+                # this is stored as a float for searching, so it is not actually very precise
+                {
+                    "name": "tags[sentry.timestamp_precise,number]",
+                    "type": "float",
+                    "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+                },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+                {
+                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                # this is the precise one
+                {
+                    "name": "tags[sentry.timestamp_precise,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "message", "type": "str", "value": "[Filtered]"},
+                {"name": "severity", "type": "str", "value": "INFO"},
+                {"name": "str_attr", "type": "str", "value": "1"},
+                {"name": "trace", "type": "str", "value": self.trace_uuid},
+            ],
+            "meta": {
+                "message": {"length": 300, "reason": "value too long"},
+                "tags[float_attr,number]": {"unit": "float"},
+            },
+            "itemId": item_id,
+            "timestamp": self.one_min_ago.replace(
+                microsecond=0,
+                tzinfo=None,
+            ).isoformat()
+            + "Z",
+        }
