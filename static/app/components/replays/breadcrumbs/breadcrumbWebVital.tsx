@@ -6,8 +6,8 @@ import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/types';
-import {isCLSFrame, isSpanFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
@@ -29,38 +29,13 @@ export function BreadcrumbWebVital({
   onMouseEnter,
   onMouseLeave,
 }: Props) {
-  if (!isSpanFrame(frame) || !isWebVitalFrame(frame)) {
+  if (!isWebVitalFrame(frame)) {
     return null;
   }
 
-  return (
-    <WebVitalData
-      selectors={extraction?.selectors}
-      frame={frame}
-      expandPaths={expandPaths}
-      onInspectorExpanded={onInspectorExpanded}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    />
-  );
-}
-
-function WebVitalData({
-  selectors,
-  frame,
-  expandPaths,
-  onInspectorExpanded,
-  onMouseEnter,
-  onMouseLeave,
-}: {
-  expandPaths: string[] | undefined;
-  frame: WebVitalFrame;
-  onInspectorExpanded: OnExpandCallback;
-  onMouseEnter: MouseCallback;
-  onMouseLeave: MouseCallback;
-  selectors: Map<number, string> | undefined;
-}) {
   const webVitalData = {value: frame.data.value};
+  const selectors = extraction?.selectors;
+
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
     const layoutShifts: Array<Record<string, ReactNode[]>> = [];
     for (const attr of frame.data.attributions) {
@@ -120,19 +95,17 @@ function WebVitalData({
   }
 
   return (
-    <Wrapper>
-      <StructuredEventData
-        initialExpandedPaths={expandPaths ?? []}
-        onToggleExpand={(expandedPaths, path) => {
-          onInspectorExpanded(
-            path,
-            Object.fromEntries(expandedPaths.map(item => [item, true]))
-          );
-        }}
-        data={webVitalData}
-        withAnnotatedText
-      />
-    </Wrapper>
+    <StructuredEventData
+      initialExpandedPaths={expandPaths ?? []}
+      onToggleExpand={(expandedPaths, path) => {
+        onInspectorExpanded(
+          path,
+          Object.fromEntries(expandedPaths.map(item => [item, true]))
+        );
+      }}
+      data={webVitalData}
+      withAnnotatedText
+    />
   );
 }
 
@@ -157,10 +130,4 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
-`;
-
-const Wrapper = styled('div')`
-  pre {
-    margin: 0;
-  }
 `;

@@ -32,9 +32,8 @@ export function BreadcrumbDescription({
   onClickViewHtml,
 }: Props) {
   if (
-    typeof description !== 'string' &&
-    description !== undefined &&
-    isValidElement(description)
+    typeof description === 'string' ||
+    (description !== undefined && isValidElement(description))
   ) {
     return (
       <DescriptionWrapper>

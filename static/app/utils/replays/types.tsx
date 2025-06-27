@@ -250,8 +250,8 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
   return false;
 }
 
-export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
-  return frame.op === 'web-vital';
+export function isWebVitalFrame(frame: ReplayFrame): frame is WebVitalFrame {
+  return isSpanFrame(frame) && frame.op === 'web-vital';
 }
 
 export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {

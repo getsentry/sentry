@@ -5,7 +5,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import Placeholder from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {isSpanFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 
 interface Props {
   frame: ReplayFrame;
@@ -20,22 +20,25 @@ export function BreadcrumbCodeSnippet({
   showSnippet,
   isPending,
 }: Props) {
-  if (showSnippet && isPending) {
+  if (!showSnippet) {
+    return null;
+  }
+
+  if (isPending) {
     return <Placeholder height="34px" />;
   }
 
-  return (
-    (!isSpanFrame(frame) || !isWebVitalFrame(frame)) &&
-    !isPending &&
-    showSnippet &&
-    extraction?.html?.map(html => (
-      <CodeContainer key={html}>
-        <CodeSnippet language="html" hideCopyButton>
-          {beautify.html(html, {indent_size: 2})}
-        </CodeSnippet>
-      </CodeContainer>
-    ))
-  );
+  if (isSpanFrame(frame)) {
+    return null;
+  }
+
+  return extraction?.html?.map(html => (
+    <CodeContainer key={html}>
+      <CodeSnippet language="html" hideCopyButton>
+        {beautify.html(html, {indent_size: 2})}
+      </CodeSnippet>
+    </CodeContainer>
+  ));
 }
 
 const CodeContainer = styled('div')`
