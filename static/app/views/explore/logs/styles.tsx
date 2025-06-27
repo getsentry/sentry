@@ -2,11 +2,11 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
 import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
+import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';

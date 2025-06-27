@@ -2,8 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable from 'sentry/components/gridEditable';
-import type {Alignments} from 'sentry/components/gridEditable/sortLink';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -40,6 +40,10 @@ interface TableWidgetVisualizationProps {
    * The object that contains all the data needed to render the table
    */
   tableData: TabularData;
+  /**
+   * A mapping between column key to a column alias to override header name.
+   */
+  aliases?: Record<string, string>;
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -94,6 +98,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     columns,
     scrollable,
     fit,
+    aliases,
   } = props;
 
   const theme = useTheme();
@@ -138,14 +143,14 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: (tableColumn, columnIndex) => {
+        renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
-
           const align = fieldAlignment(column.name, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.name;
 
           return (
             <CellWrapper align={align}>
-              <StyledTooltip title={tableColumn.name}>{tableColumn.name}</StyledTooltip>
+              <StyledTooltip title={name}>{name}</StyledTooltip>
             </CellWrapper>
           );
         },

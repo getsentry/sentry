@@ -58,6 +58,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enables the frontend to use the new auth flow for specific users.
+    manager.add("organizations:auth-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the cron job to auto-enable codecov integrations.
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable GenAI features such as Autofix and Issue Summary
@@ -566,9 +568,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:ingest-spans-in-eap", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable num events in an issue debugging
     manager.add("projects:num-events-issue-debugging", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable cache based short-id pre-allocation counter
-    manager.add("projects:short-id-pre-allocation-counter", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
 

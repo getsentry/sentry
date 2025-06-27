@@ -57,7 +57,7 @@ class BaseScheduledDeletion(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_scheduled = models.DateTimeField(default=default_date_schedule)
     actor_id = BoundedBigIntegerField(null=True)
-    data = JSONField(default={})
+    data = JSONField(default=dict)
     in_progress = models.BooleanField(default=False)
 
     @classmethod

@@ -3,14 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Pagination from 'sentry/components/pagination';
 import type {
   GridColumn,
   GridColumnHeader,
   GridColumnSortBy,
-} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
