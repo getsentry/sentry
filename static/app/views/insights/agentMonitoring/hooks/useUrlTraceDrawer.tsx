@@ -1,10 +1,8 @@
 import {useCallback} from 'react';
-import omit from 'lodash/omit';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useTransitionedLocationUpdate} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
 import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
 
 export function useUrlTraceDrawer() {
@@ -15,24 +13,14 @@ export function useUrlTraceDrawer() {
     panelRef,
   } = useDrawer();
 
-  const {trace} = useLocationQuery({
-    fields: {
-      [DrawerUrlParams.SELECTED_TRACE]: decodeScalar,
-    },
-  });
-
-  const updateLocation = useTransitionedLocationUpdate();
+  const [selectedTrace, setSelectedTrace, removeTraceParam] = useLocationSyncedState(
+    DrawerUrlParams.SELECTED_TRACE,
+    decodeScalar
+  );
 
   const removeQueryParams = useCallback(() => {
-    updateLocation(prevLocation => ({
-      pathname: prevLocation.pathname,
-      query: omit(
-        prevLocation.query,
-        DrawerUrlParams.SELECTED_TRACE,
-        DrawerUrlParams.SELECTED_SPAN
-      ),
-    }));
-  }, [updateLocation]);
+    removeTraceParam();
+  }, [removeTraceParam]);
 
   const closeDrawer = useCallback(() => {
     removeQueryParams();
@@ -47,13 +35,7 @@ export function useUrlTraceDrawer() {
       const {traceSlug: optionsTraceSlug, onClose, ariaLabel, ...rest} = options || {};
 
       if (optionsTraceSlug) {
-        updateLocation(prevLocation => ({
-          pathname: prevLocation.pathname,
-          query: {
-            ...prevLocation.query,
-            [DrawerUrlParams.SELECTED_TRACE]: optionsTraceSlug,
-          },
-        }));
+        setSelectedTrace(optionsTraceSlug);
       }
 
       return baseOpenDrawer(renderer, {
@@ -68,7 +50,7 @@ export function useUrlTraceDrawer() {
         },
       });
     },
-    [baseOpenDrawer, updateLocation, removeQueryParams]
+    [baseOpenDrawer, setSelectedTrace, removeQueryParams]
   );
 
   return {
@@ -76,6 +58,6 @@ export function useUrlTraceDrawer() {
     closeDrawer,
     isDrawerOpen,
     panelRef,
-    drawerUrlState: {trace},
+    drawerUrlState: {trace: selectedTrace},
   };
 }

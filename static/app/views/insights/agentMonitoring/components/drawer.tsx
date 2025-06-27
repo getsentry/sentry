@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -9,12 +9,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
-import {useTransitionedLocationUpdate} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useUpdateLocation';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
@@ -42,13 +41,15 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 }) {
   const organization = useOrganization();
   const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const queryFields = useLocationQuery({
-    fields: {
-      [DrawerUrlParams.SELECTED_SPAN]: decodeScalar,
-    },
-  });
-  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(queryFields.span);
-  const updateLocation = useTransitionedLocationUpdate();
+  const [selectedNodeKey, setSelectedNodeKey, removeSelectedNodeParam] =
+    useLocationSyncedState(DrawerUrlParams.SELECTED_SPAN, decodeScalar);
+
+  useEffect(() => {
+    return () => {
+      removeSelectedNodeParam();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
+  }, []);
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
@@ -58,16 +59,8 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
       trackAnalytics('agent-monitoring.drawer.span-select', {
         organization,
       });
-
-      updateLocation(prevLocation => ({
-        ...prevLocation,
-        query: {
-          ...prevLocation.query,
-          [DrawerUrlParams.SELECTED_SPAN]: uniqueKey,
-        },
-      }));
     },
-    [updateLocation, organization]
+    [setSelectedNodeKey, organization]
   );
 
   const selectedNode =
