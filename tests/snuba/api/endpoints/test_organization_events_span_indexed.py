@@ -5840,9 +5840,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         data = response.data["data"]
         assert len(data) == 3
         assert {row["trace"] for row in data} == {
-            ("7" * 16) + ("0" * 16),
+            ("7" * 8) + ("0" * 24),
             "7" * 32,
-            ("7" * 16) + ("f" * 16),
+            ("7" * 8) + ("f" * 24),
         }
 
     def test_eps(self):
