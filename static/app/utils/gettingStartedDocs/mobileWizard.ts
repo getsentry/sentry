@@ -33,19 +33,19 @@ export function getWizardInstallSnippet({
       code: `npx @sentry/wizard@latest -i ${platformWithFlags}`,
     },
     {
-      label: 'macOS (Intel/x64)',
-      value: 'macos-x64',
+      label: 'macOS (Apple Silicon/arm64)',
+      value: 'macos-arm64',
       language: 'bash',
-      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-x64"
+      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-arm64"
 curl -L $downloadUrl -o sentry-wizard
 chmod +x sentry-wizard
 ./sentry-wizard -i ${platformWithFlags}`,
     },
     {
-      label: 'macOS (Apple Silicon/arm64)',
-      value: 'macos-arm64',
+      label: 'macOS (Intel/x64)',
+      value: 'macos-x64',
       language: 'bash',
-      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-arm64"
+      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-x64"
 curl -L $downloadUrl -o sentry-wizard
 chmod +x sentry-wizard
 ./sentry-wizard -i ${platformWithFlags}`,
