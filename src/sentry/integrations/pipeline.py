@@ -132,7 +132,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             interaction_type=IntegrationPipelineViewType.FINISH_PIPELINE,
             domain=IntegrationDomain.GENERAL,
             provider_key=self.provider.key,
-        ).capture():
+        ).capture() as lifecycle:
             org_context = organization_service.get_organization_by_id(
                 id=self.organization.id, user_id=self.request.user.id
             )
@@ -157,15 +157,15 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             try:
                 data = self.provider.build_integration(self.state.data)
             except IntegrationError as e:
-                self.get_logger().info(
-                    "build-integration.failure",
-                    extra={
+                lifecycle.add_extras(
+                    {
                         "error_message": str(e),
                         "error_status": getattr(e, "code", None),
                         "organization_id": self.organization.id if self.organization else None,
                         "provider_key": self.provider.key,
-                    },
+                    }
                 )
+                lifecycle.record_failure(e)
                 return self.error(str(e))
             except IntegrationProviderError as e:
                 self.get_logger().info(
