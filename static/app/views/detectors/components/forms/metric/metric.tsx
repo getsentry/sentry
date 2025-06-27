@@ -26,16 +26,16 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
-import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
-import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
