@@ -403,7 +403,9 @@ class BaseView(View, OrganizationMixin):
 
         has_permission, reason = self.check_permission(request, *args, **kwargs)
         if not has_permission:
-            return self.handle_permission_required(request, reason, *args, **kwargs)
+            return self.handle_permission_required(
+                request, self.active_organization, reason, *args, **kwargs
+            )
 
         if "organization" in kwargs:
             org = kwargs["organization"]
@@ -458,7 +460,12 @@ class BaseView(View, OrganizationMixin):
         return True, ""
 
     def handle_permission_required(
-        self, request: HttpRequest, *args: Any, **kwargs: Any
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization | None,
+        reason: str,
+        *args: Any,
+        **kwargs: Any,
     ) -> HttpResponse:
         path = reverse("sentry-login")
         query_params = {
@@ -586,6 +593,7 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         self,
         request: HttpRequest,
         organization: Organization | RpcOrganization | None,
+        reason: str,
         *args: Any,
         **kwargs: Any,
     ) -> HttpResponse:
