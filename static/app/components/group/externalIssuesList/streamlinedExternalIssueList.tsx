@@ -30,7 +30,11 @@ function getActionLabelAndTextValue({
 }: {
   action: ExternalIssueAction;
   integrationDisplayName: string;
-}): {label: string | React.JSX.Element; textValue: string} {
+}): {
+  label: string | React.JSX.Element;
+  textValue: string;
+  details?: string | React.JSX.Element;
+} {
   // If there's no subtext or subtext matches name, just show name
   if (!action.nameSubText || action.nameSubText === action.name) {
     return {
@@ -49,12 +53,8 @@ function getActionLabelAndTextValue({
 
   // Otherwise show both name and subtext
   return {
-    label: (
-      <div>
-        <strong>{action.name}</strong>
-        <div>{action.nameSubText}</div>
-      </div>
-    ),
+    label: action.name,
+    details: action.nameSubText,
     textValue: `${action.name} ${action.nameSubText}`,
   };
 }
@@ -197,7 +197,6 @@ function ExternalIssueSubmenu(props: {integration: ExternalIssueIntegration}) {
         action,
         integrationDisplayName: integration.displayName,
       }),
-      label: <div onClick={() => action.onClick()}>{action.name}</div>,
     };
     return <MenuListItem key={action.id} {...itemProps} />;
   });
