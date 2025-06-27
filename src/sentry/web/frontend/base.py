@@ -404,7 +404,11 @@ class BaseView(View, OrganizationMixin):
         has_permission, reason = self.check_permission(request, *args, **kwargs)
         if not has_permission:
             return self.handle_permission_required(
-                request, self.active_organization, reason, *args, **kwargs
+                request,
+                self.active_organization.organization if self.active_organization else None,
+                reason,
+                *args,
+                **kwargs,
             )
 
         if "organization" in kwargs:
