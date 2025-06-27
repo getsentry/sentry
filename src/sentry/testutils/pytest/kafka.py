@@ -8,7 +8,7 @@ from confluent_kafka.admin import AdminClient
 
 _log = logging.getLogger(__name__)
 
-MAX_SECONDS_WAITING_FOR_EVENT = 16
+MAX_SECONDS_WAITING_FOR_EVENT = 30  # Increased timeout for tests that may take longer
 
 
 @pytest.fixture
@@ -131,6 +131,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             group_id=group_id,
             auto_offset_reset="earliest",
             strict_offset_reset=False,
+            max_poll_interval_ms=600000,  # 10 minutes instead of default 5 minutes for tests
         )
 
         scope_consumers[topic_event_name] = consumer

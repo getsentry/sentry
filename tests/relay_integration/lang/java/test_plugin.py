@@ -401,6 +401,9 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         with set_sentry_option("system.url-prefix", live_server.url):
             # Run test case
             yield
+        # Force close any lingering database connections to prevent cleanup issues
+        import django.db
+        django.db.connections.close_all()
 
     def upload_proguard_mapping(self, uuid, mapping_file_content):
         url = reverse(
