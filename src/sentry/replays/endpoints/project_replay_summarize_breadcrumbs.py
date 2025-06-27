@@ -149,7 +149,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
 def fetch_trace_connected_errors(
     project: Project, trace_ids: list[str], start: datetime | None, end: datetime | None
 ) -> list[GroupEvent]:
-    """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
+    """Fetch error details given trace IDs and return a list of GroupEvent objects."""
     try:
         if not trace_ids:
             return []
@@ -215,69 +215,6 @@ def fetch_trace_connected_errors(
                         id=event["id"],
                         title=event.get("title", ""),
                         timestamp=timestamp,
-                        message=event.get("message", ""),
-                    )
-                )
-
-        return error_events
-
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return []
-
-
-def fetch_trace_connected_errors(project_id: int, trace_ids: list[str]) -> list[GroupEvent]:
-    """Fetch error details given trace IDs and return a list of ErrorEvent objects."""
-    try:
-        if not trace_ids:
-            return []
-
-        queries = []
-        for trace_id in trace_ids:
-            snuba_params = SnubaParams(
-                project_ids=[project_id],
-            )
-
-            # Generate a query for each trace ID. This will be executed in bulk.
-            error_query = DiscoverQueryBuilder(
-                Dataset.Events,
-                params={},
-                snuba_params=snuba_params,
-                query=f"trace:{trace_id}",
-                selected_columns=[
-                    "id",
-                    "timestamp_ms",
-                    "title",
-                    "message",
-                ],
-                orderby=["id"],
-                limit=100,
-                config=QueryBuilderConfig(
-                    auto_fields=False,
-                ),
-            )
-            queries.append(error_query)
-
-        if not queries:
-            return []
-
-        # Execute all queries
-        results = bulk_snuba_queries(
-            [query.get_snql_query() for query in queries],
-            referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
-        )
-
-        # Process results and convert to GroupEvent objects
-        error_events = []
-        for result, query in zip(results, queries):
-            error_data = query.process_results(result)["data"]
-            for event in error_data:
-                error_events.append(
-                    GroupEvent(
-                        category="error",
-                        id=event["id"],
-                        title=event.get("title", ""),
-                        timestamp=float(event.get("timestamp_ms", 0)),
                         message=event.get("message", ""),
                     )
                 )
