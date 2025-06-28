@@ -213,7 +213,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
 
     def test_too_many_uptime_subscription_ids(self):
         """
-        Test that sending a large nubmer of subscription IDs produces a 400
+        Test that sending a large number of subscription IDs produces a 400
         """
 
         response = self.get_response(
