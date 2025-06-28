@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
 import useDrawer from 'sentry/components/globalDrawer';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
@@ -23,24 +22,19 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 const FREQUENCY_OPTIONS = [
-  {value: '5', label: t('5 minutes')},
-  {value: '10', label: t('10 minutes')},
-  {value: '30', label: t('30 minutes')},
-  {value: '60', label: t('60 minutes')},
-  {value: '180', label: t('3 hours')},
-  {value: '720', label: t('12 hours')},
-  {value: '1440', label: t('24 hours')},
-  {value: '10080', label: t('1 week')},
-  {value: '43200', label: t('30 days')},
+  {value: 5, label: t('5 minutes')},
+  {value: 10, label: t('10 minutes')},
+  {value: 30, label: t('30 minutes')},
+  {value: 60, label: t('60 minutes')},
+  {value: 180, label: t('3 hours')},
+  {value: 720, label: t('12 hours')},
+  {value: 1440, label: t('24 hours')},
+  {value: 10080, label: t('1 week')},
+  {value: 43200, label: t('30 days')},
 ];
 
 export default function AutomationForm({model}: {model: FormModel}) {
   const organization = useOrganization();
-  const title = useDocumentTitle();
-
-  useEffect(() => {
-    model.setValue('name', title);
-  }, [title, model]);
 
   const {data: monitors = []} = useDetectorsQuery();
   const initialConnectedIds = useFormField('detectorIds');
@@ -116,6 +110,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       <Card>
         <Heading>{t('Action Interval')}</Heading>
         <EmbeddedSelectField
+          required
           name="frequency"
           inline={false}
           clearable={false}

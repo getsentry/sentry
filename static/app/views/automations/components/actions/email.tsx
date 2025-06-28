@@ -39,8 +39,8 @@ export function EmailDetails({action}: {action: Action}) {
   if (target_type === ActionTarget.ISSUE_OWNERS) {
     return tct('Notify Suggested Assignees and, if none found, notify [fallthrough]', {
       fallthrough:
-        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthrough_type)
-          ?.label || String(action.data.fallthrough_type),
+        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthroughType)
+          ?.label || String(action.data.fallthroughType),
     });
   }
 
@@ -129,11 +129,11 @@ function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.data.fallthrough_type`}
-      value={action.data.fallthrough_type}
+      name={`${actionId}.data.fallthroughType`}
+      value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
       onChange={(option: SelectValue<string>) =>
-        onUpdate({data: {fallthrough_type: option.value}})
+        onUpdate({data: {fallthroughType: option.value}})
       }
     />
   );

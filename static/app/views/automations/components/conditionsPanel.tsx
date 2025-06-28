@@ -15,8 +15,10 @@ import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 type ConditionsPanelProps = {
@@ -30,8 +32,11 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
       {triggers && (
         <ConditionGroupWrapper>
           <ConditionGroupHeader>
-            {tct('[when:When] any of the following occur', {
+            {tct('[when:When] [logicType] of the following occur', {
               when: <ConditionBadge />,
+              logicType:
+                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers.logicType)
+                  ?.label || triggers.logicType,
             })}
           </ConditionGroupHeader>
           {triggers.conditions.map((trigger, index) => (
@@ -82,8 +87,11 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
       <ConditionGroupHeader>
-        {tct('[if:If] any of these filters match', {
+        {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
+          logicType:
+            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
+              ?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0

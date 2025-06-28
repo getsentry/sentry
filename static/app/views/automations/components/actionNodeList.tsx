@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
@@ -8,6 +8,8 @@ import {
   type Action,
   ActionGroup,
   type ActionHandler,
+  ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   ActionNodeContext,
@@ -31,6 +33,24 @@ interface Option {
   value: ActionHandler;
 }
 
+function getActionHandler(
+  action: Action,
+  availableActions: ActionHandler[]
+): ActionHandler | undefined {
+  if (action.type === ActionType.SENTRY_APP) {
+    return availableActions.find(
+      handler =>
+        handler.type === ActionType.SENTRY_APP &&
+        ((action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID &&
+          action.config.target_identifier === handler.sentryApp?.id) ||
+          (action.config.sentry_app_identifier ===
+            SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
+            action.config.target_identifier === handler.sentryApp?.installationUuid))
+    );
+  }
+  return availableActions.find(handler => handler.type === action.type);
+}
+
 export default function ActionNodeList({
   group,
   placeholder,
@@ -40,9 +60,6 @@ export default function ActionNodeList({
   updateAction,
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
-  const [actionHandlerMap, setActionHandlerMap] = useState<Record<string, ActionHandler>>(
-    {}
-  );
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -88,7 +105,7 @@ export default function ActionNodeList({
   return (
     <Fragment>
       {actions.map(action => {
-        const handler = actionHandlerMap[action.id];
+        const handler = getActionHandler(action, availableActions);
         if (!handler) {
           return null;
         }
@@ -97,7 +114,6 @@ export default function ActionNodeList({
             key={`${group}.action.${action.id}`}
             onDelete={() => {
               onDeleteRow(action.id);
-              setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
             }}
           >
             <ActionNodeContext.Provider
@@ -118,10 +134,6 @@ export default function ActionNodeList({
         onChange={(obj: any) => {
           const actionId = uuid4();
           onAddRow(actionId, obj.value);
-          setActionHandlerMap(currActionHandlerMap => ({
-            ...currActionHandlerMap,
-            [actionId]: obj.value,
-          }));
         }}
         placeholder={placeholder}
         value={null}

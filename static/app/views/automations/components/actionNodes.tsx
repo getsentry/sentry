@@ -92,7 +92,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Notify on preferred channel'),
       action: EmailNode,
       details: EmailDetails,
-      defaultData: {fallthrough_type: 'ActiveMembers'},
+      defaultData: {fallthroughType: 'ActiveMembers'},
     },
   ],
   [
