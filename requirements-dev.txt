@@ -34,8 +34,6 @@ pyupgrade>=3.19.1
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
-# note: wheel is pulled in by pip-tools
-pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
@@ -59,6 +57,5 @@ types-pyyaml
 types-redis<4
 types-requests>=2.32.0.20241016
 types-requests-oauthlib>=2.0.0.20250119
-types-setuptools>=68
 types-simplejson>=3.17.7.2
 types-unidiff
