@@ -22,9 +22,10 @@ class NotificationRenderer[RenderableT](Protocol):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> RenderableT:
+    ](cls, *, data: DataT, template: NotificationTemplate) -> RenderableT:
         """
-        Convert template, and data into a renderable object.
+        Convert a loader, and data into a renderable object.
+        The loader is run
         The form of the renderable object is defined by the provider.
         """
         ...
