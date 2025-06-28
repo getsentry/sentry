@@ -123,7 +123,6 @@ class CreateDetectorTest(UptimeTestCase):
     def test_simple(self):
         monitor = self.create_project_uptime_subscription()
         detector = get_detector(monitor.uptime_subscription)
-        assert detector
 
         assert detector.name == monitor.name
         assert detector.owner_user_id == monitor.owner_user_id
