@@ -256,3 +256,192 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "exception_summary": repr(ExampleException("test")),
             },
         )
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_always_logs_when_rate_is_one(
+        self, mock_metrics, mock_logger, mock_random
+    ):
+        """Test that sample_log_rate=1.0 always logs (default behavior)"""
+        metric_obj = self.TestLifecycleMetric()
+
+        with metric_obj.capture(sample_log_rate=1.0) as lifecycle:
+            lifecycle.record_failure("test failure")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should be called since rate is 1.0
+        mock_logger.warning.assert_called_once()
+        # random.random() should not be called when rate >= 1.0
+        mock_random.random.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_logs_when_random_passes(self, mock_metrics, mock_logger, mock_random):
+        """Test that logging occurs when random value is below sample rate"""
+        mock_random.random.return_value = 0.05  # Below 0.1 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
+            lifecycle.record_failure("test failure")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should be called since 0.05 < 0.1
+        mock_logger.warning.assert_called_once()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_skips_when_random_fails(self, mock_metrics, mock_logger, mock_random):
+        """Test that logging is skipped when random value is above sample rate"""
+        mock_random.random.return_value = 0.15  # Above 0.1 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
+            lifecycle.record_failure("test failure")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should NOT be called since 0.15 > 0.1
+        mock_logger.warning.assert_not_called()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_halt_with_sampling(self, mock_metrics, mock_logger, mock_random):
+        """Test that halt logging respects sample rate"""
+        mock_random.random.return_value = 0.05  # Below 0.2 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=0.2) as lifecycle:
+            lifecycle.record_halt("test halt")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "halted")
+        # Logger should be called since 0.05 < 0.2
+        mock_logger.info.assert_called_once()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_per_call_sample_log_rate_overrides_instance_rate(
+        self, mock_metrics, mock_logger, mock_random
+    ):
+        """Test that per-call sample_log_rate overrides instance default"""
+        mock_random.random.return_value = 0.15  # Between 0.1 and 0.3
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
+            # Per-call rate of 0.3 should override instance rate of 0.1
+            lifecycle.record_failure("test failure", sample_log_rate=0.3)
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should be called since 0.15 < 0.3 (per-call rate)
+        mock_logger.warning.assert_called_once()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_per_call_sample_log_rate_skips_when_below_threshold(
+        self, mock_metrics, mock_logger, mock_random
+    ):
+        """Test that per-call sample_log_rate can cause skipping even with higher instance rate"""
+        mock_random.random.return_value = 0.15  # Between 0.05 and 1.0
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=1.0) as lifecycle:
+            # Per-call rate of 0.05 should override instance rate of 1.0
+            lifecycle.record_halt("test halt", sample_log_rate=0.05)
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "halted")
+        # Logger should NOT be called since 0.15 > 0.05 (per-call rate)
+        mock_logger.info.assert_not_called()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_zero_sample_log_rate_never_logs(self, mock_metrics, mock_logger, mock_random):
+        """Test that sample_log_rate=0.0 never logs"""
+        mock_random.random.return_value = 0.0  # Even lowest possible random value
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(sample_log_rate=0.0) as lifecycle:
+            lifecycle.record_failure("test failure")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should NOT be called since rate is 0.0
+        mock_logger.warning.assert_not_called()
+        # Random should still be called for 0.0 < 1.0 check
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_on_exception_exit(self, mock_metrics, mock_logger, mock_random):
+        """Test that sample rate is respected when exiting context with exception"""
+        mock_random.random.return_value = 0.15  # Above 0.1 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+
+        with pytest.raises(ExampleException):
+            with metric_obj.capture(sample_log_rate=0.1):
+                raise ExampleException("test")
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "failure")
+        # Logger should NOT be called since 0.15 > 0.1
+        mock_logger.warning.assert_not_called()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_sample_log_rate_on_assume_success_false_exit(
+        self, mock_metrics, mock_logger, mock_random
+    ):
+        """Test that sample rate is respected when exiting context with assume_success=False"""
+        mock_random.random.return_value = 0.25  # Above 0.2 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+        with metric_obj.capture(assume_success=False, sample_log_rate=0.2):
+            pass  # Exit without explicit success/failure
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "halted")
+        # Logger should NOT be called since 0.25 > 0.2
+        mock_logger.info.assert_not_called()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_default_sample_log_rate_is_one(self, mock_metrics, mock_logger):
+        """Test that default sample_log_rate is 1.0 (always log)"""
+        metric_obj = self.TestLifecycleMetric()
+
+        # Test default through capture()
+        with metric_obj.capture() as lifecycle:
+            lifecycle.record_failure("test failure")
+
+        # Should log since default is 1.0
+        mock_logger.warning.assert_called_once()
+
+        mock_logger.reset_mock()
+        mock_metrics.reset_mock()
+
+        # Test default through constructor
+        with metric_obj.capture(assume_success=False):
+            pass  # Will record halt
+
+        # Should log since default is 1.0
+        mock_logger.info.assert_called_once()
