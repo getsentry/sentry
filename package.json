@@ -119,7 +119,6 @@
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
     "esbuild": "0.25.3",
-    "flattie": "^1.1.1",
     "focus-trap": "^7.3.1",
     "framer-motion": "12.7.3",
     "fuse.js": "^6.6.2",
