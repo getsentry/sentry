@@ -1,23 +1,21 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
-    OrganizationUptimeAlertIndexBaseEndpointTest,
+from tests.snuba.api.endpoints.test_organization_events_uptime_results import (
+    UptimeResultEAPTestCase,
 )
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
 
-@freeze_time(MOCK_DATETIME)
-class OrganizationUptimeCheckIndexEndpointTest(
-    OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
-):
+class OrganizationUptimeStatsBaseTest(APITestCase):
+    __test__ = False
     endpoint = "sentry-api-0-organization-uptime-stats"
 
     def setUp(self):
@@ -30,19 +28,23 @@ class OrganizationUptimeCheckIndexEndpointTest(
         self.project_uptime_subscription = self.create_project_uptime_subscription(
             uptime_subscription=self.subscription
         )
+        scenarios: list[dict] = [
+            {"check_status": "success"},
+            {"check_status": "failure"},
+            {"check_status": "success"},
+            {"check_status": "failure"},
+            {"check_status": "success"},
+            {"check_status": "failure"},
+            {"check_status": "failure"},
+            {"check_status": "failure", "incident_status": IncidentStatus.IN_INCIDENT},
+        ]
 
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
-        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
-        self.store_snuba_uptime_check(
-            subscription_id=self.subscription_id,
-            check_status="failure",
-            incident_status=IncidentStatus.IN_INCIDENT,
-        )
+        for scenario in scenarios:
+            self.store_uptime_data(self.subscription_id, **scenario)
+
+    def store_uptime_data(self, subscription_id, check_status, **kwargs):
+        """Store a single uptime data row. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement store_uptime_data")
 
     def test_simple(self):
         """Test that the endpoint returns data for a simple uptime check."""
@@ -120,20 +122,15 @@ class OrganizationUptimeCheckIndexEndpointTest(
             uptime_subscription=subscription
         )
 
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status="success",
-            scheduled_check_time=(MOCK_DATETIME - timedelta(days=5)),
+        # Store data for the cutoff test scenario
+        self.store_uptime_data(
+            subscription_id, "success", scheduled_check_time=(MOCK_DATETIME - timedelta(days=5))
         )
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status="failure",
-            scheduled_check_time=MOCK_DATETIME - timedelta(days=5),
+        self.store_uptime_data(
+            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(days=5)
         )
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status="failure",
-            scheduled_check_time=MOCK_DATETIME - timedelta(hours=2),
+        self.store_uptime_data(
+            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
         )
 
         response = self.get_success_response(
@@ -230,6 +227,27 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
 
 
+@freeze_time(MOCK_DATETIME)
+class OrganizationUptimeCheckIndexEndpointTest(
+    OrganizationUptimeStatsBaseTest, UptimeCheckSnubaTestCase
+):
+    __test__ = True
+
+    def store_uptime_data(self, subscription_id, check_status, **kwargs):
+        default_timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id,
+            check_status=check_status,
+            incident_status=kwargs.get("incident_status", IncidentStatus.NO_INCIDENT),
+            scheduled_check_time=kwargs.get("scheduled_check_time", default_timestamp),
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k not in ["incident_status", "scheduled_check_time"]
+            },
+        )
+
+
 # TODO(jferg): remove after 90 days
 def test_add_extra_buckets_for_epoch_cutoff():
     """Test adding extra buckets when there's an epoch cutoff"""
@@ -275,3 +293,31 @@ def test_add_extra_buckets_for_epoch_cutoff():
     # Test with no epoch cutoff - should return original
     result = add_extra_buckets_for_epoch_cutoff(formatted_response, None, rollup, start, end)
     assert result == formatted_response
+
+
+@freeze_time(MOCK_DATETIME)
+class OrganizationUptimeStatsEndpointWithEAPTests(
+    OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase, UptimeCheckSnubaTestCase
+):
+    __test__ = True
+
+    def setUp(self):
+        super().setUp()
+        self.features = {
+            "organizations:uptime-eap-enabled": True,
+            "organizations:uptime-eap-uptime-results-query": False,  # Use legacy for now
+        }
+
+    def store_uptime_data(self, subscription_id, check_status, **kwargs):
+        default_timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id,
+            check_status=check_status,
+            incident_status=kwargs.get("incident_status", IncidentStatus.NO_INCIDENT),
+            scheduled_check_time=kwargs.get("scheduled_check_time", default_timestamp),
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k not in ["incident_status", "scheduled_check_time"]
+            },
+        )
