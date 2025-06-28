@@ -75,6 +75,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.migration_helpers.alert_rule import single_write_workflow_engine_models
 from sentry.workflow_engine.models import Detector
 
@@ -132,7 +133,7 @@ def create_metric_alert(
                 serialize(
                     detector,
                     request.user,
-                    WorkflowEngineDetectorSerializer(),
+                    DetectorSerializer(),
                 ),
                 status=status.HTTP_201_CREATED,
             )

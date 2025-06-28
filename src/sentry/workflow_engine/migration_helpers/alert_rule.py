@@ -9,6 +9,7 @@ from django.forms import ValidationError
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     get_alert_resolution,
     owner_kwargs_from_actor,
     subscribe_projects_to_alert_rule,
@@ -101,26 +102,22 @@ class CouldNotCreateDetector(Exception):
     pass
 
 
-def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> Action.Type | None:
-    return TYPE_TO_PROVIDER.get(alert_rule_trigger_action.type, None)
+def get_action_type(alert_rule_trigger_action_type: str) -> Action.Type | None:
+    return TYPE_TO_PROVIDER.get(alert_rule_trigger_action_type, None)
 
 
 def build_sentry_app_data_blob(
-    alert_rule_trigger_action: AlertRuleTriggerAction,
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, Any]:
-    if not alert_rule_trigger_action.sentry_app_config:
+    if not sentry_app_config:
         return {}
     # Convert config to proper type for SentryAppDataBlob
-    settings = (
-        [alert_rule_trigger_action.sentry_app_config]
-        if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
-        else alert_rule_trigger_action.sentry_app_config
-    )
+    settings = [sentry_app_config] if isinstance(sentry_app_config, dict) else sentry_app_config
     return dataclasses.asdict(SentryAppDataBlob.from_list(settings))
 
 
 def build_on_call_data_blob(
-    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None, action_type: Action.Type
 ) -> dict[str, Any]:
     default_priority = (
         OPSGENIE_DEFAULT_PRIORITY
@@ -128,11 +125,11 @@ def build_on_call_data_blob(
         else PAGERDUTY_DEFAULT_SEVERITY
     )
 
-    if not alert_rule_trigger_action.sentry_app_config:
+    if not sentry_app_config:
         return {"priority": default_priority}
 
     # Ensure sentry_app_config is a dict before accessing
-    config = alert_rule_trigger_action.sentry_app_config
+    config = sentry_app_config
     if not isinstance(config, dict):
         return {"priority": default_priority}
 
@@ -141,13 +138,13 @@ def build_on_call_data_blob(
 
 
 def build_action_data_blob(
-    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None, action_type: Action.Type
 ) -> dict[str, Any]:
     # if the action is a Sentry app, we need to get the Sentry app installation ID
     if action_type == Action.Type.SENTRY_APP:
-        return build_sentry_app_data_blob(alert_rule_trigger_action)
+        return build_sentry_app_data_blob(sentry_app_config)
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
-        return build_on_call_data_blob(alert_rule_trigger_action, action_type)
+        return build_on_call_data_blob(sentry_app_config, action_type)
     else:
         return {}
 
@@ -240,7 +237,7 @@ def migrate_metric_action(
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     action_filter = get_action_filter(alert_rule_trigger, priority)
 
-    action_type = get_action_type(alert_rule_trigger_action)
+    action_type = get_action_type(alert_rule_trigger_action.type)
     if not action_type:
         logger.warning(
             "Could not find a matching Action.Type for the trigger action",
@@ -252,7 +249,7 @@ def migrate_metric_action(
 
     # Ensure action_type is Action.Type before passing to functions
     action_type_enum = Action.Type(action_type)
-    data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
+    data = build_action_data_blob(alert_rule_trigger_action.sentry_app_config, action_type_enum)
     target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
     action_config = build_action_config(
         alert_rule_trigger_action.target_display,
@@ -626,23 +623,7 @@ def single_write_workflow_engine_models(
     """
     Take in an alert rule payload and create workflow engine models
     """
-    with transaction.atomic(router.db_for_write(SnubaQuery)):
-        time_window = data.get("time_window")
-        # TODO: calculating resolution depends on the detection type and whether or not there is a comparison delta
-        resolution = get_alert_resolution(time_window, organization)
-
-        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
-        snuba_query = create_snuba_query(
-            query_type=data.get("query_type", SnubaQuery.Type.ERROR),
-            dataset=data.get("dataset", Dataset.Events),
-            query=data.get("query"),
-            aggregate=data.get("aggregate"),
-            time_window=timedelta(minutes=time_window),
-            resolution=timedelta(minutes=resolution),
-            environment=data.get("environment"),
-            event_types=data.get("event_types", ()),
-        )
-        subscribe_projects_to_alert_rule(snuba_query, data.get("projects"))
+    snuba_query = single_write_snuba_query_subscription(data, organization)
 
     with transaction.atomic(router.db_for_write(Detector)):
         data_source = create_data_source(organization.id, snuba_query)
@@ -666,7 +647,188 @@ def single_write_workflow_engine_models(
             is_triggered=False,  # TODO if we reuse this function to update ACI models from an alert rule payload we'll need to check for open incidents
             state=DetectorPriorityLevel.OK,
         )
-        return detector  # TODO create the data conditions, actions, etc.
+
+        threshold_type = (
+            Condition.GREATER
+            if data.get("threshold_type") == AlertRuleThresholdType.ABOVE.value
+            else Condition.LESS
+        )
+        for trigger in data.get("triggers"):
+            create_single_write_data_conditions(
+                data, trigger, threshold_type, detector_data_condition_group, organization
+            )
+            # TODO for some reason priority is unused but it probably should be?
+            # priority = PRIORITY_MAP.get(trigger.get("label"), DetectorPriorityLevel.HIGH)
+            # action_filter = get_action_filter(trigger, priority)
+            for action in trigger.get("actions"):
+                create_single_write_action(action)
+
+        if data.get("detection_type") != AlertRuleDetectionType.DYNAMIC:
+            create_single_write_resolve_threshold_data_condition(
+                data, detector_data_condition_group
+            )
+
+        return detector
+
+
+def single_write_snuba_query_subscription(
+    data: dict[str, Any], organization: Organization
+) -> SnubaQuery:
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
+        time_window = data.get("time_window")
+        resolution = get_alert_resolution(time_window, organization)
+        if data.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+            resolution = time_window
+        elif data.get("comparison_delta"):
+            resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+
+        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
+        snuba_query = create_snuba_query(
+            query_type=data.get("query_type", SnubaQuery.Type.ERROR),
+            dataset=data.get("dataset", Dataset.Events),
+            query=data.get("query"),
+            aggregate=data.get("aggregate"),
+            time_window=timedelta(minutes=time_window),
+            resolution=timedelta(minutes=resolution),
+            environment=data.get("environment"),
+            event_types=data.get("event_types", ()),
+        )
+        subscribe_projects_to_alert_rule(snuba_query, data.get("projects"))
+    return snuba_query
+
+
+def create_single_write_resolve_threshold_data_condition(
+    data: dict[str, Any], detector_data_condition_group: DataConditionGroup
+):
+    # migrate_resolve_threshold_data_condition(alert_rule)
+    # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
+    # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
+    threshold_type = (
+        Condition.LESS_OR_EQUAL
+        if data.get("threshold_type") == AlertRuleThresholdType.ABOVE.value
+        else Condition.GREATER_OR_EQUAL
+    )
+
+    if data.get("resolve_threshold") is not None:
+        resolve_threshold = data.get("resolve_threshold")
+    else:
+        # figure out the resolve threshold ourselves
+        resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+        if resolve_threshold == -1:
+            # something went wrong
+            raise UnresolvableResolveThreshold
+
+    DataCondition.objects.create(
+        comparison=resolve_threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=threshold_type,
+        condition_group=detector_data_condition_group,
+    )
+
+
+def create_single_write_data_conditions(
+    data: dict[str, Any],
+    trigger: dict[str, Any],
+    threshold_type: Condition,
+    detector_data_condition_group: DataConditionGroup,
+    organization: Organization,
+) -> None:
+    condition_result = PRIORITY_MAP.get(trigger.get("label"), DetectorPriorityLevel.HIGH)
+
+    if data.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+        detector_trigger = DataCondition.objects.create(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": data.get("sensitivity"),
+                "seasonality": data.get("seasonality"),
+                "threshold_type": data.get("threshold_type"),
+            },
+            condition_result=condition_result,
+            condition_group=detector_data_condition_group,
+        )
+    else:
+        detector_trigger = DataCondition.objects.create(
+            comparison=trigger.get("alert_threshold"),
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector_data_condition_group,
+        )
+    DataConditionAlertRuleTrigger.objects.create(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=trigger.get("id"),
+    )
+    # create an "action filter": if the detector's status matches a certain priority level,
+    # then the condition result is set to true
+    data_condition_group = DataConditionGroup.objects.create(organization_id=organization.id)
+    DataCondition.objects.create(
+        comparison=PRIORITY_MAP.get(trigger.get("label"), DetectorPriorityLevel.HIGH),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+        condition_group=data_condition_group,
+    )
+    # finally, create a "resolution action filter": the condition result is set to true
+    # if we're de-escalating from the priority specified in the comparison
+    DataCondition.objects.create(
+        comparison=PRIORITY_MAP.get(trigger.get("label"), DetectorPriorityLevel.HIGH),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        condition_group=data_condition_group,
+    )
+
+
+def create_single_write_action(action: dict[str, Any]) -> Action:
+    STR_TO_TYPE = {
+        "email": ActionService.EMAIL.value,
+        "pagerduty": ActionService.PAGERDUTY.value,
+        "slack": ActionService.SLACK.value,
+        "msteams": ActionService.MSTEAMS.value,
+        "sentry_app": ActionService.SENTRY_APP.value,
+        "opsgenie": ActionService.OPSGENIE.value,
+        "discord": ActionService.DISCORD.value,
+    }
+    action_type_string = action.get("type")
+
+    action_type = get_action_type(STR_TO_TYPE[action_type_string])
+    if not action_type:
+        logger.warning(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"action_type": action.get("type")},
+        )
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {action.get("type")}"
+        )
+
+    # Ensure action_type is Action.Type before passing to functions
+    action_type_enum = Action.Type(action_type)
+    data = build_action_data_blob(action.get("sentry_app_config"), action_type_enum)
+    target_identifier = get_single_write_target_identifier(action, action_type_enum)
+    action_config = build_action_config(
+        target_display=action.get("target_display"),
+        target_identifier=str(target_identifier),
+        target_type=action.get("target_type"),
+    )
+    # TODO target type is passed as "team" or "user" but needs to be converted to some enum? for team it's expecting 2
+    # the change in the test should not be merged, it was already the correct payload
+
+    action = Action.objects.create(
+        type=action_type_enum,
+        data=data,
+        integration_id=action.get("integration_id"),
+        config=action_config,
+    )
+    return action
+
+
+def get_single_write_target_identifier(action: dict[str, Any], action_type: Action.Type):
+    if action_type == Action.Type.SENTRY_APP:
+        # Ensure we have a valid sentry_app_id
+        if not action.get("sentry_app_id"):
+            raise ValidationError(
+                "sentry_app_id is required for Sentry App actions for alert rule trigger action",
+            )
+        return str(action.get("sentry_app_id"))
+    # Ensure we have a valid target_identifier
+    return action.get("target_identifier")
 
 
 def single_write_create_detector(

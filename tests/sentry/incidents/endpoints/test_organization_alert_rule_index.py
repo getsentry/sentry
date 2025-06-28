@@ -59,6 +59,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
+from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -107,15 +108,15 @@ class AlertRuleBase(APITestCase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {"type": "email", "targetType": 2, "targetIdentifier": self.team.id}
                     ],
                 },
                 {
                     "label": "warning",
                     "alertThreshold": 150,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                        {"type": "email", "targetType": 2, "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": 1, "targetIdentifier": self.user.id},
                     ],
                 },
             ],
@@ -273,7 +274,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             status_code=201,
             **self.alert_rule_dict,
         )
-        assert resp
+        assert "id" in resp.data
+        detector = Detector.objects.get(id=int(resp.data.get("id")))
+        assert resp.data == serialize(detector, self.user, DetectorSerializer())
 
     def test_workflow_engine_serializer(self):
         team = self.create_team(organization=self.organization, members=[self.user])
