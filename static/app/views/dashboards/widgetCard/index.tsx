@@ -16,7 +16,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -87,6 +87,7 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
   onSetTransactionsDataset?: () => void;
+  onTableColumnSort?: (sort: Sort) => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -156,6 +157,7 @@ function WidgetCard(props: Props) {
     disableZoom,
     showLoadingText,
     router,
+    onTableColumnSort,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -322,6 +324,7 @@ function WidgetCard(props: Props) {
             disableZoom={disableZoom}
             onDataFetchStart={onDataFetchStart}
             showLoadingText={showLoadingText && isLoadingTextVisible}
+            onTableColumnSort={onTableColumnSort}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

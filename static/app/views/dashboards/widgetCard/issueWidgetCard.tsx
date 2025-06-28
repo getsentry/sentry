@@ -12,7 +12,11 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getSortField,
+  type RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -31,6 +35,7 @@ type Props = {
   theme: Theme;
   widget: Widget;
   errorMessage?: string;
+  onTableColumnSort?: (sort: Sort) => void;
   tableResults?: TableData[];
 };
 
@@ -43,6 +48,7 @@ export function IssueWidgetCard({
   organization,
   location,
   theme,
+  onTableColumnSort,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -70,6 +76,7 @@ export function IssueWidgetCard({
     name: column.name,
     width: column.width,
     type: column.type === 'never' ? null : column.type,
+    sortable: !!getSortField(column.key, tableResults?.[0]?.meta),
   }));
   const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
@@ -88,6 +95,7 @@ export function IssueWidgetCard({
         scrollable
         fit="max-content"
         aliases={aliases}
+        onColumnSortChange={onTableColumnSort}
         getRenderer={(field, _dataRow, meta) => {
           const customRenderer = datasetConfig.getCustomFieldRenderer?.(
             field,
