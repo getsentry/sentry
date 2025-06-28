@@ -15,7 +15,7 @@ import {
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
-export function useAutomationBuilderReducer() {
+export function useAutomationBuilderReducer(initialState?: AutomationBuilderState) {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
     (state, action): AutomationBuilderState => {
       switch (action.type) {
@@ -54,7 +54,10 @@ export function useAutomationBuilderReducer() {
     []
   );
 
-  const [state, dispatch] = useReducer(reducer, initialAutomationBuilderState);
+  const [state, dispatch] = useReducer(
+    reducer,
+    initialState ?? initialAutomationBuilderState
+  );
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
