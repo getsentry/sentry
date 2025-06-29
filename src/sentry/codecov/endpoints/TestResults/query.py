@@ -25,6 +25,7 @@ query = """query GetTestResults(
               node {
                 updatedAt
                 avgDuration
+                totalDuration
                 lastDuration
                 name
                 failureRate
