@@ -135,7 +135,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Footer>
         <ZendeskLink
           subject="Account Suspension"
-          className="btn btn-primary"
+          Component={LinkButton}
           source="account-suspension"
         >
           {t('Contact Support')}

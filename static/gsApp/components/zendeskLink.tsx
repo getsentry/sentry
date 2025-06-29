@@ -1,19 +1,16 @@
-import {Component} from 'react';
+import React from 'react';
 
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import ExternalLink from 'sentry/components/links/externalLink';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-type AnchorProps = {
-  href: string;
-  onClick: (e: React.MouseEvent) => void;
-};
-
 type Props = {
   organization: Organization;
-  Component?: React.ComponentType<AnchorProps>;
+  Component?: typeof ExternalLink | React.ComponentType<LinkButtonProps>;
   address?: string;
   children?: React.ReactNode;
   className?: string;
@@ -21,7 +18,7 @@ type Props = {
   subject?: string;
 };
 
-class ZendeskLink extends Component<Props> {
+class ZendeskLink extends React.Component<Props> {
   componentDidMount() {
     const {organization, source} = this.props;
     if (organization) {
@@ -42,7 +39,7 @@ class ZendeskLink extends Component<Props> {
 
   render() {
     const {
-      Component: LinkComponent,
+      Component,
       subject,
       address,
       source: _source,
@@ -55,12 +52,12 @@ class ZendeskLink extends Component<Props> {
       mailto = `${mailto}?subject=${window.encodeURIComponent(subject)}`;
     }
 
-    const Link = LinkComponent ?? 'a';
+    const LinkComponent = Component ?? ExternalLink;
 
     return (
-      <Link href={mailto} onClick={this.activateSupportWidget} {...props}>
+      <LinkComponent href={mailto} onClick={this.activateSupportWidget} {...props}>
         {this.props.children}
-      </Link>
+      </LinkComponent>
     );
   }
 }

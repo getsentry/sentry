@@ -1,8 +1,10 @@
 import isEqual from 'lodash/isEqual';
 
+import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Props = DefaultSettings['props'];
@@ -75,13 +77,9 @@ class Settings extends DefaultSettings<Props, State> {
         {this.renderFields(requiredFields)}
         {onPremisesFields.length > 0 ? (
           <div className="control-group">
-            <button
-              className="btn btn-default"
-              type="button"
-              onClick={this.toggleOnPremisesConfiguration}
-            >
-              Configure on-premises
-            </button>
+            <Button type="button" onClick={this.toggleOnPremisesConfiguration}>
+              {t('Configure on-premises')}
+            </Button>
           </div>
         ) : null}
         {this.state.showOnPremisesConfiguration
