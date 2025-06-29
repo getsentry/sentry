@@ -545,7 +545,6 @@ const makeTransactionNameRow = (
 
   const eventDetailsLocation = generateLinkToEventInTraceView({
     traceSlug,
-    projectSlug: projectSlug ?? '',
     eventId: event.eventID,
     timestamp: event.endTimestamp ?? '',
     location,

@@ -146,7 +146,6 @@ function SpanRow({
     <Fragment>
       <StyledSpanPanelItem align="right">
         <SpanIdRenderer
-          projectSlug={span.project}
           transactionId={span['transaction.id']}
           spanId={span.id}
           traceId={trace.trace}

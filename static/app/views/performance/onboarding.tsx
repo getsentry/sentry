@@ -168,7 +168,6 @@ function SampleButton({
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
-              projectSlug: project.slug,
               organization,
               timestamp: eventData.endTimestamp,
               traceSlug,
