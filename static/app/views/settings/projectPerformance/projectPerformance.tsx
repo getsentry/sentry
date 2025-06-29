@@ -87,6 +87,7 @@ enum DetectorConfigAdmin {
   HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
+  DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -103,6 +104,7 @@ export enum DetectorConfigCustomer {
   CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
   CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
   HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
+  SQL_INJECTION_QUERY_VALUE_LENGTH = 'sql_injection_query_value_length_threshold',
 }
 
 type ProjectThreshold = {
@@ -508,6 +510,25 @@ function ProjectPerformance() {
         );
       },
     },
+    [IssueTitle.DB_QUERY_INJECTION_VULNERABILITY]: {
+      name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
+      type: 'boolean',
+      label: t('Potential Database Query Injection Vulnerability Detection'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            db_query_injection_detection_enabled: value,
+          })
+        );
+      },
+      visible: organization.features.includes(
+        'issue-db-query-injection-vulnerability-visible'
+      ),
+    },
   };
 
   const performanceRegressionAdminFields: Field[] = [
@@ -872,6 +893,32 @@ function ProjectPerformance() {
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
+      },
+      {
+        title: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+        fields: [
+          {
+            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
+            type: 'range',
+            label: t('SQL Injection Query Value Length'),
+            defaultValue: 3,
+            help: t(
+              'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
+            ),
+            tickValues: [3, 10],
+            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
+            ),
+            formatLabel: value => value && value.toString(),
+            disabledReason,
+            visible: organization.features.includes(
+              'issue-db-query-injection-vulnerability-visible'
+            ),
+          },
+        ],
+        initiallyCollapsed: issueType !== IssueType.DB_QUERY_INJECTION_VULNERABILITY,
       },
     ];
 
