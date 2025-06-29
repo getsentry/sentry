@@ -3,8 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -35,11 +37,8 @@ describe('AccountSecurityEnroll', function () {
       params: {authId: authenticator.authId},
     });
 
-    let location: any;
     beforeEach(function () {
-      location = window.location;
-      window.location = location;
-      window.location.href = 'https://example.test';
+      setWindowLocation('https://example.test');
       window.__initialData = {
         ...window.__initialData,
         links: {
@@ -78,7 +77,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('can enroll from org subdomain', async function () {
-      window.location.href = 'https://us-org.example.test';
+      setWindowLocation('https://us-org.example.test');
       window.__initialData = {
         ...window.__initialData,
         links: {
@@ -115,7 +114,7 @@ describe('AccountSecurityEnroll', function () {
         })
       );
       expect(fetchOrgsMock).not.toHaveBeenCalled();
-      expect(window.location.assign).not.toHaveBeenCalled();
+      expect(testableWindowLocation.assign).not.toHaveBeenCalled();
     });
 
     it('can enroll from main domain', async function () {
@@ -156,8 +155,10 @@ describe('AccountSecurityEnroll', function () {
         })
       );
       expect(fetchOrgsMock).toHaveBeenCalledTimes(1);
-      expect(window.location.assign).toHaveBeenCalledTimes(1);
-      expect(window.location.assign).toHaveBeenCalledWith('http://us-org.example.test/');
+      expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        'https://us-org.example.test/'
+      );
     });
 
     it('can redirect with already enrolled error', function () {

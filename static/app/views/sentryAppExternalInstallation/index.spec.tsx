@@ -12,6 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
@@ -149,12 +150,10 @@ describe('SentryAppExternalInstallation', () => {
       );
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(
+        expect(testableWindowLocation.assign).toHaveBeenCalledWith(
           `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
         );
       });
-
-      jest.mocked(window.location.assign).mockClear();
     });
 
     it('installs and redirects with state', async () => {
@@ -196,12 +195,10 @@ describe('SentryAppExternalInstallation', () => {
       );
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(
+        expect(testableWindowLocation.assign).toHaveBeenCalledWith(
           `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}&state=${state}`
         );
       });
-
-      jest.mocked(window.location.assign).mockClear();
     });
   });
 
@@ -320,7 +317,9 @@ describe('SentryAppExternalInstallation', () => {
       await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       await selectEvent.select(screen.getByRole('textbox'), 'org2');
-      expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl('org2'));
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        generateOrgSlugUrl('org2')
+      );
       expect(getFeaturesMock).toHaveBeenCalled();
     });
   });
