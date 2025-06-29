@@ -36,14 +36,15 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             project_ids=[self.project.id],
             stats_period="7d",
         )
-        result["fields"] = result["fields"].sort()
         assert result == {
-            "fields": [
-                "span.description",
-                "transaction",
-                "project",
-                "span.duration",
-            ].sort(),
+            "fields": {
+                "string": [
+                    "span.description",
+                    "project",
+                    "transaction",
+                ],
+                "number": ["span.duration"],
+            },
         }
 
     def test_get_attribute_values(self):
@@ -69,7 +70,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
 
         result = get_attribute_values(
-            fields=attribute_names["fields"],
+            fields=attribute_names["fields"]["string"],
             org_id=self.organization.id,
             project_ids=[self.project.id],
             stats_period="7d",
