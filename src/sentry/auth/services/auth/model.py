@@ -116,7 +116,7 @@ class AuthenticatedToken(RpcModel):
             project_id=getattr(token, "project_id", None),
         )
 
-    def get_audit_log_data(self) -> Mapping[str, Any]:
+    def get_audit_log_data(self) -> dict[str, Any]:
         return self.audit_log_data
 
     def get_allowed_origins(self) -> list[str]:
