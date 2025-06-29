@@ -38,7 +38,6 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         prefersAgentsInsightsModule: false,
         prefersStackedNavigation: false,
         prefersChonkUI: false,
-        quickStartDisplay: {},
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
