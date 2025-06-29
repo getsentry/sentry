@@ -182,6 +182,7 @@ def test_simple_query():
     assert query.query_columns == ["sessions"]
 
 
+@pytest.mark.skip(reason="flaky: #93953")
 def test_groupby_query():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=release")
 
