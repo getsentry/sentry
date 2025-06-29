@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from threading import Barrier
 from typing import Any, NotRequired, TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
@@ -33,6 +36,8 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
+
+logger = logging.getLogger(__name__)
 
 
 class ActionSerializerResponse(TypedDict):
@@ -429,6 +434,25 @@ class WorkflowSerializer(Serializer):
             "enabled": obj.enabled,
             "lastTriggered": attrs.get("lastTriggered"),
         }
+
+
+_N = 4
+_pool = ThreadPoolExecutor(max_workers=_N)
+
+
+def leak_lots_of_connections() -> None:
+    barrier = Barrier(_N + 1)
+
+    def do_work(n: int, barrier: Barrier) -> None:
+        f = Workflow.objects.all().first()
+        if f:
+            logger.info("%s: Found it.", n)
+        barrier.wait()
+
+    for i in range(_N):
+        _pool.submit(do_work, i, barrier)
+    barrier.wait()
+    logger.info("done")
 
 
 @dataclass(frozen=True)
