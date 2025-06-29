@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -494,16 +496,18 @@ class IssueActions extends PluginComponentBase<Props, State> {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
       }
       return (
-        <Alert.Container>
-          <Alert type="info">
-            {'You need to associate an identity with ' +
-              this.props.plugin.name +
-              ' before you can create issues with this service.'}
-          </Alert>
+        <Fragment>
+          <Alert.Container>
+            <Alert type="info">
+              {'You need to associate an identity with ' +
+                this.props.plugin.name +
+                ' before you can create issues with this service.'}
+            </Alert>
+          </Alert.Container>
           <LinkButton priority="primary" href={authUrl!}>
             Associate Identity
           </LinkButton>
-        </Alert.Container>
+        </Fragment>
       );
     }
     if (error.error_type === 'config') {
