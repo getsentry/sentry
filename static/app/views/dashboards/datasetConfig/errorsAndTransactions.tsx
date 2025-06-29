@@ -4,7 +4,7 @@ import trimStart from 'lodash/trimStart';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';

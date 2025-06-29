@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';

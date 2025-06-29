@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';

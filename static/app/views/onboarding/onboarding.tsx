@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';

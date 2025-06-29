@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

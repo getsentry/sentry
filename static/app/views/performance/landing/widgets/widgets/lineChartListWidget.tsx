@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import TextOverflow from 'sentry/components/textOverflow';

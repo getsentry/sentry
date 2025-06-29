@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';

@@ -4,7 +4,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';

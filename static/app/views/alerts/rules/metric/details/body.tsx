@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';

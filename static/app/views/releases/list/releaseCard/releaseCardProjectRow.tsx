@@ -7,7 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';

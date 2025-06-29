@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconInfo, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

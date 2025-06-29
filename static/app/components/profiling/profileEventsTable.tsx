@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

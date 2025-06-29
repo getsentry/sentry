@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Badge} from 'sentry/components/core/badge';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';

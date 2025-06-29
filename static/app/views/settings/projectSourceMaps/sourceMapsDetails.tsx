@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Pagination from 'sentry/components/pagination';

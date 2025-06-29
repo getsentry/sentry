@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';

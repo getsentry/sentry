@@ -8,7 +8,7 @@ import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Chevron} from 'sentry/components/chevron';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';

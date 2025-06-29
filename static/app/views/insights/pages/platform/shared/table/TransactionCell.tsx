@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {space} from 'sentry/styles/space';

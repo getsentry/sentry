@@ -1,5 +1,5 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

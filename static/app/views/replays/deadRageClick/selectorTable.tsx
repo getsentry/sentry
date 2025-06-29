@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';

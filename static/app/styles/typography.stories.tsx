@@ -9,7 +9,7 @@ import WeightGraphic from 'sentry-images/stories/typography/weight.svg';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';

@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';

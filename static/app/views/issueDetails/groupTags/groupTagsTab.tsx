@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';

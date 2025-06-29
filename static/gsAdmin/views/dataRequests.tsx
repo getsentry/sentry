@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import TextField from 'sentry/components/forms/fields/textField';
