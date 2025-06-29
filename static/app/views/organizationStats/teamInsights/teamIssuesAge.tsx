@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';

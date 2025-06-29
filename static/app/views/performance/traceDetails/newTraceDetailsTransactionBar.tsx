@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';

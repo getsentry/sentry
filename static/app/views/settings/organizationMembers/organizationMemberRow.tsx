@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Confirm from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';

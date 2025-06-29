@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';

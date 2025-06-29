@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';

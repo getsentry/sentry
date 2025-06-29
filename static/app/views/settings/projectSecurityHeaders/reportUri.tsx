@@ -1,4 +1,4 @@
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';

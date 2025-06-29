@@ -10,7 +10,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

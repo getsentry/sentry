@@ -4,8 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Chevron} from 'sentry/components/chevron';
-import type {LinkProps} from 'sentry/components/core/link/link';
-import Link from 'sentry/components/core/link/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import Link from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';

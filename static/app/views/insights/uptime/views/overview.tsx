@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';

@@ -12,7 +12,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

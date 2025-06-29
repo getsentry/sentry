@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';

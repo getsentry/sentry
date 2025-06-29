@@ -2,7 +2,7 @@ import {Fragment, type ReactNode, useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {Card} from 'sentry/components/keyValueData';

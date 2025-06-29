@@ -6,7 +6,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconTimer, IconUser} from 'sentry/icons';

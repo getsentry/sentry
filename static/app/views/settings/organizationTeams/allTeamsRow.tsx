@@ -6,7 +6,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';

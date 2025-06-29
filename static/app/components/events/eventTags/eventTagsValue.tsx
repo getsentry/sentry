@@ -1,4 +1,4 @@
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {DeviceName} from 'sentry/components/deviceName';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {EventTag} from 'sentry/types/event';

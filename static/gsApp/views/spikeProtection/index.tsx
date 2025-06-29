@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

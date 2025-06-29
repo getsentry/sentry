@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {t, tct} from 'sentry/locale';

@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 
 import CustomerContact from 'admin/components/customerContact';

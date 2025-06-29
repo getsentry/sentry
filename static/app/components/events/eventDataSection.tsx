@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Anchor} from 'sentry/components/core/link/link';
+import {Anchor} from 'sentry/components/core/link';
 import {DataSection} from 'sentry/components/events/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';

@@ -6,7 +6,7 @@ import Access from 'sentry/components/acl/access';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import Confirm from 'sentry/components/confirm';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';

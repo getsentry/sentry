@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/core/link/link';
+import Link from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';

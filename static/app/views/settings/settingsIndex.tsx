@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import type {LinkProps} from 'sentry/components/core/link/link';
-import Link from 'sentry/components/core/link/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import Link from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
