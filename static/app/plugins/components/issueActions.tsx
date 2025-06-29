@@ -1,3 +1,4 @@
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -493,21 +494,21 @@ class IssueActions extends PluginComponentBase<Props, State> {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
       }
       return (
-        <div>
-          <div className="alert alert-warning m-b-1">
+        <Alert.Container>
+          <Alert type="warning">
             {'You need to associate an identity with ' +
               this.props.plugin.name +
               ' before you can create issues with this service.'}
-          </div>
+          </Alert>
           <a className="btn btn-primary" href={authUrl}>
             Associate Identity
           </a>
-        </div>
+        </Alert.Container>
       );
     }
     if (error.error_type === 'config') {
       return (
-        <div className="alert alert-block">
+        <Alert type="info">
           {error.has_auth_configured ? (
             <p>
               You still need to{' '}
@@ -531,7 +532,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
               </ul>
             </div>
           )}
-        </div>
+        </Alert>
       );
     }
     if (error.error_type === 'validation') {
@@ -539,13 +540,13 @@ class IssueActions extends PluginComponentBase<Props, State> {
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
-      return <div className="alert alert-error alert-block">{errors}</div>;
+      return <Alert type="error">{errors}</Alert>;
     }
     if (error.message) {
       return (
-        <div className="alert alert-error alert-block">
+        <Alert type="error">
           <p>{error.message}</p>
-        </div>
+        </Alert>
       );
     }
     return <LoadingError />;
