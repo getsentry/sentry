@@ -68,7 +68,6 @@ class _UserOptions(TypedDict):
     prefersNextjsInsightsOverview: bool
     prefersStackedNavigation: bool | None
     prefersChonkUI: bool
-    quickStartDisplay: dict[str, int]
     prefersAgentsInsightsModule: bool
 
 
@@ -208,7 +207,6 @@ class UserSerializer(Serializer):
                 ),
                 "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
-                "quickStartDisplay": options.get("quick_start_display") or {},
                 "prefersAgentsInsightsModule": options.get("prefers_agents_insights_module", True),
             }
 
