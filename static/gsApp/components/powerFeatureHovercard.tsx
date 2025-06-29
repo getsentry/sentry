@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {linkStyles} from 'sentry/components/core/link/link';
 import {Hovercard} from 'sentry/components/hovercard';
-import {linkStyles} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

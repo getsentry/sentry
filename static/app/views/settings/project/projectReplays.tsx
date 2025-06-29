@@ -1,10 +1,10 @@
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import Link from 'sentry/components/core/link/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
