@@ -105,6 +105,7 @@ export function useGetTraceItemAttributeKeys({
           key: attribute.key,
           name: attribute.name,
           kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
+          secondaryAliases: attribute?.secondaryAliases ?? [],
         };
       }
 

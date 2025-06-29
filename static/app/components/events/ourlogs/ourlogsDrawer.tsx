@@ -45,8 +45,10 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const hasInfiniteFeature = useOrganization().features.includes(
     'ourlogs-infinite-scroll'
   );
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
@@ -55,6 +57,8 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
   };
   const searchQueryBuilderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps

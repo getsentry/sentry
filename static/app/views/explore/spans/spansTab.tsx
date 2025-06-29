@@ -164,8 +164,16 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {
+    tags: numberTags,
+    isLoading: numberTagsLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemTags('number');
+  const {
+    tags: stringTags,
+    isLoading: stringTagsLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -205,8 +213,20 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
       replaceRawSearchKeys: ['span.description'],
+      numberSecondaryAliases,
+      stringSecondaryAliases,
     }),
-    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
+    [
+      query,
+      mode,
+      numberTags,
+      numberSecondaryAliases,
+      stringTags,
+      stringSecondaryAliases,
+      oldSearch,
+      fields,
+      setExplorePageParams,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
