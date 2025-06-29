@@ -1277,6 +1277,35 @@ class BaseQueryBuilder:
         operator = search_filter.operator
         value = search_filter.value.value
 
+        strs = search_filter.value.split_wildcards()
+        if strs is not None and len(strs[1]) > 0:
+            # If we have a mixture of wildcards and non-wildcards in a [] set, we must
+            # group them into their own sets to apply the appropriate operators, and
+            # then 'OR' them together.
+            (non_wildcards, wildcards) = strs
+            operator = "="
+            if operator == "NOT IN":
+                operator = "!="
+            filters = [
+                self.default_filter_converter(
+                    event_search.SearchFilter(
+                        search_filter.key, operator, event_search.SearchValue(wc)
+                    )
+                )
+                for wc in wildcards
+            ]
+            if len(non_wildcards) > 0:
+                lhs = self.default_filter_converter(
+                    event_search.SearchFilter(
+                        search_filter.key,
+                        search_filter.operator,
+                        event_search.SearchValue(non_wildcards),
+                    )
+                )
+                filters.append(lhs)
+
+            return Or(filters)
+
         # Some fields aren't valid queries
         if name in constants.SKIP_FILTER_RESOLUTION:
             name = f"tags[{name}]"

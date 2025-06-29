@@ -631,8 +631,32 @@ def convert_search_filter_to_snuba_query(
             # they'll always be an empty string.
             is_null_condition = [["isNull", [name]], "=", 1]
 
-        if search_filter.value.is_wildcard():
-            condition = [["match", [name, f"'(?i){value}'"]], search_filter.operator, 1]
+        # If we have a mixture of wildcards and non-wildcards in a [] set, we must
+        # group them into their own sets to apply the appropriate operators, and
+        # then 'OR' them together.
+        strs = search_filter.value.split_wildcards()
+        if strs is not None and len(strs[1]) > 0:
+            (non_wildcards, wildcards) = strs
+            operator = "="
+            if search_filter.operator == "NOT IN":
+                operator = "!="
+            condition = [
+                convert_search_filter_to_snuba_query(
+                    SearchFilter(search_filter.key, operator, SearchValue(wc))
+                )
+                for wc in wildcards
+            ]
+            if len(non_wildcards) > 0:
+                non_wcs = convert_search_filter_to_snuba_query(
+                    SearchFilter(
+                        search_filter.key, search_filter.operator, SearchValue(non_wildcards)
+                    )
+                )
+                condition.append(non_wcs)
+        elif search_filter.value.is_wildcard():
+            # mypy complains if you just use the literal; int isn't an Any, somehow?
+            match_val: Any = 1
+            condition = [["match", [name, f"'(?i){value}'"]], search_filter.operator, match_val]
         else:
             condition = [name, search_filter.operator, value]
 
