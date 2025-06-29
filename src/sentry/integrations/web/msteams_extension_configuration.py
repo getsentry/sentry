@@ -1,4 +1,5 @@
 from sentry.integrations.msteams.constants import SALT
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.web.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
@@ -11,8 +12,8 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 @control_silo_view
 class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
-    provider = "msteams"
-    external_provider_key = "msteams"
+    provider = IntegrationProviderSlug.MSTEAMS.value
+    external_provider_key = IntegrationProviderSlug.MSTEAMS.value
 
     def map_params_to_state(self, params):
         # decode the signed params and add them to whatever params we have

@@ -12,6 +12,7 @@ from sentry.integrations.msteams.metrics import record_lifecycle_termination_lev
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
@@ -21,7 +22,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
     label = "Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
-    provider = "msteams"
+    provider = IntegrationProviderSlug.MSTEAMS.value
     integration_key = "team"
 
     def __init__(self, *args, **kwargs):
