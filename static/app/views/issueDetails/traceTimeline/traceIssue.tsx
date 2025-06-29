@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';

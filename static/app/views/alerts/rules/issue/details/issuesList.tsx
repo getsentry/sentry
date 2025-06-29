@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';

@@ -8,7 +8,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';

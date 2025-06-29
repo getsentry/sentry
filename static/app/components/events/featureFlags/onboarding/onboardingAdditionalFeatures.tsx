@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

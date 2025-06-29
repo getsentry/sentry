@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
@@ -18,7 +19,6 @@ import {
   transactionTargetHash,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,

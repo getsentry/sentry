@@ -4,12 +4,12 @@ import debounce from 'lodash/debounce';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item, ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import Link from 'sentry/components/links/link';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

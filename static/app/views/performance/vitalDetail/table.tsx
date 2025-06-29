@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';

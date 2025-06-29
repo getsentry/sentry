@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

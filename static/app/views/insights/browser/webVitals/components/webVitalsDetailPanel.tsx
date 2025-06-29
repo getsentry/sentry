@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import type {
   GridColumnHeader,
   GridColumnOrder,

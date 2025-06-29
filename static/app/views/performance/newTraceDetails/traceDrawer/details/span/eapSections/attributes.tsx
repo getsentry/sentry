@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';

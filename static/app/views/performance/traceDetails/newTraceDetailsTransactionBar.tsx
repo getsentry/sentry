@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
@@ -24,7 +25,6 @@ import {
 } from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {

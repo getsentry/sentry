@@ -5,8 +5,8 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,

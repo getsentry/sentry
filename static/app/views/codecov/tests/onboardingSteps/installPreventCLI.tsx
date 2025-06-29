@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import Link from 'sentry/components/links/link';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

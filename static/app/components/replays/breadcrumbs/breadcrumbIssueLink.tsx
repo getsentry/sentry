@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {space} from 'sentry/styles/space';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';

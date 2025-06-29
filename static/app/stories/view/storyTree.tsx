@@ -2,7 +2,7 @@ import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {
   IconChevron,
   IconCircle,

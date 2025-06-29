@@ -63,7 +63,7 @@ export interface LinkProps
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-const Link = styled(({disabled, to, ...props}: LinkProps) => {
+export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
   to = normalizeUrl(to, location);
 
@@ -82,5 +82,3 @@ export const Anchor = styled('a', {
 })<{disabled?: boolean}>`
   ${linkStyles}
 `;
-
-export default Link;

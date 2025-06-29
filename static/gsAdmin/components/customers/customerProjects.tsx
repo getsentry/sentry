@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconProject} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

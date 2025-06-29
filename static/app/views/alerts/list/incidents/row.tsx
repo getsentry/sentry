@@ -4,10 +4,10 @@ import moment from 'moment-timezone';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
