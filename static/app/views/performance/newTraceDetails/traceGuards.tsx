@@ -28,6 +28,12 @@ export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpa
   return !!(value && 'is_transaction' in value);
 }
 
+export function isEAPUptimeResult(
+  value: TraceTree.NodeValue
+): value is TraceTree.EAPUptimeResult {
+  return !!(value && 'check_status' in value && 'subscription_id' in value);
+}
+
 export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
   return isEAPSpan(value) && value.is_transaction;
 }
@@ -42,6 +48,12 @@ export function isEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {
   return isEAPSpan(node.value);
+}
+
+export function isEAPUptimeResultNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPUptimeResult> {
+  return isEAPUptimeResult(node.value);
 }
 
 export function isNonTransactionEAPSpanNode(

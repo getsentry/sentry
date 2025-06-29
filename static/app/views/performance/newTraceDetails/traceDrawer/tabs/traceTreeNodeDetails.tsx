@@ -4,10 +4,12 @@ import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDr
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/index';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/index';
+import {UptimeResultDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptimeResult/index';
 import {
   isAutogroupedNode,
   isEAPErrorNode,
   isEAPSpanNode,
+  isEAPUptimeResultNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -36,6 +38,10 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
 
   if (isSpanNode(props.node) || isEAPSpanNode(props.node)) {
     return <SpanNodeDetails {...props} />;
+  }
+
+  if (isEAPUptimeResultNode(props.node)) {
+    return <UptimeResultDetails {...props} />;
   }
 
   if (isTraceErrorNode(props.node) || isEAPErrorNode(props.node)) {
