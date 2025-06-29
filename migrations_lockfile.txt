@@ -29,6 +29,8 @@ sentry: 0937_fix_defaults
 
 social_auth: 0001_squashed_0002_default_auto_field
 
+status_pages: 0001_initial_models
+
 tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes

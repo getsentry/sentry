@@ -439,6 +439,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.insights",
+    "sentry.status_pages",
     "sentry.preprod",
 )
 
