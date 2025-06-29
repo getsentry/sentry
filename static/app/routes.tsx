@@ -1978,6 +1978,17 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="replay-assertions/">
+        <IndexRoute
+          component={make(() => import('sentry/views/codecov/replayAssertions'))}
+        />
+        <Route
+          path=":flowId/"
+          component={make(
+            () => import('sentry/views/codecov/replayAssertions/flowDetail')
+          )}
+        />
+      </Route>
       <Route path="tokens/">
         <Route
           component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
