@@ -17,7 +17,7 @@ MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 class OrganizationUptimeStatsBaseTest(APITestCase):
     __test__ = False
     endpoint = "sentry-api-0-organization-uptime-stats"
-    features = {}
+    features: dict[str, bool] = {}
 
     def setUp(self):
         super().setUp()
@@ -43,7 +43,13 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         for scenario in scenarios:
             self.store_uptime_data(self.subscription_id, **scenario)
 
-    def store_uptime_data(self, subscription_id, check_status, **kwargs):
+    def store_uptime_data(
+        self,
+        subscription_id,
+        check_status,
+        incident_status=IncidentStatus.NO_INCIDENT,
+        scheduled_check_time=None,
+    ):
         """Store a single uptime data row. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement store_uptime_data")
 
@@ -243,18 +249,18 @@ class OrganizationUptimeCheckIndexEndpointTest(
 ):
     __test__ = True
 
-    def store_uptime_data(self, subscription_id, check_status, **kwargs):
-        default_timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
+    def store_uptime_datastore_uptime_data(
+        self,
+        subscription_id,
+        check_status,
+        incident_status=IncidentStatus.NO_INCIDENT,
+        scheduled_check_time=None,
+    ):
         self.store_snuba_uptime_check(
             subscription_id=subscription_id,
             check_status=check_status,
-            incident_status=kwargs.get("incident_status", IncidentStatus.NO_INCIDENT),
-            scheduled_check_time=kwargs.get("scheduled_check_time", default_timestamp),
-            **{
-                k: v
-                for k, v in kwargs.items()
-                if k not in ["incident_status", "scheduled_check_time"]
-            },
+            incident_status=incident_status,
+            scheduled_check_time=scheduled_check_time,
         )
 
 
@@ -322,7 +328,6 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         self,
         subscription_id,
         check_status,
-        *,
         incident_status=IncidentStatus.NO_INCIDENT,
         scheduled_check_time=None,
     ):
