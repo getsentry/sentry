@@ -114,7 +114,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
 
   minimumColWidth?: number;
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
-
   onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   /**
    * Whether columns in the grid can be resized.
