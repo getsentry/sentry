@@ -1,6 +1,5 @@
 import React from 'react';
 
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -10,7 +9,7 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   organization: Organization;
-  Component?: typeof ExternalLink | React.ComponentType<LinkButtonProps>;
+  Component?: typeof ExternalLink;
   address?: string;
   children?: React.ReactNode;
   className?: string;
