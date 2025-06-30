@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
 
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.utils import json
 
@@ -76,6 +81,8 @@ class EventType(Enum):
     UNKNOWN = 13
     CANVAS = 14
     OPTIONS = 15
+    FEEDBACK = 16
+    MEMORY = 17
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -151,6 +158,8 @@ def which(event: dict[str, Any]) -> EventType:
                         return EventType.FCP
                     else:
                         return EventType.UNKNOWN
+                elif op == "memory":
+                    return EventType.MEMORY
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "options":
@@ -164,6 +173,227 @@ def which(event: dict[str, Any]) -> EventType:
     except Exception:
         logger.exception("Event type could not be determined.")
         return EventType.UNKNOWN
+
+
+def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[str, Any]]]:
+    for event in events:
+        yield (which(event), event)
+
+
+class MessageContext(TypedDict):
+    organization_id: int
+    project_id: int
+    received: float
+    retention_days: int
+    trace_id: str | None
+    replay_id: str
+    segment_id: int
+
+
+class TraceItemContext(TypedDict):
+    attributes: dict[str, str | int | bool | float]
+    event_hash: str
+    timestamp: float
+
+
+def iter_trace_items(context: MessageContext, events: list[dict[str, Any]]) -> Iterator[TraceItem]:
+    for event_type, event in which_iter(events):
+        try:
+            trace_item = as_trace_item(context, event_type, event)
+        except (KeyError, TypeError, ValueError) as e:
+            logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
+            continue
+
+        if trace_item:
+            yield trace_item
+
+
+def as_trace_item(
+    context: MessageContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem | None:
+    trace_item_context = as_trace_item_context(event_type, event)
+
+    # Not every event produces a trace-item.
+    if trace_item_context is None:
+        return None
+
+    # Extend the attributes with the replay_id to make it queryable by replay_id after we
+    # eventually use the trace_id in its rightful position.
+    trace_item_context["attributes"]["replay_id"] = context["replay_id"]
+
+    return TraceItem(
+        organization_id=context["organization_id"],
+        project_id=context["project_id"],
+        trace_id=context["trace_id"] or context["replay_id"],
+        item_id=trace_item_context["event_hash"],
+        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+        timestamp=Timestamp().FromMilliseconds(int(trace_item_context["timestamp"] * 1000)),
+        attributes=trace_item_context["attributes"],
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+        retention_days=context["retention_days"],
+        received=context["received"],
+    )
+
+
+def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
+    """Returns a trace-item row or null for each event."""
+    match event_type:
+        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK:
+            payload = event["data"]["payload"]
+
+            node = payload["data"]["node"]
+            node_attributes = node.get("attributes", {})
+            attributes = {
+                "node_id": int(node["id"]),
+                "tag": to_string(node["tagName"]),
+                "text": to_string(node["textContent"][:1024]),
+                "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
+                "is_rage": event_type == EventType.RAGE_CLICK,
+                "selector": to_string(payload["message"]),
+                "category": "ui.click",
+            }
+            if "alt" in node_attributes:
+                attributes["alt"] = to_string(node_attributes["alt"])
+            if "aria-label" in node_attributes:
+                attributes["aria_label"] = to_string(node_attributes["aria-label"])
+            if "class" in node_attributes:
+                attributes["class"] = to_string(node_attributes["class"])
+            if "data-sentry-component" in node_attributes:
+                attributes["component_name"] = to_string(node_attributes["data-sentry-component"])
+            if "id" in node_attributes:
+                attributes["id"] = to_string(node_attributes["id"])
+            if "role" in node_attributes:
+                attributes["role"] = to_string(node_attributes["role"])
+            if "title" in node_attributes:
+                attributes["title"] = to_string(node_attributes["title"])
+            if _get_testid(node_attributes):
+                attributes["testid"] = _get_testid(node_attributes)
+            if "url" in payload:
+                attributes["url"] = to_string(payload["url"])
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.NAVIGATION:
+            payload = event["data"]["payload"]
+            payload_data = payload["data"]
+
+            attributes = {"category": "navigation"}
+            if "from" in payload_data:
+                attributes["from"] = to_string(payload_data["from"])
+            if "to" in payload_data:
+                attributes["to"] = to_string(payload_data["to"])
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.CONSOLE:
+            return None
+        case EventType.UI_BLUR:
+            return None
+        case EventType.UI_FOCUS:
+            return None
+        case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
+            attributes = {
+                "category": (
+                    "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
+                ),
+            }
+
+            request_size, response_size = parse_network_content_lengths(event)
+            if request_size:
+                attributes["request_size"] = request_size
+            if response_size:
+                attributes["response_size"] = response_size
+
+            return {
+                "attributes": attributes,
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            }
+        case EventType.LCP | EventType.FCP:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                    "rating": to_string(payload["data"]["rating"]),
+                    "size": int(payload["data"]["size"]),
+                    "value": int(payload["data"]["value"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(payload["timestamp"]),
+            }
+        case EventType.HYDRATION_ERROR:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.hydrate-error",
+                    "url": to_string(payload["data"]["url"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            }
+        case EventType.MUTATIONS:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.mutations",
+                    "count": int(payload["data"]["count"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": event["timestamp"],
+            }
+        case EventType.UNKNOWN:
+            return None
+        case EventType.CANVAS:
+            return None
+        case EventType.OPTIONS:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "sdk.options",
+                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
+                    "sessionSampleRate": float(payload["sessionSampleRate"]),
+                    "errorSampleRate": float(payload["errorSampleRate"]),
+                    "useCompressionOption": bool(payload["useCompressionOption"]),
+                    "blockAllMedia": bool(payload["blockAllMedia"]),
+                    "maskAllText": bool(payload["maskAllText"]),
+                    "maskAllInputs": bool(payload["maskAllInputs"]),
+                    "useCompression": bool(payload["useCompression"]),
+                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
+                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
+                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
+                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": event["timestamp"] / 1000,
+            }
+        case EventType.FEEDBACK:
+            return None
+        case EventType.MEMORY:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "memory",
+                    "jsHeapSizeLimit": int(payload["data"]["jsHeapSizeLimit"]),
+                    "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
+                    "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
+                    "endTimestamp": float(payload["endTimestamp"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(payload["startTimestamp"]),
+            }
+
+
+def to_string(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    raise ValueError("Value was not a string.")
 
 
 class HighlightedEvents(TypedDict, total=False):
