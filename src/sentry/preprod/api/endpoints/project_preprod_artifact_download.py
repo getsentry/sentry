@@ -58,14 +58,6 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         if preprod_artifact.file_id is None:
             return Response({"error": "Preprod artifact file not available"}, status=404)
 
-        if preprod_artifact.state != PreprodArtifact.ArtifactState.PROCESSED:
-            return Response(
-                {
-                    "error": f"Preprod artifact is not ready for download (state: {preprod_artifact.get_state_display()})"
-                },
-                status=400,
-            )
-
         try:
             file_obj = File.objects.get(id=preprod_artifact.file_id)
         except File.DoesNotExist:
