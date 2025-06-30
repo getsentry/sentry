@@ -8,18 +8,17 @@ import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface TableProps {
+interface TableProps extends HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  className?: string;
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'faded';
 }
 
-export function SimpleTable({className, children}: TableProps) {
+export function SimpleTable({children, ...props}: TableProps) {
   return (
-    <StyledPanel className={className} role="table">
+    <StyledPanel {...props} role="table">
       {children}
     </StyledPanel>
   );
