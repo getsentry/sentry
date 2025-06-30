@@ -148,23 +148,24 @@ class EventLifecycle:
             "extra": extra,
         }
 
-        if isinstance(outcome_reason, BaseException):
-            # Capture exception in Sentry if create_issue is True
-            if create_issue:
+        # Capture exception in Sentry if create_issue is True
+        if create_issue:
+            if isinstance(outcome_reason, BaseException):
                 # If the outcome is halted, we want to set the level to warning
                 if outcome == EventLifecycleOutcome.HALTED:
                     sentry_sdk.set_level("warning")
-
                 event_id = sentry_sdk.capture_exception(
                     outcome_reason,
                 )
+                # Add exception summary but don't include full stack trace in logs
+                # TODO(iamrajjoshi): Phase this out once everyone is comfortable with just using the sentry issue
+                log_params["extra"]["exception_summary"] = repr(outcome_reason)
 
-                log_params["extra"]["slo_event_id"] = event_id
+            else:
+                level = "warning" if outcome == EventLifecycleOutcome.HALTED else "error"
+                event_id = sentry_sdk.capture_message(repr(outcome_reason), level=level)
 
-            # Add exception summary but don't include full stack trace in logs
-            # TODO(iamrajjoshi): Phase this out once everyone is comfortable with just using the sentry issue
-            log_params["extra"]["exception_summary"] = repr(outcome_reason)
-        elif isinstance(outcome_reason, str):
+            log_params["extra"]["slo_event_id"] = event_id
             extra["outcome_reason"] = outcome_reason
 
         if outcome == EventLifecycleOutcome.FAILURE:
