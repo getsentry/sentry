@@ -27,8 +27,7 @@ interface DataConditionNodeListProps {
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateCondition: (id: string, condition: Record<string, any>) => void;
-  updateConditionType?: (id: string, type: DataConditionType) => void;
+  updateCondition: (id: string, params: {comparison?: any; type?: any}) => void;
 }
 
 interface Option {
@@ -44,7 +43,6 @@ export default function DataConditionNodeList({
   onAddRow,
   onDeleteRow,
   updateCondition,
-  updateConditionType,
   conflictingConditionIds,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
@@ -121,9 +119,7 @@ export default function DataConditionNodeList({
             value={{
               condition,
               condition_id: `${group}.conditions.${condition.id}`,
-              onUpdate: newCondition => updateCondition(condition.id, newCondition),
-              onUpdateType: type =>
-                updateConditionType && updateConditionType(condition.id, type),
+              onUpdate: params => updateCondition(condition.id, params),
             }}
           >
             <Node />

@@ -24,9 +24,7 @@ function ValueField() {
       min={1}
       step={1}
       onChange={(value: number) => {
-        onUpdate({
-          value,
-        });
+        onUpdate({comparison: {...condition.comparison, value}});
       }}
     />
   );
