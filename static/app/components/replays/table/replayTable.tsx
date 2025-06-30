@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import type {HTMLAttributes, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -12,10 +12,7 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
-
-type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type SortProps =
   | {
@@ -28,9 +25,9 @@ type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
   error: RequestError | null | undefined;
   isPending: boolean;
-  replays: ListRecord[];
+  replays: ReplayRecord[];
   showDropdownFilters: boolean;
-  onClickRow?: (props: {replay: ListRecord; rowIndex: number}) => void;
+  onClickRow?: (props: {replay: ReplayRecord; rowIndex: number}) => void;
 };
 
 export default function ReplayTable({
@@ -45,7 +42,12 @@ export default function ReplayTable({
 }: Props) {
   if (isPending) {
     return (
-      <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
+      <ReplayTableWithColumns
+        data-test-id="replay-table-loading"
+        columns={columns}
+        sort={sort}
+        onSortClick={onSortClick}
+      >
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -55,7 +57,12 @@ export default function ReplayTable({
 
   if (error) {
     return (
-      <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
+      <ReplayTableWithColumns
+        data-test-id="replay-table-error"
+        columns={columns}
+        sort={sort}
+        onSortClick={onSortClick}
+      >
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -67,7 +74,12 @@ export default function ReplayTable({
   }
 
   return (
-    <ReplayTableWithColumns columns={columns} sort={sort} onSortClick={onSortClick}>
+    <ReplayTableWithColumns
+      data-test-id="replay-table"
+      columns={columns}
+      sort={sort}
+      onSortClick={onSortClick}
+    >
       {replays.length === 0 && <SimpleTable.Empty>No data</SimpleTable.Empty>}
       {replays.map((replay, rowIndex) => {
         const rows = columns.map((column, columnIndex) => (
@@ -103,14 +115,13 @@ export default function ReplayTable({
 type TableProps = {
   children: ReactNode;
   columns: readonly ReplayTableColumn[];
-  className?: string;
   onSortClick?: (key: string) => void;
   sort?: Sort;
-};
+} & HTMLAttributes<HTMLTableElement>;
 
 const ReplayTableWithColumns = styled(
-  ({children, className, columns, onSortClick, sort}: TableProps) => (
-    <SimpleTable className={className}>
+  ({children, columns, onSortClick, sort, ...props}: TableProps) => (
+    <SimpleTable {...props}>
       <SimpleTable.Header>
         {columns.map(column => (
           <SimpleTable.HeaderCell

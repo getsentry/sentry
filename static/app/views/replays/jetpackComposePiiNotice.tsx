@@ -6,7 +6,7 @@ import {t, tct} from 'sentry/locale';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export function JetpackComposePiiNotice() {
   const LOCAL_STORAGE_KEY = 'jetpack-compose-pii-warning-dismissed';
@@ -48,16 +48,12 @@ export function JetpackComposePiiNotice() {
   );
 }
 
-export function useNeedsJetpackComposePiiNotice({
-  replays,
-}: {
-  replays: undefined | ReplayListRecord[];
-}) {
-  const needsJetpackComposePiiWarning = replays?.find(replay => {
+export function useNeedsJetpackComposePiiNotice({replays}: {replays: ReplayRecord[]}) {
+  const needsJetpackComposePiiWarning = replays.find(replay => {
     return (
-      replay?.sdk.name === 'sentry.java.android' &&
+      replay.sdk.name === 'sentry.java.android' &&
       semverCompare(
-        replay?.sdk.version ?? '',
+        replay.sdk.version ?? '',
         MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
       ) === -1
     );

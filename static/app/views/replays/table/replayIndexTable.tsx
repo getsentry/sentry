@@ -19,6 +19,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/views/replays/jetpackComposePiiNotice';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 const COLUMNS_WEB = [
@@ -64,10 +68,14 @@ export default function ReplayIndexTable() {
   const {data, isPending, error, getResponseHeader} = useApiQuery<{
     data: ReplayListRecord[];
   }>(queryKey, {staleTime: 0});
-  const replays = data?.data.map<ReplayListRecord>(mapResponseToReplayRecord);
+  const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
+
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays,
+  });
 
   if (needsSDKUpdateForClickSearch) {
     return (
@@ -85,12 +93,13 @@ export default function ReplayIndexTable() {
 
   return (
     <Fragment>
+      {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ReplayTable
         columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
         error={error}
         isPending={isPending}
         onSortClick={onSortClick}
-        replays={replays ?? []}
+        replays={replays}
         showDropdownFilters
         sort={sortType}
       />
