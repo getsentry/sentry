@@ -183,7 +183,10 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       return null;
     }
     return (
-      <DropdownContainer key="countErrors">
+      <DropdownContainer
+        key="countErrors"
+        data-test-id="replay-table-column-count-errors"
+      >
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap={space(0.5)}>

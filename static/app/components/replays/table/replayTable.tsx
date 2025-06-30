@@ -10,10 +10,9 @@ import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableCo
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
   | {
@@ -28,7 +27,7 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
-  onClickRow?: (props: {replay: ReplayRecord; rowIndex: number}) => void;
+  onClickRow?: (props: {replay: ReplayListRecord; rowIndex: number}) => void;
 };
 
 export default function ReplayTable({
@@ -59,7 +58,7 @@ export default function ReplayTable({
   if (error) {
     return (
       <ReplayTableWithColumns
-        data-test-id="replay-table-error"
+        data-test-id="replay-table-errored"
         columns={columns}
         sort={sort}
         onSortClick={onSortClick}
@@ -74,7 +73,6 @@ export default function ReplayTable({
     );
   }
 
-  const hydratedReplays = replays.map(mapResponseToReplayRecord);
   return (
     <ReplayTableWithColumns
       data-test-id="replay-table"
@@ -82,8 +80,10 @@ export default function ReplayTable({
       sort={sort}
       onSortClick={onSortClick}
     >
-      {hydratedReplays.length === 0 && <SimpleTable.Empty>No data</SimpleTable.Empty>}
-      {hydratedReplays.map((replay, rowIndex) => {
+      {replays.length === 0 && (
+        <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
+      )}
+      {replays.map((replay, rowIndex) => {
         const rows = columns.map((column, columnIndex) => (
           <RowCell key={`${replay.id}-${column.sortKey}`}>
             <column.Component
@@ -100,7 +100,7 @@ export default function ReplayTable({
             variant={replay.is_archived ? 'faded' : 'default'}
           >
             {onClickRow ? (
-              <RowContentButton onClick={() => onClickRow({replay, rowIndex})}>
+              <RowContentButton as="div" onClick={() => onClickRow({replay, rowIndex})}>
                 <InteractionStateLayer />
                 {rows}
               </RowContentButton>
@@ -125,9 +125,9 @@ const ReplayTableWithColumns = styled(
   ({children, columns, onSortClick, sort, ...props}: TableProps) => (
     <SimpleTable {...props}>
       <SimpleTable.Header>
-        {columns.map(column => (
+        {columns.map((column, columnIndex) => (
           <SimpleTable.HeaderCell
-            key={column.sortKey}
+            key={`${column.name}-${columnIndex}`}
             handleSortClick={() => column.sortKey && onSortClick?.(column.sortKey)}
             sort={
               column.sortKey && sort?.field === column.sortKey ? sort.kind : undefined
