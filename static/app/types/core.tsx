@@ -108,7 +108,6 @@ export enum DataCategoryExact {
   PROFILE = 'profile',
   PROFILE_INDEXED = 'profile_indexed',
   REPLAY = 'replay',
-  // TODO: Update processed and indexed transactions to camel case"
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
