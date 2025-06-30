@@ -48,7 +48,7 @@ function SentryAppActionSettingsButton() {
               {...deps}
               sentryAppInstallationUuid={sentryApp.installationUuid}
               config={sentryApp.settings as SchemaFormConfig}
-              appName={sentryApp.title ?? sentryApp.name}
+              appName={sentryApp.name}
               onSubmitSuccess={(formData: Record<string, string>) =>
                 onUpdate({data: formData})
               }

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Duration from 'sentry/components/duration';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -27,16 +26,17 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
-import {getDatasetConfig} from 'sentry/views/detectors/components/forms/getDatasetConfig';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
-import {Visualize} from 'sentry/views/detectors/components/forms/visualize';
+import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -113,40 +113,27 @@ function ResolveSection() {
   );
   const thresholdSuffix = useDetectorThresholdSuffix();
 
-  let description: string | undefined;
-  if (kind === 'dynamic') {
-    description = t(
-      'Sentry will automatically resolve the issue when the trend goes back to baseline.'
-    );
-  } else if (kind === 'static') {
-    if (conditionType === DataConditionType.GREATER) {
-      description = t(
-        'Issue will be resolved when the query value is less than %s%s.',
-        conditionValue || '0',
-        thresholdSuffix
-      );
-    } else {
-      description = t(
-        'Issue will be resolved when the query value is more than %s%s.',
-        conditionValue || '0',
-        thresholdSuffix
-      );
-    }
-  } else if (kind === 'percent') {
-    if (conditionType === DataConditionType.GREATER) {
-      description = t(
-        'Issue will be resolved when the query value is less than %s%% higher than the previous %s.',
-        conditionValue || '0',
-        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
-      );
-    } else {
-      description = t(
-        'Issue will be resolved when the query value is less than %s%% lower than the previous %s.',
-        conditionValue || '0',
-        conditionComparisonAgo ? <Duration seconds={conditionComparisonAgo} /> : ''
-      );
-    }
-  }
+  const description = getResolutionDescription(
+    kind === 'percent'
+      ? {
+          detectionType: 'percent',
+          conditionType,
+          conditionValue,
+          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
+          thresholdSuffix,
+        }
+      : kind === 'static'
+        ? {
+            detectionType: 'static',
+            conditionType,
+            conditionValue,
+            thresholdSuffix,
+          }
+        : {
+            detectionType: 'dynamic',
+            thresholdSuffix,
+          }
+  );
 
   return (
     <Container>

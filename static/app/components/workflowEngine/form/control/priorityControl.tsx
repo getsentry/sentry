@@ -13,12 +13,13 @@ import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
 
 const priorities = [
@@ -26,15 +27,6 @@ const priorities = [
   DetectorPriorityLevel.MEDIUM,
   DetectorPriorityLevel.HIGH,
 ] as const;
-
-const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
-  (typeof priorities)[number],
-  PriorityLevel
-> = {
-  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
-  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
-  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
-};
 
 const conditionKindAndTypeToLabel: Record<
   'static' | 'percent',

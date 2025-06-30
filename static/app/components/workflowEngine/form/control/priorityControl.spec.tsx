@@ -7,7 +7,7 @@ import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions'
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {

@@ -186,7 +186,9 @@ class BaseEndpointMixin(abc.ABC):
     """
 
     @abc.abstractmethod
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
         pass
 
     @abc.abstractmethod
@@ -330,8 +332,10 @@ class Endpoint(APIView):
 
         return response
 
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
-        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
+        return create_audit_entry(request, transaction_id, audit_logger, data=data, **kwargs)
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
