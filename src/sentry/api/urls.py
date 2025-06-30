@@ -934,7 +934,7 @@ AUTH_URLS = [
         name="sentry-api-0-auth-test",
     ),
     re_path(
-        r"^verification-codes/$",
+        r"^user-merge-verification-codes/$",
         AuthUserMergeVerificationCodeEndpoint.as_view(),
         name="sentry-api-0-auth-verification-codes",
     ),

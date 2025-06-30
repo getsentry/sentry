@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
@@ -13,6 +14,7 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (SentryIsAuthenticated,)
     """
     Generate and update verification codes for the user account merge flow.
