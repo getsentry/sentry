@@ -39,12 +39,12 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
     ProcessUpdateAnomalyDetectionTest,
-    ProcessUpdateTest,
+    ProcessUpdateComparisonAlertTest,
 )
 
 
 @freeze_time()
-class ProcessUpdateWorkflowEngineTest(ProcessUpdateTest):
+class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
@@ -389,8 +389,11 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
+        assert rule.sensitivity is not None
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity
+        assert rule.seasonality is not None
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality
+        assert rule.threshold_type is not None
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == value
