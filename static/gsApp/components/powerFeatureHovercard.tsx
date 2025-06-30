@@ -1,8 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -99,18 +101,22 @@ class PowerFeatureHovercard extends Component<Props> {
 
           return (
             <LearnMoreTextBody data-test-id="power-hovercard">
-              <div>
-                {partial
-                  ? t('Better With %s Plan', planName)
-                  : t('Requires %s Plan', planName)}
-              </div>
-              <ExternalLink
-                href=""
-                onClick={this.handleClick}
-                data-test-id="power-learn-more"
-              >
-                {t('Learn More')}
-              </ExternalLink>
+              <Flex direction="column" gap={space(1)}>
+                <div>
+                  {partial
+                    ? t('Better With %s Plan', planName)
+                    : t('Requires %s Plan', planName)}
+                </div>
+                <Button
+                  priority="primary"
+                  onClick={this.handleClick}
+                  data-test-id="power-learn-more"
+                  size="xs"
+                  icon={<IconLightning size="xs" />}
+                >
+                  {t('Learn More')}
+                </Button>
+              </Flex>
             </LearnMoreTextBody>
           );
         }}
