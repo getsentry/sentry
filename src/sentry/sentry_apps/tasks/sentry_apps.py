@@ -790,14 +790,8 @@ def create_or_update_service_hooks_for_sentry_app(
         operation_type=SentryAppInteractionType.MANAGEMENT,
         event_type=SentryAppEventType.WEBHOOK_UPDATE,
     ).capture() as lifecycle:
+        lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
         installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
-        lifecycle.add_extras(
-            {
-                "installations": installations.values_list("id", flat=True),
-                "sentry_app_id": sentry_app_id,
-                "events": events,
-            }
-        )
 
         for installation in installations:
             create_or_update_service_hooks_for_installation(
