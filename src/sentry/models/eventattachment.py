@@ -56,7 +56,8 @@ def can_store_inline(data: bytes) -> bool:
 
 @region_silo_model
 class EventAttachment(Model):
-    """Attachment Metadata and Storage
+    """
+    Attachment Metadata and Storage
 
     The actual attachment data can be saved in different backing stores:
     - When the attachment is empty (0-size), `blob_path is None`.
@@ -76,7 +77,7 @@ class EventAttachment(Model):
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
 
-    # attachment and file metadata
+    # attachment and file metadata:
     type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     content_type = models.TextField(null=True)
@@ -85,8 +86,7 @@ class EventAttachment(Model):
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
-    # The `file_id` will be removed in a multi-part migration soon.
-    file_id = BoundedBigIntegerField(null=True, db_index=True)
+    # storage:
     blob_path = models.TextField(null=True)
 
     class Meta:
