@@ -195,8 +195,8 @@ def assemble_preprod_artifact_size_analysis(
                     id=artifact_id,
                 )
 
-                # Get or create PreprodArtifactSizeMetrics record
-                size_metrics, created = PreprodArtifactSizeMetrics.objects.get_or_create(
+                # Upsert PreprodArtifactSizeMetrics record
+                size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
                     preprod_artifact=preprod_artifact,
                     defaults={
                         "analysis_file_id": assemble_result.bundle.id,
@@ -204,12 +204,6 @@ def assemble_preprod_artifact_size_analysis(
                         "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                     },
                 )
-
-                if not created:
-                    # Update existing record
-                    size_metrics.analysis_file_id = assemble_result.bundle.id
-                    size_metrics.state = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-                    size_metrics.save(update_fields=["analysis_file_id", "state", "date_updated"])
 
                 logger.info(
                     "Created or updated preprod artifact size metrics with analysis file",
