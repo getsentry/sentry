@@ -34,19 +34,17 @@ class MultiProducerManager:
     Configure multiple producers in settings.py:
 
     KAFKA_MULTI_PRODUCER_CONFIGS = {
-        "buffered-segments": {
-            "producers": [
-                {"cluster": "default", "topic": "buffered-segments-1"},
-                {"cluster": "secondary", "topic": "buffered-segments-2"}
-            ]
-        }
+        "buffered-segments": [
+            {"cluster": "default", "topic": "buffered-segments-1"},
+            {"cluster": "secondary", "topic": "buffered-segments-2"}
+        ]
     }
     """
 
     def __init__(self, topic: Topic):
         self.topic = topic
-        self.producers = []
-        self.topics = []
+        self.producers: list[KafkaProducer] = []
+        self.topics: list[ArroyoTopic] = []
         self.current_index = 0
         self._setup_producers()
 
@@ -57,7 +55,7 @@ class MultiProducerManager:
 
         if multi_config:
             # Multiple producers configured
-            for config in multi_config["producers"]:
+            for config in multi_config:
                 cluster_name = config["cluster"]
                 topic_name = config.get(
                     "topic", get_topic_definition(self.topic)["real_topic_name"]
