@@ -29,6 +29,7 @@ class AuthV2PermissionsTest(DRFPermissionTestCase):
     def test_is_dev_disabled(self):
         with override_settings(IS_DEV=False):
             request = self._make_request()
+            request.META["HTTP_X_SENTRY_AUTH_V2"] = ""  # Fail if the secret is not set
             assert not self.auth_v2_permission.has_permission(request, APIView())
 
     def test_secret_matches(self):

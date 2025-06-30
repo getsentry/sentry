@@ -10,8 +10,11 @@ class AuthV2Permission(BasePermission):
         if settings.IS_DEV:
             return True
 
-        secret = request.META.get("HTTP_X_SENTRY_AUTH_V2")
-        return secret == settings.AUTH_V2_SECRET
+        # WARN: If the secret is not set on production, we must fail the request.
+        if not settings.AUTH_V2_SECRET:
+            return False
+
+        return request.META.get("HTTP_X_SENTRY_AUTH_V2") == settings.AUTH_V2_SECRET
 
 
 class AuthV2Endpoint(Endpoint):
