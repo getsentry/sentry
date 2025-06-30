@@ -200,7 +200,7 @@ def iter_trace_items(context: MessageContext, events: list[dict[str, Any]]) -> I
     for event_type, event in which_iter(events):
         try:
             trace_item = as_trace_item(context, event_type, event)
-        except (TypeError, ValueError) as e:
+        except (KeyError, TypeError, ValueError) as e:
             logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
             continue
 
@@ -251,7 +251,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
                 "is_rage": event_type == EventType.RAGE_CLICK,
                 "selector": to_string(payload["message"]),
-                "category": "click",
+                "category": "ui.click",
             }
             if "alt" in node_attributes:
                 attributes["alt"] = to_string(node_attributes["alt"])

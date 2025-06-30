@@ -4,6 +4,9 @@ from sentry.replays.usecases.ingest.event_parser import (
     EventType,
     _get_testid,
     _parse_classes,
+    as_trace_item,
+    as_trace_item_context,
+    iter_trace_items,
     parse_highlighted_events,
     which,
 )
@@ -730,3 +733,523 @@ def test_which():
 def test_parse_highlighted_events_fault_tolerance(event):
     # If the test raises an exception we fail. All of these events are invalid.
     parse_highlighted_events([event], True)
+
+
+# Tests for trace item functions
+
+
+def test_as_trace_item_context_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "div#hello.hello.world",
+                "data": {
+                    "node": {
+                        "id": 123,
+                        "tagName": "button",
+                        "textContent": "Click me!",
+                        "attributes": {
+                            "id": "submit-btn",
+                            "class": "btn primary",
+                            "alt": "submit button",
+                            "aria-label": "Submit form",
+                            "role": "button",
+                            "title": "Submit this form",
+                            "data-sentry-component": "SubmitButton",
+                            "data-testid": "submit-test",
+                        },
+                    }
+                },
+                "url": "https://example.com/form",
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.CLICK, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.403
+    assert result["attributes"]["category"] == "ui.click"
+    assert result["attributes"]["node_id"] == 123
+    assert result["attributes"]["tag"] == "button"
+    assert result["attributes"]["text"] == "Click me!"
+    assert result["attributes"]["is_dead"] is False
+    assert result["attributes"]["is_rage"] is False
+    assert result["attributes"]["selector"] == "div#hello.hello.world"
+    assert result["attributes"]["id"] == "submit-btn"
+    assert result["attributes"]["class"] == "btn primary"
+    assert result["attributes"]["alt"] == "submit button"
+    assert result["attributes"]["aria_label"] == "Submit form"
+    assert result["attributes"]["role"] == "button"
+    assert result["attributes"]["title"] == "Submit this form"
+    assert result["attributes"]["component_name"] == "SubmitButton"
+    assert result["attributes"]["testid"] == "submit-test"
+    assert result["attributes"]["url"] == "https://example.com/form"
+    assert "event_hash" in result and len(result["event_hash"]) == 32
+
+
+def test_as_trace_item_context_dead_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "button.slow",
+                "data": {
+                    "node": {
+                        "id": 456,
+                        "tagName": "button",
+                        "textContent": "Slow button",
+                        "attributes": {},
+                    }
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.DEAD_CLICK, event)
+    assert result is not None
+    assert result["attributes"]["is_dead"] is True
+    assert result["attributes"]["is_rage"] is False
+
+
+def test_as_trace_item_context_rage_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "button.rage",
+                "data": {
+                    "node": {
+                        "id": 789,
+                        "tagName": "button",
+                        "textContent": "Rage button",
+                        "attributes": {},
+                    }
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RAGE_CLICK, event)
+    assert result is not None
+    assert result["attributes"]["is_dead"] is True
+    assert result["attributes"]["is_rage"] is True
+
+
+def test_as_trace_item_context_navigation_event():
+    event = {
+        "data": {
+            "payload": {"timestamp": 1674298825.0, "data": {"from": "/old-page", "to": "/new-page"}}
+        }
+    }
+
+    result = as_trace_item_context(EventType.NAVIGATION, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
+    assert result["attributes"]["from"] == "/old-page"
+    assert result["attributes"]["to"] == "/new-page"
+
+
+def test_as_trace_item_context_navigation_event_missing_optional_fields():
+    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+
+    result = as_trace_item_context(EventType.NAVIGATION, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "navigation"
+    assert "from" not in result["attributes"]
+    assert "to" not in result["attributes"]
+
+
+def test_as_trace_item_context_resource_fetch_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"requestBodySize": 1024, "responseBodySize": 2048},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "resource.fetch"
+    assert result["attributes"]["request_size"] == 1024
+    assert result["attributes"]["response_size"] == 2048
+
+
+def test_as_trace_item_context_resource_xhr_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"request": {"size": 512}, "response": {"size": 1024}},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_XHR, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.xhr"
+    assert result["attributes"]["request_size"] == 512
+    assert result["attributes"]["response_size"] == 1024
+
+
+def test_as_trace_item_context_resource_no_sizes():
+    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.fetch"
+    assert "request_size" not in result["attributes"]
+    assert "response_size" not in result["attributes"]
+
+
+def test_as_trace_item_context_lcp_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"rating": "good", "size": 1024, "value": 1500},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.LCP, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "web-vital.lcp"
+    assert result["attributes"]["rating"] == "good"
+    assert result["attributes"]["size"] == 1024
+    assert result["attributes"]["value"] == 1500
+
+
+def test_as_trace_item_context_fcp_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.FCP, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "web-vital.fcp"
+    assert result["attributes"]["rating"] == "needs-improvement"
+    assert result["attributes"]["size"] == 512
+    assert result["attributes"]["value"] == 2000
+
+
+def test_as_trace_item_context_hydration_error():
+    event = {
+        "data": {
+            "payload": {"timestamp": 1674298825.0, "data": {"url": "https://example.com/page"}}
+        }
+    }
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == "https://example.com/page"
+
+
+def test_as_trace_item_context_mutations():
+    event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
+
+    result = as_trace_item_context(EventType.MUTATIONS, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825000
+    assert result["attributes"]["category"] == "replay.mutations"
+    assert result["attributes"]["count"] == 42
+
+
+def test_as_trace_item_context_options():
+    event = {
+        "timestamp": 1674298825507,
+        "data": {
+            "payload": {
+                "shouldRecordCanvas": True,
+                "sessionSampleRate": 0.1,
+                "errorSampleRate": 1.0,
+                "useCompressionOption": False,
+                "blockAllMedia": True,
+                "maskAllText": False,
+                "maskAllInputs": True,
+                "useCompression": False,
+                "networkDetailHasUrls": True,
+                "networkCaptureBodies": False,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": False,
+            }
+        },
+    }
+
+    result = as_trace_item_context(EventType.OPTIONS, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.507  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
+    assert result["attributes"]["shouldRecordCanvas"] is True
+    assert result["attributes"]["sessionSampleRate"] == 0.1
+    assert result["attributes"]["errorSampleRate"] == 1.0
+    assert result["attributes"]["useCompressionOption"] is False
+    assert result["attributes"]["blockAllMedia"] is True
+    assert result["attributes"]["maskAllText"] is False
+    assert result["attributes"]["maskAllInputs"] is True
+    assert result["attributes"]["useCompression"] is False
+    assert result["attributes"]["networkDetailHasUrls"] is True
+    assert result["attributes"]["networkCaptureBodies"] is False
+    assert result["attributes"]["networkRequestHasHeaders"] is True
+    assert result["attributes"]["networkResponseHasHeaders"] is False
+
+
+def test_as_trace_item_context_memory():
+    event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298826.5,
+                "data": {
+                    "jsHeapSizeLimit": 4294705152,
+                    "totalJSHeapSize": 50331648,
+                    "usedJSHeapSize": 30000000,
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.MEMORY, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "memory"
+    assert result["attributes"]["jsHeapSizeLimit"] == 4294705152
+    assert result["attributes"]["totalJSHeapSize"] == 50331648
+    assert result["attributes"]["usedJSHeapSize"] == 30000000
+    assert result["attributes"]["endTimestamp"] == 1674298826.5
+
+
+def test_as_trace_item_context_returns_none_for_unsupported_events():
+    event = {"data": {"payload": {}}}
+
+    # These event types should return None
+    assert as_trace_item_context(EventType.CONSOLE, event) is None
+    assert as_trace_item_context(EventType.UI_BLUR, event) is None
+    assert as_trace_item_context(EventType.UI_FOCUS, event) is None
+    assert as_trace_item_context(EventType.UNKNOWN, event) is None
+    assert as_trace_item_context(EventType.CANVAS, event) is None
+    assert as_trace_item_context(EventType.FEEDBACK, event) is None
+
+
+def test_as_trace_item():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "data": {"from": "/old-page", "to": "/new-page"},
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.NAVIGATION, event)
+    assert result is not None
+    assert result.organization_id == 123
+    assert result.project_id == 456
+    assert result.trace_id == "trace-123"
+    assert result.retention_days == 30
+    assert result.received == 1674298825.0
+    assert result.timestamp.ToMilliseconds() == int(1674298825.403 * 1000)
+    assert result.attributes["category"] == "navigation"
+    assert result.attributes["from"] == "/old-page"
+    assert result.attributes["to"] == "/new-page"
+    assert result.attributes["replay_id"] == "replay-456"  # Should be added
+
+
+def test_as_trace_item_with_no_trace_id():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": None,
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "data": {"from": "/old-page", "to": "/new-page"},
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.NAVIGATION, event)
+    assert result is not None
+    assert result.trace_id == "replay-456"  # Should fall back to replay_id
+
+
+def test_as_trace_item_returns_none_for_unsupported_event():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {"data": {"payload": {}}}
+    assert as_trace_item(context, EventType.CONSOLE, event) is None
+
+
+def test_iter_trace_items():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    events = [
+        # Valid navigation event
+        {
+            "type": 5,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "category": "navigation",
+                    "timestamp": 1674298825.0,
+                    "data": {"from": "/old-page", "to": "/new-page"},
+                },
+            },
+        },
+        # Valid click event
+        {
+            "type": 5,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "category": "ui.click",
+                    "timestamp": 1674298826.0,
+                    "message": "button",
+                    "data": {
+                        "node": {
+                            "id": 123,
+                            "tagName": "button",
+                            "textContent": "Click me",
+                            "attributes": {},
+                        }
+                    },
+                },
+            },
+        },
+        # Unsupported event (console)
+        {
+            "type": 5,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {"category": "console", "timestamp": 1674298827.0},
+            },
+        },
+        # Invalid event that will raise exception
+        {
+            "type": 5,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "category": "ui.click",
+                    "timestamp": 1674298828.0,
+                    "message": "invalid",
+                    # Missing required node data
+                },
+            },
+        },
+    ]
+
+    # Should get 2 trace items (navigation and click), console is filtered out, invalid event is skipped
+    trace_items = list(iter_trace_items(context, events))
+    assert len(trace_items) == 2
+    assert trace_items[0].organization_id == 123
+    assert trace_items[0].attributes["category"] == "navigation"
+    assert trace_items[1].attributes["category"] == "ui.click"
+
+
+def test_iter_trace_items_handles_exceptions():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    # Event that will cause KeyError in as_trace_item
+    events = [
+        {
+            "type": 5,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "category": "ui.click",
+                    # Missing required fields that will cause KeyError
+                },
+            },
+        }
+    ]
+
+    # Should not raise exception, should just skip the invalid event
+    trace_items = list(iter_trace_items(context, events))
+    assert len(trace_items) == 0
+
+
+def test_iter_trace_items_empty_list():
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    trace_items = list(iter_trace_items(context, []))
+    assert len(trace_items) == 0
+
+
+@pytest.mark.parametrize(
+    "event_type",
+    [
+        EventType.CONSOLE,
+        EventType.UI_BLUR,
+        EventType.UI_FOCUS,
+        EventType.UNKNOWN,
+        EventType.CANVAS,
+        EventType.FEEDBACK,
+    ],
+)
+def test_as_trace_item_context_unsupported_event_types(event_type):
+    """Test that unsupported event types return None"""
+    event = {"data": {"payload": {}}}
+    result = as_trace_item_context(event_type, event)
+    assert result is None
