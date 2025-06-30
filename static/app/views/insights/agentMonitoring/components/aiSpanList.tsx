@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconCode} from 'sentry/icons';
+import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
@@ -84,7 +84,7 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(5);
+  const colors = [...theme.chart.getColorPalette(5), theme.red300];
 
   const spanAttributesRequest = useEAPSpanAttributes(nodes);
   let currentTransaction: TraceTreeNode<
@@ -171,8 +171,13 @@ const TraceListItem = memo(function TraceListItem({
   const duration = getTimeBounds(node).duration;
 
   return (
-    <ListItemContainer isSelected={isSelected} onClick={onClick} indent={indent}>
-      <ListItemIcon color={safeColor}>{icon}</ListItemIcon>
+    <ListItemContainer
+      hasErrors={node.errors.size > 0}
+      isSelected={isSelected}
+      onClick={onClick}
+      indent={indent}
+    >
+      <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
         <ListItemHeader align="center" gap={space(0.5)}>
           <ListItemTitle>{title}</ListItemTitle>
@@ -315,6 +320,7 @@ interface NodeInfo {
   title: React.ReactNode;
 }
 
+// TODO: consider splitting this up
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
@@ -412,6 +418,13 @@ function getNodeInfo(
   } else {
     nodeInfo.subtitle = node.value.description || '';
   }
+
+  // Override the color and icon if the node has errors
+  if (node.errors.size > 0) {
+    nodeInfo.icon = <IconFire size="md" color="red300" />;
+    nodeInfo.color = colors[6];
+  }
+
   return nodeInfo;
 }
 
@@ -423,7 +436,11 @@ const TraceListContainer = styled('div')`
   overflow: hidden;
 `;
 
-const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
+const ListItemContainer = styled('div')<{
+  hasErrors: boolean;
+  indent: number;
+  isSelected: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(0.5)};
@@ -432,7 +449,12 @@ const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
   cursor: pointer;
   background-color: ${p =>
     p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple200}` : 'none')};
+  outline: ${p =>
+    p.isSelected
+      ? p.hasErrors
+        ? `2px solid ${p.theme.red200}`
+        : `2px solid ${p.theme.purple200}`
+      : 'none'};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
