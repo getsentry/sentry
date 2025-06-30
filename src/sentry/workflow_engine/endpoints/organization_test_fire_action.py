@@ -107,6 +107,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
     workflow_id = -1
     workflow_event_data = WorkflowEventData(
         event=test_event,
+        group=test_event.group,
     )
 
     detector = Detector(

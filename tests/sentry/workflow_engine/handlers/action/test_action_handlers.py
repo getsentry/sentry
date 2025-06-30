@@ -17,7 +17,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     def test_execute_without_group_type(self):
         """Test that execute does nothing when detector has no group_type"""

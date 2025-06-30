@@ -19,7 +19,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -81,14 +81,16 @@ class TestIssueCategoryCondition(ConditionTestCase):
         group_event = self.event.for_group(self.group)
 
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
-        self.assert_passes(self.dc, WorkflowEventData(event=self.event))
-        self.assert_passes(self.dc, WorkflowEventData(event=group_event))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
     def test_invalid_issue_category(self, mock_get_by_type_id):
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.event, group=self.event.group)
+        )
 
     def test_category_v2(self):
         perf_group, perf_event, perf_group_event = self.create_group_event(
@@ -97,7 +99,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         # N+1 DB query issue should pass for 'PERFORMANCE' (deprecated) as well as 'DB_QUERY' (category_v2)
         self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value})
-        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
-        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))

@@ -35,6 +35,7 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 logger = log_context.get_logger(__name__)
 
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
+DetectorId = int | None
 
 
 class WorkflowDataConditionGroupType(StrEnum):
@@ -127,15 +128,30 @@ def evaluate_workflow_triggers(
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
         if remaining_conditions:
-            queue_items_by_project_id[event_data.event.group.project_id].append(
-                DelayedWorkflowItem(
-                    workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
-                    timestamp=current_time,
+            if isinstance(event_data.event, GroupEvent):
+                queue_items_by_project_id[event_data.event.group.project_id].append(
+                    DelayedWorkflowItem(
+                        workflow,
+                        remaining_conditions,
+                        event_data.event,
+                        WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+                        timestamp=current_time,
+                    )
                 )
-            )
+            else:
+                """
+                Tracking when we try to enqueue a slow condition for an activity.
+                Currently, we are assuming those cases are evaluating as True since
+                an activity update is meant to respond to a previous event.
+                """
+                metrics_incr("process_workflows.enqueue_workflow.activity")
+                logger.info(
+                    "workflow_engine.process_workflows.enqueue_workflow.activity",
+                    extra={
+                        "event_id": event_data.event.id,
+                        "workflow_id": workflow.id,
+                    },
+                )
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
@@ -155,11 +171,16 @@ def evaluate_workflow_triggers(
         except Environment.DoesNotExist:
             return set()
 
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
     logger.info(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
+            "group_id": event_data.group.id,
+            "event_id": event_id,
             "event_data": asdict(event_data),
             "event_environment_id": environment.id,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
@@ -183,6 +204,7 @@ def evaluate_workflows_action_filters(
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
+
     for action_condition in action_conditions:
         workflow = workflows_by_id[action_condition.workflow_id]
         env = (
@@ -197,27 +219,49 @@ def evaluate_workflows_action_filters(
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
-            # then return the list of conditions to enqueue
-            queue_items_by_project_id[event_data.event.group.project_id].append(
-                DelayedWorkflowItem(
-                    workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.ACTION_FILTER,
-                    timestamp=current_time,
+            # then return the list of conditions to enqueue.
+
+            if isinstance(event_data.event, GroupEvent):
+                # `delayed_workflows` only supports group events
+                queue_items_by_project_id[event_data.event.group.project_id].append(
+                    DelayedWorkflowItem(
+                        workflow,
+                        remaining_conditions,
+                        event_data.event,
+                        WorkflowDataConditionGroupType.ACTION_FILTER,
+                        timestamp=current_time,
+                    )
                 )
-            )
+            else:
+                # We should not include activity updates in delayed conditions,
+                # this is because the actions should always be triggered if this condition is met.
+                # The original snuba queries would have to be over threshold to create this event
+                metrics_incr("process_workflows.enqueue_workflow.activity")
+                logger.info(
+                    "workflow_engine.process_workflows.enqueue_workflow.activity",
+                    extra={
+                        "event_id": event_data.event.id,
+                        "action_condition_id": action_condition.id,
+                        "workflow_id": workflow.id,
+                    },
+                )
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
 
     enqueue_workflows(queue_items_by_project_id)
 
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+
     logger.info(
         "workflow_engine.evaluate_workflows_action_filters",
         extra={
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
+            "group_id": event_data.group.id,
+            "event_id": event_id,
             "workflow_ids": [workflow.id for workflow in workflows],
             "action_conditions": [action_condition.id for action_condition in action_conditions],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
@@ -228,16 +272,21 @@ def evaluate_workflows_action_filters(
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
-    try:
-        environment = event_data.event.get_environment()
-    except Environment.DoesNotExist:
-        metrics_incr("process_workflows.error")
-        logger.exception(
-            "Missing environment for event", extra={"event_id": event_data.event.event_id}
-        )
-        raise Environment.DoesNotExist("Environment does not exist for the event")
+    if isinstance(event_data.event, GroupEvent):
+        try:
+            environment = event_data.event.get_environment()
+        except Environment.DoesNotExist:
+            metrics_incr("process_workflows.error")
+            logger.exception(
+                "Missing environment for event", extra={"event_id": event_data.event.event_id}
+            )
+            raise Environment.DoesNotExist("Environment does not exist for the event")
 
-    return environment
+        return environment
+
+    raise TypeError(
+        "Expected event_data.event to be an instance of GroupEvent, got %s" % type(event_data.event)
+    )
 
 
 def _get_associated_workflows(
@@ -263,12 +312,18 @@ def _get_associated_workflows(
             len(workflows),
         )
 
+        event_id = (
+            event_data.event.event_id
+            if isinstance(event_data.event, GroupEvent)
+            else event_data.event.id
+        )
         logger.info(
             "workflow_engine.process_workflows",
             extra={
                 "payload": event_data,
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
+                "group_id": event_data.group.id,
+                "event_id": event_id,
+                "event_data": asdict(event_data),
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
                 "detector_type": detector.type,
@@ -279,7 +334,9 @@ def _get_associated_workflows(
 
 
 @log_context.root()
-def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
+def process_workflows(
+    event_data: WorkflowEventData, detector_id: DetectorId = None
+) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -288,7 +345,14 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     try:
-        detector = get_detector_by_event(event_data)
+        detector: Detector
+        if detector_id is not None:
+            detector = Detector.objects.get(id=detector_id)
+        elif isinstance(event_data.event, GroupEvent):
+            detector = get_detector_by_event(event_data)
+        else:
+            raise ValueError("Unable to determine the detector_id for the event")
+
         log_context.add_extras(detector_id=detector.id)
         organization = detector.project.organization
 
