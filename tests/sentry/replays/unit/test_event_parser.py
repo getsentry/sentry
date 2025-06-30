@@ -1067,12 +1067,12 @@ def test_as_trace_item():
     assert result.project_id == 456
     assert result.trace_id == "trace-123"
     assert result.retention_days == 30
-    assert result.received == 1674298825.0
+    assert result.received.ToSeconds() == 1674298825
     assert result.timestamp.ToMilliseconds() == int(1674298825.403 * 1000)
-    assert result.attributes["category"] == "navigation"
-    assert result.attributes["from"] == "/old-page"
-    assert result.attributes["to"] == "/new-page"
-    assert result.attributes["replay_id"] == "replay-456"  # Should be added
+    assert result.attributes["category"].string_value == "navigation"
+    assert result.attributes["from"].string_value == "/old-page"
+    assert result.attributes["to"].string_value == "/new-page"
+    assert result.attributes["replay_id"].string_value == "replay-456"  # Should be added
 
 
 def test_as_trace_item_with_no_trace_id():
@@ -1113,6 +1113,148 @@ def test_as_trace_item_returns_none_for_unsupported_event():
 
     event = {"data": {"payload": {}}}
     assert as_trace_item(context, EventType.CONSOLE, event) is None
+
+
+def test_as_trace_item_anyvalue_types():
+    """Test that as_trace_item properly wraps different value types in AnyValue objects"""
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    # Test click event which has various data types
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "button#submit",
+                "data": {
+                    "node": {
+                        "id": 42,
+                        "tagName": "button",
+                        "textContent": "Submit Form",
+                        "attributes": {
+                            "id": "submit-btn",
+                            "role": "button",
+                        },
+                    }
+                },
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.CLICK, event)
+    assert result is not None
+
+    # String values
+    assert result.attributes["category"].string_value == "ui.click"
+    assert result.attributes["tag"].string_value == "button"
+    assert result.attributes["text"].string_value == "Submit Form"
+    assert result.attributes["selector"].string_value == "button#submit"
+    assert result.attributes["id"].string_value == "submit-btn"
+    assert result.attributes["role"].string_value == "button"
+    assert result.attributes["replay_id"].string_value == "replay-456"
+
+    # Integer values
+    assert result.attributes["node_id"].int_value == 42
+
+    # Boolean values
+    assert result.attributes["is_dead"].bool_value is False
+    assert result.attributes["is_rage"].bool_value is False
+
+
+def test_as_trace_item_with_numeric_values():
+    """Test as_trace_item with events that produce numeric values"""
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    # Test LCP event which has int and float values
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"rating": "good", "size": 1024, "value": 1500},
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.LCP, event)
+    assert result is not None
+
+    # String value
+    assert result.attributes["category"].string_value == "web-vital.lcp"
+    assert result.attributes["rating"].string_value == "good"
+
+    # Integer values
+    assert result.attributes["size"].int_value == 1024
+    assert result.attributes["value"].int_value == 1500
+
+
+def test_as_trace_item_with_options_event():
+    """Test as_trace_item with OPTIONS event which has many boolean and float values"""
+    context = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {
+        "timestamp": 1674298825507,
+        "data": {
+            "payload": {
+                "shouldRecordCanvas": True,
+                "sessionSampleRate": 0.1,
+                "errorSampleRate": 1.0,
+                "useCompressionOption": False,
+                "blockAllMedia": True,
+                "maskAllText": False,
+                "maskAllInputs": True,
+                "useCompression": False,
+                "networkDetailHasUrls": True,
+                "networkCaptureBodies": False,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": False,
+            }
+        },
+    }
+
+    result = as_trace_item(context, EventType.OPTIONS, event)
+    assert result is not None
+
+    # String value
+    assert result.attributes["category"].string_value == "sdk.options"
+
+    # Boolean values
+    assert result.attributes["shouldRecordCanvas"].bool_value is True
+    assert result.attributes["useCompressionOption"].bool_value is False
+    assert result.attributes["blockAllMedia"].bool_value is True
+    assert result.attributes["maskAllText"].bool_value is False
+    assert result.attributes["maskAllInputs"].bool_value is True
+    assert result.attributes["useCompression"].bool_value is False
+    assert result.attributes["networkDetailHasUrls"].bool_value is True
+    assert result.attributes["networkCaptureBodies"].bool_value is False
+    assert result.attributes["networkRequestHasHeaders"].bool_value is True
+    assert result.attributes["networkResponseHasHeaders"].bool_value is False
+
+    # Float values
+    assert result.attributes["sessionSampleRate"].double_value == 0.1
+    assert result.attributes["errorSampleRate"].double_value == 1.0
 
 
 def test_iter_trace_items():
@@ -1186,8 +1328,8 @@ def test_iter_trace_items():
     trace_items = list(iter_trace_items(context, events))
     assert len(trace_items) == 2
     assert trace_items[0].organization_id == 123
-    assert trace_items[0].attributes["category"] == "navigation"
-    assert trace_items[1].attributes["category"] == "ui.click"
+    assert trace_items[0].attributes["category"].string_value == "navigation"
+    assert trace_items[1].attributes["category"].string_value == "ui.click"
 
 
 def test_iter_trace_items_handles_exceptions():

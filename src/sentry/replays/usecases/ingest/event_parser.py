@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -11,7 +11,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.utils import json
 
@@ -191,7 +191,7 @@ class MessageContext(TypedDict):
 
 
 class TraceItemContext(TypedDict):
-    attributes: dict[str, str | int | bool | float]
+    attributes: MutableMapping[str, str | int | bool | float]
     event_hash: bytes
     timestamp: float
 
@@ -211,6 +211,18 @@ def iter_trace_items(context: MessageContext, events: list[dict[str, Any]]) -> I
 def as_trace_item(
     context: MessageContext, event_type: EventType, event: dict[str, Any]
 ) -> TraceItem | None:
+    def _anyvalue(value: bool | str | int | float) -> AnyValue:
+        if isinstance(value, bool):
+            return AnyValue(bool_value=value)
+        elif isinstance(value, str):
+            return AnyValue(string_value=value)
+        elif isinstance(value, int):
+            return AnyValue(int_value=value)
+        elif isinstance(value, float):
+            return AnyValue(double_value=value)
+        else:
+            raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
+
     trace_item_context = as_trace_item_context(event_type, event)
 
     # Not every event produces a trace-item.
@@ -224,6 +236,9 @@ def as_trace_item(
     timestamp = Timestamp()
     timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
 
+    received = Timestamp()
+    received.FromSeconds(int(context["received"]))
+
     return TraceItem(
         organization_id=context["organization_id"],
         project_id=context["project_id"],
@@ -231,11 +246,11 @@ def as_trace_item(
         item_id=trace_item_context["event_hash"],
         item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
         timestamp=timestamp,
-        attributes=trace_item_context["attributes"],
+        attributes={k: _anyvalue(v) for k, v in trace_item_context["attributes"].items()},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
         retention_days=context["retention_days"],
-        received=context["received"],
+        received=received,
     )
 
 
@@ -247,7 +262,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             node = payload["data"]["node"]
             node_attributes = node.get("attributes", {})
-            attributes = {
+            click_attributes = {
                 "node_id": int(node["id"]),
                 "tag": to_string(node["tagName"]),
                 "text": to_string(node["textContent"][:1024]),
@@ -257,26 +272,28 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "category": "ui.click",
             }
             if "alt" in node_attributes:
-                attributes["alt"] = to_string(node_attributes["alt"])
+                click_attributes["alt"] = to_string(node_attributes["alt"])
             if "aria-label" in node_attributes:
-                attributes["aria_label"] = to_string(node_attributes["aria-label"])
+                click_attributes["aria_label"] = to_string(node_attributes["aria-label"])
             if "class" in node_attributes:
-                attributes["class"] = to_string(node_attributes["class"])
+                click_attributes["class"] = to_string(node_attributes["class"])
             if "data-sentry-component" in node_attributes:
-                attributes["component_name"] = to_string(node_attributes["data-sentry-component"])
+                click_attributes["component_name"] = to_string(
+                    node_attributes["data-sentry-component"]
+                )
             if "id" in node_attributes:
-                attributes["id"] = to_string(node_attributes["id"])
+                click_attributes["id"] = to_string(node_attributes["id"])
             if "role" in node_attributes:
-                attributes["role"] = to_string(node_attributes["role"])
+                click_attributes["role"] = to_string(node_attributes["role"])
             if "title" in node_attributes:
-                attributes["title"] = to_string(node_attributes["title"])
+                click_attributes["title"] = to_string(node_attributes["title"])
             if _get_testid(node_attributes):
-                attributes["testid"] = _get_testid(node_attributes)
+                click_attributes["testid"] = _get_testid(node_attributes)
             if "url" in payload:
-                attributes["url"] = to_string(payload["url"])
+                click_attributes["url"] = to_string(payload["url"])
 
             return {
-                "attributes": attributes,
+                "attributes": click_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
@@ -284,14 +301,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             payload = event["data"]["payload"]
             payload_data = payload["data"]
 
-            attributes = {"category": "navigation"}
+            navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
-                attributes["from"] = to_string(payload_data["from"])
+                navigation_attributes["from"] = to_string(payload_data["from"])
             if "to" in payload_data:
-                attributes["to"] = to_string(payload_data["to"])
+                navigation_attributes["to"] = to_string(payload_data["to"])
 
             return {
-                "attributes": attributes,
+                "attributes": navigation_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
@@ -302,7 +319,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
-            attributes = {
+            resource_attributes = {
                 "category": (
                     "resource.xhr" if event_type == EventType.RESOURCE_XHR else "resource.fetch"
                 ),
@@ -310,12 +327,12 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             request_size, response_size = parse_network_content_lengths(event)
             if request_size:
-                attributes["request_size"] = request_size
+                resource_attributes["request_size"] = request_size  # type: ignore[assignment]
             if response_size:
-                attributes["response_size"] = response_size
+                resource_attributes["response_size"] = response_size  # type: ignore[assignment]
 
             return {
-                "attributes": attributes,
+                "attributes": resource_attributes,  # type: ignore[typeddict-item]
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
             }
