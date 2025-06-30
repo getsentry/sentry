@@ -229,6 +229,8 @@ def as_trace_item(
         item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
         timestamp=Timestamp().FromMilliseconds(int(trace_item_context["timestamp"] * 1000)),
         attributes=trace_item_context["attributes"],
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
         retention_days=context["retention_days"],
         received=context["received"],
     )
