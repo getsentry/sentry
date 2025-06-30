@@ -18,12 +18,13 @@ class UptimeResultEAPTestCase(BaseTestCase):
         *,
         organization=None,
         project=None,
-        timestamp=None,
+        scheduled_check_time=None,
         trace_id=None,
         guid=None,
         subscription_id=None,
         check_id=None,
         check_status="success",
+        incident_status=None,
         region="us-west",
         http_status_code=200,
         request_type="GET",
@@ -41,14 +42,13 @@ class UptimeResultEAPTestCase(BaseTestCase):
         response_body_size_bytes=1024,
         status_reason_type=None,
         status_reason_description=None,
-        **extra_attributes,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
-        if timestamp is None:
-            timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if guid is None:
@@ -91,20 +91,21 @@ class UptimeResultEAPTestCase(BaseTestCase):
         if status_reason_description is not None:
             attributes_data["status_reason_description"] = status_reason_description
 
-        attributes_data.update(extra_attributes)
+        if incident_status is not None:
+            attributes_data["incident_status"] = incident_status.value
 
         attributes_proto = {}
         for k, v in attributes_data.items():
             attributes_proto[k] = scalar_to_any_value(v)
 
         timestamp_proto = Timestamp()
-        timestamp_proto.FromDatetime(timestamp)
+        timestamp_proto.FromDatetime(scheduled_check_time)
 
         attributes_proto["scheduled_check_time_us"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1_000_000)
+            int_value=int(scheduled_check_time.timestamp() * 1_000_000)
         )
         attributes_proto["actual_check_time_us"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1_000_000) + 5000
+            int_value=int(scheduled_check_time.timestamp() * 1_000_000) + 5000
         )
 
         return TraceItem(

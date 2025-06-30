@@ -17,6 +17,7 @@ MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 class OrganizationUptimeStatsBaseTest(APITestCase):
     __test__ = False
     endpoint = "sentry-api-0-organization-uptime-stats"
+    features = {}
 
     def setUp(self):
         super().setUp()
@@ -49,29 +50,30 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     def test_simple(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
-        response = self.get_success_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-            since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        assert len(data[str(self.project_uptime_subscription.id)]) == 7
-        assert data[str(self.project_uptime_subscription.id)][-1][1] == {
-            "failure": 4,
-            "failure_incident": 1,
-            "success": 3,
-            "missed_window": 0,
-        }
-        assert data[str(self.project_uptime_subscription.id)][0][1] == {
-            "failure": 0,
-            "failure_incident": 0,
-            "success": 0,
-            "missed_window": 0,
-        }
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.data is not None
+            data = json.loads(json.dumps(response.data))
+            assert len(data[str(self.project_uptime_subscription.id)]) == 7
+            assert data[str(self.project_uptime_subscription.id)][-1][1] == {
+                "failure": 4,
+                "failure_incident": 1,
+                "success": 3,
+                "missed_window": 0,
+            }
+            assert data[str(self.project_uptime_subscription.id)][0][1] == {
+                "failure": 0,
+                "failure_incident": 0,
+                "success": 0,
+                "missed_window": 0,
+            }
 
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
@@ -79,17 +81,18 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     def test_simple_with_date_cutoff(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
-        response = self.get_success_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-            since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        assert len(data[str(self.project_uptime_subscription.id)]) == 90
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.data is not None
+            data = json.loads(json.dumps(response.data))
+            assert len(data[str(self.project_uptime_subscription.id)]) == 90
 
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
@@ -97,17 +100,18 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     def test_simple_with_date_cutoff_rounded_resolution(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
-        response = self.get_success_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-            since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        assert len(data[str(self.project_uptime_subscription.id)]) == 89
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.data is not None
+            data = json.loads(json.dumps(response.data))
+            assert len(data[str(self.project_uptime_subscription.id)]) == 89
 
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
@@ -133,14 +137,15 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
         )
 
-        response = self.get_success_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(project_uptime_subscription.id)],
-            since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
         assert response.data is not None
         data = json.loads(json.dumps(response.data))
         # check that we return all the intervals,
@@ -165,66 +170,71 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         """
         Test that an invalid uptime_subscription_id produces a 400 response.
         """
-        response = self.get_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(uuid.uuid4())],
-            since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
-        assert response.status_code == 400
-        assert response.json() == "Invalid project uptime subscription ids provided"
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(uuid.uuid4())],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.status_code == 400
+            assert response.json() == "Invalid project uptime subscription ids provided"
 
     def test_no_uptime_subscription_id(self):
         """
         Test that not sending any uptime_subscription_id produces a 400
         response.
         """
-        response = self.get_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[],
-            since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1d",
-        )
-        assert response.status_code == 400
-        assert response.json() == "No project uptime subscription ids provided"
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.status_code == 400
+            assert response.json() == "No project uptime subscription ids provided"
 
     def test_too_many_periods(self):
         """
         Test that requesting a high resolution across a large period of time
         produces a 400 response.
         """
-        response = self.get_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-            since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1m",
-        )
-        assert response.status_code == 400
-        assert response.json() == "error making request"
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1m",
+            )
+            assert response.status_code == 400
+            assert response.json() == "error making request"
 
     def test_too_many_uptime_subscription_ids(self):
         """
-        Test that sending a large nubmer of subscription IDs produces a 400
+        Test that sending a large number of subscription IDs produces a 400
         """
 
-        response = self.get_response(
-            self.organization.slug,
-            project=[self.project.id],
-            projectUptimeSubscriptionId=[str(uuid.uuid4()) for _ in range(101)],
-            since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-            until=datetime.now(timezone.utc).timestamp(),
-            resolution="1h",
-        )
-        assert response.status_code == 400
-        assert (
-            response.json() == "Too many project uptime subscription ids provided. Maximum is 100"
-        )
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(uuid.uuid4()) for _ in range(101)],
+                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1h",
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()
+                == "Too many project uptime subscription ids provided. Maximum is 100"
+            )
 
 
 @freeze_time(MOCK_DATETIME)
@@ -297,7 +307,7 @@ def test_add_extra_buckets_for_epoch_cutoff():
 
 @freeze_time(MOCK_DATETIME)
 class OrganizationUptimeStatsEndpointWithEAPTests(
-    OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase, UptimeCheckSnubaTestCase
+    OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
 
@@ -305,19 +315,23 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         super().setUp()
         self.features = {
             "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": False,  # Use legacy for now
+            "organizations:uptime-eap-uptime-results-query": True,
         }
 
-    def store_uptime_data(self, subscription_id, check_status, **kwargs):
-        default_timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
+    def store_uptime_data(
+        self,
+        subscription_id,
+        check_status,
+        *,
+        incident_status=IncidentStatus.NO_INCIDENT,
+        scheduled_check_time=None,
+    ):
+        uptime_result = self.create_uptime_result(
+            subscription_id=str(uuid.UUID(subscription_id)),
+            guid=str(uuid.UUID(subscription_id)),
+            request_url="https://santry.io",
             check_status=check_status,
-            incident_status=kwargs.get("incident_status", IncidentStatus.NO_INCIDENT),
-            scheduled_check_time=kwargs.get("scheduled_check_time", default_timestamp),
-            **{
-                k: v
-                for k, v in kwargs.items()
-                if k not in ["incident_status", "scheduled_check_time"]
-            },
+            incident_status=incident_status,
+            scheduled_check_time=scheduled_check_time,
         )
+        self.store_uptime_results([uptime_result])
