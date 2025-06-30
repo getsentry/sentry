@@ -94,10 +94,7 @@ def organization_absolute_url(
 def api_absolute_url(
     *, slug: str, path: str, query: str | None = None, fragment: str | None = None
 ) -> str:
-    if path.startswith("/"):
-        path = path.lstrip("/")
-
-    full_path = f"/api/0/organizations/{slug}/{path}/"
+    full_path = f"/api/0/organizations/{slug}/{path.lstrip('/')}/"
     uri = absolute_uri(full_path)
     parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
     return "".join(parts)
