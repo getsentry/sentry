@@ -1,3 +1,4 @@
+import base64
 import datetime
 import hashlib
 import hmac
@@ -6,6 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 import sentry_sdk
+from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -39,11 +41,9 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.rpc.service import (
-    RpcAuthenticationSetupException,
-    RpcResolutionException,
-)
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -468,6 +468,14 @@ def get_attributes_and_values(
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
+    if not settings.SEER_API_SHARED_SECRET:
+        raise RuntimeError("Cannot encrypt access token without SEER_API_SHARED_SECRET")
+
+    if len(settings.SEER_API_SHARED_SECRET.encode("utf-8")) != 32:
+        raise RuntimeError(
+            "SEER_API_SHARED_SECRET must be 32 bytes long (after UTF-8 encoding) for Fernet encryption"
+        )
+
     integration = integration_service.get_integration(
         integration_id=integration_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
@@ -478,13 +486,21 @@ def get_github_enterprise_integration_config(
         raise Integration.DoesNotExist
 
     installation = integration.get_installation(organization_id=organization_id)
+    assert isinstance(installation, GitHubEnterpriseIntegration)
+
+    client = installation.get_client()
+    access_token = client.get_access_token()
+
+    if not access_token:
+        raise RuntimeError("No access token found")
+
+    fernet = Fernet(base64.urlsafe_b64encode(settings.SEER_API_SHARED_SECRET.encode("utf-8")))
+    encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
 
     return {
         "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
-        "private_key": installation.model.metadata["installation"]["private_key"],
-        "app_id": installation.model.metadata["installation"]["id"],
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
-        "installation_id": installation.model.metadata["installation_id"],
+        "encrypted_access_token": encrypted_access_token,
     }
 
 
