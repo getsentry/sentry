@@ -205,6 +205,10 @@ def assemble_preprod_artifact_size_analysis(
                     },
                 )
 
+                # Mark the artifact as processed
+                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+                preprod_artifact.save(update_fields=["state", "date_updated"])
+
                 logger.info(
                     "Created or updated preprod artifact size metrics with analysis file",
                     extra={
