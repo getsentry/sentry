@@ -10,7 +10,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -68,13 +67,12 @@ export default function ReplayIndexTable() {
   const {data, isPending, error, getResponseHeader} = useApiQuery<{
     data: ReplayListRecord[];
   }>(queryKey, {staleTime: 0});
-  const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
-    replays,
+    replays: data?.data ?? [],
   });
 
   if (needsSDKUpdateForClickSearch) {
@@ -99,7 +97,7 @@ export default function ReplayIndexTable() {
         error={error}
         isPending={isPending}
         onSortClick={onSortClick}
-        replays={replays}
+        replays={data?.data ?? []}
         showDropdownFilters
         sort={sortType}
       />
