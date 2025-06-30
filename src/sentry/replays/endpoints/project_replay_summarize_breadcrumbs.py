@@ -271,6 +271,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return None
         case EventType.OPTIONS:
             return None
+        case EventType.MEMORY:
+            return None
 
 
 def make_seer_request(request_data: str) -> bytes:
