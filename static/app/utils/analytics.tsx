@@ -27,6 +27,8 @@ import {
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
 
+import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
+import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -81,6 +83,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AgentMonitoringEventParameters,
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
@@ -113,6 +116,7 @@ interface EventParameters
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,

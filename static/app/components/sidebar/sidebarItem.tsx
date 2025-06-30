@@ -427,7 +427,7 @@ const StyledSidebarItem = styled(Link, {
     `;
   }}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     &:before {
       top: auto;
       left: 5px;
@@ -474,7 +474,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boole
   ${p => p.hasNewNav && 'flex-direction: column;'}
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding-right: 0;
   }
 `;
@@ -495,7 +495,7 @@ const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   ${p =>
     p.hasNewNav &&
     css`
-      @media (max-width: ${p.theme.breakpoints.medium}) {
+      @media (max-width: ${p.theme.breakpoints.md}) {
         display: none;
       }
     `};

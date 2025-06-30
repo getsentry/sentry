@@ -149,7 +149,7 @@ function ReplaysContent({
     []
   );
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,

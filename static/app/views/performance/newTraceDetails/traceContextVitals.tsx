@@ -39,7 +39,7 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, rootEventResults, logs: undefined});
+  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
@@ -174,7 +174,7 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
   font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
@@ -235,11 +235,11 @@ function getPrimaryVitalsCount(
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.xxlarge, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
     if (type === 'web') {
       return totalCount;
     }

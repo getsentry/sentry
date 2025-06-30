@@ -354,13 +354,23 @@ Sentry.profiler.stopProfiler();
 });
 
 export const getNodeAgentMonitoringOnboarding = ({
-  basePackage = '@sentry/node',
+  basePackage = 'node',
 }: {
   basePackage?: string;
 } = {}): OnboardingConfig => ({
   introduction: () => (
     <Alert type="info">
-      {t('Agent Monitoring is currently in beta with Vercel AI SDK support only.')}
+      {tct(
+        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK].',
+        {
+          vercelai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+          ),
+          openai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+        }
+      )}
     </Alert>
   ),
   install: params => [
@@ -373,7 +383,7 @@ export const getNodeAgentMonitoringOnboarding = ({
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage,
+        basePackage: `@sentry/${basePackage}`,
       }),
     },
   ],
@@ -385,7 +395,7 @@ export const getNodeAgentMonitoringOnboarding = ({
         {
           code: <code />,
           link: (
-            <ExternalLink href="https://develop.sentry.dev/sdk/telemetry/traces/span-data-conventions/#ai" />
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
           ),
         }
       ),
@@ -394,7 +404,10 @@ export const getNodeAgentMonitoringOnboarding = ({
           language: 'javascript',
           code: [
             {
-              label: 'Javascript',
+              label:
+                params.platformKey === 'javascript-nextjs'
+                  ? 'config.server.ts'
+                  : 'JavaScript',
               value: 'javascript',
               language: 'javascript',
               code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
@@ -403,6 +416,7 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     // Add the Vercel AI SDK integration
+    ${basePackage === 'nextjs' && '// vercelAIIntegration should be included only to config.server'}
     Sentry.vercelAIIntegration({
       recordInputs: true,
       recordOutputs: true,
@@ -426,7 +440,7 @@ Sentry.init({
           ),
           code: [
             {
-              label: 'Javascript',
+              label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
               code: `import { generateText } from 'ai';

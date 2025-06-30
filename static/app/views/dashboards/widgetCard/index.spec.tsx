@@ -482,7 +482,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('has sticky table headers', async function () {
+  it('has sticky table headers and scroll', async function () {
     const tableWidget: Widget = {
       title: 'Table Widget',
       interval: '5m',

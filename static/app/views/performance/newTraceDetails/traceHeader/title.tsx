@@ -139,7 +139,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.xl};
   ${p => p.theme.overflowEllipsis};
 `;

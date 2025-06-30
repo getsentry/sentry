@@ -120,7 +120,7 @@ SavedEntityTable.HeaderCell = styled('div')<{
     `}
 
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 
   ${p =>
     p.gridArea &&

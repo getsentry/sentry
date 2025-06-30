@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -40,7 +39,10 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  prettifyAggregation,
+} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -90,8 +92,7 @@ interface ChartInfo {
   yAxes: readonly string[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
-  formattedYAxes?: Array<string | undefined>;
-  label?: string;
+  formattedYAxes?: Array<string | null>;
   stack?: string;
 }
 
@@ -108,12 +109,10 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
-  const chartWrapperRef = useRef<HTMLDivElement>(null);
-
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | null>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -157,10 +156,7 @@ export function ExploreCharts({
     (yAxis: string) => {
       const dedupedYAxes = [yAxis];
 
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+      const formattedYAxes = dedupedYAxes.map(prettifyAggregation);
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
@@ -182,7 +178,6 @@ export function ExploreCharts({
   );
 
   const chartInfos = useMemo(() => {
-    const shouldRenderLabel = visualizes.length > 1;
     return visualizes.map((visualize, index) => {
       const chartIcon =
         visualize.chartType === ChartType.LINE
@@ -226,7 +221,6 @@ export function ExploreCharts({
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
         stack: visualize.stack,
-        label: shouldRenderLabel ? visualize.label : undefined,
         yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
@@ -262,8 +256,8 @@ export function ExploreCharts({
   );
 
   return (
-    <ChartList ref={chartWrapperRef}>
-      <WidgetSyncContextProvider>
+    <ChartList>
+      <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {chartInfos.map((chartInfo, index) => {
           return (
             <Chart
@@ -279,7 +273,6 @@ export function ExploreCharts({
               hideContextMenu={hideContextMenu}
               samplingMode={samplingMode}
               topEvents={topEvents}
-              chartWrapperRef={chartWrapperRef}
             />
           );
         })}
@@ -290,7 +283,6 @@ export function ExploreCharts({
 
 interface ChartProps {
   chartInfo: ChartInfo;
-  chartWrapperRef: React.RefObject<HTMLDivElement | null>;
   handleChartTypeChange: (chartType: ChartType, index: number) => void;
   index: number;
   interval: string;
@@ -315,7 +307,6 @@ function Chart({
   hideContextMenu,
   samplingMode,
   topEvents,
-  chartWrapperRef,
 }: ChartProps) {
   const theme = useTheme();
   const [visible, setVisible] = useState(true);
@@ -324,6 +315,7 @@ function Chart({
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const boxSelectOptions = useChartBoxSelect({
     chartRef,
@@ -339,7 +331,6 @@ function Chart({
 
   const Title = (
     <ChartTitle>
-      {defined(chartInfo.label) ? <ChartLabel>{chartInfo.label}</ChartLabel> : null}
       <Widget.WidgetTitle title={chartInfo.formattedYAxes?.filter(Boolean).join(', ')} />
     </ChartTitle>
   );
@@ -479,7 +470,7 @@ function Chart({
         : Bars;
 
   return (
-    <ChartWrapper>
+    <ChartWrapper ref={chartWrapperRef}>
       <Widget
         key={index}
         height={chartHeight}
@@ -491,6 +482,7 @@ function Chart({
             ref={chartRef}
             brush={boxSelectOptions.brush}
             onBrushEnd={boxSelectOptions.onBrushEnd}
+            onBrushStart={boxSelectOptions.onBrushStart}
             toolBox={boxSelectOptions.toolBox}
             plottables={chartInfo.data.map(timeSeries => {
               return new DataPlottableConstructor(
@@ -531,18 +523,6 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartLabel = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  min-width: 24px;
-  color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-content: center;
-  margin-right: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`

@@ -196,7 +196,7 @@ export function ProfilesSummaryChart({
 const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: ${space(0.25)} ${space(1)};
 `;
 

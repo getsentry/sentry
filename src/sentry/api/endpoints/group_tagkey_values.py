@@ -21,6 +21,7 @@ from sentry.apidocs.examples.tags_examples import TagsExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.tagstore.types import TagValueSerializerResponse
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
@@ -30,6 +31,15 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    enforce_rate_limit = True
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        }
+    }
 
     @extend_schema(
         operation_id="List a Tag's Values for an Issue",

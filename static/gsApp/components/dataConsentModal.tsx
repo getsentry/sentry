@@ -243,7 +243,7 @@ const ImageHeader = styled('div')`
   height: 200px;
   clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)} -${space(3)} 0 -${space(3)};
   }
 `;

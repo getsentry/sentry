@@ -3505,6 +3505,30 @@ describe('SearchQueryBuilder', function () {
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
     });
+
+    describe('secondary aliases provided', function () {
+      it('should not mark secondary aliases as invalid', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowUnsupportedFilters
+            initialQuery="foo:bar"
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+          />
+        );
+
+        expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+          'aria-invalid',
+          'false'
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('{ArrowLeft}');
+        expect(
+          screen.queryByText('Invalid key. "foo" is not a supported search key.')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('invalidMessages', function () {
@@ -4343,6 +4367,58 @@ describe('SearchQueryBuilder', function () {
           });
         });
       });
+    });
+  });
+
+  describe('replaceRawSearchKeys', function () {
+    it('should replace raw search keys with defined key:value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+
+    it('can handle values with spaces', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
     });
   });
 });

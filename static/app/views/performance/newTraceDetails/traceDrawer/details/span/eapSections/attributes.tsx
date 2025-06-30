@@ -5,6 +5,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import Link from 'sentry/components/links/link';
 import BaseSearchBar from 'sentry/components/searchBar';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -16,6 +17,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {extendWithLegacyAttributeKeys} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {SectionTitleWithQuestionTooltip} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
@@ -32,6 +34,48 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
+const JSON_ATTRIBUTES = extendWithLegacyAttributeKeys([
+  'gen_ai.request.messages',
+  'gen_ai.response.messages',
+  'gen_ai.response.tool_calls',
+  'gen_ai.response.object',
+  'gen_ai.prompt',
+  'gen_ai.request.available_tools',
+  'ai.prompt',
+]);
+const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
+
+function tryParseJson(value: unknown) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    const parsedValue = JSON.parse(value);
+    // Some arrays are double stringified, so we need to unwrap them
+    // This needs to be fixed on the SDK side
+    // TODO: Remove this once the SDK is fixed
+    if (!Array.isArray(parsedValue)) {
+      return parsedValue;
+    }
+    return parsedValue.map((item: any): any => tryParseJson(item));
+  } catch (error) {
+    return value;
+  }
+}
+
+const jsonRenderer = (props: CustomRenderersProps) => {
+  const value = tryParseJson(props.item.value);
+  return <StructuredData value={value} withAnnotatedText maxDefaultDepth={0} />;
+};
+
+const truncatedTextRenderer = (props: CustomRenderersProps) => {
+  if (typeof props.item.value !== 'string') {
+    return props.item.value;
+  }
+  return props.item.value.length > 100
+    ? props.item.value.slice(0, 100) + '...'
+    : props.item.value;
+};
 
 export function Attributes({
   node,
@@ -69,7 +113,10 @@ export function Attributes({
     );
   }, [attributes, searchQuery]);
 
-  const customRenderers = {
+  const customRenderers: Record<
+    string,
+    (props: CustomRenderersProps) => React.ReactNode
+  > = {
     [FieldKey.PROFILE_ID]: (props: CustomRenderersProps) => {
       const target = generateProfileFlamechartRoute({
         organization,
@@ -111,6 +158,14 @@ export function Attributes({
       return <StyledLink to={target}>{props.item.value}</StyledLink>;
     },
   };
+
+  for (const attribute of JSON_ATTRIBUTES) {
+    customRenderers[attribute] = jsonRenderer;
+  }
+
+  for (const attribute of TRUNCATED_TEXT_ATTRIBUTES) {
+    customRenderers[attribute] = truncatedTextRenderer;
+  }
 
   return (
     <FoldSection

@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -11,27 +12,37 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
   loading: boolean;
   location: Location;
+  organization: Organization;
   selection: PageFilters;
+  theme: Theme;
   widget: Widget;
   errorMessage?: string;
   tableResults?: TableData[];
 };
 
 export function IssueWidgetCard({
-  selection,
   widget,
   errorMessage,
   loading,
   tableResults,
+  selection,
+  organization,
   location,
+  theme,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -43,7 +54,7 @@ export function IssueWidgetCard({
     );
   }
 
-  if (loading) {
+  if (loading || !tableResults) {
     // Align height to other charts.
     return <LoadingPlaceholder height="200px" />;
   }
@@ -53,19 +64,53 @@ export function IssueWidgetCard({
     ? query.fields
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
+  const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.();
+  const columns = decodeColumnOrder(queryFields.map(field => ({field}))).map(column => ({
+    key: column.key,
+    name: column.name,
+    width: column.width,
+    type: column.type === 'never' ? null : column.type,
+  }));
+  const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
+  const tableData = convertTableDataToTabularData(tableResults?.[0]);
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
 
-  const getCustomFieldRenderer = (
-    field: string,
-    meta: MetaType,
-    organization?: Organization
-  ) => {
-    return (
-      datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-    );
+  const getCustomFieldRenderer = (field: string, meta: MetaType, org?: Organization) => {
+    return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
   };
 
-  return (
+  return organization.features.includes('dashboards-use-widget-table-visualization') ? (
+    <TableContainer>
+      <TableWidgetVisualization
+        columns={columns}
+        tableData={tableData}
+        frameless
+        scrollable
+        fit="max-content"
+        aliases={aliases}
+        getRenderer={(field, _dataRow, meta) => {
+          const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+            field,
+            meta as MetaType,
+            widget,
+            organization
+          )!;
+
+          return customRenderer;
+        }}
+        makeBaggage={(field, _dataRow, meta) => {
+          const unit = meta.units?.[field] as string | undefined;
+
+          return {
+            location,
+            organization,
+            theme,
+            unit,
+          } satisfies RenderFunctionBaggage;
+        }}
+      />
+    </TableContainer>
+  ) : (
     <StyledSimpleTableChart
       location={location}
       title=""
@@ -76,7 +121,7 @@ export function IssueWidgetCard({
       metadata={tableResults?.[0]?.meta}
       data={tableResults?.[0]?.data}
       getCustomFieldRenderer={getCustomFieldRenderer}
-      fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
+      fieldHeaderMap={fieldHeaderMap}
       stickyHeaders
     />
   );
@@ -92,4 +137,12 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSize.md};
   box-shadow: none;
+  min-height: 0;
+`;
+
+const TableContainer = styled('div')`
+  margin-top: ${space(1.5)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  min-height: 0;
 `;

@@ -615,7 +615,7 @@ const PositiveLabel = styled(
   color: ${p => p.theme.green400};
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   gap: ${space(0.5)};
 `;
 
@@ -630,7 +630,7 @@ const NegativeLabel = styled(
   color: ${p => p.theme.red400};
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   gap: ${space(0.5)};
 `;
 
@@ -639,7 +639,7 @@ const ExamplePanel = styled(Panel)<{fontSize?: 'large'}>`
   ${p =>
     p.fontSize === 'large'
       ? css`
-          font-weight: ${p.theme.fontWeightBold};
+          font-weight: ${p.theme.fontWeight.bold};
           font-size: 1.875rem;
           line-height: 1.2;
           letter-spacing: -0.016em;

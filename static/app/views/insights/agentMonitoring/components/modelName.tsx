@@ -6,15 +6,21 @@ import {space} from 'sentry/styles/space';
 
 interface ModelNameProps {
   modelId: string;
+  gap?: string | number;
   provider?: string;
   size?: number;
 }
 
-export function ModelName({modelId, provider, size = 16}: ModelNameProps) {
+export function ModelName({
+  modelId,
+  provider,
+  size = 16,
+  gap = space(1),
+}: ModelNameProps) {
   const platform = getModelPlatform(modelId, provider);
 
   return (
-    <Flex gap={space(1)}>
+    <Flex gap={gap}>
       <IconWrapper>
         <PlatformIcon platform={platform ?? 'unknown'} size={size} />
       </IconWrapper>

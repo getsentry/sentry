@@ -168,7 +168,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
+  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
   gap: ${space(1)};
 
   & > span:first-of-type {

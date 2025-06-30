@@ -29,18 +29,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         entry2 = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org2.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(self.organization.slug)
