@@ -268,8 +268,8 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_get_expired_query(self):
         query = {
-            "start": before_now(days=90),
-            "end": before_now(days=61),
+            "start": str(before_now(days=90)),
+            "end": str(before_now(days=61)),
         }
         ExploreSavedQuery.objects.create(
             organization=self.org,
