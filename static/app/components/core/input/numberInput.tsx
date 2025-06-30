@@ -11,6 +11,7 @@ import {Button} from 'sentry/components/core/button';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface NumberInputProps
@@ -83,7 +84,7 @@ export function NumberInput({
             size="zero"
             borderless
             {...incrementProps}
-            aria-label={incrementProps['aria-label'] ?? 'Increment'}
+            aria-label={incrementProps['aria-label'] ?? t('Increment')}
             icon={<StyledIconChevron direction="up" />}
           />
           <StepButton
@@ -91,7 +92,7 @@ export function NumberInput({
             size="zero"
             borderless
             {...decrementProps}
-            aria-label={decrementProps['aria-label'] ?? 'Decrement'}
+            aria-label={decrementProps['aria-label'] ?? t('Decrement')}
             icon={<StyledIconChevron direction="down" />}
           />
         </StepWrap>
