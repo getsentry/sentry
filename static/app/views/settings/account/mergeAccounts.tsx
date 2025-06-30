@@ -139,7 +139,7 @@ function UserRow({name, lastSeen, organizations}: UserRowProps) {
   );
 }
 
-export const tableLayout = `
+const tableLayout = `
   display: grid;
   grid-template-columns: auto 140px 140px 60px;
   gap ${space(1)};
