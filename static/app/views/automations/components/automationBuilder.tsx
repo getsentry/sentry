@@ -103,9 +103,6 @@ export default function AutomationBuilder() {
           {t('If/Then Block')}
         </PurpleTextButton>
       </span>
-      <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-      </span>
     </Flex>
   );
 }
@@ -198,6 +195,9 @@ function ActionFilterBlock({
           updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />
       </Step>
+      <span>
+        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+      </span>
     </IfThenWrapper>
   );
 }
