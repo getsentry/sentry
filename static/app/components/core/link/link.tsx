@@ -12,10 +12,12 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export interface LinkProps
-  extends Omit<
-    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
-    'href' | 'target' | 'as' | 'css'
-  > {
+  extends React.RefAttributes<HTMLAnchorElement>,
+    Pick<ReactRouterLinkProps, 'to' | 'replace' | 'preventScrollReset' | 'state'>,
+    Omit<
+      React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+      'href' | 'target' | 'as' | 'css'
+    > {
   /**
    * The string path or LocationDescriptor object.
    *
@@ -27,36 +29,39 @@ export interface LinkProps
    */
   to: LocationDescriptor;
   /**
-   * Style applied to the component's root
-   */
-  className?: string;
-  /**
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
-  preventScrollReset?: ReactRouterLinkProps['preventScrollReset'];
-  replace?: ReactRouterLinkProps['replace'];
-  state?: ReactRouterLinkProps['state'];
 }
 
-const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
+const getLinkStyles = ({
+  disabled,
+  theme,
+}: {
+  theme: Theme;
+  disabled?: LinkProps['disabled'];
+}) => css`
   /* @TODO(jonasbadalic) This was defined on theme and only used here */
   border-radius: 2px;
+  pointer-events: ${disabled ? 'none' : undefined};
+  color: ${disabled ? theme.disabled : undefined};
+
+  &:hover {
+    color: ${disabled ? theme.disabled : undefined};
+  }
 
   &:focus-visible {
     box-shadow: ${theme.linkFocus} 0 0 0 2px;
     text-decoration: none;
     outline: none;
   }
+`;
 
-  ${disabled &&
-  css`
-    color: ${theme.disabled};
-    pointer-events: none;
-    :hover {
-      color: ${theme.disabled};
-    }
-  `}
+const Anchor = styled('a', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
+})<{disabled?: LinkProps['disabled']}>`
+  ${getLinkStyles}
 `;
 
 /**
@@ -65,20 +70,28 @@ const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => cs
  */
 export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
-  to = normalizeUrl(to, location);
 
-  if (!disabled && location) {
-    return <RouterLink to={locationDescriptorToTo(to)} {...props} />;
+  if (disabled || !location) {
+    return <Anchor {...props} />;
   }
 
-  return <Anchor href={typeof to === 'string' ? to : ''} {...props} />;
+  return (
+    <RouterLink to={locationDescriptorToTo(normalizeUrl(to, location))} {...props} />
+  );
 })`
-  ${linkStyles}
+  ${getLinkStyles}
 `;
 
-export const Anchor = styled('a', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
-})<{disabled?: boolean}>`
-  ${linkStyles}
-`;
+interface ExternalLinkProps
+  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
+  disabled?: LinkProps['disabled'];
+  openInNewTab?: boolean;
+}
+
+export function ExternalLink({openInNewTab = true, ...props}: ExternalLinkProps) {
+  if (openInNewTab) {
+    return <Anchor {...props} target="_blank" rel="noreferrer noopener" />;
+  }
+
+  return <Anchor {...props} href={props.href} />;
+}
