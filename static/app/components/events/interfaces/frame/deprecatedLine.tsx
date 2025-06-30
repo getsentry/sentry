@@ -157,13 +157,13 @@ function DeprecatedLine({
   // This means they have a "good stack trace" with readable source lines
   // In this case, we want to hide the 'unminify code' button since the
   // user already has sufficient debugging information
-  const shouldShowSourceMapDebuggerButton = hasContextSource(data)
-    ? false
-    : !hideSourceMapDebugger &&
-      data.inApp &&
-      frameHasValidFileEndingForSourceMapDebugger &&
-      frameSourceResolutionResults &&
-      !frameSourceResolutionResults.frameIsResolved;
+  const shouldShowSourceMapDebuggerButton =
+    !hasContextSource(data) &&
+    !hideSourceMapDebugger &&
+    data.inApp &&
+    frameHasValidFileEndingForSourceMapDebugger &&
+    frameSourceResolutionResults &&
+    !frameSourceResolutionResults.frameIsResolved;
 
   const sourceMapDebuggerAmplitudeData = {
     organization: organization ?? null,
@@ -288,7 +288,7 @@ function DeprecatedLine({
                       modalProps => (
                         <SourceMapsDebuggerModal
                           analyticsParams={sourceMapDebuggerAmplitudeData}
-                          sourceResolutionResults={frameSourceResolutionResults!}
+                          sourceResolutionResults={frameSourceResolutionResults}
                           organization={organization}
                           projectId={event.projectID}
                           {...modalProps}
