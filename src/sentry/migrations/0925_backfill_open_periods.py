@@ -180,7 +180,7 @@ def _backfill_group_open_periods(
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
-    backfill_key = "backfill_group_open_periods_from_activity_2"
+    backfill_key = "backfill_group_open_periods_from_activity_0630_1"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
