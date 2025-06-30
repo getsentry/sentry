@@ -133,6 +133,7 @@ export interface DataCategoryInfo {
   name: DataCategoryExact;
   plural: DataCategory;
   productName: string;
+  singular: string; // singular form of `plural`
   statsInfo: {
     showExternalStats: boolean;
     showInternalStats: boolean;
