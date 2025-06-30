@@ -124,13 +124,13 @@ class SQLInjectionDetector(PerformanceDetector):
 
         for key, value in self.request_parameters:
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
-            regex_value = rf'(?<![\w.$])"?{re.escape(value)}"?(?![\w.$"])'
+            regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
             where_index = description.upper().find("WHERE")
             if re.search(regex_key, description[where_index:]) and re.search(
                 regex_value, description[where_index:]
             ):
                 description = description[:where_index] + re.sub(
-                    regex_value, "?", description[where_index:]
+                    regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
                 )
                 vulnerable_parameters.append((key, value))
 

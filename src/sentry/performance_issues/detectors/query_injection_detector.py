@@ -66,7 +66,7 @@ class QueryInjectionDetector(PerformanceDetector):
 
             input_dict = {input_key: input_value}
             if json.dumps(input_dict) in description:
-                description = description.replace(json.dumps(input_value), "?")
+                description = description.replace(json.dumps(input_value), "[UNTRUSTED_INPUT]")
                 unsafe_inputs.append((input_key, original_input_value))
 
         if len(unsafe_inputs) == 0:
