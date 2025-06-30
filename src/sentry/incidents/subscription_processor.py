@@ -264,11 +264,11 @@ class SubscriptionProcessor:
         trigger_matches_status = self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
 
         if has_anomaly and not trigger_matches_status:
-            incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             metrics.incr(
                 "incidents.alert_rules.threshold.alert",
                 tags={"detection_type": self.alert_rule.detection_type},
             )
+            incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
             if features.has(
                 "organizations:workflow-engine-metric-alert-dual-processing-logs",
                 self.subscription.project.organization,
