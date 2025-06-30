@@ -527,6 +527,7 @@ module = [
     "tests.sentry.issues.test_status_change_consumer",
     "tests.sentry.issues.test_update_inbox",
     "tests.sentry.middleware.test_reporting_endpoint",
+    "tests.sentry.nodestore.bigtable.test_backend",
     "tests.sentry.organizations.*",
     "tests.sentry.post_process_forwarder.*",
     "tests.sentry.profiling.*",
