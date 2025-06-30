@@ -160,12 +160,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         ):  # Just using all methods to see if anything interesting pops up
             return False
 
-        if any(
-            [
-                x in description
-                for x in ["_next/static/", "_next/data/", "aiplatform.googleapis.com"]
-            ]
-        ):
+        if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
             return False
 
         return True
