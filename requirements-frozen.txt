@@ -126,6 +126,7 @@ sentry-redis-tools==0.5.0
 sentry-relay==0.9.9
 sentry-sdk==2.29.1
 sentry-usage-accountant==0.0.10
+setuptools==70.0.0
 simplejson==3.17.6
 six==1.17.0
 slack-sdk==3.27.2

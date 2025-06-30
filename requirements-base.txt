@@ -102,3 +102,6 @@ grpcio>=1.67
 hiredis>=2.3.2
 
 openai==1.3.5
+
+# remove once there are no unmarked transitive dependencies on setuptools
+setuptools
