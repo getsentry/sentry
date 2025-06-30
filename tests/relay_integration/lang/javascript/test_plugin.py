@@ -492,6 +492,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert second_frame.pre_context == first_frame.pre_context
         assert second_frame.post_context == first_frame.post_context
 
+    @pytest.mark.skip(reason="flaky: #94543")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_sourcemap_embedded_source_expansion(self):
