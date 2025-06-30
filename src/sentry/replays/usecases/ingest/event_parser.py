@@ -9,6 +9,9 @@ from enum import Enum
 from typing import Any, TypedDict
 
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.utils import json
 
@@ -191,6 +194,44 @@ class TraceItemContext(TypedDict):
     attributes: dict[str, str | int | bool | float]
     event_hash: str
     timestamp: float
+
+
+def iter_trace_items(context: MessageContext, events: list[dict[str, Any]]) -> Iterator[TraceItem]:
+    for event_type, event in which_iter(events):
+        try:
+            trace_item = as_trace_item(context, event_type, event)
+        except (TypeError, ValueError) as e:
+            logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
+            continue
+
+        if trace_item:
+            yield trace_item
+
+
+def as_trace_item(
+    context: MessageContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem | None:
+    trace_item_context = as_trace_item_context(event_type, event)
+
+    # Not every event produces a trace-item.
+    if trace_item_context is None:
+        return None
+
+    # Extend the attributes with the replay_id to make it queryable by replay_id after we
+    # eventually use the trace_id in its rightful position.
+    trace_item_context["attributes"]["replay_id"] = context["replay_id"]
+
+    return TraceItem(
+        organization_id=context["organization_id"],
+        project_id=context["project_id"],
+        trace_id=context["trace_id"] or context["replay_id"],
+        item_id=trace_item_context["event_hash"],
+        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+        timestamp=Timestamp().FromMilliseconds(int(trace_item_context["timestamp"] * 1000)),
+        attributes=trace_item_context["attributes"],
+        retention_days=context["retention_days"],
+        received=context["received"],
+    )
 
 
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
