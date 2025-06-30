@@ -328,6 +328,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         ):
             response = self.client.get(self.url, {"enable_error_context": "true"})
 
+        assert make_seer_request.call_count == 2
         call_args = json.loads(make_seer_request.call_args[0][0])
         assert "logs" in call_args
         assert any("ZeroDivisionError" in log for log in call_args["logs"])
