@@ -4,10 +4,11 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote
 
 import orjson
+import sentry_sdk
 
 from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
@@ -19,11 +20,13 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+if TYPE_CHECKING:
+    from sentry.integrations.gitlab.client import GitLabApiClient
 
 
 MINIMUM_REQUESTS = 100
@@ -45,7 +48,7 @@ class GitLabFileBlameResponseItem(TypedDict):
 
 
 def fetch_file_blames(
-    client: BaseApiClient, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    client: GitLabApiClient, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
 ) -> list[FileBlameInfo]:
     blames = []
 
@@ -64,13 +67,23 @@ def fetch_file_blames(
                 and rate_limit_info
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
+                logger.warning(
+                    "get_blame_for_files.rate_limit_too_low",
+                    extra={
+                        **extra,
+                        "num_files": len(files),
+                        "remaining_requests": rate_limit_info.remaining,
+                        "total_requests": rate_limit_info.limit,
+                        "next_window": rate_limit_info.next_window(),
+                    },
+                )
                 raise ApiRateLimitedError("Approaching GitLab API rate limit")
 
     return blames
 
 
 def _fetch_file_blame(
-    client: BaseApiClient, file: SourceLineInfo, extra: Mapping[str, Any]
+    client: GitLabApiClient, file: SourceLineInfo, extra: Mapping[str, Any]
 ) -> tuple[CommitInfo | None, GitLabRateLimitInfo | None]:
     project_id = file.repo.config.get("project_id")
 
@@ -93,16 +106,17 @@ def _fetch_file_blame(
                 params=params,
             )
             client.set_cache(cache_key, response, 60)
-        except ApiError:
-            logger.warning(
+        except ApiError as e:
+            sentry_sdk.set_context(
                 "fetch_file_blame_ApiError",
-                extra={
+                {
                     "file_path": file.path,
                     "request_path": request_path,
                     "repo_org_id": file.repo.organization_id,
                     "repo_integration_id": file.repo.integration_id,
                 },
             )
+            sentry_sdk.capture_exception(error=e, level="warning")
             raise
 
     if not isinstance(response, SequenceApiResponse):
