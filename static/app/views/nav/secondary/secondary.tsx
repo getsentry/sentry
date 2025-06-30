@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import Link, {type LinkProps} from 'sentry/components/core/link';
+import {Link, type LinkProps} from 'sentry/components/core/link';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
