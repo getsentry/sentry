@@ -2,11 +2,10 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
@@ -87,30 +86,28 @@ function DashboardCard({
       </CardLink>
 
       <ContextMenuWrapper>
-        <Feature features="dashboards-favourite">
-          <StyledButton
-            icon={
-              <IconStar
-                isSolid={favorited}
-                color={favorited ? 'yellow300' : 'gray300'}
-                size="sm"
-                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-              />
+        <StyledButton
+          icon={
+            <IconStar
+              isSolid={favorited}
+              color={favorited ? 'yellow300' : 'gray300'}
+              size="sm"
+              aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            />
+          }
+          borderless
+          aria-label={t('Dashboards Favorite')}
+          size="xs"
+          onClick={async () => {
+            try {
+              setFavorited(!favorited);
+              await onFavorite(!favorited);
+            } catch (error) {
+              // If the api call fails, revert the state
+              setFavorited(favorited);
             }
-            size="zero"
-            borderless
-            aria-label={t('Dashboards Favorite')}
-            onClick={async () => {
-              try {
-                setFavorited(!favorited);
-                await onFavorite(!favorited);
-              } catch (error) {
-                // If the api call fails, revert the state
-                setFavorited(favorited);
-              }
-            }}
-          />
-        </Feature>
+          }}
+        />
         {renderContextMenu?.()}
       </ContextMenuWrapper>
     </CardWithoutMargin>
@@ -141,7 +138,7 @@ const Title = styled('div')`
   font-size: 1rem;
   line-height: 1.2;
   /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const CardLink = styled(Link)`
@@ -168,7 +165,7 @@ const CardHeader = styled('div')`
 
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
@@ -192,7 +189,7 @@ const CardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};

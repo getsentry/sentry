@@ -1,7 +1,9 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
+// eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject} from 'sentry/utils/theme';
+// eslint-disable-next-line boundaries/element-types
 import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO: remove Link type in the future
@@ -56,13 +58,23 @@ export function DO_NOT_USE_getChonkButtonStyles(
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
 
+  const buttonSizes = {
+    ...p.theme.form,
+    zero: {
+      height: '24px',
+      minHeight: '24px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+    },
+  } as const;
+
   return {
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.fontWeightBold,
+    fontWeight: p.theme.fontWeight.bold,
 
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
@@ -74,16 +86,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    height:
-      p.size === 'md'
-        ? '36px'
-        : p.size === 'sm'
-          ? '32px'
-          : p.size === 'xs'
-            ? '28px'
-            : '24px',
-
-    fontSize: p.size === 'xs' || p.size === 'zero' ? '12px' : '14px',
+    ...buttonSizes[p.size],
 
     '&::before': {
       content: '""',
@@ -107,11 +110,12 @@ export function DO_NOT_USE_getChonkButtonStyles(
       borderRadius: 'inherit',
       border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
       transform: `translateY(-${chonkElevation(p.size)})`,
-      transition: 'transform 0.1s ease-in-out',
+      transition: 'transform 0.06s ease-in-out',
     },
 
     '&:focus-visible': {
       outline: 'none',
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
       '&::after': {
         border: `1px solid ${p.theme.focusBorder}`,

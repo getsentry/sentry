@@ -1,21 +1,25 @@
+import type {LocationDescriptor} from 'history';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   chartType: ChartType;
+  referrer: string;
   yAxes: string[];
   aliases?: Record<string, string>;
   groupBy?: SpanFields[];
@@ -30,20 +34,14 @@ export function ChartActionDropdown({
   search,
   title,
   aliases,
+  referrer,
 }: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const project = useAlertsProject();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
-  const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
-
-  const project =
-    projects.length === 1
-      ? projects[0]
-      : projects.find(p => p.id === `${selection.projects[0]}`);
 
   const exploreUrl = getExploreUrl({
+    selection,
     organization,
     visualize: [
       {
@@ -56,6 +54,7 @@ export function ChartActionDropdown({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    referrer,
   });
 
   const alertsUrls = yAxes.map((yAxis, index) => {
@@ -70,23 +69,67 @@ export function ChartActionDropdown({
         pageFilters: selection,
         aggregate: yAxis,
         organization,
+        referrer,
       }),
     };
   });
+
+  return (
+    <BaseChartActionDropdown
+      alertMenuOptions={alertsUrls}
+      exploreUrl={exploreUrl}
+      referrer={referrer}
+    />
+  );
+}
+
+type BaseProps = {
+  alertMenuOptions: MenuItemProps[];
+  exploreUrl: LocationDescriptor;
+  referrer: string;
+};
+
+export function BaseChartActionDropdown({
+  alertMenuOptions,
+  exploreUrl,
+  referrer,
+}: BaseProps) {
+  const organization = useOrganization();
+  const useEap = useInsightsEap();
+  const hasChartActionsEnabled =
+    organization.features.includes('insights-chart-actions') && useEap;
 
   const menuOptions: MenuItemProps[] = [
     {
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: exploreUrl,
+      onAction: () => {
+        trackAnalytics('insights.open_in_explore', {
+          organization,
+          referrer,
+        });
+      },
     },
-    {
+  ];
+
+  if (alertMenuOptions.length > 0) {
+    menuOptions.push({
       key: 'create-alert',
       label: t('Create Alert for'),
       isSubmenu: true,
-      children: alertsUrls,
-    },
-  ];
+      children: alertMenuOptions.map(option => ({
+        ...option,
+        onAction: () => {
+          option.onAction?.();
+          trackAnalytics('insights.create_alert', {
+            organization,
+            referrer,
+          });
+        },
+      })),
+    });
+  }
 
   if (!hasChartActionsEnabled) {
     return null;

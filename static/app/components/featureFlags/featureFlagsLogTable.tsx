@@ -2,8 +2,8 @@ import {Fragment, useCallback} from 'react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
+import GridEditable, {type GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -24,6 +24,7 @@ interface FeatureFlagsLogTableProps {
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
+  scrollable?: boolean;
 }
 
 export function FeatureFlagsLogTable({
@@ -37,31 +38,11 @@ export function FeatureFlagsLogTable({
   onRowMouseOver,
   onRowMouseOut,
   highlightedRowKey,
+  scrollable = false,
 }: FeatureFlagsLogTableProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const navigate = useNavigate();
-
-  const renderBodyCell = (
-    column: GridColumnOrder<ColumnKey>,
-    dataRow: RawFlag,
-    _rowIndex: number,
-    _columnIndex: number
-  ) => {
-    switch (column.key) {
-      case 'flag':
-        return <code>{dataRow.flag}</code>;
-      case 'provider':
-        return dataRow.provider || t('unknown');
-      case 'createdAt':
-        return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
-      case 'action': {
-        return getFlagActionLabel(dataRow.action);
-      }
-      default:
-        return dataRow[column.key];
-    }
-  };
 
   const handlePageChange = useCallback(
     (cursor: string | undefined, path: string, searchQuery: Record<string, any>) => {
@@ -93,11 +74,32 @@ export function FeatureFlagsLogTable({
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}
-        scrollable={false}
+        scrollable={scrollable}
         data-test-id="audit-log-table"
       />
 
       <Pagination pageLinks={pageLinks} onCursor={handlePageChange} />
     </Fragment>
   );
+}
+
+function renderBodyCell(
+  column: GridColumnOrder<ColumnKey>,
+  dataRow: RawFlag,
+  _rowIndex: number,
+  _columnIndex: number
+) {
+  switch (column.key) {
+    case 'flag':
+      return <code>{dataRow.flag}</code>;
+    case 'provider':
+      return dataRow.provider || t('unknown');
+    case 'createdAt':
+      return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
+    case 'action': {
+      return getFlagActionLabel(dataRow.action);
+    }
+    default:
+      return dataRow[column.key];
+  }
 }

@@ -13,8 +13,6 @@
 /src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
-/src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
-/src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
@@ -49,6 +47,7 @@
 /src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/api/endpoints/event_reprocessable.py         @getsentry/ingest
 /src/sentry/api/endpoints/project_reprocessing.py        @getsentry/ingest
+/tests/symbolicator/*                                    @getsentry/ingest
 
 
 ## Security
@@ -131,7 +130,7 @@ eslint.config.mjs                                        @getsentry/owners-js-bu
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
-.volta.json                                              @getsentry/owners-js-deps
+.node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
@@ -248,7 +247,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/search/events/                                                  @getsentry/visibility
 /src/sentry/search/eap/                                                  @getsentry/visibility
 
-/src/sentry/utils/performance_issues/                                       @getsentry/performance @getsentry/issue-detection-backend
+/src/sentry/performance_issues/                                             @getsentry/performance @getsentry/issue-detection-backend
+/tests/sentry/performance_issues/                                           @getsentry/performance @getsentry/issue-detection-backend
 
 /static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
 
@@ -373,6 +373,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/utils/codecov/       @getsentry/codecov-merge-ux
 /static/app/views/codecov/       @getsentry/codecov-merge-ux
 ## End of Codecov Merge UX
+
+/src/sentry/codecov/ @getsentry/codecov
 
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
@@ -535,6 +537,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
+/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
@@ -667,6 +670,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/spans/                                @getsentry/visibility @getsentry/streaming-platform
 /tests/sentry/spans/                              @getsentry/visibility @getsentry/streaming-platform
 
+# Streaming platform
+/src/sentry/utils/arroyo.py                              @getsentry/streaming-platform
+/src/sentry/utils/arroyo_producer.py                     @getsentry/streaming-platform
+
 # Workflow engine
 /src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
 /tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
@@ -682,6 +689,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 # Preprod build artifact analysis
 /src/sentry/preprod                                   @getsentry/emerge-tools
+/static/app/views/preprod                             @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)

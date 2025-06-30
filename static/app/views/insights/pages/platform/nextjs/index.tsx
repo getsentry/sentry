@@ -10,19 +10,20 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
 import OverviewPageloadsChartWidget from 'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget';
+import OverviewSlowNextjsSSRWidget from 'sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget';
+import {ApiTable} from 'sentry/views/insights/pages/platform/nextjs/apiTable';
+import {ClientTable} from 'sentry/views/insights/pages/platform/nextjs/clientTable';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
-import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
+import {ServerTree} from 'sentry/views/insights/pages/platform/nextjs/serverTree';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
-import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 
 enum TableType {
   API = 'api',
-  PAGELOAD = 'pageload',
-  NAVIGATION = 'navigation',
+  SSR = 'ssr',
+  CLIENT = 'client',
 }
 
 function isTableType(value: any): value is TableType {
@@ -43,7 +44,7 @@ export function NextJsOverviewPage({
 
   const activeTable: TableType = isTableType(location.query.view)
     ? location.query.view
-    : TableType.PAGELOAD;
+    : TableType.CLIENT;
 
   const updateQuery = useCallback(
     (newParams: Record<string, string | string[] | null | undefined>) => {
@@ -78,9 +79,10 @@ export function NextJsOverviewPage({
       });
       updateQuery({
         view,
-        pathsCursor: undefined,
-        navigationCursor: undefined,
-        pageloadCursor: undefined,
+        // Clear table cursor and sort order
+        tableCursor: undefined,
+        field: undefined,
+        order: undefined,
       });
     },
     [organization, updateQuery]
@@ -105,32 +107,20 @@ export function NextJsOverviewPage({
           <DeadRageClicksWidget />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
-          <SSRTreeWidget />
+          <OverviewSlowNextjsSSRWidget />
         </WidgetGrid.Position6>
       </WidgetGrid>
       <ControlsWrapper>
         <TableControl value={activeTable} onChange={handleTableViewChange} size="sm">
-          <TableControlItem key={TableType.PAGELOAD}>{t('Pageloads')}</TableControlItem>
-          <TableControlItem key={TableType.NAVIGATION}>
-            {t('Navigations')}
-          </TableControlItem>
+          <TableControlItem key={TableType.CLIENT}>{t('Client')}</TableControlItem>
           <TableControlItem key={TableType.API}>{t('API')}</TableControlItem>
+          <TableControlItem key={TableType.SSR}>{t('SSR')}</TableControlItem>
         </TableControl>
       </ControlsWrapper>
 
-      {activeTable === TableType.API && (
-        <PathsTable
-          showHttpMethodColumn={false}
-          showUsersColumn={false}
-          showRouteController={false}
-        />
-      )}
-      {activeTable === TableType.PAGELOAD && (
-        <PagesTable spanOperationFilter={TableType.PAGELOAD} />
-      )}
-      {activeTable === TableType.NAVIGATION && (
-        <PagesTable spanOperationFilter={TableType.NAVIGATION} />
-      )}
+      {activeTable === TableType.API && <ApiTable />}
+      {activeTable === TableType.CLIENT && <ClientTable />}
+      {activeTable === TableType.SSR && <ServerTree />}
     </PlatformLandingPageLayout>
   );
 }

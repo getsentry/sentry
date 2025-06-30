@@ -1,15 +1,20 @@
+import Count from 'sentry/components/count';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
+  getIsAiRunSpan,
   getIsAiSpan,
   legacyAttributeKeys,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -55,10 +60,6 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
   return undefined;
 }
 
-function formatCost(cost: string) {
-  return `US $${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
-}
-
 export function getHighlightedSpanAttributes({
   op,
   description,
@@ -78,58 +79,46 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
   const highlightedAttributes = [];
 
-  const model = getAttribute(attributeObject, 'gen_ai.request.model');
+  const model =
+    getAttribute(attributeObject, 'gen_ai.request.model') ||
+    getAttribute(attributeObject, 'gen_ai.response.model');
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: model,
+      value: <ModelName modelId={model} gap={space(0.5)} />,
     });
   }
 
   const promptTokens = getAttribute(attributeObject, 'gen_ai.usage.input_tokens');
   const completionTokens = getAttribute(attributeObject, 'gen_ai.usage.output_tokens');
   const totalTokens = getAttribute(attributeObject, 'gen_ai.usage.total_tokens');
-  if (promptTokens && completionTokens && totalTokens) {
+  if (promptTokens && completionTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
         <span>
-          {promptTokens} <IconArrow direction="right" size="xs" />{' '}
-          {`${completionTokens} (Σ ${totalTokens})`}
+          <Count value={promptTokens} /> <IconArrow direction="right" size="xs" />{' '}
+          <Count value={completionTokens} /> {' (Σ '}
+          <Count value={totalTokens} />
+          {')'}
         </span>
       ),
     });
   }
 
   const totalCosts = getAttribute(attributeObject, 'gen_ai.usage.total_cost');
-  if (totalCosts) {
+  if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatCost(totalCosts),
+      value: formatLLMCosts(totalCosts),
     });
   }
 
-  const toolName = getAttribute(attributeObject, 'ai.toolCall.name');
+  const toolName = getAttribute(attributeObject, 'gen_ai.tool.name');
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
-    });
-  }
-
-  const toolArgs = getAttribute(attributeObject, 'ai.toolCall.args');
-  if (toolArgs) {
-    highlightedAttributes.push({
-      name: t('Arguments'),
-      value: toolArgs,
-    });
-  }
-
-  const toolResult = getAttribute(attributeObject, 'ai.toolCall.result');
-  if (toolResult) {
-    highlightedAttributes.push({
-      name: t('Result'),
-      value: toolResult,
     });
   }
 
@@ -147,23 +136,26 @@ export function getTraceNodeAttribute(
   }
 
   if (isEAPSpanNode(node) && attributes) {
-    return attributes.find(attribute => attribute.name === name)?.value;
+    const attributeObject = ensureAttributeObject(attributes);
+    return getAttribute(attributeObject, name);
   }
 
   if (isTransactionNode(node) && event) {
-    return event.contexts.trace?.data?.[name];
+    return getAttribute(event.contexts.trace?.data || {}, name);
   }
 
   if (isSpanNode(node)) {
-    return node.value.data?.[name];
+    return getAttribute(node.value.data || {}, name);
   }
 
   return undefined;
 }
 
-export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+export function getIsAiNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is AITraceSpanNode {
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return undefined;
+    return false;
   }
 
   if (isTransactionNode(node)) {
@@ -174,4 +166,18 @@ export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   return getIsAiSpan(node.value);
+}
+
+export function getIsAiRunNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is AITraceSpanNode {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return false;
+  }
+
+  if (isTransactionNode(node)) {
+    return getIsAiRunSpan({op: node.value['transaction.op']});
+  }
+
+  return getIsAiRunSpan({op: node.value.op});
 }

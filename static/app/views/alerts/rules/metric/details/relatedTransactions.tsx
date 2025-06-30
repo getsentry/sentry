@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';

@@ -114,6 +114,7 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
@@ -139,6 +140,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
@@ -150,7 +152,6 @@ from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
@@ -424,7 +425,6 @@ class BaseTestCase(Fixtures):
         return uuid
 
 
-@override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
@@ -1149,14 +1149,26 @@ class SnubaTestCase(BaseTestCase):
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        entity = "eap_items_span" if is_eap else "spans"
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
-                data=json.dumps(spans),
-            ).status_code
-            == 200
-        )
+        if is_eap:
+            files = {}
+            for i, span in enumerate(spans):
+                trace_item = span_to_trace_item(span)
+                files[f"item_{i}"] = trace_item.SerializeToString()
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    files=files,
+                ).status_code
+                == 200
+            )
+        else:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
@@ -1874,7 +1886,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         """
         with self.feature(features or self.features):
             ret = self.client.get(self.url, data=data, format="json")
-            assert isinstance(ret, Response), ret
+            assert is_drf_response(ret)
             return ret
 
     def _index_metric_strings(self):
@@ -2224,14 +2236,26 @@ class ProfilesSnubaTestCase(
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        entity = "eap_items_span" if is_eap else "spans"
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
-                data=json.dumps(spans),
-            ).status_code
-            == 200
-        )
+        if is_eap:
+            files = {}
+            for i, span in enumerate(spans):
+                trace_item = span_to_trace_item(span)
+                files[f"item_{i}"] = trace_item.SerializeToString()
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    files=files,
+                ).status_code
+                == 200
+            )
+        else:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
 
 @pytest.mark.snuba
@@ -3249,7 +3273,7 @@ class SpanTestCase(BaseTestCase):
                 "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,
-                "exclusive_time_ms": duration,
+                "exclusive_time_ms": float(duration),
             }
         )
         # Load any specific custom data
@@ -3286,6 +3310,84 @@ def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
+
+
+def span_to_trace_item(span) -> TraceItem:
+    client_sample_rate = 1.0
+    server_sample_rate = 1.0
+    attributes = {}
+
+    for field in {"tags", "data"}:
+        for k, v in span.get(field, {}).items():
+            if v is None:
+                continue
+            attributes[k] = scalar_to_any_value(v)
+
+    for k, v in span.get("sentry_tags", {}).items():
+        if v is None:
+            continue
+        if k == "description":
+            k = "normalized_description"
+
+        attributes[f"sentry.{k}"] = scalar_to_any_value(v)
+
+    for k, v in span.get("measurements", {}).items():
+        if v is None or v["value"] is None:
+            continue
+        if k == "client_sample_rate":
+            client_sample_rate = v["value"]
+        elif k == "server_sample_rate":
+            server_sample_rate = v["value"]
+        else:
+            attributes[k] = scalar_to_any_value(float(v["value"]))
+
+    if "description" in span and span["description"] is not None:
+        description = scalar_to_any_value(span["description"])
+        attributes["sentry.raw_description"] = description
+
+    for field in {
+        "duration_ms",
+        "end_timestamp_precise",
+        "event_id",
+        "exclusive_time_ms",
+        "is_segment",
+        "parent_span_id",
+        "profile_id",
+        "received",
+        "segment_id",
+        "start_timestamp_precise",
+    }:
+        if field in span and span[field] is not None:
+            if field == "is_segment":
+                is_segment = span["is_segment"]
+                attributes["sentry.is_segment"] = AnyValue(
+                    double_value=float(is_segment),
+                )
+            else:
+                value = scalar_to_any_value(span[field])
+                attributes[f"sentry.{field}"] = value
+
+    timestamp = Timestamp()
+
+    timestamp.FromMilliseconds(span["start_timestamp_ms"])
+
+    return TraceItem(
+        organization_id=span["organization_id"],
+        project_id=span["project_id"],
+        item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        timestamp=timestamp,
+        trace_id=span["trace_id"],
+        item_id=int(span["span_id"], 16).to_bytes(
+            16,
+            byteorder="little",
+            signed=False,
+        ),
+        received=timestamp,
+        retention_days=90,
+        attributes=attributes,
+        client_sample_rate=client_sample_rate,
+        server_sample_rate=server_sample_rate,
+    )
 
 
 class OurLogTestCase(BaseTestCase):

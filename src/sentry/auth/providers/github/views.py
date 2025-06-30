@@ -36,15 +36,15 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, helper) -> HttpResponse:
-        with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponse:
+        with GitHubClient(pipeline.fetch_state("data")["access_token"]) as client:
             if self.org is not None:
                 # if we have a configured org (self.org) for our oauth provider
                 if not client.is_org_member(self.org["id"]):
                     # `is_org_member` fetches provider orgs for the auth'd provider user.
                     # if our configured org is not in the users list of orgs, then that user
                     # does not have access to the provisioned org and we will prevent access
-                    return helper.error(ERR_NO_ORG_ACCESS)
+                    return pipeline.error(ERR_NO_ORG_ACCESS)
 
             user = client.get_user()
 
@@ -60,13 +60,13 @@ class FetchUser(AuthView):
                         msg = ERR_NO_VERIFIED_PRIMARY_EMAIL
                     else:
                         msg = ERR_NO_PRIMARY_EMAIL
-                    return helper.error(msg)
+                    return pipeline.error(msg)
                 elif len(email) > 1:
                     if REQUIRE_VERIFIED_EMAIL:
                         msg = ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL
                     else:
                         msg = ERR_NO_SINGLE_PRIMARY_EMAIL
-                    return helper.error(msg)
+                    return pipeline.error(msg)
                 else:
                     user["email"] = email[0]
 
@@ -75,9 +75,9 @@ class FetchUser(AuthView):
             if not user.get("name"):
                 user["name"] = _get_name_from_email(user["email"])
 
-            helper.bind_state("user", user)
+            pipeline.bind_state("user", user)
 
-            return helper.next_step()
+            return pipeline.next_step()
 
 
 class ConfirmEmailForm(forms.Form):
@@ -85,14 +85,14 @@ class ConfirmEmailForm(forms.Form):
 
 
 class ConfirmEmail(AuthView):
-    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
-        user = helper.fetch_state("user")
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
+        user = pipeline.fetch_state("user")
 
         # TODO(dcramer): this isn't ideal, but our current flow doesnt really
         # support this behavior;
         try:
             auth_identity = AuthIdentity.objects.select_related("user").get(
-                auth_provider=helper.provider_model, ident=user["id"]
+                auth_provider=pipeline.provider_model, ident=user["id"]
             )
         except AuthIdentity.DoesNotExist:
             pass
@@ -100,13 +100,13 @@ class ConfirmEmail(AuthView):
             user["email"] = auth_identity.user.email
 
         if user.get("email"):
-            return helper.next_step()
+            return pipeline.next_step()
 
         form = ConfirmEmailForm(request.POST or None)
         if form.is_valid():
             user["email"] = form.cleaned_data["email"]
-            helper.bind_state("user", user)
-            return helper.next_step()
+            pipeline.bind_state("user", user)
+            return pipeline.next_step()
 
         return self.respond("sentry_auth_github/enter-email.html", {"form": form})
 
@@ -124,16 +124,16 @@ class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
-        with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
+        with GitHubClient(pipeline.fetch_state("data")["access_token"]) as client:
             org_list = client.get_org_list()
 
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():
             org_id = form.cleaned_data["org"]
             org = [o for o in org_list if org_id == str(o["id"])][0]
-            helper.bind_state("org", org)
-            return helper.next_step()
+            pipeline.bind_state("org", org)
+            return pipeline.next_step()
 
         return self.respond(
             "sentry_auth_github/select-organization.html", {"form": form, "org_list": org_list}

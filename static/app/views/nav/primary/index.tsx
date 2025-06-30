@@ -4,10 +4,10 @@ import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
-  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
+  IconPrevent,
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
@@ -32,7 +32,11 @@ import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
-  return <SidebarList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarList>;
+  return (
+    <SidebarList isMobile={layout === NavLayout.MOBILE} data-primary-list-container>
+      {children}
+    </SidebarList>
+  );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
@@ -126,7 +130,7 @@ export function PrimaryNavigationItems() {
             analyticsKey="codecov"
             group={PrimaryNavGroup.CODECOV}
           >
-            <IconCodecov />
+            <IconPrevent />
           </SidebarLink>
         </Feature>
 

@@ -73,6 +73,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
 
   return {
     seriesName: t('Feature Flags'),
+    id: 'flag-lines',
     data: [],
     color: theme.blue200,
     markLine,

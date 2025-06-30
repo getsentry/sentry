@@ -23,6 +23,13 @@ describe('ProjectReleaseTracking', function () {
   const {organization: org, project} = initializeOrg();
   const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${org.slug}/projects/${project.slug}/settings/release-tracking/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/release-tracking/',
+  };
+
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -51,9 +58,7 @@ describe('ProjectReleaseTracking', function () {
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -68,9 +73,7 @@ describe('ProjectReleaseTracking', function () {
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
     renderGlobalModal();
 
@@ -119,9 +122,7 @@ describe('ProjectReleaseTracking', function () {
 
     const {rerender} = render(
       <ProjectReleaseTrackingContainer organization={org} project={project} />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
     await waitFor(() => {
       expect(fetchPlugins).toHaveBeenCalled();
@@ -163,9 +164,7 @@ describe('ProjectReleaseTracking', function () {
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => {

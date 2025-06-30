@@ -1,37 +1,46 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import {
+  type Action,
+  type ActionHandler,
+  ActionType,
+  SentryAppIdentifier,
+} from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];
-  triggers: DataConditionGroup;
+  triggers: DataConditionGroup | null;
 };
 
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      <ConditionGroupWrapper>
-        <ConditionGroupHeader>
-          {tct('[when:When] any of the following occur', {
-            when: <ConditionBadge />,
-          })}
-        </ConditionGroupHeader>
-        {triggers.conditions.map((trigger, index) => (
-          <div key={index}>
-            <DataConditionDetails condition={trigger} />
-          </div>
-        ))}
-      </ConditionGroupWrapper>
+      {triggers && (
+        <ConditionGroupWrapper>
+          <ConditionGroupHeader>
+            {tct('[when:When] any of the following occur', {
+              when: <ConditionBadge />,
+            })}
+          </ConditionGroupHeader>
+          {triggers.conditions.map((trigger, index) => (
+            <div key={index}>
+              <DataConditionDetails condition={trigger} />
+            </div>
+          ))}
+        </ConditionGroupWrapper>
+      )}
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
           <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
@@ -41,12 +50,35 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   );
 }
 
+function findActionHandler(
+  action: Action,
+  availableActions: ActionHandler[]
+): ActionHandler | undefined {
+  if (action.type === ActionType.SENTRY_APP) {
+    if (action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID) {
+      return availableActions.find(
+        handler => handler.sentryApp?.id === action.config.target_identifier
+      );
+    }
+    return availableActions.find(
+      handler => handler.sentryApp?.installationUuid === action.config.target_identifier
+    );
+  }
+  return availableActions.find(handler => handler.type === action.type);
+}
+
 interface ActionFilterProps {
   actionFilter: DataConditionGroup;
   totalFilters: number;
 }
 
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
+  const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
       <ConditionGroupHeader>
@@ -68,7 +100,10 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
       </ConditionGroupHeader>
       {actionFilter.actions?.map((action, index) => (
         <div key={index}>
-          <ActionDetails action={action} />
+          <ActionDetails
+            action={action}
+            handler={findActionHandler(action, availableActions)}
+          />
         </div>
       ))}
     </ConditionGroupWrapper>
@@ -86,15 +121,20 @@ function DataConditionDetails({condition}: {condition: DataCondition}) {
   return <Component condition={condition} />;
 }
 
-function ActionDetails({action}: {action: Action}) {
+interface ActionDetailsProps {
+  action: Action;
+  handler: ActionHandler | undefined;
+}
+
+function ActionDetails({action, handler}: ActionDetailsProps) {
   const node = actionNodesMap.get(action.type);
   const Component = node?.details;
 
-  if (!Component) {
+  if (!Component || !handler) {
     return <span>{node?.label}</span>;
   }
 
-  return <Component action={action} />;
+  return <Component action={action} handler={handler} />;
 }
 
 const Panel = styled('div')`

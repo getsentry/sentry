@@ -286,7 +286,7 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
-    sentry_sdk.Scope.get_global_scope().set_client(None)
+    sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -362,7 +362,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
 
-    sentry_sdk.Scope.get_global_scope().set_client(None)
+    sentry_sdk.get_global_scope().set_client(None)
 
 
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:

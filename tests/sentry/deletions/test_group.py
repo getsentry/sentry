@@ -15,7 +15,6 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
@@ -57,13 +56,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         UserReport.objects.create(
             event_id=self.event.event_id, project_id=self.event.project_id, name="With event id"
         )
-        file = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
-            file_id=file.id,
-            type=file.type,
             name="hello.png",
+            content_type="image/png",
         )
         GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)

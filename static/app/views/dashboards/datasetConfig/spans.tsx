@@ -21,7 +21,11 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
+} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -86,7 +90,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           },
         ],
       };
-    } else if (aggregate === AggregationKey.EPM || aggregate === AggregationKey.EPS) {
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
       acc[aggregate] = {
         isSortable: true,
         outputType: null,
@@ -273,11 +277,6 @@ function getEventsRequest(
     params.sort = toArray(query.orderby);
   }
 
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  eventView.query = `${eventView.query} !transaction.span_id:00`;
-
   return doDiscoverQuery<EventsTableData>(
     api,
     url,
@@ -335,11 +334,6 @@ function getSeriesRequest(
     DiscoverDatasets.SPANS_EAP,
     referrer
   );
-
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  requestData.query = `${requestData.query} !transaction.span_id:00`;
 
   if (samplingMode) {
     requestData.sampling = samplingMode;

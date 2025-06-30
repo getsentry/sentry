@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -52,7 +51,11 @@ import {
   formatReservedWithUnits,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  hasCategoryFeature,
+  isPartOfReservedBudget,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   calculateCategoryOnDemandUsage,
@@ -99,15 +102,6 @@ interface ReservedUsageChartProps {
   usagePeriodEnd: string;
   usagePeriodStart: string;
   usageStats: CustomerUsage['stats'];
-}
-
-function getCategoryColors(theme: Theme) {
-  return [
-    theme.outcome.accepted,
-    theme.outcome.filtered,
-    theme.outcome.dropped,
-    theme.chartOther, // Projected
-  ];
 }
 
 function selectedCategory(location: Location, categoryOptions: CategoryOption[]) {
@@ -461,9 +455,14 @@ function ReservedUsageChart({
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const isReservedBudgetCategory =
-    subscription.reservedBudgetCategories?.includes(category) ?? false;
-  if (isReservedBudgetCategory) {
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
+
+  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
+  // since they don't have access to the usage/cost toggle
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -487,7 +486,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory) {
+      if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
@@ -683,7 +682,6 @@ function ReservedUsageChart({
       usageStats={chartData}
       usageDateShowUtc={false}
       categoryOptions={categoryOptions}
-      categoryColors={getCategoryColors(theme)}
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [
@@ -755,6 +753,6 @@ function ReservedUsageChart({
 export default ReservedUsageChart;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
 `;

@@ -22,7 +22,7 @@ const formGroups: JsonFormObject[] = [
         disabled: ({hasTeamWrite}) => !hasTeamWrite,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
-        saveMessage: t('You will be redirected to the new team slug after saving'),
+        saveMessage: t('You will be redirected to the new team slug after saving.'),
       },
     ],
   },

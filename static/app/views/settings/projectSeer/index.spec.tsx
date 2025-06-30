@@ -42,6 +42,22 @@ describe('ProjectSeer', function () {
       features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
     });
 
+    // Mock the seer setup check endpoint
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
@@ -142,6 +158,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [
               {
                 branch_name: '',
@@ -184,7 +201,7 @@ describe('ProjectSeer', function () {
     // Find input fields
     const branchInput = screen.getByPlaceholderText('Default branch');
     const instructionsInput = screen.getByPlaceholderText(
-      'Any special instructions for Seer in this repository...'
+      'Add any general context or instructions to help Seer understand this repository...'
     );
 
     await userEvent.type(branchInput, 'develop');
@@ -197,6 +214,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [
               {
                 external_id: '101',
@@ -229,6 +247,8 @@ describe('ProjectSeer', function () {
     await userEvent.click(repoItem);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Repository'}));
 
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+
     // Wait for the repo to disappear
     await waitFor(() => {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
@@ -239,6 +259,7 @@ describe('ProjectSeer', function () {
         expect.anything(),
         expect.objectContaining({
           data: {
+            automated_run_stopping_point: 'solution',
             repositories: [],
           },
         })
@@ -247,10 +268,11 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update the autofix autorun threshold slider', async function () {
+  it('can update the autofix autorun threshold setting', async function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium', // Start from medium
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -267,15 +289,19 @@ describe('ProjectSeer', function () {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    const slider = await screen.findByRole('slider', {
-      name: /Automatically Fix Issues with Seer/i,
+    // Find the select menu
+    const select = await screen.findByRole('textbox', {
+      name: /Automate Issue Fixes/i,
     });
 
     act(() => {
-      slider.focus();
+      select.focus();
     });
 
-    await userEvent.keyboard('{ArrowRight}');
+    // Open the menu and select a new value (e.g., 'Minimally Actionable and Above')
+    await userEvent.click(select);
+    const option = await screen.findByText('Minimally Actionable and Above');
+    await userEvent.click(option);
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
@@ -285,6 +311,112 @@ describe('ProjectSeer', function () {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
+      );
+    });
+  });
+
+  it('can update the project scanner automation setting', async function () {
+    const initialProject: Project = {
+      ...project,
+      seerScannerAutomation: false, // Start from off
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(<ProjectSeer project={initialProject} />, {organization});
+
+    // Find the toggle for Automate Issue Scans
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Automate Issue Scans/i,
+    });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).not.toBeChecked();
+
+    // Toggle it on
+    await userEvent.click(toggle);
+
+    // Form has saveOnBlur=true, so wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {seerScannerAutomation: true}})
+      );
+    });
+  });
+
+  it('can update the automation stopping point setting', async function () {
+    const initialProject: Project = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      method: 'POST',
+    });
+
+    render(<ProjectSeer project={initialProject} />, {organization});
+
+    // Find the select menu for Stopping Point for Automatic Fixes
+    const select = await screen.findByRole('textbox', {
+      name: /Stopping Point for Automatic Fixes/i,
+    });
+
+    act(() => {
+      select.focus();
+    });
+
+    // Open the menu and select a new value (e.g., 'Code Changes')
+    await userEvent.click(select);
+    const option = await screen.findByText('Code Changes');
+    await userEvent.click(option);
+
+    // Form has saveOnBlur=true, so wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {automated_run_stopping_point: 'code_changes'}})
+      );
+    });
+
+    // Also check that the seer preferences POST was called with the new stopping point
+    await waitFor(() => {
+      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automated_run_stopping_point: 'code_changes',
+          }),
+        })
       );
     });
   });

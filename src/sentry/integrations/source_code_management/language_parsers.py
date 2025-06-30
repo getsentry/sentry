@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import re
 from abc import ABC
-from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
+from sentry import features
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 
 stackframe_function_name = lambda i: Function(
     "arrayElement",
@@ -262,7 +264,111 @@ class PHPParser(LanguageParser):
     ]
 
 
-PATCH_PARSERS: dict[str, Any] = {
+class CSharpParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of method declaration                           Example
+    Regular method:                                     public void MethodName()
+    Static method:                                      public static int Calculate(int x)
+    Async method:                                       public async Task<string> ProcessAsync()
+    Constructor:                                        public ClassName()
+    Static constructor:                                 static ClassName()
+    Destructor/Finalizer:                              ~ClassName()
+    Operator overload:                                  public static ClassName operator+(ClassName a)
+    Expression-bodied method:                           public int Add(int x) => x + 1;
+    Property getter/setter:                             get { return _value; }
+    Local function:                                     void LocalFunction()
+    Interface method implementation:                    void IInterface.Method()
+    """
+
+    # Regular method declarations with access modifiers - exclude operator declarations
+    method_declaration_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:\[[^\]]*\]\s*)?(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract|async|extern|unsafe)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*\("
+
+    # Constructor declarations (including static constructors) - exclude operator declarations
+    constructor_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static)?\s*(?P<fnc>\w+)\s*\([^)]*\)\s*(?::\s*(?:base|this)\([^)]*\))?\s*$"
+
+    # Destructor/Finalizer
+    destructor_regex = r"^@@.*@@[^=]*?\s*~(?P<fnc>\w+)\s*\(\s*\)"
+
+    # Operator overloads - split into standard operators and conversion operators
+    operator_standard_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*static\s*\w+\s*operator\s*(?P<fnc>[+\-*/=<>!&|^%~]+)\s*\("
+    operator_conversion_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*static\s*(?P<fnc>implicit|explicit)\s*operator\s+\w+\s*\("
+
+    # Property accessors (get/set)
+    property_accessor_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>get|set)\s*[{(]"
+
+    # Expression-bodied methods and properties
+    expression_bodied_method_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract|async)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*\([^)]*\)\s*=>"
+    expression_bodied_property_regex = r"^@@.*@@[^=]*?\s*(?:public|private|protected|internal)?\s*(?:static|virtual|override|abstract)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)\s*=>"
+
+    # Local functions (no access modifiers) - exclude operator declarations
+    local_function_regex = r"^@@.*@@(?!.*\boperator\b)[^=]*?\s*(?:static|async)?\s*(?:async)?\s*(?:\w+\??(?:<[^>]*>)?(?:\[\])?\s+)?(?P<fnc>\w+)(?:<[^>]*>)?\s*\([^)]*\)\s*$"
+
+    regexes = [
+        method_declaration_regex,
+        constructor_regex,
+        destructor_regex,
+        operator_standard_regex,
+        operator_conversion_regex,
+        property_accessor_regex,
+        expression_bodied_method_regex,
+        expression_bodied_property_regex,
+        local_function_regex,
+    ]
+
+
+class GoParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of function declaration                        Example
+    Regular function:                                   func Hello(name string) string
+    Function with multiple returns:                     func Hello(name string) (string, error)
+    Method with receiver:                               func (r *Receiver) MethodName() error
+    Method with value receiver:                         func (r Receiver) MethodName() error
+    Anonymous function:                                 func() { ... }
+    Function variable:                                  var myFunc = func() { ... }
+    Function variable (short declaration):              myFunc := func() { ... }
+    Function variable separate assignment:              add = func(x, y int) int { ... }
+    Interface method (in interface definition):         MethodName(param Type) ReturnType
+    """
+
+    # Regular function declarations (including generics with optional whitespace)
+    function_declaration_regex = r"^@@.*@@[^=]*?\s*func\s+(?P<fnc>\w+)(?:\s*\[[^\]]*\])?\s*\("
+
+    # Method declarations with receiver (pointer or value)
+    method_with_receiver_regex = r"^@@.*@@[^=]*?\s*func\s+\([^)]+\)\s*(?P<fnc>\w+)\s*\("
+
+    # Function variables with var keyword
+    function_var_regex = r"^@@.*@@[^=]*?\s*var\s+(?P<fnc>\w+)\s*=\s*func\s*\("
+
+    # Function variables with short declaration (:=)
+    function_short_decl_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*:=\s*func\s*\("
+
+    # Function variable separate assignment (handles var declaration then assignment)
+    function_assignment_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*=\s*func\s*\("
+
+    # Interface method declarations (no func keyword, just method signature)
+    # This matches lines that look like method signatures in interfaces
+    interface_method_regex = r"^@@.*@@(?!.*\bfunc\b)\s+(?P<fnc>\w+)\s*\([^)]*\).*$"
+
+    regexes = [
+        function_declaration_regex,
+        method_with_receiver_regex,
+        function_var_regex,
+        function_short_decl_regex,
+        function_assignment_regex,
+        interface_method_regex,
+        # Note: anonymous_function_regex omitted as it doesn't capture meaningful names
+    ]
+
+
+PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
@@ -271,3 +377,19 @@ PATCH_PARSERS: dict[str, Any] = {
     "php": PHPParser,
     "rb": RubyParser,
 }
+
+
+def get_patch_parsers_for_organization(
+    organization: Organization | RpcOrganization | None = None,
+) -> dict[str, type[SimpleLanguageParser] | type[LanguageParser]]:
+    """
+    Returns the appropriate patch parsers based on feature flags.
+    Falls back to the standard parsers if no organization is provided.
+    """
+    parsers = PATCH_PARSERS
+    if organization and features.has("organizations:csharp-open-pr-comments", organization):
+        parsers.update({"cs": CSharpParser})
+    if organization and features.has("organizations:go-open-pr-comments", organization):
+        parsers.update({"go": GoParser})
+
+    return parsers

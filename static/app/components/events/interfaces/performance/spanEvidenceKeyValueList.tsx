@@ -311,6 +311,45 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function getSQLQueryRowFromEvidence(querySpan: Span) {
+  // Mongo query is sanitized and not helpful to display
+  if (querySpan.description?.toUpperCase().includes('SELECT')) {
+    return makeRow(t('Query'), getSpanEvidenceValue(querySpan));
+  }
+  return null;
+}
+
+function DBQueryInjectionVulnerabilityEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
+    (param: string[]) => {
+      if (typeof param[1] === 'object') {
+        return `${param[0]}: ${JSON.stringify(param[1])}`;
+      }
+      return `${param[0]}: ${param[1]}`;
+    }
+  );
+
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, organization, location, projectSlug),
+          getSQLQueryRowFromEvidence(offendingSpans[0]!),
+          makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
+          makeRow(t('Request URL'), evidenceData.requestUrl),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -330,6 +369,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({

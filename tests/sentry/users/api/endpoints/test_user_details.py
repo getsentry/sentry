@@ -123,6 +123,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
                 "quickStartDisplay": {self.organization.id: 1},
+                "prefersAgentsInsightsModule": True,
             },
         )
 
@@ -153,6 +154,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
+        assert UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
 
     def test_saving_changes_value(self):
         """
@@ -298,6 +300,31 @@ class UserDetailsUpdateTest(UserDetailsTest):
             options={"quickStartDisplay": {org1_id: "invalid"}},
             status_code=400,
         )
+
+    def test_saving_agents_insights_module_option(self):
+        self.get_success_response(
+            "me",
+            options={"prefersAgentsInsightsModule": True},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
+            is True
+        )
+
+        self.get_success_response(
+            "me",
+            options={"prefersAgentsInsightsModule": False},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
+            is False
+        )
+
+    def test_default_agents_insights_module_option_is_true(self):
+        resp = self.get_success_response(
+            "me",
+        )
+        assert resp.data["options"]["prefersAgentsInsightsModule"] is True
 
 
 @control_silo_test

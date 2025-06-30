@@ -9,7 +9,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -151,6 +151,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
         timeWindowConfig={timeWindowConfig}
         labelPosition="center-bottom"
         envCount={statEnvironments.length}
+        cursorOverlayAnchor="bottom"
+        cursorOverlayAnchorOffset={4}
       />
       <IssueGridLineLabels
         timeWindowConfig={timeWindowConfig}
@@ -215,7 +217,7 @@ const TimelineLegend = styled('div')`
 
 const TimelineLegendText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimelineContainer = styled('div')`
@@ -228,8 +230,8 @@ const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
   left: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   white-space: nowrap;
 `;

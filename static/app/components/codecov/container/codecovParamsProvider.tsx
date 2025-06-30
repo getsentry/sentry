@@ -1,73 +1,113 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
+import {useSearchParams} from 'react-router-dom';
 
-import type {CodecovContextData} from 'sentry/components/codecov/context/codecovContext';
+import type {
+  CodecovContextData,
+  CodecovContextDataParams,
+} from 'sentry/components/codecov/context/codecovContext';
 import {CodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import type {CodecovPeriodOptions} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type CodecovQueryParamsProviderProps = {
   children?: NonNullable<React.ReactNode>;
 };
 
+const VALUES_TO_RESET_MAP = {
+  integratedOrg: ['repository', 'branch'],
+  repository: ['branch'],
+  branch: [],
+  codecovPeriod: [],
+};
+
 export default function CodecovQueryParamsProvider({
   children,
 }: CodecovQueryParamsProviderProps) {
   const organization = useOrganization();
-
-  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [localStorageState, setLocalStorageState] = useLocalStorageState(
     `codecov-selection:${organization.slug}`,
     {}
   );
 
+  function _defineParam(key: string, defaultValue?: string | CodecovPeriodOptions) {
+    const queryValue = searchParams.get(key);
+
+    if (queryValue) {
+      return decodeURIComponent(queryValue);
+    }
+
+    if (key in localStorageState) {
+      return (localStorageState as Record<string, string>)[key];
+    }
+
+    if (defaultValue) {
+      return defaultValue;
+    }
+
+    return undefined;
+  }
+
+  const changeContextValue = useCallback(
+    (value: Partial<CodecovContextDataParams>) => {
+      const currentParams = Object.fromEntries(searchParams.entries());
+      const valueKey = Object.keys(value)[0] as keyof typeof value;
+      const valuesToReset = VALUES_TO_RESET_MAP[valueKey];
+
+      valuesToReset.forEach(key => {
+        delete currentParams[key];
+      });
+
+      setLocalStorageState((prev: Partial<CodecovContextDataParams>) => {
+        const newState = {...prev};
+        valuesToReset.forEach(key => {
+          delete newState[key as keyof CodecovContextDataParams];
+        });
+        return newState;
+      });
+
+      const updatedParams = {
+        ...currentParams,
+        ...value,
+      };
+
+      setSearchParams(updatedParams);
+    },
+    [searchParams, setLocalStorageState, setSearchParams]
+  );
+
   useEffect(() => {
-    const validEntries = {
-      repository: location.query.repository,
-      integratedOrg: location.query.integratedOrg,
-      branch: location.query.branch,
-      codecovPeriod: location.query.codecovPeriod,
+    const entries = {
+      repository: searchParams.get('repository'),
+      integratedOrg: searchParams.get('integratedOrg'),
+      branch: searchParams.get('branch'),
+      codecovPeriod: searchParams.get('codecovPeriod'),
     };
 
-    for (const [key, value] of Object.entries(validEntries)) {
-      if (!value || typeof value !== 'string') {
-        delete validEntries[key as keyof CodecovContextData];
+    for (const [key, value] of Object.entries(entries)) {
+      if (!value) {
+        delete entries[key as keyof typeof entries];
       }
     }
 
     setLocalStorageState(prev => ({
       ...prev,
-      ...validEntries,
+      ...entries,
     }));
-  }, [setLocalStorageState, location.query]);
+  }, [setLocalStorageState, searchParams]);
 
-  // Repository, org and branch default to null as its value to the option not being selected.
-  // These only represent the unselected values and shouldn't be used when fetching backend data.
+  const repository = _defineParam('repository');
+  const integratedOrg = _defineParam('integratedOrg');
+  const branch = _defineParam('branch');
+  const codecovPeriod = _defineParam('codecovPeriod', '24h') as CodecovPeriodOptions;
+
   const params: CodecovContextData = {
-    repository:
-      typeof location.query.repository === 'string'
-        ? decodeURIComponent(location.query.repository)
-        : 'repository' in localStorageState
-          ? (localStorageState.repository as string)
-          : null,
-    integratedOrg:
-      typeof location.query.integratedOrg === 'string'
-        ? decodeURIComponent(location.query.integratedOrg)
-        : 'integratedOrg' in localStorageState
-          ? (localStorageState.integratedOrg as string)
-          : null,
-    branch:
-      typeof location.query.branch === 'string'
-        ? decodeURIComponent(location.query.branch)
-        : 'branch' in localStorageState
-          ? (localStorageState.branch as string)
-          : null,
-    codecovPeriod:
-      typeof location.query.codecovPeriod === 'string'
-        ? decodeURIComponent(location.query.codecovPeriod)
-        : 'codecovPeriod' in localStorageState
-          ? (localStorageState.codecovPeriod as string)
-          : '24h',
+    ...(repository ? {repository} : {}),
+    ...(integratedOrg ? {integratedOrg} : {}),
+    ...(branch ? {branch} : {}),
+    codecovPeriod,
+    changeContextValue,
   };
 
   return <CodecovContext.Provider value={params}>{children}</CodecovContext.Provider>;

@@ -111,7 +111,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
             )}
             hasCredits={hasErrorCredits}
           />
-          {/* TODO(data categories): check if this can be parsed */}
+          {/* TODO(data categories): BIL-955 */}
           {isAM3Migration
             ? nextPlan.reserved.spans && (
                 <PlanMigrationRow
@@ -318,7 +318,7 @@ const TableContainer = styled('div')`
 `;
 
 const Credits = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

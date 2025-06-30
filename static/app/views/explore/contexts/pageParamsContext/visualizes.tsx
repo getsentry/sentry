@@ -3,11 +3,12 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -20,12 +21,11 @@ export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
-  return [new Visualize([DEFAULT_VISUALIZATION], {label: 'A'})];
+  return [new Visualize(DEFAULT_VISUALIZATION)];
 }
 
 type VisualizeOptions = {
   chartType?: ChartType;
-  label?: string;
 };
 
 export interface BaseVisualize {
@@ -34,38 +34,43 @@ export interface BaseVisualize {
 }
 
 export class Visualize {
+  isEquation: boolean;
   chartType: ChartType;
-  label: string;
-  yAxes: readonly string[];
+  yAxis: string;
   stack?: string;
   private selectedChartType?: ChartType;
 
-  constructor(yAxes: readonly string[], options?: VisualizeOptions) {
-    this.yAxes = yAxes;
-    this.label = options?.label || '';
+  constructor(yAxis: string, options?: VisualizeOptions) {
+    this.yAxis = yAxis;
     this.selectedChartType = options?.chartType;
-    this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
-    this.stack =
-      this.chartType === ChartType.BAR && this.yAxes.length > 1 ? undefined : 'all';
+    this.isEquation = isEquation(yAxis);
+    this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.stack = 'all';
+  }
+
+  isValid(): boolean {
+    if (this.isEquation) {
+      const expression = new Expression(this.yAxis);
+      return expression.isValid;
+    }
+    return defined(parseFunction(this.yAxis));
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxes, {
-      label: this.label,
+    return new Visualize(this.yAxis, {
       chartType: this.selectedChartType,
     });
   }
 
-  replace({chartType, yAxes}: {chartType?: ChartType; yAxes?: string[]}): Visualize {
-    return new Visualize(yAxes ?? this.yAxes, {
-      label: this.label,
+  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+    return new Visualize(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
     });
   }
 
   toJSON(): BaseVisualize {
     const json: BaseVisualize = {
-      yAxes: this.yAxes,
+      yAxes: [this.yAxis],
     };
 
     if (defined(this.selectedChartType)) {
@@ -75,8 +80,8 @@ export class Visualize {
     return json;
   }
 
-  static fromJSON(json: BaseVisualize): Visualize {
-    return new Visualize(json.yAxes, {label: '', chartType: json.chartType});
+  static fromJSON(json: BaseVisualize): Visualize[] {
+    return json.yAxes.map(yAxis => new Visualize(yAxis, {chartType: json.chartType}));
   }
 }
 
@@ -92,16 +97,13 @@ export function getVisualizesFromLocation(
     .map(raw => parseBaseVisualize(raw, organization))
     .filter(defined);
 
-  let i = 0;
   for (const visualize of baseVisualizes) {
     for (const yAxis of visualize.yAxes) {
       visualizes.push(
-        new Visualize([yAxis], {
-          label: String.fromCharCode(65 + i), // starts from 'A',
+        new Visualize(yAxis, {
           chartType: visualize.chartType,
         })
       );
-      i++;
     }
   }
 
@@ -118,12 +120,13 @@ export function parseBaseVisualize(
       return null;
     }
 
-    const yAxes = organization.features.includes('visibility-explore-equations')
-      ? parsed.yAxes.filter((yAxis: string) => {
-          const expression = new Expression(yAxis);
-          return expression.isValid;
-        })
-      : parsed.yAxes.filter(parseFunction);
+    const allowEquations = organization.features.includes('visibility-explore-equations');
+    const yAxes = parsed.yAxes.filter((yAxis: string) => {
+      if (isEquation(yAxis)) {
+        return allowEquations;
+      }
+      return defined(parseFunction(yAxis));
+    });
     if (yAxes.length <= 0) {
       return null;
     }
@@ -164,15 +167,14 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
   }
 
-  if (newAggregate === AggregationKey.EPM || newAggregate === AggregationKey.EPS) {
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {
     return `${newAggregate}()`;
   }
 
   // switching away from count_unique means we need to reset the field
   if (
     oldAggregate === AggregationKey.COUNT_UNIQUE ||
-    oldAggregate === AggregationKey.EPM ||
-    oldAggregate === AggregationKey.EPS
+    NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
   ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }

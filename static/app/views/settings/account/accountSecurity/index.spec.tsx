@@ -393,10 +393,12 @@ describe('AccountSecurity', function () {
     });
 
     renderComponent();
+    renderGlobalModal();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Sign out of all devices'})
     );
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>

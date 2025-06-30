@@ -35,7 +35,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-interface ProjectPageFilterProps
+export interface ProjectPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<number>,
@@ -73,6 +73,11 @@ interface ProjectPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Insights)
+   * TODO: ideally this can be determined by what's set in the PageFiltersContainer
+   */
+  storageNamespace?: string;
 }
 
 /**
@@ -94,6 +99,7 @@ export function ProjectPageFilter({
   projectOverride,
   resetParamsOnChange,
   footerMessage,
+  storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
   const user = useUser();
@@ -214,6 +220,7 @@ export function ProjectPageFilter({
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
+        storageNamespace,
       });
     },
     [
@@ -225,6 +232,7 @@ export function ProjectPageFilter({
       routes,
       onChange,
       mapNormalValueToURLValue,
+      storageNamespace,
     ]
   );
 

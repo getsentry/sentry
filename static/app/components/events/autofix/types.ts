@@ -50,6 +50,9 @@ export type AutofixData = {
   last_triggered_at: string;
   request: {
     repos: SeerRepoDefinition[];
+    options?: {
+      auto_run_source?: string | null;
+    };
   };
   run_id: string;
   status: AutofixStatus;
@@ -262,6 +265,7 @@ export interface SeerRepoDefinition {
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
+  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

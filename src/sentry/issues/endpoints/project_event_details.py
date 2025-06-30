@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition
@@ -13,7 +14,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
+from sentry.api.utils import get_date_range_from_params
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 
 
@@ -28,6 +31,8 @@ def wrap_event_response(
     environments: list[str],
     include_full_release_data: bool = False,
     conditions: list[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> GroupEventDetailsResponse:
     event_data = serialize(
         event,
@@ -52,6 +57,8 @@ def wrap_event_response(
                 environments=environments,
                 event=event,
                 conditions=conditions,
+                start=start,
+                end=end,
             )
         else:
             legacy_conditions = []
@@ -62,6 +69,8 @@ def wrap_event_response(
                 conditions=legacy_conditions,
                 project_ids=[event.project_id],
                 group_ids=[event.group_id],
+                start=start,
+                end=end,
             )
 
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
@@ -97,6 +106,10 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                                  reported by the raven client)
         :auth: required
         """
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams:
+            raise ParseError(detail="Invalid date range")
 
         group_id_s = request.GET.get("group_id")
         group_id = int(group_id_s) if group_id_s else None
@@ -113,7 +126,12 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             event = event.for_group(event.group)
 
         data = wrap_event_response(
-            request.user, event, list(environments), include_full_release_data=True
+            request_user=request.user,
+            event=event,
+            environments=list(environments),
+            include_full_release_data=True,
+            start=start,
+            end=end,
         )
         return Response(data)
 

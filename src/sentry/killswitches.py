@@ -217,7 +217,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "standalone-spans.drop-in-buffer": KillswitchInfo(
+    "spans.drop-in-buffer": KillswitchInfo(
         description="""
         Drop spans.
         """,
@@ -261,28 +261,25 @@ def normalize_value(
     return rv
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
+def get_killswitch_value(killswitch_name: str) -> KillswitchConfig:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
+    raw_option_value = options.get(killswitch_name)
+    return normalize_value(killswitch_name, raw_option_value)
+
+
+def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
+    option_value = get_killswitch_value(killswitch_name)
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
-    option_value = options.get(killswitch_name)
-    rv = _value_matches(killswitch_name, option_value, context)
-
-    if emit_metrics:
-        # metrics can have a meaningful performance impact, so allow caller to opt out
-        # TODO: re-evaluate after we make metric collection aysnc.
-        metrics.incr(
-            "killswitches.run",
-            tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
-        )
-
-    return rv
+    return value_matches(killswitch_name, option_value, context, emit_metrics)
 
 
-def _value_matches(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, context: Context
+def value_matches(
+    killswitch_name: str,
+    option_value: KillswitchConfig,
+    context: Context,
+    emit_metrics=True,
 ) -> bool:
-    option_value = normalize_value(killswitch_name, raw_option_value)
-
+    decision = False
     for condition in option_value:
         for field, matching_value in condition.items():
             if matching_value is None:
@@ -295,9 +292,21 @@ def _value_matches(
             if str(value) != matching_value:
                 break
         else:
-            return True
+            decision = True
+            break
 
-    return False
+    if emit_metrics:
+        # metrics can have a meaningful performance impact, so allow caller to opt out
+        # TODO: re-evaluate after we make metric collection aysnc.
+        metrics.incr(
+            "killswitches.run",
+            tags={
+                "killswitch_name": killswitch_name,
+                "decision": "matched" if decision else "passed",
+            },
+        )
+
+    return decision
 
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:

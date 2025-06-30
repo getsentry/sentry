@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {APIReference} from './apiReference';
-import * as StorybookLayout from './layout';
+import * as Storybook from './';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -41,7 +40,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <APIReference key={i} types={documentation} />
+          <Storybook.APIReference key={i} types={documentation} />
         ))}
       </Fragment>
     );
@@ -55,11 +54,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   return (
     <StorySection>
       <StoryTitle>{props.name}</StoryTitle>
-      {isOneChild ? (
-        children
-      ) : (
-        <StorybookLayout.SideBySide>{children}</StorybookLayout.SideBySide>
-      )}
+      {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
     </StorySection>
   );
 }

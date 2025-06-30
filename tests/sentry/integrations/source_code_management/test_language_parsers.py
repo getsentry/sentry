@@ -1,6 +1,8 @@
 from unittest import TestCase
 
 from sentry.integrations.source_code_management.language_parsers import (
+    CSharpParser,
+    GoParser,
     JavascriptParser,
     PHPParser,
     PythonParser,
@@ -365,7 +367,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -115,6 +116,7 @@ function Sidebar({organization}: Props) {
 
    const collapsed = !!preferences.collapsed;
-   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+   const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
 +  const hasSuperuserSession = isActiveSuperuser(organization);
 
    useOpenOnboardingSidebar();
@@ -545,7 +547,7 @@ class JavascriptParserTestCase(TestCase):
        </Button>
      </MemberCard>
 @@ -269,17 +259,7 @@ export const Subtitle = styled('div')`
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
    font-weight: 400;
    color: ${p => p.theme.gray300};
 -  & > *:first-child {
@@ -566,7 +568,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -305,9 +285,7 @@ const MemberCardContentRow = styled('div')`
    align-items: center;
    margin-bottom: ${space(0.25)};
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
 -  & > *:first-child {
 -    margin-right: ${space(0.75)};
 -  }
@@ -806,4 +808,522 @@ class RubyParserTestCase(TestCase):
             "render_content_with_collection",
             "render_content_with_collection_2",
             "require_gems",
+        }
+
+
+class CSharpParserTestCase(TestCase):
+    def test_csharp_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ public void MethodOne()
+
+@@ -152,10 +152,6 @@ private static int MethodTwo(int x)
+
+@@ -152,10 +152,6 @@ protected virtual string MethodThree()
+
+@@ -152,10 +152,6 @@ internal async Task<string> MethodFour()
+
+@@ -152,10 +152,6 @@ public async Task MethodFive()
+
+@@ -152,10 +152,6 @@ static void MethodSix()
+
+@@ -152,10 +152,6 @@ public override bool MethodSeven()
+
+@@ -152,10 +152,6 @@ public abstract void MethodEight()
+
+@@ -152,10 +152,6 @@ public ClassName()
+
+@@ -152,10 +152,6 @@ static ClassName()
+
+@@ -152,10 +152,6 @@ ~ClassName()
+
+@@ -152,10 +152,6 @@ get { return _value; }
+
+@@ -152,10 +152,6 @@ set { _value = value; }
+
+@@ -152,10 +152,6 @@ public int Add(int x, int y) => x + y;
+
+@@ -152,10 +152,6 @@ void LocalFunction()
+
+@@ -152,10 +152,6 @@ async Task<string> AsyncLocalFunction()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "MethodOne",
+            "MethodTwo",
+            "MethodThree",
+            "MethodFour",
+            "MethodFive",
+            "MethodSix",
+            "MethodSeven",
+            "MethodEight",
+            "ClassName",
+            "get",
+            "set",
+            "Add",
+            "LocalFunction",
+            "AsyncLocalFunction",
+        }
+
+    def test_csharp_operators(self):
+        patch = """
+@@ -152,10 +152,6 @@ public static ClassName operator+(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static bool operator==(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static implicit operator string(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static explicit operator int(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static ClassName operator++(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static bool operator<(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static bool operator>(ClassName a, ClassName b)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "+",
+            "==",
+            "implicit",
+            "explicit",
+            "++",
+            "<",
+            ">",
+        }
+
+    def test_csharp_generics_and_complex_types(self):
+        patch = """
+@@ -152,10 +152,6 @@ public List<T> GetItems<T>()
+
+@@ -152,10 +152,6 @@ public Dictionary<string, int> GetDictionary()
+
+@@ -152,10 +152,6 @@ public async Task<List<string>> GetStringsAsync()
+
+@@ -152,10 +152,6 @@ public T[] GetArray<T>(int size)
+
+@@ -152,10 +152,6 @@ public void ProcessItems(List<Dictionary<string, object>> items)
+
+@@ -152,10 +152,6 @@ public Func<int, bool> GetPredicate()
+
+@@ -152,10 +152,6 @@ public Action<string> GetAction()
+
+@@ -152,10 +152,6 @@ public int? GetNullableInt()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "GetItems",
+            "GetDictionary",
+            "GetStringsAsync",
+            "GetArray",
+            "ProcessItems",
+            "GetPredicate",
+            "GetAction",
+            "GetNullableInt",
+        }
+
+    def test_csharp_expression_bodied_members(self):
+        patch = """
+@@ -152,10 +152,6 @@ public int Add(int x, int y) => x + y;
+
+@@ -152,10 +152,6 @@ public string FullName => $"{FirstName} {LastName}";
+
+@@ -152,10 +152,6 @@ public bool IsValid => !string.IsNullOrEmpty(Name);
+
+@@ -152,10 +152,6 @@ private static string FormatValue(object value) => value?.ToString() ?? "null";
+
+@@ -152,10 +152,6 @@ public async Task<string> GetDataAsync() => await LoadDataAsync();
+
+@@ -152,10 +152,6 @@ public override string ToString() => $"Object: {Name}";
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "Add",
+            "FullName",
+            "IsValid",
+            "FormatValue",
+            "GetDataAsync",
+            "ToString",
+        }
+
+    def test_csharp_real_world_example(self):
+        # Based on a typical C# class with various method types
+        patch = """
+@@ -73,9 +73,7 @@ public UserService(IUserRepository repository)
+
+@@ -87,7 +87,8 @@ public async Task<User> GetUserAsync(int id)
+
+@@ -95,6 +95,7 @@ public bool ValidateUser(User user)
+
+@@ -103,4 +107,23 @@ private void LogUserAction(string action)
+
+@@ -115,6 +118,13 @@ public static UserService CreateDefault()
+
+@@ -125,7 +125,7 @@ protected virtual void OnUserChanged(UserEventArgs e)
+
+@@ -135,8 +135,8 @@ public void Dispose()
+
+@@ -145,10 +145,10 @@ ~UserService()
+
+@@ -168,15 +168,15 @@ public int Count => _users.Count;
+
+@@ -180,18 +180,18 @@ public User this[int index] => _users[index];
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "UserService",
+            "GetUserAsync",
+            "ValidateUser",
+            "LogUserAction",
+            "CreateDefault",
+            "OnUserChanged",
+            "Dispose",
+            "Count",
+        }
+
+    def test_csharp_interface_implementations(self):
+        patch = """
+@@ -152,10 +152,6 @@ void IDisposable.Dispose()
+
+@@ -152,10 +152,6 @@ string IFormattable.ToString(string format, IFormatProvider provider)
+
+@@ -152,10 +152,6 @@ int IComparable<T>.CompareTo(T other)
+
+@@ -152,10 +152,6 @@ bool IEquatable<T>.Equals(T other)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "Dispose",
+            "ToString",
+            "CompareTo",
+            "Equals",
+        }
+
+    def test_csharp_local_functions_and_nested(self):
+        patch = """
+@@ -152,10 +152,6 @@ void OuterMethod()
+{
+    void InnerFunction()
+    {
+        // local function inside method
+    }
+}
+
+@@ -165,15 +165,15 @@ static int Calculate(int x)
+
+@@ -175,18 +175,18 @@ async Task<string> ProcessDataAsync()
+
+@@ -185,20 +185,20 @@ T GenericLocalFunction<T>(T input)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "OuterMethod",
+            "Calculate",
+            "ProcessDataAsync",
+            "GenericLocalFunction",
+        }
+
+    def test_csharp_edge_cases(self):
+        patch = """
+@@ -152,10 +152,6 @@ public unsafe void* GetPointer()
+
+@@ -152,10 +152,6 @@ public extern static void ExternalMethod();
+
+@@ -152,10 +152,6 @@ [Obsolete("Use NewMethod instead")]
+public void OldMethod()
+
+@@ -152,10 +152,6 @@ public partial void PartialMethod();
+
+@@ -152,10 +152,6 @@ public virtual async Task<IEnumerable<T>> ComplexMethod<T>()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "GetPointer",
+            "ExternalMethod",
+            "OldMethod",
+            "PartialMethod",
+            "ComplexMethod",
+        }
+
+
+class GoParserTestCase(TestCase):
+    def test_go_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ func Hello(name string) string
+
+@@ -152,10 +152,6 @@ func (r *Receiver) MethodName() error
+
+@@ -152,10 +152,6 @@ func (r Receiver) ValueMethod() string
+
+@@ -152,10 +152,6 @@ var myFunc = func() {
+
+@@ -152,10 +152,6 @@ func Calculate(x, y int) int
+
+@@ -152,10 +152,6 @@ func ProcessData() (string, error)
+
+@@ -152,10 +152,6 @@ func noParams()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Hello",
+            "MethodName",
+            "ValueMethod",
+            "myFunc",
+            "Calculate",
+            "ProcessData",
+            "noParams",
+        }
+
+    def test_go_methods_with_receivers(self):
+        patch = """
+@@ -152,10 +152,6 @@ func (s *Server) Start() error
+
+@@ -152,10 +152,6 @@ func (s Server) Stop()
+
+@@ -152,10 +152,6 @@ func (h *Handler) ServeHTTP(w ResponseWriter, r *Request)
+
+@@ -152,10 +152,6 @@ func (db *Database) Query(query string) (*Result, error)
+
+@@ -152,10 +152,6 @@ func (u User) String() string
+
+@@ -152,10 +152,6 @@ func (p *Point) Distance(q *Point) float64
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Start",
+            "Stop",
+            "ServeHTTP",
+            "Query",
+            "String",
+            "Distance",
+        }
+
+    def test_go_function_variables(self):
+        patch = """
+@@ -152,10 +152,6 @@ var handler = func(w http.ResponseWriter, r *http.Request) {
+
+@@ -152,10 +152,6 @@ var callback = func() error {
+
+@@ -152,10 +152,6 @@ processor := func(data []byte) []byte {
+
+@@ -152,10 +152,6 @@ validator := func(input string) bool {
+
+@@ -152,10 +152,6 @@ var transformer = func(x int) int {
+
+@@ -152,10 +152,6 @@ mapper := func(items []string) map[string]int {
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "handler",
+            "callback",
+            "processor",
+            "validator",
+            "transformer",
+            "mapper",
+        }
+
+    def test_go_interface_methods(self):
+        # Note: Interface method regex is intentionally last in the list
+        # because it's more general and could match other patterns
+        patch = """
+@@ -152,10 +152,6 @@ Read(p []byte) (n int, err error)
+
+@@ -152,10 +152,6 @@ Write(p []byte) (n int, err error)
+
+@@ -152,10 +152,6 @@ Close() error
+
+@@ -152,10 +152,6 @@ String() string
+
+@@ -152,10 +152,6 @@ ServeHTTP(ResponseWriter, *Request)
+
+@@ -152,10 +152,6 @@ Validate() bool
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Read",
+            "Write",
+            "Close",
+            "String",
+            "ServeHTTP",
+            "Validate",
+        }
+
+    def test_go_real_world_example(self):
+        # Based on a typical Go service with various function types
+        patch = """
+@@ -73,9 +73,7 @@ func NewService(db *sql.DB) *Service
+
+@@ -87,7 +87,8 @@ func (s *Service) GetUser(ctx context.Context, id int) (*User, error)
+
+@@ -95,6 +95,7 @@ func (s *Service) CreateUser(user *User) error
+
+@@ -103,4 +107,23 @@ func validateEmail(email string) bool
+
+@@ -115,6 +118,13 @@ var logger = func(msg string) {
+
+@@ -125,7 +125,7 @@ func (s *Service) updateCache(key string, value interface{})
+
+@@ -135,8 +135,8 @@ handleError := func(err error) {
+
+@@ -145,10 +145,10 @@ func init()
+
+@@ -168,15 +168,15 @@ func main()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "NewService",
+            "GetUser",
+            "CreateUser",
+            "validateEmail",
+            "logger",
+            "updateCache",
+            "handleError",
+            "init",
+            "main",
+        }
+
+    def test_go_complex_signatures(self):
+        patch = """
+@@ -152,10 +152,6 @@ func Process(ctx context.Context, opts ...Option) (*Result, error)
+
+@@ -152,10 +152,6 @@ func (c *Client) Do(req *Request) (*Response, error)
+
+@@ -152,10 +152,6 @@ func HandleFunc(pattern string, handler func(ResponseWriter, *Request))
+
+@@ -152,10 +152,6 @@ var middleware = func(next http.Handler) http.Handler {
+
+@@ -152,10 +152,6 @@ converter := func(input interface{}) (interface{}, error) {
+
+@@ -152,10 +152,6 @@ func Generic[T any](items []T) T
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Process",
+            "Do",
+            "HandleFunc",
+            "middleware",
+            "converter",
+            "Generic",
+        }
+
+    def test_go_edge_cases(self):
+        patch = """
+
+@@ -152,10 +152,6 @@ func (r *T) method_with_underscore()
+
+@@ -152,10 +152,6 @@ var fn123 = func() {
+
+@@ -152,10 +152,6 @@ camelCase := func() {
+
+@@ -152,10 +152,6 @@ func MixedCase_With_Underscores()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "method_with_underscore",
+            "fn123",
+            "camelCase",
+            "MixedCase_With_Underscores",
+        }
+
+    def test_go_multiline_signatures(self):
+        """Test Go functions with parameters and return types spanning multiple lines"""
+        patch = """
+@@ -152,10 +152,6 @@ func LongFunction(
+    param1 string,
+    param2 int,
+    param3 []byte,
+) (string, error)
+
+@@ -160,12 +160,8 @@ func (s *Service) ProcessRequest(
+    ctx context.Context,
+    request *http.Request,
+    options ...Option,
+) (*Response, error) {
+
+@@ -170,15 +170,10 @@ var complexHandler = func(
+    w http.ResponseWriter,
+    r *http.Request,
+    middleware []Middleware,
+) error {
+
+@@ -180,18 +180,12 @@ transformer := func(
+    input map[string]interface{},
+    validators []Validator,
+) (
+    map[string]interface{},
+    error,
+) {
+
+@@ -190,20 +190,15 @@ func GenericProcessor[T any, R comparable](
+    items []T,
+    processor func(T) R,
+    options ProcessOptions,
+) ([]R, error)
+
+@@ -200,25 +200,18 @@ func (db *Database) ExecuteTransaction(
+    ctx context.Context,
+    queries []string,
+    params []interface{},
+) (
+    results []Result,
+    err error,
+)
+
+@@ -210,30 +210,20 @@ var middleware = func(
+    next http.Handler,
+) http.Handler {
+
+@@ -215,35 +215,22 @@ MultilineInterface(
+    param1 string,
+    param2 int,
+) (string, error)
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "LongFunction",
+            "ProcessRequest",
+            "complexHandler",
+            "transformer",
+            "GenericProcessor",
+            "ExecuteTransaction",
+            "middleware",
+            "MultilineInterface",
+        }
+
+    def test_go_separate_variable_assignment(self):
+        """Test Go function variables declared separately from assignment (addressing PR comment)"""
+        patch = """
+@@ -152,10 +152,6 @@ var add func(int, int) int
+some other code here
+@@ -160,12 +160,8 @@ add = func(x, y int) int {
+
+@@ -170,15 +170,10 @@ var handler func(http.ResponseWriter, *http.Request)
+@@ -175,18 +175,12 @@ handler = func(w http.ResponseWriter, r *http.Request) {
+
+@@ -180,20 +180,15 @@ var processor func([]byte) []byte
+random code
+@@ -190,25 +190,18 @@ processor = func(data []byte) []byte {
+
+"""
+
+        # The separate assignment should be captured by function_assignment_regex
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "add",
+            "handler",
+            "processor",
         }

@@ -17,12 +17,12 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -347,9 +347,6 @@ function DashboardTable({
         renderHeadCell: column => renderHeadCell(column),
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          if (!organization.features.includes('dashboards-favourite')) {
-            return [];
-          }
           const favoriteColumn = {
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
@@ -369,9 +366,7 @@ function DashboardTable({
           }
           return [renderBodyCell(favoriteColumn, dataRow) as any];
         },
-        prependColumnWidths: organization.features.includes('dashboards-favourite')
-          ? ['max-content']
-          : [],
+        prependColumnWidths: ['max-content'],
       }}
       isLoading={isLoading}
       emptyMessage={
@@ -386,7 +381,7 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};

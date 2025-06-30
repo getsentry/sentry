@@ -61,17 +61,11 @@ class JiraRequestParser(BaseRequestParser):
         regions = self.get_regions_from_organizations()
 
         if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_default_missing_integration_response()
 
         if len(regions) > 1:
-            # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
-            # first region to forward along to.
-            logger.info(
-                "%s.too_many_regions",
-                self.provider,
-                extra={"path": self.request.path, "regions": regions},
-            )
+            # This shouldn't happen because we block multi region install at the install time.
+            raise ValueError("Jira integration is installed in multiple regions")
 
         if self.view_class in self.immediate_response_region_classes:
             try:

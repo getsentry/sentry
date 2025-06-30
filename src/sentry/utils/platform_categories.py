@@ -6,6 +6,7 @@ FRONTEND = {
     "dart",
     "javascript",
     "javascript-react",
+    "javascript-react-router",
     "javascript-angular",
     "javascript-angularjs",
     "javascript-backbone",

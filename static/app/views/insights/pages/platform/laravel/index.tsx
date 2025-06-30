@@ -15,15 +15,15 @@ import OverviewRequestsChartWidget from 'sentry/views/insights/common/components
 import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {CommandsTable} from 'sentry/views/insights/pages/platform/laravel/commandsTable';
 import {JobsTable} from 'sentry/views/insights/pages/platform/laravel/jobsTable';
+import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 
 enum TableType {
   PATHS = 'paths',
   COMMANDS = 'commands',
-  JOBS = 'jobs',
+  QUEUES = 'queues',
 }
 
 function isTableType(value: any): value is TableType {
@@ -105,10 +105,10 @@ export function LaravelOverviewPage() {
         <TableControl value={currentView} onChange={handleViewChange} size="sm">
           <TableControlItem key={TableType.PATHS}>{t('Paths')}</TableControlItem>
           <TableControlItem key={TableType.COMMANDS}>{t('Commands')}</TableControlItem>
-          <TableControlItem key={TableType.JOBS}>{t('Jobs')}</TableControlItem>
+          <TableControlItem key={TableType.QUEUES}>{t('Queues')}</TableControlItem>
         </TableControl>
       </ControlsWrapper>
-      {currentView === TableType.JOBS && <JobsTable />}
+      {currentView === TableType.QUEUES && <JobsTable />}
       {currentView === TableType.PATHS && <PathsTable />}
       {currentView === TableType.COMMANDS && <CommandsTable />}
     </PlatformLandingPageLayout>

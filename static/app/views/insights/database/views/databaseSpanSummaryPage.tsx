@@ -279,7 +279,7 @@ const ChartContainer = styled('div')`
   gap: 0;
   grid-template-columns: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
     gap: ${space(2)};
   }

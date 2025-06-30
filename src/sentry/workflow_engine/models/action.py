@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import logging
 from dataclasses import asdict
 from enum import StrEnum
@@ -79,11 +80,14 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
-    def get_handler(self) -> ActionHandler:
+    def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
+        handler = self.get_handler()
+        handler.execute(event_data, self, detector)
+
         logger.info(
             "workflow_engine.action.trigger",
             extra={
@@ -92,9 +96,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 "event_data": asdict(event_data),
             },
         )
-
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
 
 
 @receiver(pre_save, sender=Action)

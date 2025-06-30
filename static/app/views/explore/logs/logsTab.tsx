@@ -3,6 +3,7 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,7 +14,7 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -26,8 +27,8 @@ import {
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAggregate,
   useLogsAggregateFunction,
-  useLogsAggregateParam,
   useLogsFields,
   useLogsGroupBy,
   useLogsSearch,
@@ -36,7 +37,10 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {getIntervalOptionsForPageFilter} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  ChartIntervalUnspecifiedStrategy,
+  useChartInterval,
+} from 'sentry/views/explore/hooks/useChartInterval';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -53,9 +57,9 @@ import {
   ToolbarAndBodyContainer,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
+import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -70,37 +74,42 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const organization = useOrganization();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
-  const pageFilters = usePageFilters();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const oldLogsSearch = usePrevious(logsSearch);
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
-    ?.value;
+  const [interval] = useChartInterval({
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+  });
   const aggregateFunction = useLogsAggregateFunction();
-  const _aggregateParam = useLogsAggregateParam();
-  const aggregateParam =
-    (aggregateFunction === 'count' ? null : _aggregateParam) ||
-    OurLogKnownFieldKey.MESSAGE;
+  const aggregate = useLogsAggregate();
+  const [sidebarOpen, setSidebarOpen] = useState(
+    !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
+  );
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
-      yAxis: [`${aggregateFunction}(${aggregateParam})`],
+      yAxis: [aggregate],
       interval,
-      fields: [...(groupBy ? [groupBy] : []), `${aggregateFunction}(${aggregateParam})`],
-      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
+      fields: [...(groupBy ? [groupBy] : []), aggregate],
+      topEvents: groupBy?.length ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
+  );
+  const [tableTab, setTableTab] = useState<'aggregates' | 'logs'>(
+    (aggregateFunction && aggregateFunction !== 'count') || groupBy
+      ? 'aggregates'
+      : 'logs'
   );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -223,6 +232,17 @@ export function LogsTabContent({
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
+              <Feature
+                features="organizations:ourlogs-visualize-sidebar"
+                renderDisabled={() => <div />}
+              >
+                <Tabs value={tableTab} onChange={setTableTab} size="sm">
+                  <TabList hideBorder variant="floating">
+                    <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
+                    <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
+                  </TabList>
+                </Tabs>
+              </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle />
@@ -234,20 +254,20 @@ export function LogsTabContent({
             </LogsTableActionsContainer>
 
             <LogsItemContainer>
-              <Feature
-                features="organizations:ourlogs-infinite-scroll"
-                renderDisabled={() => (
-                  <LogsTable
-                    stringAttributes={stringAttributes}
-                    numberAttributes={numberAttributes}
-                  />
-                )}
-              >
+              {tableTab === 'logs' &&
+              organization.features.includes('ourlogs-infinite-scroll') ? (
                 <LogsInfiniteTable
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />
-              </Feature>
+              ) : tableTab === 'logs' ? (
+                <LogsTable
+                  stringAttributes={stringAttributes}
+                  numberAttributes={numberAttributes}
+                />
+              ) : (
+                <LogsAggregateTable />
+              )}
             </LogsItemContainer>
           </section>
         </BottomSectionBody>

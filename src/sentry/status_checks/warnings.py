@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 from urllib.parse import urljoin
 
 from django.urls import reverse
+
+from sentry.utils.warnings import WarningSet
 
 from .base import Problem, StatusCheck
 
 
 class WarningStatusCheck(StatusCheck):
-    def __init__(self, warning_set):
+    def __init__(self, warning_set: WarningSet) -> None:
         self.__warning_set = warning_set
 
-    def check(self):
+    def check(self) -> list[Problem]:
         if self.__warning_set:
             return [
                 Problem(

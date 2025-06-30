@@ -657,14 +657,14 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 

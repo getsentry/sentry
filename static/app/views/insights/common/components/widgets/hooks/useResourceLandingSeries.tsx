@@ -1,6 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -72,7 +73,7 @@ export function useResourceLandingSeries(props: Props) {
       transformAliasToInputFormat: true,
       enabled,
     },
-    'api.starfish.span-time-charts',
+    Referrer.RESOURCE_LANDING_SERIES,
     pageFilters
   );
 }

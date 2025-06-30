@@ -1,16 +1,19 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.logic import SentryAppUpdater, expand_events
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -33,7 +36,8 @@ class TestUpdater(TestCase):
         self.updater.run(user=self.user)
         assert self.sentry_app.name == "A New Thing"
 
-    def test_update_scopes_internal_integration(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_update_scopes_internal_integration(self, mock_record):
         self.create_project(organization=self.org)
         sentry_app = self.create_internal_integration(
             scopes=("project:read",), organization=self.org
@@ -52,6 +56,17 @@ class TestUpdater(TestCase):
             "project:read",
             "project:write",
         ]
+
+        # SLO assertions
+        assert_success_metric(mock_record=mock_record)
+
+        # CREATE (success) -> UPDATE (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
 
     def test_updates_unpublished_app_scopes(self):
         # create both expired token and not expired tokens

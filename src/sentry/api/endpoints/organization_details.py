@@ -46,6 +46,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -96,6 +97,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
@@ -236,6 +238,12 @@ ORG_OPTIONS = (
         DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
     (
+        "defaultSeerScannerAutomation",
+        "sentry:default_seer_scanner_automation",
+        bool,
+        DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         bool,
@@ -304,10 +312,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "super_low", "low", "medium", "high", "always"],
+        choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
         help_text="The default automation tuning setting for new projects.",
     )
+    defaultSeerScannerAutomation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
 
     @cached_property
@@ -435,6 +444,17 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_defaultAutofixAutomationTuning(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_defaultSeerScannerAutomation(self, value):
         organization = self.context["organization"]
         request = self.context["request"]
         if not features.has(
@@ -678,6 +698,7 @@ def post_org_pending_deletion(
         "apdexThreshold",
         "genAIConsent",
         "defaultAutofixAutomationTuning",
+        "defaultSeerScannerAutomation",
         "ingestThroughTrustedRelaysOnly",
     ]
 )
@@ -1052,6 +1073,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization.update_option(
                         "sentry:default_autofix_automation_tuning",
                         serializer.validated_data["defaultAutofixAutomationTuning"],
+                    )
+                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
+                    organization.update_option(
+                        "sentry:default_seer_scanner_automation",
+                        serializer.validated_data["defaultSeerScannerAutomation"],
                     )
 
             if was_pending_deletion:

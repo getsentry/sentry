@@ -62,11 +62,11 @@ const MetaDataID = styled('div')`
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const MetadataJSON = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

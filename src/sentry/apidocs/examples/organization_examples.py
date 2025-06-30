@@ -1,5 +1,7 @@
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+
 ORG_ROLE_LIST = [
     {
         "id": "billing",
@@ -323,7 +325,8 @@ class OrganizationExamples:
                 "gitlabPRBot": True,
                 "gitlabOpenPRBot": True,
                 "aggregatedDataConsent": False,
-                "defaultAutofixAutomationTuning": "off",
+                "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
+                "defaultSeerScannerAutomation": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
@@ -413,6 +416,7 @@ class OrganizationExamples:
                         "hasInsightsCaches": False,
                         "hasInsightsQueues": False,
                         "hasInsightsLlmMonitoring": False,
+                        "hasInsightsAgentMonitoring": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -476,6 +480,7 @@ class OrganizationExamples:
                     "hasInsightsCaches": False,
                     "hasInsightsQueues": False,
                     "hasInsightsLlmMonitoring": False,
+                    "hasInsightsAgentMonitoring": False,
                     "latestRelease": None,
                 }
             ],

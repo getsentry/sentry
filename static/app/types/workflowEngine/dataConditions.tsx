@@ -1,3 +1,5 @@
+import {PriorityLevel} from 'sentry/types/group';
+
 import type {Action} from './actions';
 
 export enum DataConditionType {
@@ -52,6 +54,22 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
+export const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
+  Exclude<DetectorPriorityLevel, DetectorPriorityLevel.OK>,
+  PriorityLevel
+> = {
+  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
+  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
+  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
+};
+
 /**
  * See DataConditionSerializer
  */
@@ -86,4 +104,10 @@ export interface DataConditionHandler {
   handlerGroup: DataConditionHandlerGroupType;
   handlerSubgroup: DataConditionHandlerSubgroupType;
   type: DataConditionType;
+}
+
+// for keeping track of conflicting condition ids in the UI
+export interface ConflictingConditions {
+  conflictingActionFilters: Record<string, string[]>;
+  conflictingTriggers: string[];
 }

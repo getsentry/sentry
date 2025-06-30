@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -20,18 +20,14 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.metrics import (
-    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
-)
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
 from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
@@ -95,9 +91,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
 
         try:
             client.chat_postMessage(channel=channel_id, text=message)
-            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError:
-            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+            pass
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -134,21 +129,20 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
-        identity_pipeline_config = {
-            "oauth_scopes": self.identity_oauth_scopes,
-            "user_scopes": self.user_scopes,
-            "redirect_url": absolute_uri("/extensions/slack/setup/"),
-        }
-
-        identity_pipeline_view = NestedPipelineView(
+    def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
+        return NestedPipelineView(
             bind_key="identity",
             provider_key="slack",
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
+            pipeline_cls=IdentityPipeline,
+            config={
+                "oauth_scopes": self.identity_oauth_scopes,
+                "user_scopes": self.user_scopes,
+                "redirect_url": absolute_uri("/extensions/slack/setup/"),
+            },
         )
 
-        return [identity_pipeline_view]
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
+        return [self._identity_pipeline_view()]
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation

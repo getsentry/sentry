@@ -226,9 +226,10 @@ def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
 
 class _CheckinUpdateKwargs(TypedDict):
     status: NotRequired[int]
-    duration: int | None
+    duration: NotRequired[int]
     timeout_at: NotRequired[datetime | None]
     date_updated: NotRequired[datetime]
+    date_in_progress: NotRequired[datetime]
 
 
 def transform_checkin_uuid(
@@ -326,11 +327,15 @@ def update_existing_check_in(
         and updated_status in CheckInStatus.USER_TERMINAL_VALUES
     )
 
-    if already_user_complete and not updated_duration_only:
-        # If we receive an in-progress check-in after a user-terminal value it
-        # could likely be due to the user's job running very quickly and events
-        # coming in slightly out of order. We can just ignore this type of
-        # error, and also return to not update the duration
+    # If we receive an in-progress check-in after a user-terminal value it
+    # could likely be due to the user's job running very quickly and events
+    # coming in slightly out of order. In this case we want to
+    # and also return to not update the duration
+    is_out_of_order_in_progress = (
+        already_user_complete and updated_status == CheckInStatus.IN_PROGRESS
+    )
+
+    if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
         if updated_status == CheckInStatus.IN_PROGRESS:
             return
 
@@ -354,7 +359,9 @@ def update_existing_check_in(
             },
         )
 
-    if updated_duration is None:
+    # Only compute a new duration if there isn't already an existing duration
+    # set, and a duration hasn't been explicitly provided in this update.
+    if updated_duration is None and existing_check_in.duration is None:
         # We use abs here because in some cases we might end up having checkins arrive
         # slightly out of order due to race conditions in relay. In cases like this,
         # we're happy to just assume that the duration is the absolute difference between
@@ -386,11 +393,21 @@ def update_existing_check_in(
     if processing_errors:
         raise ProcessingErrorsException(processing_errors, monitor=monitor)
 
-    updated_checkin: _CheckinUpdateKwargs = {
-        "status": updated_status,
-        "duration": updated_duration,
-        "date_updated": start_time,
-    }
+    updated_checkin: _CheckinUpdateKwargs = {}
+
+    if updated_duration:
+        updated_checkin["duration"] = updated_duration
+
+    # When processing an out-of-order in-progress check-in we ONLY need to set
+    # the date_in_progress. We do NOT update the duration, since it's likely
+    # we want to actually calculate this
+    if is_out_of_order_in_progress:
+        updated_checkin["date_in_progress"] = start_time
+        existing_check_in.update(**updated_checkin)
+        return
+
+    updated_checkin["status"] = updated_status
+    updated_checkin["date_updated"] = start_time
 
     # XXX(epurkhiser): We currently allow a existing timed-out check-in to
     # have it's duration updated. This helps users understand that a check-in

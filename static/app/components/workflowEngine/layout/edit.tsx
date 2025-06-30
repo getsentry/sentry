@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import EditableText from 'sentry/components/editableText';
+import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -21,19 +21,35 @@ interface WorkflowEngineEditLayoutProps {
  * Precomposed full-width layout for Automations / Monitors edit pages.
  */
 function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
-  const title = useDocumentTitle();
   return (
     <Layout.Page>
       <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>
-            <EditableText
-              isDisabled={false}
-              value={title}
-              onChange={newTitle => onTitleChange?.(newTitle)}
-              errorMessage={t('Please set a title')}
-            />
+            <FormField
+              name="title"
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              onChange={onTitleChange}
+            >
+              {({onChange, value}) => (
+                <EditableText
+                  isDisabled={false}
+                  value={value || ''}
+                  onChange={newValue => {
+                    onChange(newValue, {
+                      target: {
+                        value: newValue,
+                      },
+                    });
+                  }}
+                  errorMessage={t('Please set a title')}
+                  placeholder={t('New Monitor')}
+                />
+              )}
+            </FormField>
           </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />

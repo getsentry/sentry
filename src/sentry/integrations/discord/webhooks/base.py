@@ -14,6 +14,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 
 from .types import DiscordResponseTypes
@@ -36,7 +37,7 @@ class DiscordInteractionsEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     discord_request_class = DiscordRequest
-    provider = "discord"
+    provider = IntegrationProviderSlug.DISCORD.value
 
     def __init__(self) -> None:
         super().__init__()

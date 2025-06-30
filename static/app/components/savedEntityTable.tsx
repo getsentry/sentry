@@ -120,7 +120,7 @@ SavedEntityTable.HeaderCell = styled('div')<{
     `}
 
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 
   ${p =>
     p.gridArea &&
@@ -352,7 +352,7 @@ const LoadingCell = styled(SavedEntityTable.Cell)`
 const StyledPanelTable = styled(Panel)`
   display: grid;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const EmptyContainer = styled('div')`

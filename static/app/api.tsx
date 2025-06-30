@@ -648,7 +648,10 @@ export class Client {
       .catch(error => {
         // eslint-disable-next-line no-console
         console.error(error);
-        Sentry.captureException(error);
+
+        if (error?.name !== 'AbortError') {
+          Sentry.captureException(error);
+        }
       });
 
     const request = new Request(fetchRequest, aborter);
@@ -730,7 +733,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     hostname = '';
   }
 
-  // When running as yarn dev-ui we can't spread requests across domains because
+  // When running as pnpm dev-ui we can't spread requests across domains because
   // of CORS. Instead we extract the subdomain from the hostname
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.

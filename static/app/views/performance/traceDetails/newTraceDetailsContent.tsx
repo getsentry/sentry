@@ -471,7 +471,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
   text-align: center;
 `;

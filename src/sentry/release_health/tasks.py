@@ -1,6 +1,6 @@
 import logging
-from collections.abc import Callable, Iterator, Sequence
-from typing import Any, TypedDict, TypeVar
+from collections.abc import Iterator, Sequence
+from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -8,7 +8,6 @@ from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry import options
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -37,13 +36,13 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
         namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
     ),
 )
-@metrics.wraps(
-    "sentry.tasks.monitor_release_adoption.process_projects_with_sessions", sample_rate=1.0
-)
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
-    for org_id, project_ids in release_monitor.fetch_projects_with_recent_sessions().items():
-        process_projects_with_sessions.delay(org_id, project_ids)
+    with metrics.timer(
+        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions", sample_rate=1.0
+    ):
+        for org_id, project_ids in release_monitor.fetch_projects_with_recent_sessions().items():
+            process_projects_with_sessions.delay(org_id, project_ids)
 
 
 @instrumented_task(
@@ -58,26 +57,25 @@ def monitor_release_adoption(**kwargs) -> None:
             on=(Exception,),
             delay=5,
         ),
+        processing_deadline_duration=150,
     ),
 )
-@metrics.wraps("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core")
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
-    # Set the `has_sessions` flag for these projects
-    Project.objects.filter(
-        organization_id=org_id,
-        id__in=project_ids,
-        flags=F("flags").bitand(~Project.flags.has_sessions),
-    ).update(flags=F("flags").bitor(Project.flags.has_sessions))
 
-    totals = release_monitor.fetch_project_release_health_totals(org_id, project_ids)
+    with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        # Set the `has_sessions` flag for these projects
+        Project.objects.filter(
+            organization_id=org_id,
+            id__in=project_ids,
+            flags=F("flags").bitand(~Project.flags.has_sessions),
+        ).update(flags=F("flags").bitor(Project.flags.has_sessions))
 
-    if options.get("release-health.tasks.adopt-releases.bulk"):
-        adopted_ids = adopt_releases_new(org_id, totals)
-    else:
+        totals = release_monitor.fetch_project_release_health_totals(org_id, project_ids)
+
         adopted_ids = adopt_releases(org_id, totals)
 
-    cleanup_adopted_releases(project_ids, adopted_ids)
+        cleanup_adopted_releases(project_ids, adopted_ids)
 
 
 def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
@@ -166,160 +164,20 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     return adopted_ids
 
 
-@metrics.wraps("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates")
-def adopt_releases_new(org_id: int, totals: Totals) -> Sequence[int]:
-    adopted_releases = list(iter_adopted_releases(totals))
-    if not adopted_releases:
-        return []
-
-    # Happy path. Query the releases and adopt them.
-    release_project_environments = query_adopted_release_project_environments(
-        adopted_releases, org_id
-    )
-    adopt_release_project_environments(release_project_environments)
-    adopted_ids = [m.id for m in release_project_environments]
-    metrics.incr("sentry.tasks.process_projects_with_sessions.updated_rpe", amount=len(adopted_ids))
-
-    # For any release which was missing we still need to adopt it still but we may need to
-    # create some other rows first.
-    missing_releases = find_adopted_but_missing_releases(
-        adopted_releases,
-        [
-            (m.project_id, m.environment.name, m.release.version)
-            for m in release_project_environments
-        ],
-    )
-    for missing_release in missing_releases:
-        metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
-        try:
-            env = Environment.objects.get_or_create(
-                name=missing_release["environment"], organization_id=org_id
-            )[0]
-            try:
-                release = Release.objects.get_or_create(
-                    organization_id=org_id,
-                    version=missing_release["version"],
-                    defaults={
-                        "status": ReleaseStatus.OPEN,
-                    },
-                )[0]
-            except IntegrityError:
-                release = Release.objects.get(
-                    organization_id=org_id, version=missing_release["version"]
-                )
-            except ValidationError:
-                release = None
-                logger.exception(
-                    "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
-                    extra={
-                        "org_id": org_id,
-                        "release_version": missing_release["version"],
-                    },
-                )
-
-            if release:
-                release.add_project(Project.objects.get(id=missing_release["project_id"]))
-
-                ReleaseEnvironment.objects.get_or_create(
-                    environment=env, organization_id=org_id, release=release
-                )
-
-                rpe = ReleaseProjectEnvironment.objects.create(
-                    project_id=missing_release["project_id"],
-                    release_id=release.id,
-                    environment=env,
-                    adopted=timezone.now(),
-                )
-                adopted_ids.append(rpe.id)
-        except (
-            Project.DoesNotExist,
-            Environment.DoesNotExist,
-            Release.DoesNotExist,
-            ReleaseEnvironment.DoesNotExist,
-        ) as exc:
-            metrics.incr("sentry.tasks.process_projects_with_sessions.skipped_update")
-            capture_exception(exc)
-
-    return adopted_ids
-
-
-@metrics.wraps("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.cleanup")
 def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[int]) -> None:
     # Cleanup; adopted releases need to be marked as unadopted if they are not in `adopted_ids`
-    ReleaseProjectEnvironment.objects.filter(
-        project_id__in=project_ids, unadopted__isnull=True
-    ).exclude(Q(adopted=None) | Q(id__in=adopted_ids)).update(unadopted=timezone.now())
+    with metrics.timer(
+        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.cleanup"
+    ):
+        ReleaseProjectEnvironment.objects.filter(
+            project_id__in=project_ids, unadopted__isnull=True
+        ).exclude(Q(adopted=None) | Q(id__in=adopted_ids)).update(unadopted=timezone.now())
 
 
 class AdoptedRelease(TypedDict):
     environment: str
     project_id: int
     version: str
-
-
-def query_adopted_release_project_environments(
-    adopted_releases: list[AdoptedRelease],
-    organization_id: int,
-) -> list[ReleaseProjectEnvironment]:
-    """Fetch a list of release project environment rows which match the adopted releases."""
-    query_filters = Q()
-    for release in adopted_releases:
-        query_filters |= Q(
-            release__organization_id=organization_id,
-            release__version=release["version"],
-            project_id=release["project_id"],
-            environment__name=release["environment"],
-            environment__organization_id=organization_id,
-        )
-
-    return list(ReleaseProjectEnvironment.objects.filter(query_filters))
-
-
-def adopt_release_project_environments(models: list[ReleaseProjectEnvironment]) -> None:
-    """Bulk update release project environments with adopted time."""
-    for model in models:
-        if not model.adopted:
-            model.adopted = timezone.now()
-        if model.unadopted is not None:
-            model.unadopted = None
-
-    ReleaseProjectEnvironment.objects.bulk_update(models, fields=["adopted", "unadopted"])
-
-
-def find_adopted_but_missing_releases(
-    adopted_releases: list[AdoptedRelease],
-    found_rows: list[tuple[int, str, str]],
-) -> list[AdoptedRelease]:
-    """Return a list of adopted releases which do not exist in the database.
-
-    Releases are not always defined in Sentry in advance. When we see a release that isn't in the
-    database we need to do some additional processing.
-    """
-
-    def hash_release(q: AdoptedRelease) -> tuple[int, str, str]:
-        return (q["project_id"], q["environment"], q["version"])
-
-    return find_missing(adopted_releases, hash_release, found_rows, lambda a: a)
-
-
-A = TypeVar("A")
-B = TypeVar("B")
-C = TypeVar("C")
-
-
-def find_missing(
-    superset: list[A],
-    superset_hasher: Callable[[A], C],
-    subset: list[B],
-    subset_hasher: Callable[[B], C],
-) -> list[A]:
-    """Return the difference of two sets.
-
-    This functionally is essentially set(A) - set(B) but when the types in the superset and subset
-    are different and their hash values can't be directly compared.
-    """
-    found_set = {subset_hasher(member) for member in subset}
-    return [release for release in superset if superset_hasher(release) not in found_set]
 
 
 def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:

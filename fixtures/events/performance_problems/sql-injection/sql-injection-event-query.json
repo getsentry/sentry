@@ -18,7 +18,12 @@
   "request": {
     "url": "http://localhost:3001/vulnerable-login",
     "method": "GET",
-    "query_string": [["username", "hello"]]
+    "query_string": [
+      ["username", "hello"],
+      ["sort", "username"],
+      ["empty", ""],
+      ["single", "u"]
+    ]
   },
   "spans": [
     {
@@ -138,13 +143,16 @@
       "parent_span_id": "91fa92ff0205967d",
       "trace_id": "375a86eca09a4a4e91903838dd771f50",
       "status": "ok",
-      "description": "SELECT * FROM users WHERE username = 'hello'",
+      "description": "SELECT * FROM users WHERE username = 'hello' ORDER BY username ASC",
       "origin": "auto.db.otel.mysql2",
+      "sentry_tags": {
+        "description": "SELECT * FROM users WHERE username = %s ORDER BY username ASC"
+      },
       "data": {
         "db.system": "mysql",
         "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
         "db.name": "injection_test",
-        "db.statement": "SELECT * FROM users WHERE username = 'hello'",
+        "db.statement": "SELECT * FROM users WHERE username = 'hello' ORDER BY username ASC",
         "db.user": "root",
         "net.peer.name": "localhost",
         "net.peer.port": 3306,

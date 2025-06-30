@@ -242,11 +242,4 @@ class IntegrationProxyClient(ApiClient):
             request_body=request_body,
         )
         prepared_request.url = url
-        logger.info(
-            "prepare_proxy_request",
-            extra={
-                "destination": prepared_request.url,
-                "organization_integration_id": self.org_integration_id,
-            },
-        )
         return prepared_request

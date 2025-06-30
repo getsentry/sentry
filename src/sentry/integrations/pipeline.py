@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from collections.abc import Callable, Sequence
+from typing import Any, Never, TypedDict
 
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -12,14 +13,18 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationData
+from sentry.integrations.base import IntegrationData, IntegrationProvider
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.base import Pipeline
+from sentry.pipeline.store import PipelineSessionStore
+from sentry.pipeline.types import PipelineAnalyticsEntry
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -88,9 +93,24 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     pipeline_name = "integration_pipeline"
-    provider_manager = default_manager
+
+    organization: RpcOrganization
+
+    @property
+    def provider(self) -> IntegrationProvider:
+        ret = default_manager.get(self._provider_key)
+        ret.set_pipeline(self)
+        ret.update_config(self.config)
+        return ret
+
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
+        return self.provider.get_pipeline_views()
 
     def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
@@ -103,7 +123,7 @@ class IntegrationPipeline(Pipeline):
             "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
         )
 
-    def finish_pipeline(self):
+    def finish_pipeline(self) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_id(
             id=self.organization.id, user_id=self.request.user.id
         )
@@ -168,13 +188,15 @@ class IntegrationPipeline(Pipeline):
 
         return response
 
-    def _finish_pipeline(self, data: IntegrationData):
+    def _finish_pipeline(self, data: IntegrationData) -> HttpResponseBase:
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
         else:
             self.integration = ensure_integration(self.provider.integration_key, data)
+
+        assert self.request.user.is_authenticated
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
@@ -282,10 +304,10 @@ class IntegrationPipeline(Pipeline):
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
-    def _dialog_success(self, org_integration):
+    def _dialog_success(self, org_integration) -> HttpResponseBase:
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
-    def _dialog_response(self, data, success):
+    def _dialog_response(self, data, success) -> HttpResponseBase:
         document_origin = "document.origin"
         if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
