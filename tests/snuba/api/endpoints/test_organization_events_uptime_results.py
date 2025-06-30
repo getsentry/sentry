@@ -152,13 +152,13 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 check_status="success",
                 http_status_code=200,
                 region="us-east-1",
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 http_status_code=500,
                 region="us-west-2",
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -192,17 +192,17 @@ class OrganizationEventsUptimeResultsEndpointTest(
             self.create_uptime_result(
                 check_status="success",
                 http_status_code=200,
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 http_status_code=500,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="success",
                 http_status_code=201,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -234,7 +234,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 request_duration_us=125000,
                 dns_lookup_duration_us=25000,
                 tcp_connection_duration_us=15000,
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
@@ -242,7 +242,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 request_duration_us=30000000,
                 dns_lookup_duration_us=200000,
                 tcp_connection_duration_us=25000,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -291,21 +291,21 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 http_status_code=200,
                 dns_lookup_duration_us=15000,
                 region="us-east-1",
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 http_status_code=504,
                 dns_lookup_duration_us=150000,
                 region="us-east-1",
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 http_status_code=500,
                 dns_lookup_duration_us=20000,
                 region="us-west-2",
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -346,7 +346,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 http_status_code=301,
                 request_url="http://example.com",
                 trace_id=trace_id,
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_id=check_id,
@@ -355,7 +355,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 http_status_code=200,
                 request_url="https://example.com",
                 trace_id=trace_id,
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_id=uuid4().hex,
@@ -363,7 +363,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 check_status="success",
                 http_status_code=200,
                 request_url="https://other.com",
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -397,25 +397,25 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 check_status="success",
                 region="us-east-1",
                 http_status_code=200,
-                timestamp=self.ten_mins_ago,
+                scheduled_check_time=self.ten_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 region="us-east-1",
                 http_status_code=500,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="success",
                 region="us-west-2",
                 http_status_code=200,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
             self.create_uptime_result(
                 check_status="failure",
                 region="us-west-2",
                 http_status_code=503,
-                timestamp=self.nine_mins_ago,
+                scheduled_check_time=self.nine_mins_ago,
             ),
         ]
         self.store_uptime_results(results)
@@ -449,17 +449,17 @@ class OrganizationEventsUptimeResultsEndpointTest(
             self.create_uptime_result(
                 check_status="success",
                 guid="check-1",
-                timestamp=base_time,
+                scheduled_check_time=base_time,
             ),
             self.create_uptime_result(
                 check_status="success",
                 guid="check-2",
-                timestamp=base_time + timedelta(microseconds=1),
+                scheduled_check_time=base_time + timedelta(microseconds=1),
             ),
             self.create_uptime_result(
                 check_status="success",
                 guid="check-3",
-                timestamp=base_time + timedelta(microseconds=2),
+                scheduled_check_time=base_time + timedelta(microseconds=2),
             ),
         ]
         self.store_uptime_results(results)
