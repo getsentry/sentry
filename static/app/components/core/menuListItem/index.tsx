@@ -1,4 +1,4 @@
-import {memo, useId, useRef, useState} from 'react';
+import React, {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
@@ -93,6 +93,7 @@ interface OtherProps {
 }
 
 interface Props extends MenuListItemProps, OtherProps {
+  onPointerDown?: React.PointerEventHandler<HTMLLIElement>;
   ref?: React.Ref<HTMLLIElement>;
 }
 
