@@ -1,6 +1,6 @@
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 
-export interface UptimeDetectorFormData {
+interface UptimeDetectorFormData {
   environment: string;
   intervalSeconds: number;
   method: string;
