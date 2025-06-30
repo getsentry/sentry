@@ -226,6 +226,14 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             == self.workflow.name
         )
 
+        # wildcard
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"query": "name:ap*"}
+        )
+        assert len(response2.data) == 1
+        assert response2.data[0]["name"] == self.workflow.name
+
+        # Non-match
         response3 = self.get_success_response(
             self.organization.slug, qs_params={"query": "Chicago"}
         )
