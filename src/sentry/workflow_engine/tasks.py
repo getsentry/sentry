@@ -152,6 +152,7 @@ def process_workflows_event(
         has_escalated=has_escalated,
         group_state=group_state,
         event=group_event,
+        group=group,
     )
     process_workflows(event_data)
 
