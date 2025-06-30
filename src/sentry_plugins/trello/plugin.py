@@ -125,10 +125,12 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             re_path(
                 r"^options",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_options", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-options",
             ),
             re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-autocomplete",
             ),
         ]
 

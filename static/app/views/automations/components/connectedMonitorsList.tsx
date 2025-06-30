@@ -40,35 +40,37 @@ export default function ConnectedMonitorsList({
     <Container>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell className="name">{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell className="type">{t('Type')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell className="last-issue">
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="type">
+            {t('Type')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="last-issue">
             {t('Last Issue')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell className="owner">
+          <SimpleTable.HeaderCell data-column-name="owner">
             {t('Assignee')}
           </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell className="connected" />}
+          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
         {monitors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
         )}
         {monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
-            <SimpleTable.RowCell className="name">
+            <SimpleTable.RowCell>
               <DetectorLink detector={monitor} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell className="type">
+            <SimpleTable.RowCell data-column-name="type">
               <DetectorTypeCell type={monitor.type} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell className="last-issue">
+            <SimpleTable.RowCell data-column-name="last-issue">
               <IssueCell group={undefined} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell className="owner">
+            <SimpleTable.RowCell data-column-name="owner">
               <DetectorAssigneeCell assignee={monitor.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell className="connected" justify="flex-end">
+              <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
                 <Button onClick={() => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>
@@ -94,14 +96,14 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     The connected column can be added/removed depending on props, so in order to
     have a constant width we have an auto grid column and set the width here.
   */
-  .connected {
+  [data-column-name='connected'] {
     width: 140px;
   }
 
   @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 100px auto auto;
 
-    .last-issue {
+    [data-column-name='last-issue'] {
       display: none;
     }
   }
@@ -109,7 +111,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 100px auto;
 
-    .owner {
+    [data-column-name='owner'] {
       display: none;
     }
   }
@@ -117,7 +119,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr 100px;
 
-    .type {
+    [data-column-name='type'] {
       display: none;
     }
   }

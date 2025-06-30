@@ -1,4 +1,4 @@
-import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
+import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
@@ -18,12 +18,12 @@ export function IssueOccurrencesNode() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderNumberField
+    <AutomationBuilderNumberInput
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={1}
       step={1}
-      onChange={(value: string) => {
+      onChange={(value: number) => {
         onUpdate({
           value,
         });

@@ -1,3 +1,5 @@
+import {PriorityLevel} from 'sentry/types/group';
+
 import type {Action} from './actions';
 
 export enum DataConditionType {
@@ -58,6 +60,15 @@ export enum DetectorPriorityLevel {
   MEDIUM = 50,
   HIGH = 75,
 }
+
+export const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
+  Exclude<DetectorPriorityLevel, DetectorPriorityLevel.OK>,
+  PriorityLevel
+> = {
+  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
+  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
+  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
+};
 
 /**
  * See DataConditionSerializer

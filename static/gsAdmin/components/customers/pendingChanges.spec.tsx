@@ -167,6 +167,10 @@ describe('PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+          errorsBudget: 300,
+          transactionsBudget: 200,
+          replaysBudget: 0,
+          attachmentsBudget: 100,
           budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
         },
         onDemandMaxSpend: 50000,
@@ -217,6 +221,10 @@ describe('PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+          errorsBudget: 300,
+          transactionsBudget: 200,
+          replaysBudget: 0,
+          attachmentsBudget: 100,
           budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
         },
         onDemandMaxSpend: 50000,

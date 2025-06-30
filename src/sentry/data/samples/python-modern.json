@@ -1,0 +1,158 @@
+{
+  "platform": "python",
+  "tags": [
+    ["environment", "production"],
+    ["handled", "no"],
+    ["level", "error"],
+    ["mechanism", "excepthook"],
+    ["runtime", "CPython 3.13.5"],
+    ["runtime.name", "CPython"],
+    ["server_name", "web01.example.org"]
+  ],
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1751006912.86641,
+        "type": "default",
+        "category": "test",
+        "level": "info",
+        "message": "This is an example breadcrumb"
+      }
+    ]
+  },
+  "contexts": {
+    "runtime": {
+      "runtime": "CPython 3.13.5",
+      "name": "CPython",
+      "version": "3.13.5",
+      "build": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]",
+      "type": "runtime"
+    }
+  },
+  "culprit": "__main__ in main",
+  "environment": "production",
+  "exception": {
+    "values": [
+      {
+        "type": "Exception",
+        "value": "This is an example Python exception",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "\u003Cmodule\u003E",
+              "module": "__main__",
+              "filename": "main.py",
+              "abs_path": "/Users/user/test/main.py",
+              "lineno": 28,
+              "pre_context": [
+                "        'key3': 'value3',",
+                "    }",
+                "    list_var = [1, 2, 3]",
+                "    raise Exception('This is an example Python exception')",
+                ""
+              ],
+              "context_line": "main()",
+              "in_app": true,
+              "vars": {
+                "__annotations__": {},
+                "__builtins__": "\u003Cmodule 'builtins' (built-in)\u003E",
+                "__cached__": "None",
+                "__doc__": "None",
+                "__file__": "'/Users/user/test/main.py'",
+                "__loader__": "\u003C_frozen_importlib_external.SourceFileLoader object at 0x1029bcf70\u003E",
+                "__name__": "'__main__'",
+                "__package__": "None",
+                "__spec__": "None",
+                "sentry_sdk": "\u003Cmodule 'sentry_sdk' from '/Users/user/test/.venv/lib/python3.13/site-packages/sentry_sdk/__init__.py'\u003E"
+              },
+              "data": {
+                "client_in_app": true
+              }
+            },
+            {
+              "function": "main",
+              "module": "__main__",
+              "filename": "main.py",
+              "abs_path": "/Users/user/test/main.py",
+              "lineno": 26,
+              "pre_context": [
+                "        'key1': 'value1',",
+                "        'key2': 'value2',",
+                "        'key3': 'value3',",
+                "    }",
+                "    list_var = [1, 2, 3]"
+              ],
+              "context_line": "    raise Exception('This is an example Python exception')",
+              "post_context": ["", "main()"],
+              "in_app": true,
+              "vars": {
+                "dict_var": {
+                  "key1": "'value1'",
+                  "key2": "'value2'",
+                  "key3": "'value3'"
+                },
+                "int_var": "1",
+                "list_var": ["1", "2", "3"],
+                "str_var": "'Hello, world!'"
+              },
+              "data": {
+                "client_in_app": true
+              }
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "excepthook",
+          "handled": false
+        }
+      }
+    ]
+  },
+  "extra": {
+    "sys.argv": ["/Users/user/test/main.py"]
+  },
+  "key_id": "4616216",
+  "level": "error",
+  "location": "main.py",
+  "logger": "",
+  "metadata": {
+    "filename": "main.py",
+    "function": "main",
+    "in_app_frame_mix": "in-app-only",
+    "type": "Exception",
+    "value": "This is an example Python exception"
+  },
+  "modules": {
+    "certifi": "2025.6.15",
+    "pip": "25.1.1",
+    "sentry-sdk": "2.31.0",
+    "urllib3": "2.5.0"
+  },
+  "nodestore_insert": 1751006915.57614,
+  "received": 1751006913.10689,
+  "sdk": {
+    "name": "sentry.python",
+    "version": "2.31.0",
+    "integrations": [
+      "argv",
+      "atexit",
+      "dedupe",
+      "excepthook",
+      "logging",
+      "modules",
+      "stdlib",
+      "threading"
+    ],
+    "packages": [
+      {
+        "name": "pypi:sentry-sdk",
+        "version": "2.31.0"
+      }
+    ]
+  },
+  "timestamp": 1751006912.86742,
+  "title": "Exception: This is an example Python exception",
+  "transaction_info": {},
+  "type": "error",
+  "version": "7"
+}
