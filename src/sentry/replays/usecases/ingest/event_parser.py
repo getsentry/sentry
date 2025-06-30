@@ -194,6 +194,7 @@ class TraceItemContext(TypedDict):
 
 
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
+    """Returns a trace-item row or null for each event."""
     match event_type:
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK:
             payload = event["data"]["payload"]
@@ -201,37 +202,37 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             node = payload["data"]["node"]
             node_attributes = node.get("attributes", {})
             attributes = {
-                "node_id": node["id"],
-                "tag": node["tagName"],
-                "text": node["textContent"][:1024],
+                "node_id": int(node["id"]),
+                "tag": str(node["tagName"]),
+                "text": str(node["textContent"][:1024]),
                 "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
                 "is_rage": event_type == EventType.RAGE_CLICK,
-                "selector": payload["message"],
+                "selector": str(payload["message"]),
                 "category": "click",
             }
             if "alt" in node_attributes:
-                attributes["alt"] = node_attributes["alt"]
+                attributes["alt"] = str(node_attributes["alt"])
             if "aria-label" in node_attributes:
-                attributes["aria_label"] = node_attributes["aria-label"]
+                attributes["aria_label"] = str(node_attributes["aria-label"])
             if "class" in node_attributes:
-                attributes["class"] = node_attributes["class"]
+                attributes["class"] = str(node_attributes["class"])
             if "data-sentry-component" in node_attributes:
-                attributes["component_name"] = node_attributes["data-sentry-component"]
+                attributes["component_name"] = str(node_attributes["data-sentry-component"])
             if "id" in node_attributes:
-                attributes["id"] = node_attributes["id"]
+                attributes["id"] = str(node_attributes["id"])
             if "role" in node_attributes:
-                attributes["role"] = node_attributes["role"]
+                attributes["role"] = str(node_attributes["role"])
             if "title" in node_attributes:
-                attributes["title"] = node_attributes["title"]
+                attributes["title"] = str(node_attributes["title"])
             if _get_testid(node_attributes):
                 attributes["testid"] = _get_testid(node_attributes)
             if "url" in payload:
-                attributes["url"] = payload["url"]
+                attributes["url"] = str(payload["url"])
 
             return {
                 "attributes": attributes,
                 "event_hash": uuid.uuid4().hex,
-                "timestamp": payload["timestamp"],
+                "timestamp": float(payload["timestamp"]),
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
@@ -239,21 +240,21 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             attributes = {"category": "navigation"}
             if "from" in payload_data:
-                attributes["from"] = payload_data["from"]
+                attributes["from"] = str(payload_data["from"])
             if "to" in payload_data:
-                attributes["to"] = payload_data["to"]
+                attributes["to"] = str(payload_data["to"])
 
             return {
                 "attributes": attributes,
                 "event_hash": uuid.uuid4().hex,
-                "timestamp": payload["timestamp"],
+                "timestamp": float(payload["timestamp"]),
             }
         case EventType.CONSOLE:
-            ...
+            return None
         case EventType.UI_BLUR:
-            ...
+            return None
         case EventType.UI_FOCUS:
-            ...
+            return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
             attributes = {
                 "category": (
@@ -270,43 +271,79 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": attributes,
                 "event_hash": uuid.uuid4().hex,
-                "timestamp": event["data"]["payload"]["timestamp"],
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
             }
         case EventType.LCP | EventType.FCP:
             payload = event["data"]["payload"]
             return {
                 "attributes": {
-                    "duration": payload["data"]["size"],
-                    "rating": payload["data"]["rating"],
                     "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
+                    "rating": str(payload["data"]["rating"]),
+                    "size": int(payload["data"]["size"]),
+                    "value": int(payload["data"]["value"]),
                 },
                 "event_hash": uuid.uuid4().hex,
-                "timestamp": payload["timestamp"],
+                "timestamp": float(payload["timestamp"]),
             }
         case EventType.HYDRATION_ERROR:
-            ...
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.hydrate-error",
+                    "url": str(payload["data"]["url"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": float(event["data"]["payload"]["timestamp"]),
+            }
         case EventType.MUTATIONS:
-            ...
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "replay.mutations",
+                    "count": int(payload["data"]["count"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": event["timestamp"],
+            }
         case EventType.UNKNOWN:
-            return None
-        case EventType.FEEDBACK:
             return None
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
+            payload = event["data"]["payload"]
+            return {
+                "attributes": {
+                    "category": "sdk.options",
+                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
+                    "sessionSampleRate": float(payload["sessionSampleRate"]),
+                    "errorSampleRate": float(payload["errorSampleRate"]),
+                    "useCompressionOption": bool(payload["useCompressionOption"]),
+                    "blockAllMedia": bool(payload["blockAllMedia"]),
+                    "maskAllText": bool(payload["maskAllText"]),
+                    "maskAllInputs": bool(payload["maskAllInputs"]),
+                    "useCompression": bool(payload["useCompression"]),
+                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
+                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
+                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
+                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
+                },
+                "event_hash": uuid.uuid4().hex,
+                "timestamp": event["timestamp"] / 1000,
+            }
+        case EventType.FEEDBACK:
             return None
         case EventType.MEMORY:
             payload = event["data"]["payload"]
             return {
                 "attributes": {
                     "category": "memory",
-                    "jsHeapSizeLimit": payload["data"]["jsHeapSizeLimit"],
-                    "totalJSHeapSize": payload["data"]["totalJSHeapSize"],
-                    "usedJSHeapSize": payload["data"]["usedJSHeapSize"],
-                    "endTimestamp": payload["endTimestamp"],
+                    "jsHeapSizeLimit": int(payload["data"]["jsHeapSizeLimit"]),
+                    "totalJSHeapSize": int(payload["data"]["totalJSHeapSize"]),
+                    "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
+                    "endTimestamp": float(payload["endTimestamp"]),
                 },
                 "event_hash": uuid.uuid4().hex,
-                "timestamp": payload["startTimestamp"],
+                "timestamp": float(payload["startTimestamp"]),
             }
 
 
