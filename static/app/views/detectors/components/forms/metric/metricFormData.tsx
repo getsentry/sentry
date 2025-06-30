@@ -10,6 +10,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {unreachable} from 'sentry/utils/unreachable';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -24,6 +25,7 @@ export const enum DetectorDataset {
   TRANSACTIONS = 'transactions',
   SPANS = 'spans',
   RELEASES = 'releases',
+  LOGS = 'logs',
 }
 
 /**
@@ -252,7 +254,10 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
       return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+    case DetectorDataset.LOGS:
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
+      unreachable(dataset);
       return Dataset.ERRORS;
   }
 };
@@ -271,7 +276,10 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return ['trace_item_span'];
       case DetectorDataset.RELEASES:
         return []; // Crash rate queries don't have event types
+      case DetectorDataset.LOGS:
+        return ['trace_item_log'];
       default:
+        unreachable(dataset);
         return ['error'];
     }
   };
@@ -285,10 +293,12 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return SnubaQueryType.ERROR;
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
+      case DetectorDataset.LOGS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
       default:
+        unreachable(dataset);
         return SnubaQueryType.ERROR;
     }
   };
