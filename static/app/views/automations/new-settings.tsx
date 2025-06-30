@@ -1,13 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {flattie} from 'flattie';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import EditableText from 'sentry/components/editableText';
-import FormField from 'sentry/components/forms/formField';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,12 +23,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {getNewAutomationData} from 'sentry/views/automations/components/automationFormData';
+import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
@@ -60,32 +57,9 @@ function AutomationBreadcrumbs() {
   );
 }
 
-function EditableAutomationName() {
-  return (
-    <FormField name="name" inline={false} flexibleControlStateSize stacked>
-      {({onChange, value}) => (
-        <EditableText
-          isDisabled={false}
-          value={value || ''}
-          onChange={newValue => {
-            onChange(newValue, {
-              target: {
-                value: newValue,
-              },
-            });
-          }}
-          errorMessage={t('Please set a name for your automation.')}
-          placeholder={t('New Automation')}
-        />
-      )}
-    </FormField>
-  );
-}
-
 const initialData = {
-  ...flattie(initialAutomationBuilderState),
   environment: null,
-  frequency: '1440',
+  frequency: 1440,
 };
 
 export default function AutomationNewSettings() {

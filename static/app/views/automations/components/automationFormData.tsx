@@ -1,10 +1,11 @@
-import type {NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 
 export interface AutomationFormData {
   detectorIds: string[];
   environment: string | null;
-  frequency: string | null;
+  frequency: number | null;
   name: string;
 }
 
@@ -37,9 +38,20 @@ export function getNewAutomationData(
     environment: data.environment,
     actionFilters: state.actionFilters.map(stripDataConditionGroupIds),
     config: {
-      frequency: data.frequency ? parseInt(data.frequency, 10) : undefined,
+      frequency: data.frequency ?? undefined,
     },
     detectorIds: data.detectorIds,
   };
   return result;
+}
+
+export function getAutomationFormData(
+  automation: Automation
+): Record<string, FieldValue> {
+  return {
+    detectorIds: automation.detectorIds,
+    environment: automation.environment,
+    frequency: automation.config.frequency || null,
+    name: automation.name,
+  };
 }

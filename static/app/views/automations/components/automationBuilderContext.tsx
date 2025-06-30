@@ -6,6 +6,7 @@ import {
   type ActionHandler,
   ActionTarget,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
@@ -15,7 +16,7 @@ import {
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
-export function useAutomationBuilderReducer() {
+export function useAutomationBuilderReducer(initialState?: AutomationBuilderState) {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
     (state, action): AutomationBuilderState => {
       switch (action.type) {
@@ -54,7 +55,10 @@ export function useAutomationBuilderReducer() {
     []
   );
 
-  const [state, dispatch] = useReducer(reducer, initialAutomationBuilderState);
+  const [state, dispatch] = useReducer(
+    reducer,
+    initialState ?? initialAutomationBuilderState
+  );
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
@@ -519,6 +523,9 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
   return {
     target_type: targetType,
     ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    ...(actionHandler.sentryApp?.id && {
+      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+    }),
   };
 }
 
