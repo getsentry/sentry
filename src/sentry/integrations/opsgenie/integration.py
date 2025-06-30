@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -26,6 +27,10 @@ from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -105,23 +110,29 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                pipeline.bind_state("installation_data", form_data)
-
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/opsgenie-config.html",
-            context={"form": form},
-            request=request,
+    def record_event(self, event: IntegrationPipelineViewType):
+        return IntegrationPipelineViewEvent(
+            event, IntegrationDomain.ON_CALL_SCHEDULING, OpsgenieIntegrationProvider.key
         )
+
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
+        with self.record_event(IntegrationPipelineViewType.INSTALLATION_CONFIGURATION).capture():
+            if request.method == "POST":
+                form = InstallationForm(request.POST)
+                if form.is_valid():
+                    form_data = form.cleaned_data
+
+                    pipeline.bind_state("installation_data", form_data)
+
+                    return pipeline.next_step()
+            else:
+                form = InstallationForm()
+
+            return render_to_response(
+                template="sentry/integrations/opsgenie-config.html",
+                context={"form": form},
+                request=request,
+            )
 
 
 class OpsgenieIntegration(IntegrationInstallation):
