@@ -368,6 +368,49 @@ class GoParser(LanguageParser):
     ]
 
 
+class HaskellParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of function declaration                        Example
+    Type signature:                                     functionName :: Int -> Int -> Int
+    Function definition with parameters:                functionName x y = x + y
+    Function definition without parameters:             functionName = expression
+    Let binding:                                        let functionName = expression
+    Where binding:                                      where functionName = expression
+    Lambda function:                                    \x -> x + 1
+    """
+
+    # Type signatures (function :: Type -> Type)
+    type_signature_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*::.*$"
+
+    # Function definitions with parameters (name param1 param2 = ...)
+    function_with_params_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s+\w+.*=.*$"
+
+    # Simple value definitions (name = ...)
+    simple_definition_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*=(?!=).*$"
+
+    # Let bindings (let name = ...)
+    let_binding_regex = r"^@@.*@@.*\s+let\s+(?P<fnc>\w+)(?:\s+\w+)*\s*=.*$"
+
+    # Where bindings (where name = ...)
+    where_binding_regex = r"^@@.*@@.*\s+where\s+(?P<fnc>\w+)(?:\s+\w+)*\s*=.*$"
+
+    # Lambda functions assigned to variables (name = \args -> ...)
+    lambda_assignment_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*=\s*\\.*->.*$"
+
+    regexes = [
+        let_binding_regex,
+        where_binding_regex,
+        lambda_assignment_regex,
+        type_signature_regex,
+        function_with_params_regex,
+        simple_definition_regex,
+    ]
+
+
 PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "py": PythonParser,
     "js": JavascriptParser,
@@ -376,6 +419,7 @@ PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "tsx": JavascriptParser,
     "php": PHPParser,
     "rb": RubyParser,
+    "hs": HaskellParser,
 }
 
 

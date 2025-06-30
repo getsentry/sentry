@@ -3,6 +3,7 @@ from unittest import TestCase
 from sentry.integrations.source_code_management.language_parsers import (
     CSharpParser,
     GoParser,
+    HaskellParser,
     JavascriptParser,
     PHPParser,
     PythonParser,
@@ -1326,4 +1327,235 @@ random code
             "add",
             "handler",
             "processor",
+        }
+
+
+class HaskellParserTestCase(TestCase):
+    def test_haskell_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ add :: Int -> Int -> Int
+
+@@ -152,10 +152,6 @@ add x y = x + y
+
+@@ -152,10 +152,6 @@ factorial :: Int -> Int
+
+@@ -152,10 +152,6 @@ factorial 0 = 1
+
+@@ -152,10 +152,6 @@ factorial n = n * factorial (n - 1)
+
+@@ -152,10 +152,6 @@ pythagoras :: Float -> Float -> Float
+
+@@ -152,10 +152,6 @@ pythagoras a b = sqrt (square a + square b)
+
+@@ -152,10 +152,6 @@ pi = 3.14159
+
+@@ -152,10 +152,6 @@ emptyList = []
+
+@@ -152,10 +152,6 @@ let square x = x * x
+
+@@ -152,10 +152,6 @@ let helper = someFunction
+
+@@ -152,10 +152,6 @@ where square x = x * x
+
+@@ -152,10 +152,6 @@ where helper = someFunction
+
+@@ -152,10 +152,6 @@ double = \x -> x * 2
+
+@@ -152,10 +152,6 @@ increment = \x -> x + 1
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "add",
+            "factorial",
+            "pythagoras",
+            "pi",
+            "emptyList",
+            "square",
+            "helper",
+            "double",
+            "increment",
+        }
+
+    def test_haskell_complex_types(self):
+        patch = """
+@@ -152,10 +152,6 @@ map :: (a -> b) -> [a] -> [b]
+
+@@ -152,10 +152,6 @@ filter :: (a -> Bool) -> [a] -> [a]
+
+@@ -152,10 +152,6 @@ foldr :: (a -> b -> b) -> b -> [a] -> b
+
+@@ -152,10 +152,6 @@ quicksort :: Ord a => [a] -> [a]
+
+@@ -152,10 +152,6 @@ quicksort [] = []
+
+@@ -152,10 +152,6 @@ quicksort (x:xs) = quicksort smaller ++ [x] ++ quicksort larger
+
+@@ -152,10 +152,6 @@ length :: [a] -> Int
+
+@@ -152,10 +152,6 @@ length [] = 0
+
+@@ -152,10 +152,6 @@ length (_:xs) = 1 + length xs
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "map",
+            "filter",
+            "foldr",
+            "quicksort",
+            "length",
+        }
+
+    def test_haskell_let_where_bindings(self):
+        patch = """
+@@ -152,10 +152,6 @@ quadratic a b c =
+  let discriminant = b * b - 4 * a * c
+      sqrtDiscriminant = sqrt discriminant
+  in ((-b + sqrtDiscriminant) / (2 * a), (-b - sqrtDiscriminant) / (2 * a))
+
+@@ -160,12 +160,8 @@ let helper x y = x + y
+
+@@ -170,15 +170,10 @@ let compute = expensive_calculation
+
+@@ -180,18 +180,12 @@ someFunction x = result
+  where
+    result = x * 2
+    helper = x + 1
+
+@@ -190,20 +190,15 @@ where processData = map transform
+
+@@ -200,25 +200,18 @@ where validator x = x > 0
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "discriminant",
+            "sqrtDiscriminant",
+            "helper",
+            "compute",
+            "processData",
+            "validator",
+        }
+
+    def test_haskell_lambda_assignments(self):
+        patch = """
+@@ -152,10 +152,6 @@ double = \x -> x * 2
+
+@@ -152,10 +152,6 @@ add = \x y -> x + y
+
+@@ -152,10 +152,6 @@ compose = \f g x -> f (g x)
+
+@@ -152,10 +152,6 @@ predicate = \x -> x > 0
+
+@@ -152,10 +152,6 @@ transformer = \(x, y) -> x + y
+
+@@ -152,10 +152,6 @@ curried = \x -> \y -> x + y
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "double",
+            "add",
+            "compose",
+            "predicate",
+            "transformer",
+            "curried",
+        }
+
+    def test_haskell_pattern_matching(self):
+        patch = """
+@@ -152,10 +152,6 @@ head :: [a] -> a
+
+@@ -152,10 +152,6 @@ head (x:_) = x
+
+@@ -152,10 +152,6 @@ tail :: [a] -> [a]
+
+@@ -152,10 +152,6 @@ tail (_:xs) = xs
+
+@@ -152,10 +152,6 @@ isEmpty :: [a] -> Bool
+
+@@ -152,10 +152,6 @@ isEmpty [] = True
+
+@@ -152,10 +152,6 @@ isEmpty _ = False
+
+@@ -152,10 +152,6 @@ fib :: Int -> Int
+
+@@ -152,10 +152,6 @@ fib 0 = 0
+
+@@ -152,10 +152,6 @@ fib 1 = 1
+
+@@ -152,10 +152,6 @@ fib n = fib (n-1) + fib (n-2)
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "head",
+            "tail",
+            "isEmpty",
+            "fib",
+        }
+
+    def test_haskell_real_world_example(self):
+        # Based on typical Haskell module functions
+        patch = """
+@@ -73,9 +73,7 @@ module MyModule where
+
+@@ -87,7 +87,8 @@ import Data.List
+
+@@ -95,6 +95,7 @@ processData :: [Int] -> [Int]
+
+@@ -103,4 +107,23 @@ processData xs = map (*2) $ filter (>0) xs
+
+@@ -115,6 +118,13 @@ average :: [Double] -> Double
+
+@@ -125,7 +125,7 @@ average xs = sum xs / fromIntegral (length xs)
+
+@@ -135,8 +135,8 @@ safeDivide :: Double -> Double -> Maybe Double
+
+@@ -145,10 +145,10 @@ safeDivide _ 0 = Nothing
+
+@@ -155,15 +155,15 @@ safeDivide x y = Just (x / y)
+
+@@ -165,18 +165,18 @@ let validation = all (>0)
+
+@@ -175,20 +175,20 @@ where normalize x = x / maxVal
+
+"""
+
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "processData",
+            "average",
+            "safeDivide",
+            "validation",
+            "normalize",
+        }
+
+    def test_haskell_edge_cases(self):
+        patch = """
+@@ -152,10 +152,6 @@ (++) :: [a] -> [a] -> [a]
+
+@@ -152,10 +152,6 @@ [] ++ ys = ys
+
+@@ -152,10 +152,6 @@ (x:xs) ++ ys = x : (xs ++ ys)
+
+@@ -152,10 +152,6 @@ myOperator :: Int -> Int -> Int
+
+@@ -152,10 +152,6 @@ x `myOperator` y = x * y + 1
+
+@@ -152,10 +152,6 @@ data Tree a = Leaf a | Branch (Tree a) (Tree a)
+
+@@ -152,10 +152,6 @@ treeHeight :: Tree a -> Int
+
+@@ -152,10 +152,6 @@ treeHeight (Leaf _) = 1
+
+@@ -152,10 +152,6 @@ treeHeight (Branch l r) = 1 + max (treeHeight l) (treeHeight r)
+
+"""
+
+        # Note: We don't expect to catch operators like (++) or complex pattern matches
+        # but we should catch normal function names
+        assert HaskellParser.extract_functions_from_patch(patch) == {
+            "myOperator",
+            "treeHeight",
         }
