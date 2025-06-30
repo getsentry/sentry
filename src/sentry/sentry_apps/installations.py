@@ -126,11 +126,11 @@ class SentryAppInstallationCreator:
 
                 self.audit(request=request)
 
-                self._create_service_hooks(install=install)
-                install.is_new = True
+            self._create_service_hooks(install=install)
+            install.is_new = True
 
-                if self.notify:
-                    installation_webhook.delay(install.id, user.id)
+            if self.notify:
+                installation_webhook.delay(install.id, user.id)
 
             self.record_analytics(user=user)
             return install
