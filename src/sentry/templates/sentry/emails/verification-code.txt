@@ -1,7 +1,7 @@
-Here is the verification code you requested. It expires in 30 minutes.
+You've initiated an account merger which requires verification. Please use the code below to confirm:
 
 {{code}}
 
-If you weren't expecting this email, please ignore it.
+This code expires in 30 minutes.
 
-The Sentry Team
+If you didn't attempt this action, please secure your account immediately and contact support@sentry.io.

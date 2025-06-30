@@ -3,11 +3,8 @@
 {% load i18n %}
 
 {% block main %}
-    <p>Here is the verification code you requested. It expires in 30 minutes.</p>
-
-    <p>{{code}}</p>
-
-    <p>If you weren't expecting this email, please ignore it.</p>
-
-    <p>The Sentry Team</p>
+  <p>You've initiated an account merger which requires verification. Please use the code below to confirm:</p>
+  <p>{{code}}</p>
+  <p>This code expires in 30 minutes.</p>
+  <p>If you didn't attempt this action, please secure your account immediately and contact support@sentry.io.</p>
 {% endblock %}
