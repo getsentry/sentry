@@ -168,9 +168,7 @@ interface ContinuousProfileQueryParams {
   start: string;
 }
 
-export function isContinuousProfileQueryParams(
-  val: any
-): val is ContinuousProfileQueryParams {
+function isContinuousProfileQueryParams(val: any): val is ContinuousProfileQueryParams {
   return (
     typeof val === 'object' &&
     typeof val.start === 'string' &&
