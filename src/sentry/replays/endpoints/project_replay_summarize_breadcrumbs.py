@@ -262,6 +262,14 @@ def generate_error_log_message(error: GroupEvent) -> str:
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
+def generate_feedback_log_message(feedback: GroupEvent) -> str:
+    title = feedback["title"]
+    message = feedback["message"]
+    timestamp = feedback["timestamp"]
+
+    return f"User submitted feedback: '{title}: {message}' at {timestamp}"
+
+
 def get_request_data(
     iterator: Iterator[tuple[int, memoryview]],
     error_events: list[GroupEvent],
@@ -293,7 +301,14 @@ def gen_request_data(
                 error_idx += 1
 
             # Yield the current event's log message
-            if message := as_log_message(event, project_id):
+            event_type = which(event)
+            if event_type == EventType.FEEDBACK:
+                feedback_id = event["data"]["payload"].get("data", {}).get("feedback_id", None)
+                feedback = fetch_feedback_details(feedback_id, project_id)
+                if feedback:
+                    yield generate_feedback_log_message(feedback)
+
+            elif message := as_log_message(event):
                 yield message
 
     # Yield any remaining error messages
@@ -327,7 +342,7 @@ def analyze_recording_segments(
     return json.loads(make_seer_request(request_data).decode("utf-8"))
 
 
-def as_log_message(event: dict[str, Any], project_id: int) -> str | None:
+def as_log_message(event: dict[str, Any]) -> str | None:
     """Return an event as a log message.
 
     Useful in AI contexts where the event's structure is an impediment to the AI's understanding
@@ -339,14 +354,6 @@ def as_log_message(event: dict[str, Any], project_id: int) -> str | None:
     timestamp = event.get("timestamp", 0.0)
 
     match event_type:
-        case EventType.FEEDBACK:
-            feedback_id = event["data"]["payload"].get("data", {}).get("feedback_id", None)
-            feedback = fetch_feedback_details(feedback_id, project_id)
-            if feedback:
-                message = feedback["message"]
-                return f"User submitted feedback: '{message}' at {timestamp}"
-            else:
-                return None
         case EventType.CLICK:
             return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.DEAD_CLICK:
@@ -412,6 +419,8 @@ def as_log_message(event: dict[str, Any], project_id: int) -> str | None:
             return None
         case EventType.OPTIONS:
             return None
+        case EventType.FEEDBACK:
+            return None  # the log message is processed before this method is called
 
 
 def make_seer_request(request_data: str) -> bytes:

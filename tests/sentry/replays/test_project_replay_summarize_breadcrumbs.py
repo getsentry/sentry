@@ -627,14 +627,13 @@ def test_get_request_data(default_project):
     ]
 
 
-@django_db_all
-def test_as_log_message(default_project):
+def test_as_log_message():
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
@@ -653,7 +652,7 @@ def test_as_log_message(default_project):
             },
         },
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
@@ -672,35 +671,35 @@ def test_as_log_message(default_project):
             },
         },
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "navigation", "data": {"to": "/"}}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
@@ -720,7 +719,7 @@ def test_as_log_message(default_project):
             },
         },
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
@@ -741,7 +740,7 @@ def test_as_log_message(default_project):
         },
     }
 
-    result = as_log_message(event, default_project.id)
+    result = as_log_message(event)
     assert result is not None
     assert "unknown" not in result
 
@@ -764,7 +763,7 @@ def test_as_log_message(default_project):
         },
     }
 
-    result = as_log_message(event, default_project.id)
+    result = as_log_message(event)
     assert result is None
 
     event = {
@@ -772,7 +771,7 @@ def test_as_log_message(default_project):
         "timestamp": 0.0,
         "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
     }
-    assert as_log_message(event, default_project.id) is None
+    assert as_log_message(event) is None
 
     event = {
         "type": 5,
@@ -786,7 +785,7 @@ def test_as_log_message(default_project):
             },
         },
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
@@ -800,19 +799,19 @@ def test_as_log_message(default_project):
             },
         },
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
-    assert as_log_message(event, default_project.id) is not None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
-    assert as_log_message(event, default_project.id) is None
-    assert as_log_message({}, default_project.id) is None
+    assert as_log_message(event) is None
+    assert as_log_message({}) is None
