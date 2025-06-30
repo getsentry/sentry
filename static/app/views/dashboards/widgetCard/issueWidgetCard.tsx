@@ -17,7 +17,10 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
@@ -62,15 +65,13 @@ export function IssueWidgetCard({
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
   const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.();
-  const columns = decodeColumnOrder(
-    queryFields.map((field, index) => ({field, alias: fieldAliases[index]}))
-  ).map(column => ({
+  const columns = decodeColumnOrder(queryFields.map(field => ({field}))).map(column => ({
     key: column.key,
     name: column.name,
     width: column.width,
-    alias: column.column.alias || fieldHeaderMap?.[column.key],
     type: column.type === 'never' ? null : column.type,
   }));
+  const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
 
@@ -86,6 +87,7 @@ export function IssueWidgetCard({
         frameless
         scrollable
         fit="max-content"
+        aliases={aliases}
         getRenderer={(field, _dataRow, meta) => {
           const customRenderer = datasetConfig.getCustomFieldRenderer?.(
             field,

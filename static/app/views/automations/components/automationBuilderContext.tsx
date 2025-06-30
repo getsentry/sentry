@@ -2,6 +2,7 @@ import {createContext, type Reducer, useCallback, useContext, useReducer} from '
 import {uuid4} from '@sentry/core';
 
 import {
+  type ActionConfig,
   type ActionHandler,
   ActionTarget,
   ActionType,
@@ -11,6 +12,7 @@ import {
   DataConditionGroupLogicType,
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function useAutomationBuilderReducer() {
@@ -506,13 +508,27 @@ function getActionTargetType(actionType: ActionType): ActionTarget | null {
   }
 }
 
+function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
+  const targetType = getActionTargetType(actionHandler.type);
+  const targetIdentifier =
+    actionHandler.sentryApp?.id ??
+    actionHandler.integrations?.[0]?.services?.[0]?.id ??
+    actionHandler.services?.[0]?.slug ??
+    undefined;
+
+  return {
+    target_type: targetType,
+    ...(targetIdentifier && {target_identifier: targetIdentifier}),
+  };
+}
+
 function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, actionHandler} = action;
 
-  const targetType = getActionTargetType(actionHandler.type);
+  const defaultIntegration = actionHandler.integrations?.[0];
 
   return {
     ...state,
@@ -527,13 +543,11 @@ function addIfAction(
           {
             id: actionId,
             type: actionHandler.type,
-            config: {
-              target_type: targetType,
-              ...(actionHandler.sentryApp
-                ? {target_identifier: actionHandler.sentryApp.id}
-                : {}),
-            },
-            data: {},
+            config: getDefaultConfig(actionHandler),
+            ...(defaultIntegration && {
+              integrationId: defaultIntegration.id,
+            }),
+            data: actionNodesMap.get(actionHandler.type)?.defaultData || {},
           },
         ],
       };

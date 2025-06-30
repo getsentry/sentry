@@ -25,7 +25,7 @@ preprod: 0006_add_analysis_file_id_field
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0936_prompts_activity_index
+sentry: 0939_rm_eventattachment_fileid_part2
 
 social_auth: 0001_squashed_0002_default_auto_field
 
@@ -33,4 +33,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0074_safe_delete_actiongroupstatus
+workflow_engine: 0075_add_index_to_dcg_action

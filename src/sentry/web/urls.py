@@ -191,10 +191,12 @@ urlpatterns += [
                 re_path(
                     r"^authorize/$",
                     OAuthAuthorizeView.as_view(),
+                    name="sentry-oauth-authorize",
                 ),
                 re_path(
                     r"^token/$",
                     OAuthTokenView.as_view(),
+                    name="sentry-oauth-token",
                 ),
                 re_path(
                     r"^userinfo/$",
@@ -315,6 +317,7 @@ urlpatterns += [
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-authorizations", permanent=False
                     ),
+                    name="sentry-account-authorizations-redirect",
                 ),
                 re_path(
                     r"^confirm-email/(?P<user_id>[^/]+)/(?P<hash>[0-9a-zA-Z]+)/$",
@@ -359,34 +362,40 @@ urlpatterns += [
                 re_path(
                     r"^settings/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
+                    name="sentry-account-settings-redirect",
                 ),
                 re_path(
                     r"^settings/2fa/",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-security", permanent=False
                     ),
+                    name="sentry-account-settings-2fa-redirect",
                 ),
                 re_path(
                     r"^settings/avatar/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-avatar", permanent=False
                     ),
+                    name="sentry-account-settings-avatar-redirect",
                 ),
                 re_path(
                     r"^settings/appearance/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
+                    name="sentry-account-settings-appearance-redirect",
                 ),
                 re_path(
                     r"^settings/identities/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-identities", permanent=False
                     ),
+                    name="sentry-account-settings-identities-redirect",
                 ),
                 re_path(
                     r"^settings/subscriptions/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-subscriptions", permanent=False
                     ),
+                    name="sentry-account-settings-subscriptions-redirect",
                 ),
                 re_path(
                     r"^settings/identities/associate/(?P<organization_slug>[^/]+)/(?P<provider_key>[^/]+)/(?P<external_id>[^/]+)/$",
@@ -398,12 +407,14 @@ urlpatterns += [
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-security", permanent=False
                     ),
+                    name="sentry-account-settings-security-redirect",
                 ),
                 re_path(
                     r"^settings/emails/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-emails", permanent=False
                     ),
+                    name="sentry-account-settings-security-emails-redirect",
                 ),
                 # Project Wizard
                 re_path(
@@ -417,12 +428,14 @@ urlpatterns += [
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
+                    name="sentry-account-settings-notifications-redirect",
                 ),
                 re_path(
                     r"^remove/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-close-account", permanent=False
                     ),
+                    name="sentry-account-remove-redirect",
                 ),
                 re_path(
                     r"^settings/social/",
@@ -431,6 +444,7 @@ urlpatterns += [
                 re_path(
                     r"^",
                     generic_react_page_view,
+                    name="sentry-account-index",
                 ),
             ]
         ),
@@ -445,6 +459,7 @@ urlpatterns += [
     re_path(
         r"^onboarding/",
         generic_react_page_view,
+        name="sentry-onboarding",
     ),
     # Relocation
     re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
@@ -480,22 +495,27 @@ urlpatterns += [
     re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
+        name="sentry-api-redirect",
     ),
     re_path(
         r"^api/applications/$",
         RedirectView.as_view(pattern_name="sentry-account-api-applications", permanent=False),
+        name="sentry-api-applications-redirect",
     ),
     re_path(
         r"^api/new-token/$",
         RedirectView.as_view(pattern_name="sentry-account-api-new-auth-token", permanent=False),
+        name="sentry-api-new-token-redirect",
     ),
     re_path(
         r"^api/[^0]+/",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
+        name="sentry-api-nonzero-redirect",
     ),
     re_path(
         r"^out/$",
         OutView.as_view(),
+        name="sentry-out",
     ),
     re_path(
         r"^accept-transfer/$",
@@ -736,6 +756,7 @@ urlpatterns += [
                 re_path(
                     r"^",
                     react_page_view,
+                    name="sentry-settings-index",
                 ),
             ]
         ),
@@ -1144,6 +1165,7 @@ urlpatterns += [
     re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/settings/$",
         RedirectView.as_view(pattern_name="sentry-manage-project", permanent=False),
+        name="sentry-organization-settings-redirect",
     ),
     re_path(
         r"^settings/(?P<organization_slug>[^/]+)/projects/(?P<project_slug>[^/]+)/$",
@@ -1202,11 +1224,13 @@ urlpatterns += [
     re_path(
         r"^favicon\.ico$",
         lambda r: HttpResponse(status=404),
+        name="sentry-favicon-404",
     ),
     # crossdomain.xml
     re_path(
         r"^crossdomain\.xml$",
         lambda r: HttpResponse(status=404),
+        name="sentry-crossdomain-404",
     ),
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
@@ -1343,5 +1367,6 @@ urlpatterns += [
     re_path(
         r"^.*/$",
         react_page_view,
+        name="sentry-catchall",
     ),
 ]

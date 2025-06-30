@@ -16,14 +16,14 @@ import type {
 
 type NotSortable = {
   label: string;
-  tooltip?: string | ReactNode;
+  tooltip: undefined | string | ReactNode;
 };
 
 type Sortable = {
   fieldName: ReplayRecordNestedFieldName;
   label: string;
   sort: undefined | Sort;
-  tooltip?: string | ReactNode;
+  tooltip: undefined | string | ReactNode;
 };
 
 type Props = NotSortable | Sortable;

@@ -26,7 +26,7 @@ from sentry.search.eap.utils import (
     translate_to_sentry_conventions,
 )
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 
 
 def convert_rpc_attribute_to_json(
@@ -39,6 +39,8 @@ def convert_rpc_attribute_to_json(
     for attribute in attributes:
         internal_name = attribute["name"]
         if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
+            continue
+        if internal_name.startswith("sentry._meta"):
             continue
         source = attribute["value"]
         if len(source) == 0:
@@ -92,6 +94,46 @@ def convert_rpc_attribute_to_json(
                 )
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
+
+
+def serialize_meta(
+    attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
+) -> dict:
+    internal_name = ""
+    attribute = {}
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name.startswith("sentry._meta"):
+            break
+
+    if not internal_name.startswith("sentry._meta") or "valStr" not in attribute["value"]:
+        return {}
+
+    try:
+        result = json.loads(attribute["value"]["valStr"])
+        attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
+        mapped_result = {}
+        for key, value in result.items():
+            if key in attribute_map:
+                item_type: Literal["string", "number"]
+                if (
+                    "valInt" in attribute_map[key]
+                    or "valFloat" in attribute_map[key]
+                    or "valDouble" in attribute_map[key]
+                ):
+                    item_type = "number"
+                else:
+                    item_type = "string"
+                external_name = translate_internal_to_public_alias(key, item_type, trace_item_type)
+                if external_name:
+                    key = external_name
+                elif item_type == "number":
+                    key = f"tags[{key},number]"
+            mapped_result[key] = value
+        return mapped_result
+    except json.JSONDecodeError:
+        return {}
 
 
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
@@ -180,6 +222,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "attributes": convert_rpc_attribute_to_json(
                 resp["attributes"], item_type, use_sentry_conventions
             ),
+            "meta": serialize_meta(resp["attributes"], item_type),
         }
 
         return Response(resp_dict)

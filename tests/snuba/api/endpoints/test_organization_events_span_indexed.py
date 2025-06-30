@@ -5778,3 +5778,103 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert "count()" not in confidence[0]
         assert data[1]["count()"] == 1
         assert "count()" not in confidence[1]
+
+    def test_failure_count(self):
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status": status}},
+                    start_ts=self.ten_mins_ago,
+                )
+                for status in trace_statuses
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_count()"] == 1
+        assert meta["dataset"] == self.dataset
+
+    def test_short_trace_id_filter(self):
+        trace_ids = [
+            "0" * 32,
+            ("7" * 8) + ("0" * 24),
+            "7" * 32,
+            ("7" * 8) + ("f" * 24),
+            "f" * 32,
+        ]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"trace_id": trace_id},
+                    start_ts=self.ten_mins_ago,
+                )
+                for trace_id in trace_ids
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["trace"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "query": f"trace:{'7' * 8}",
+                "orderby": "trace",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert {row["trace"] for row in data} == {
+            ("7" * 8) + ("0" * 24),
+            "7" * 32,
+            ("7" * 8) + ("f" * 24),
+        }
+
+    def test_eps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "eps()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "eps()": 1 / (90 * 24 * 60 * 60),
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "eps()": "1/second"}
+        assert meta["fields"] == {"description": "string", "eps()": "rate"}

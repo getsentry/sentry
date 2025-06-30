@@ -5,10 +5,12 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -19,6 +21,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
 from sentry.db.models.query import in_icontains, in_iexact
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -175,6 +178,12 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         detector_type = request.data.get("type")
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
+
+        # restrict creating metric issue detectors by plan type
+        if detector_type == MetricIssue.slug and not features.has(
+            "organizations:incidents", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
 
         try:
             project_id = request.data.get("projectId")
