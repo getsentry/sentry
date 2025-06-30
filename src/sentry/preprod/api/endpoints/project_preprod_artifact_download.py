@@ -9,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
 from sentry.models.files.file import File
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
@@ -81,7 +80,7 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
         filename = f"preprod_artifact_{artifact_id}.zip"
 
         response = FileResponse(
-            ClosesDependentFiles(fp),
+            fp,
             content_type="application/octet-stream",
         )
 
