@@ -27,7 +27,7 @@ export default function TokensPage() {
       {
         name: 'test',
         token: 'test',
-        createdAt: 'Mar 19, 2024 6:33:30 PM CET',
+        createdAt: 'Mar 20, 2024 6:33:30 PM CET',
       },
       {
         name: 'test2',

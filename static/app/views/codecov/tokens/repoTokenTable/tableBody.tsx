@@ -13,11 +13,11 @@ interface TableBodyProps {
 
 export function renderTableBody({column, row}: TableBodyProps) {
   const key = column.key;
-  const alignment = key === 'token' || key === 'regenerateToken' ? 'right' : 'left';
+  const alignment = ['regenerateToken', 'token'].includes(key) ? 'right' : 'left';
 
   if (key === 'regenerateToken') {
     return (
-      <Container alignment={alignment}>
+      <AlignmentContainer alignment={alignment}>
         <StyledButton
           size="sm"
           priority="default"
@@ -26,32 +26,32 @@ export function renderTableBody({column, row}: TableBodyProps) {
         >
           Regenerate token
         </StyledButton>
-      </Container>
+      </AlignmentContainer>
     );
   }
 
   const value = row[key];
 
   if (key === 'name') {
-    return <Container alignment={alignment}>{value}</Container>;
+    return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
   }
 
   if (key === 'token') {
-    return <Container alignment={alignment}>{value}</Container>;
+    return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
   }
 
   if (key === 'createdAt') {
     return <DateContainer>{value}</DateContainer>;
   }
 
-  return <Container alignment={alignment}>{value}</Container>;
+  return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
 }
 
 const StyledButton = styled(Button)`
   max-width: 175px;
 `;
 
-export const Container = styled('div')<{alignment: string}>`
+export const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
 `;
 
