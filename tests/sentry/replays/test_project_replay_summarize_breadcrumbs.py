@@ -18,6 +18,7 @@ from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -573,7 +574,8 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
 
-def test_get_request_data():
+@django_db_all
+def test_get_request_data(default_project):
     def _faker():
         yield 0, memoryview(
             json.dumps(
@@ -615,7 +617,7 @@ def test_get_request_data():
         ),
     ]
 
-    result = get_request_data(_faker(), error_events=error_events)
+    result = get_request_data(_faker(), error_events=error_events, project_id=default_project.id)
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1.0",
         "Logged: hello at 1.5",
@@ -624,13 +626,14 @@ def test_get_request_data():
     ]
 
 
-def test_as_log_message():
+@django_db_all
+def test_as_log_message(default_project):
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
@@ -649,7 +652,7 @@ def test_as_log_message():
             },
         },
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
@@ -668,35 +671,35 @@ def test_as_log_message():
             },
         },
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "navigation", "data": {"to": "/"}}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
@@ -716,7 +719,7 @@ def test_as_log_message():
             },
         },
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
@@ -737,7 +740,7 @@ def test_as_log_message():
         },
     }
 
-    result = as_log_message(event)
+    result = as_log_message(event, default_project.id)
     assert result is not None
     assert "unknown" not in result
 
@@ -760,7 +763,7 @@ def test_as_log_message():
         },
     }
 
-    result = as_log_message(event)
+    result = as_log_message(event, default_project.id)
     assert result is None
 
     event = {
@@ -768,7 +771,7 @@ def test_as_log_message():
         "timestamp": 0.0,
         "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
     }
-    assert as_log_message(event) is None
+    assert as_log_message(event, default_project.id) is None
 
     event = {
         "type": 5,
@@ -782,7 +785,7 @@ def test_as_log_message():
             },
         },
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
@@ -796,19 +799,19 @@ def test_as_log_message():
             },
         },
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
-    assert as_log_message(event) is not None
+    assert as_log_message(event, default_project.id) is not None
 
     event = {
         "type": 5,
         "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
-    assert as_log_message(event) is None
-    assert as_log_message({}) is None
+    assert as_log_message(event, default_project.id) is None
+    assert as_log_message({}, default_project.id) is None

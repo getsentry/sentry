@@ -226,11 +226,11 @@ def fetch_trace_connected_errors(
         return []
 
 
-def fetch_feedback_details(feedback_id: str | None, project_id: int | None = None):
+def fetch_feedback_details(feedback_id: str | None, project_id):
     """
     Fetch user feedback associated with a specific feedback event ID.
     """
-    if project_id is None or feedback_id is None:
+    if feedback_id is None:
         return None
 
     try:
@@ -265,7 +265,7 @@ def generate_error_log_message(error: GroupEvent) -> str:
 def get_request_data(
     iterator: Iterator[tuple[int, memoryview]],
     error_events: list[GroupEvent],
-    project_id: int | None = None,
+    project_id: int,
 ) -> list[str]:
     # Sort error events by timestamp
     error_events.sort(key=lambda x: x["timestamp"])
@@ -275,7 +275,7 @@ def get_request_data(
 def gen_request_data(
     iterator: Iterator[tuple[int, memoryview]],
     error_events: list[GroupEvent],
-    project_id: int | None = None,
+    project_id,
 ) -> Generator[str]:
     """Generate log messages from events and errors in chronological order."""
     error_idx = 0
@@ -327,7 +327,7 @@ def analyze_recording_segments(
     return json.loads(make_seer_request(request_data).decode("utf-8"))
 
 
-def as_log_message(event: dict[str, Any], project_id: int | None = None) -> str | None:
+def as_log_message(event: dict[str, Any], project_id: int) -> str | None:
     """Return an event as a log message.
 
     Useful in AI contexts where the event's structure is an impediment to the AI's understanding
