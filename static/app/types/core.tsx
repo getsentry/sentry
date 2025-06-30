@@ -93,6 +93,7 @@ export enum DataCategory {
   LOG_BYTE = 'logBytes',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 /**
@@ -123,6 +124,7 @@ export enum DataCategoryExact {
   LOG_BYTE = 'logByte',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'user_report_v2',
 }
 
 export interface DataCategoryInfo {
