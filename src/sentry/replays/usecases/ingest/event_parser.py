@@ -203,31 +203,31 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             node_attributes = node.get("attributes", {})
             attributes = {
                 "node_id": int(node["id"]),
-                "tag": str(node["tagName"]),
-                "text": str(node["textContent"][:1024]),
+                "tag": to_string(node["tagName"]),
+                "text": to_string(node["textContent"][:1024]),
                 "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
                 "is_rage": event_type == EventType.RAGE_CLICK,
-                "selector": str(payload["message"]),
+                "selector": to_string(payload["message"]),
                 "category": "click",
             }
             if "alt" in node_attributes:
-                attributes["alt"] = str(node_attributes["alt"])
+                attributes["alt"] = to_string(node_attributes["alt"])
             if "aria-label" in node_attributes:
-                attributes["aria_label"] = str(node_attributes["aria-label"])
+                attributes["aria_label"] = to_string(node_attributes["aria-label"])
             if "class" in node_attributes:
-                attributes["class"] = str(node_attributes["class"])
+                attributes["class"] = to_string(node_attributes["class"])
             if "data-sentry-component" in node_attributes:
-                attributes["component_name"] = str(node_attributes["data-sentry-component"])
+                attributes["component_name"] = to_string(node_attributes["data-sentry-component"])
             if "id" in node_attributes:
-                attributes["id"] = str(node_attributes["id"])
+                attributes["id"] = to_string(node_attributes["id"])
             if "role" in node_attributes:
-                attributes["role"] = str(node_attributes["role"])
+                attributes["role"] = to_string(node_attributes["role"])
             if "title" in node_attributes:
-                attributes["title"] = str(node_attributes["title"])
+                attributes["title"] = to_string(node_attributes["title"])
             if _get_testid(node_attributes):
                 attributes["testid"] = _get_testid(node_attributes)
             if "url" in payload:
-                attributes["url"] = str(payload["url"])
+                attributes["url"] = to_string(payload["url"])
 
             return {
                 "attributes": attributes,
@@ -240,9 +240,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             attributes = {"category": "navigation"}
             if "from" in payload_data:
-                attributes["from"] = str(payload_data["from"])
+                attributes["from"] = to_string(payload_data["from"])
             if "to" in payload_data:
-                attributes["to"] = str(payload_data["to"])
+                attributes["to"] = to_string(payload_data["to"])
 
             return {
                 "attributes": attributes,
@@ -278,7 +278,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": {
                     "category": "web-vital.fcp" if event_type == EventType.FCP else "web-vital.lcp",
-                    "rating": str(payload["data"]["rating"]),
+                    "rating": to_string(payload["data"]["rating"]),
                     "size": int(payload["data"]["size"]),
                     "value": int(payload["data"]["value"]),
                 },
@@ -290,7 +290,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return {
                 "attributes": {
                     "category": "replay.hydrate-error",
-                    "url": str(payload["data"]["url"]),
+                    "url": to_string(payload["data"]["url"]),
                 },
                 "event_hash": uuid.uuid4().hex,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
@@ -345,6 +345,12 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().hex,
                 "timestamp": float(payload["startTimestamp"]),
             }
+
+
+def to_string(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    raise ValueError("Value was not a string.")
 
 
 class HighlightedEvents(TypedDict, total=False):
