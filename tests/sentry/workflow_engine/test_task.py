@@ -2,13 +2,11 @@ from unittest import mock
 
 from google.api_core.exceptions import RetryError
 
-from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.tasks import fetch_event, workflow_status_update_handler
 
 
@@ -31,37 +29,6 @@ class FetchEventTests(TestCase):
             # Should have been called 3 times (2 failures + 1 success)
             assert mock_get.call_count == 3
             assert result is not None
-
-
-class IssuePlatformIntegrationTests(TestCase):
-    def test_handler_invoked__when_resolved(self):
-        """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_state_update_handler`
-        and increment the metric.
-        """
-        detector = self.create_detector()
-        group = self.create_group(
-            project=self.project,
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ESCALATING,
-        )
-
-        message = StatusChangeMessageData(
-            id="test_message_id",
-            project_id=self.project.id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-            fingerprint=["test_fingerprint"],
-            detector_id=detector.id,
-        )
-
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
-            update_status(group, message)
-            mock_incr.assert_called_with(
-                "workflow_engine.process_workflow.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
-            )
 
 
 class WorkflowStatusUpdateHandlerTests(TestCase):

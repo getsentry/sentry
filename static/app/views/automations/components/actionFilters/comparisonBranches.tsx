@@ -32,9 +32,7 @@ function ValueField() {
       min={1}
       step={1}
       onChange={(value: number) => {
-        onUpdate({
-          value,
-        });
+        onUpdate({comparison: {...condition.comparison, value}});
       }}
       placeholder="100"
     />
@@ -49,9 +47,7 @@ function IntervalField() {
       value={condition.comparison.interval}
       options={INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          interval: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, interval: option.value}});
       }}
     />
   );
@@ -66,7 +62,7 @@ function ComparisonIntervalField() {
       options={COMPARISON_INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          comparison_interval: option.value,
+          comparison: {...condition.comparison, comparison_interval: option.value},
         });
       }}
     />
