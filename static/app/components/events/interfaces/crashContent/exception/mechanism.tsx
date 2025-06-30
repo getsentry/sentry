@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';

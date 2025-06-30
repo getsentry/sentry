@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {ExternalLink} from 'sentry/components/core/link';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';

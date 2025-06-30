@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';

@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';

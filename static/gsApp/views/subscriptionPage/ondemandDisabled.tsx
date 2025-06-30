@@ -28,7 +28,7 @@
 import {NavLink} from 'react-router-dom';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 
 import {PlanTier, type Subscription} from 'getsentry/types';

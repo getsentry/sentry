@@ -2,9 +2,9 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';

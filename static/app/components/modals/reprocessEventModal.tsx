@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ExternalLink} from 'sentry/components/core/link';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
