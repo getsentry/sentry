@@ -84,7 +84,7 @@ export function PercentSessionsNode() {
 }
 
 function ComparisonTypeField() {
-  const {condition, condition_id, onUpdateType} = useDataConditionNodeContext();
+  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
     return <CountBranch />;
@@ -108,7 +108,7 @@ function ComparisonTypeField() {
         },
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
-        onUpdateType(option.value);
+        onUpdate({type: option.value});
       }}
     />
   );

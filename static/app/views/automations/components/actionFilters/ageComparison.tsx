@@ -50,9 +50,7 @@ function ComparisonField() {
       value={condition.comparison.comparison_type}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({
-          comparison_type: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, comparison_type: option.value}});
       }}
     />
   );
@@ -67,9 +65,7 @@ function ValueField() {
       min={0}
       step={1}
       onChange={(value: number) => {
-        onUpdate({
-          value,
-        });
+        onUpdate({comparison: {...condition.comparison, value}});
       }}
       placeholder={'10'}
     />
@@ -84,9 +80,7 @@ function TimeField() {
       value={condition.comparison.time}
       options={TIME_CHOICES}
       onChange={(option: SelectValue<TimeUnit>) => {
-        onUpdate({
-          time: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, time: option.value}});
       }}
     />
   );

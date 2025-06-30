@@ -38,8 +38,6 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
           return removeIfCondition(state, action);
         case 'UPDATE_IF_CONDITION':
           return updateIfCondition(state, action);
-        case 'UPDATE_IF_CONDITION_TYPE':
-          return updateIfConditionType(state, action);
         case 'ADD_IF_ACTION':
           return addIfAction(state, action);
         case 'REMOVE_IF_ACTION':
@@ -71,8 +69,13 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       [dispatch]
     ),
     updateWhenCondition: useCallback(
-      (id: string, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_WHEN_CONDITION', id, comparison}),
+      (
+        id: string,
+        params: {
+          comparison?: any;
+          type?: DataConditionType;
+        }
+      ) => dispatch({type: 'UPDATE_WHEN_CONDITION', id, params}),
       [dispatch]
     ),
     updateWhenLogicType: useCallback(
@@ -95,19 +98,12 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
         dispatch({type: 'REMOVE_IF_CONDITION', groupId, conditionId}),
       [dispatch]
     ),
-    updateIfConditionType: useCallback(
-      (groupId: string, conditionId: string, conditionType: DataConditionType) =>
-        dispatch({
-          type: 'UPDATE_IF_CONDITION_TYPE',
-          groupId,
-          conditionId,
-          conditionType,
-        }),
-      [dispatch]
-    ),
     updateIfCondition: useCallback(
-      (groupId: string, conditionId: string, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, comparison}),
+      (
+        groupId: string,
+        conditionId: string,
+        params: {comparison?: any; type?: DataConditionType}
+      ) => dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, params}),
       [dispatch]
     ),
     addIfAction: useCallback(
@@ -174,11 +170,6 @@ interface AutomationActions {
     conditionId: string,
     comparison: Record<string, any>
   ) => void;
-  updateIfConditionType: (
-    groupId: string,
-    conditionId: string,
-    conditionType: DataConditionType
-  ) => void;
   updateIfLogicType: (groupId: string, logicType: DataConditionGroupLogicType) => void;
   updateWhenCondition: (id: string, comparison: Record<string, any>) => void;
   updateWhenLogicType: (logicType: DataConditionGroupLogicType) => void;
@@ -225,8 +216,11 @@ type RemoveWhenConditionAction = {
 };
 
 type UpdateWhenConditionAction = {
-  comparison: Record<string, any>;
   id: string;
+  params: {
+    comparison?: any;
+    type?: DataConditionType;
+  };
   type: 'UPDATE_WHEN_CONDITION';
 };
 
@@ -256,17 +250,13 @@ type RemoveIfConditionAction = {
   type: 'REMOVE_IF_CONDITION';
 };
 
-type UpdateIfConditionTypeAction = {
-  conditionId: string;
-  conditionType: DataConditionType;
-  groupId: string;
-  type: 'UPDATE_IF_CONDITION_TYPE';
-};
-
 type UpdateIfConditionAction = {
-  comparison: Record<string, any>;
   conditionId: string;
   groupId: string;
+  params: {
+    comparison?: any;
+    type?: DataConditionType;
+  };
   type: 'UPDATE_IF_CONDITION';
 };
 
@@ -309,7 +299,6 @@ type AutomationBuilderAction =
   | RemoveIfAction
   | AddIfConditionAction
   | RemoveIfConditionAction
-  | UpdateIfConditionTypeAction
   | UpdateIfConditionAction
   | AddIfActionAction
   | RemoveIfActionAction
@@ -355,13 +344,14 @@ function updateWhenCondition(
   state: AutomationBuilderState,
   action: UpdateWhenConditionAction
 ): AutomationBuilderState {
-  const {id, comparison} = action;
+  const {id, params} = action;
+  const {comparison, type} = params;
   return {
     ...state,
     triggers: {
       ...state.triggers,
       conditions: state.triggers.conditions.map(c =>
-        c.id === id ? {...c, comparison: {...c.comparison, ...comparison}} : c
+        c.id === id ? {...c, ...(comparison && {comparison}), ...(type && {type})} : c
       ),
     },
   };
@@ -457,32 +447,12 @@ function removeIfCondition(
   };
 }
 
-function updateIfConditionType(
-  state: AutomationBuilderState,
-  action: UpdateIfConditionTypeAction
-): AutomationBuilderState {
-  const {groupId, conditionId, conditionType} = action;
-  return {
-    ...state,
-    actionFilters: state.actionFilters.map(group => {
-      if (group.id !== groupId) {
-        return group;
-      }
-      return {
-        ...group,
-        conditions: group.conditions.map(c =>
-          c.id === conditionId ? {...c, type: conditionType} : c
-        ),
-      };
-    }),
-  };
-}
-
 function updateIfCondition(
   state: AutomationBuilderState,
   action: UpdateIfConditionAction
 ): AutomationBuilderState {
-  const {groupId, conditionId, comparison} = action;
+  const {groupId, conditionId, params} = action;
+  const {comparison, type} = params;
   return {
     ...state,
     actionFilters: state.actionFilters.map(group => {
@@ -492,7 +462,9 @@ function updateIfCondition(
       return {
         ...group,
         conditions: group.conditions.map(c =>
-          c.id === conditionId ? {...c, comparison: {...c.comparison, ...comparison}} : c
+          c.id === conditionId
+            ? {...c, ...(comparison && {comparison}), ...(type && {type})}
+            : c
         ),
       };
     }),

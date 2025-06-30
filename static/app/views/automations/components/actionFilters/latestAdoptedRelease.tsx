@@ -49,9 +49,7 @@ function ReleaseAgeTypeField() {
       value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
       onChange={(option: SelectValue<ModelAge>) => {
-        onUpdate({
-          match: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, release_age_type: option.value}});
       }}
     />
   );
@@ -65,9 +63,7 @@ function AgeComparisonField() {
       value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({
-          match: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, age_comparison: option.value}});
       }}
     />
   );
@@ -89,9 +85,7 @@ function EnvironmentField() {
       options={environmentOptions}
       placeholder={t('environment')}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          environment: option,
-        });
+        onUpdate({comparison: {...condition.comparison, environment: option.value}});
       }}
     />
   );

@@ -36,9 +36,7 @@ function MatchField() {
       value={condition.comparison.match}
       options={LEVEL_MATCH_CHOICES}
       onChange={(option: SelectValue<MatchType>) => {
-        onUpdate({
-          match: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, match: option.value}});
       }}
     />
   );
@@ -52,9 +50,7 @@ function LevelField() {
       value={condition.comparison.level}
       options={LEVEL_CHOICES}
       onChange={(option: SelectValue<Level>) => {
-        onUpdate({
-          level: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, level: option.value}});
       }}
     />
   );

@@ -59,7 +59,13 @@ function TargetTypeField() {
       value={condition.comparison.targetType}
       options={TARGET_TYPE_CHOICES}
       onChange={(option: SelectValue<string>) =>
-        onUpdate({targetType: option.value, targetIdentifier: ''})
+        onUpdate({
+          comparison: {
+            ...condition.comparison,
+            targetType: option.value,
+            targetIdentifier: '',
+          },
+        })
       }
     />
   );
@@ -75,7 +81,9 @@ function IdentifierField() {
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
           value={condition.comparison.targetIdentifier}
-          onChange={(value: SelectValue<string>) => onUpdate({targetIdentifier: value})}
+          onChange={(value: SelectValue<string>) =>
+            onUpdate({comparison: {...condition.comparison, targetIdentifier: value}})
+          }
           useId
           styles={selectControlStyles}
         />
@@ -90,7 +98,11 @@ function IdentifierField() {
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
           value={condition.comparison.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
+          onChange={(value: any) =>
+            onUpdate({
+              comparison: {...condition.comparison, targetIdentifier: value.actor.id},
+            })
+          }
           styles={selectControlStyles}
         />
       </SelectWrapper>

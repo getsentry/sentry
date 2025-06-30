@@ -169,11 +169,8 @@ function ActionFilterBlock({
             conditions={actionFilter?.conditions || []}
             onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
             onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
-            updateCondition={(id, comparison) =>
-              actions.updateIfCondition(actionFilter.id, id, comparison)
-            }
-            updateConditionType={(id, type) =>
-              actions.updateIfConditionType(actionFilter.id, id, type)
+            updateCondition={(id, params) =>
+              actions.updateIfCondition(actionFilter.id, id, params)
             }
             conflictingConditionIds={conflictingConditions}
           />
