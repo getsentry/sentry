@@ -152,7 +152,7 @@ def assemble_preprod_artifact_size_analysis(
     """
     Creates a size analysis file for a preprod artifact from uploaded chunks.
     """
-    from sentry.preprod.models import PreprodArtifact
+    from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 
     logger.info(
         "Starting preprod artifact size analysis assembly",
@@ -187,22 +187,37 @@ def assemble_preprod_artifact_size_analysis(
         if assemble_result is None:
             return
 
-        with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            # Update existing PreprodArtifact with size analysis file
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+            # Create or update PreprodArtifactSizeMetrics with size analysis file
             try:
                 preprod_artifact = PreprodArtifact.objects.get(
                     project=project,
                     id=artifact_id,
                 )
-                preprod_artifact.analysis_file_id = assemble_result.bundle.id
-                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
-                preprod_artifact.save(update_fields=["analysis_file_id", "state", "date_updated"])
+
+                # Get or create PreprodArtifactSizeMetrics record
+                size_metrics, created = PreprodArtifactSizeMetrics.objects.get_or_create(
+                    preprod_artifact=preprod_artifact,
+                    defaults={
+                        "analysis_file_id": assemble_result.bundle.id,
+                        "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
+                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    },
+                )
+
+                if not created:
+                    # Update existing record
+                    size_metrics.analysis_file_id = assemble_result.bundle.id
+                    size_metrics.state = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                    size_metrics.save(update_fields=["analysis_file_id", "state", "date_updated"])
 
                 logger.info(
-                    "Updated preprod artifact with size analysis file",
+                    "Created or updated preprod artifact size metrics with analysis file",
                     extra={
                         "preprod_artifact_id": preprod_artifact.id,
+                        "size_metrics_id": size_metrics.id,
                         "analysis_file_id": assemble_result.bundle.id,
+                        "was_created": created,
                         "project_id": project_id,
                         "organization_id": org_id,
                     },
