@@ -26,12 +26,12 @@ export default function TokensPage() {
     data: [
       {
         name: 'test',
-        token: 'test',
+        token: 'testToken',
         createdAt: 'Mar 20, 2024 6:33:30 PM CET',
       },
       {
         name: 'test2',
-        token: 'test2',
+        token: 'test2Token',
         createdAt: 'Mar 19, 2024 6:33:30 PM CET',
       },
     ],
