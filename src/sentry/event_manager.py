@@ -1103,9 +1103,13 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
                 usage_type=UsageUnit.BYTES,
             )
         job["event"].data["nodestore_insert"] = inserted_time
-        # Error events are nearly all expected to be read shortly after ingestion by
-        # post-processing tasks, so it's worth writing to cache.
-        force_cache_write = event_type == "error"
+        force_cache_write = False
+        if features.has(
+            "organizations:error-event-save-force-cache-write", event.project.organization
+        ):
+            # Error events are nearly all expected to be read shortly after ingestion by
+            # post-processing tasks, so it's worth writing to cache.
+            force_cache_write = event_type == "error"
         job["event"].data.save(subkeys=subkeys, force_cache_write=force_cache_write)
 
 

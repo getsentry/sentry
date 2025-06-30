@@ -121,6 +121,7 @@ class NodeData(MutableMapping[str, Any]):
         :param subkeys: Additional JSON payloads to attach to nodestore value,
             currently only {"unprocessed": {...}} is added for reprocessing.
             See documentation of nodestore.
+        :param force_cache_write: Force the cache to be written to.
         """
 
         # We never loaded any data for reading or writing, so there
