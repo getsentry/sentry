@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {linkStyles} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -104,9 +104,13 @@ class PowerFeatureHovercard extends Component<Props> {
                   ? t('Better With %s Plan', planName)
                   : t('Requires %s Plan', planName)}
               </div>
-              <LearnMoreLink onClick={this.handleClick} data-test-id="power-learn-more">
+              <ExternalLink
+                href=""
+                onClick={this.handleClick}
+                data-test-id="power-learn-more"
+              >
                 {t('Learn More')}
-              </LearnMoreLink>
+              </ExternalLink>
             </LearnMoreTextBody>
           );
         }}
@@ -127,21 +131,6 @@ class PowerFeatureHovercard extends Component<Props> {
     );
   }
 }
-
-const LearnMoreLink = styled('button')`
-  ${p => linkStyles({theme: p.theme})}
-  background: none;
-  border: none;
-  padding: 0;
-
-  color: ${p => p.theme.subText};
-  text-decoration: underline;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-    text-decoration: none;
-  }
-`;
 
 const LearnMoreTextBody = styled('div')`
   padding: ${space(1)};
