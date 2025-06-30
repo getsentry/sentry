@@ -26,8 +26,8 @@ function UptimHeadersControl(props: any) {
 
   // Store itmes in local state so we can add empty values without persisting
   // those into the form model.
-  const [items, setItems] = useState<HeaderEntry[]>(
-    () => Object.keys(value).length > 0
+  const [items, setItems] = useState<HeaderEntry[]>(() =>
+    Object.keys(value).length > 0
       ? value.map((v: any) => [uniqueId(), ...v] as HeaderEntry)
       : [[uniqueId(), '', '']]
   );
