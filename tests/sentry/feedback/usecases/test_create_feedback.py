@@ -791,7 +791,7 @@ def test_create_feedback_adds_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_excludes_invalid_associated_event_id(
+def test_create_feedback_filters_invalid_associated_event_id(
     default_project, mock_produce_occurrence_to_kafka
 ):
     event = {
@@ -829,22 +829,8 @@ def test_create_feedback_excludes_invalid_associated_event_id(
     }
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-
-    associated_event_id_evidence = [
-        evidence.value
-        for evidence in mock_produce_occurrence_to_kafka.call_args.kwargs[
-            "occurrence"
-        ].evidence_display
-        if evidence.name == "associated_event_id"
-    ]
-    associated_event_id = associated_event_id_evidence[0] if associated_event_id_evidence else None
-    assert associated_event_id is None
-
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert produced_event["tags"]["has_linked_error"] == "false"
-    assert not produced_event["tags"].get("associated_event_id")
-    assert not produced_event["contexts"]["feedback"].get("associated_event_id")
+    assert mock_produce_occurrence_to_kafka.call_count == 0
+    assert Group.objects.count() == 0
 
 
 @django_db_all
