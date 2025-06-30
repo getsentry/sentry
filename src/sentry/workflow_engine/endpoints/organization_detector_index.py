@@ -134,7 +134,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         queryset = apply_filter(queryset, filter, "name")
                     case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
                         queryset = apply_filter(queryset, filter, "type")
-                    case SearchFilter(key=SearchKey("query")):
+                    case SearchFilter(key=SearchKey("query"), operator="="):
+                        # 'query' is our free text key; all free text gets returned here
+                        # as '=', and we search any relevant fields for it.
                         queryset = queryset.filter(
                             Q(description__icontains=filter.value.value)
                             | Q(name__icontains=filter.value.value)

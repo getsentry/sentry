@@ -121,6 +121,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             distinct=True,
                         )
                     case SearchFilter(key=SearchKey("query"), operator="="):
+                        # 'query' is our free text key; all free text gets returned here
+                        # as '=', and we search any relevant fields for it.
                         queryset = queryset.filter(
                             Q(name__icontains=filter.value.value)
                             | Q(
