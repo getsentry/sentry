@@ -593,6 +593,13 @@ def test_which():
     event = {
         "type": 5,
         "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "sentry.feedback"}},
+    }
+    assert which(event) == EventType.FEEDBACK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
     }
     assert which(event) == EventType.UI_BLUR
