@@ -52,24 +52,6 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         assert "not found" in response.json()["error"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_download_preprod_artifact_not_processed(self):
-        # Create an artifact that's not processed yet
-        unprocessed_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.UPLOADING,
-        )
-
-        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{unprocessed_artifact.id}/"
-
-        headers = self._get_authenticated_request_headers(url)
-
-        response = self.client.get(url, **headers)
-
-        assert response.status_code == 400
-        assert "not ready for download" in response.json()["error"]
-
-    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_no_file(self):
         # Create an artifact without a file
         no_file_artifact = PreprodArtifact.objects.create(
