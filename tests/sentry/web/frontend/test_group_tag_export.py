@@ -53,7 +53,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
 
     def test_simple(self):
         url = reverse(
-            "sentry-group-tag-export",
+            "sentry-organization-group-tag-export",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,

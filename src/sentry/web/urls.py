@@ -10,10 +10,16 @@ from django.views.generic import RedirectView
 
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
-from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
+from sentry.auth.providers.saml2.provider import (
+    SAML2AcceptACSView,
+    SAML2MetadataView,
+    SAML2SLSView,
+)
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
-from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
+from sentry.integrations.web.organization_integration_setup import (
+    OrganizationIntegrationSetupView,
+)
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
@@ -1049,6 +1055,11 @@ urlpatterns += [
                     name="sentry-group-event-json",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_slug>[^/]+)/$",
                     react_page_view,
                     name="sentry-organization-project-details",
@@ -1347,11 +1358,7 @@ urlpatterns += [
         react_page_view,
         name="sentry-alert-rule",
     ),
-    re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
-        GroupTagExportView.as_view(),
-        name="sentry-group-tag-export",
-    ),
+
     re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[^/]+)/",
         GroupPluginActionView.as_view(),
