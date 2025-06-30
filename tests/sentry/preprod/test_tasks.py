@@ -5,7 +5,11 @@ from django.core.files.base import ContentFile
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.preprod.tasks import assemble_preprod_artifact, assemble_preprod_artifact_size_analysis
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -323,14 +327,48 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert status == ChunkFileState.OK
         assert details is None
 
-        # Verify size analysis file and artifact update
+        # Verify size analysis file and size metrics creation
         size_files = File.objects.filter(type="preprod.size_analysis")
         assert len(size_files) == 1
         assert size_files[0].name.startswith("preprod-size-analysis-")
 
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.analysis_file_id == size_files[0].id
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+        # Verify PreprodArtifactSizeMetrics record was created
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].analysis_file_id == size_files[0].id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert (
+            size_metrics[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+
+    def test_assemble_preprod_artifact_size_analysis_update_existing(self):
+        # Create an existing size metrics record
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        status, details = self._run_task_and_verify_status(b"test size analysis update content")
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify size analysis file was created
+        size_files = File.objects.filter(type="preprod.size_analysis")
+        assert len(size_files) == 1
+        assert size_files[0].name.startswith("preprod-size-analysis-")
+
+        # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1  # Should still be only 1 record
+        assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
+        assert size_metrics[0].analysis_file_id == size_files[0].id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
     def test_assemble_preprod_artifact_size_analysis_error_cases(self):
         # Test nonexistent artifact
@@ -359,7 +397,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Verify artifact was not updated for error cases
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.analysis_file_id is None
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        # Verify no size metrics were created for error cases
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 0
