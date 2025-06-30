@@ -153,7 +153,10 @@ export function initializeSdk(config: Config) {
        *
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
-      'AbortError: Fetch is aborted',
+      /AbortError: Fetch is aborted/i,
+      /AbortError: The operation was aborted/i,
+      /AbortError: signal is aborted without reason/i,
+      /AbortError: The user aborted a request/i,
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
