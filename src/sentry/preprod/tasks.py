@@ -187,62 +187,62 @@ def assemble_preprod_artifact_size_analysis(
         if assemble_result is None:
             return
 
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            # Create or update PreprodArtifactSizeMetrics with size analysis file
+        try:
+            preprod_artifact = PreprodArtifact.objects.get(
+                project=project,
+                id=artifact_id,
+            )
+        except PreprodArtifact.DoesNotExist:
+            # Ideally this should never happen
+            logger.exception(
+                "PreprodArtifact not found during size analysis assembly",
+                extra={
+                    "artifact_id": artifact_id,
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                },
+            )
+            # Clean up the assembled file since we can't associate it with an artifact
             try:
-                preprod_artifact = PreprodArtifact.objects.get(
-                    project=project,
-                    id=artifact_id,
-                )
+                # Close the temporary file handle first
+                if (
+                    hasattr(assemble_result, "bundle_temp_file")
+                    and assemble_result.bundle_temp_file
+                ):
+                    assemble_result.bundle_temp_file.close()
+                # Then delete the file object
+                assemble_result.bundle.delete()
+            except Exception:
+                pass  # Ignore cleanup errors
+            raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
-                # Upsert PreprodArtifactSizeMetrics record
-                size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
-                    preprod_artifact=preprod_artifact,
-                    defaults={
-                        "analysis_file_id": assemble_result.bundle.id,
-                        "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
-                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    },
-                )
+        # Update size metrics in its own transaction
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+            size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=preprod_artifact,
+                defaults={
+                    "analysis_file_id": assemble_result.bundle.id,
+                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+            )
 
-                # Mark the artifact as processed
-                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
-                preprod_artifact.save(update_fields=["state", "date_updated"])
+        # Update artifact state in its own transaction with proper database routing
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+            preprod_artifact.save(update_fields=["state", "date_updated"])
 
-                logger.info(
-                    "Created or updated preprod artifact size metrics with analysis file",
-                    extra={
-                        "preprod_artifact_id": preprod_artifact.id,
-                        "size_metrics_id": size_metrics.id,
-                        "analysis_file_id": assemble_result.bundle.id,
-                        "was_created": created,
-                        "project_id": project_id,
-                        "organization_id": org_id,
-                    },
-                )
-            except PreprodArtifact.DoesNotExist:
-                # Ideally this should never happen
-                logger.exception(
-                    "PreprodArtifact not found during size analysis assembly",
-                    extra={
-                        "artifact_id": artifact_id,
-                        "project_id": project_id,
-                        "organization_id": org_id,
-                    },
-                )
-                # Clean up the assembled file since we can't associate it with an artifact
-                try:
-                    # Close the temporary file handle first
-                    if (
-                        hasattr(assemble_result, "bundle_temp_file")
-                        and assemble_result.bundle_temp_file
-                    ):
-                        assemble_result.bundle_temp_file.close()
-                    # Then delete the file object
-                    assemble_result.bundle.delete()
-                except Exception:
-                    pass  # Ignore cleanup errors
-                raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
+        logger.info(
+            "Created or updated preprod artifact size metrics with analysis file",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "size_metrics_id": size_metrics.id,
+                "analysis_file_id": assemble_result.bundle.id,
+                "was_created": created,
+                "project_id": project_id,
+                "organization_id": org_id,
+            },
+        )
 
         logger.info(
             "Finished preprod artifact size analysis assembly",
