@@ -7,6 +7,11 @@ from sentry.db.models.query import in_iexact
 def apply_filter[
     T: Model
 ](queryset: QuerySet[T], filter: SearchFilter, column: str, distinct: bool = False) -> QuerySet[T]:
+    """
+    Apply a search filter to a Django queryset with case-insensitive matching.
+
+    Supports operators: "=" (exact), "!=" (exclude), "IN" (containment).
+    """
     match filter.operator:
         case "!=":
             qs = queryset.exclude(**{f"{column}__iexact": filter.value.value})
