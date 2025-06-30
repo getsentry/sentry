@@ -49,7 +49,7 @@ class CreateAuditEntryTest(TestCase):
         req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
@@ -60,7 +60,7 @@ class CreateAuditEntryTest(TestCase):
         org = self.create_organization()
 
         req = fake_http_request(self.create_user())
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
 
         assert entry.actor == req.user
         assert entry.actor_key is None
@@ -222,6 +222,7 @@ class CreateAuditEntryTest(TestCase):
                 organization=self.organization,
                 target_object=self.project.id,
                 event=audit_log.get_event_id("PROJECT_ADD"),
+                data={"thing": "to True"},
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -369,6 +370,7 @@ class CreateAuditEntryTest(TestCase):
             organization=self.org,
             target_object=self.project.id,
             event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
+            data={"thing": "to True"},
         )
         audit_log_event = audit_log.get(entry.event)
 
