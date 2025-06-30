@@ -19,4 +19,4 @@ class NewHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowEventDat
         if not event.project.flags.has_high_priority_alerts:
             return is_new
 
-        return is_new and event.group.priority == PriorityLevel.HIGH
+        return is_new and event_data.group.priority == PriorityLevel.HIGH
