@@ -82,8 +82,7 @@ export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   ${getLinkStyles}
 `;
 
-interface ExternalLinkProps
-  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
+interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   disabled?: LinkProps['disabled'];
   openInNewTab?: boolean;
 }
