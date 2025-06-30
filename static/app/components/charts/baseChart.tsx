@@ -402,7 +402,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.getColorPalette(theme.chart.colors.length - 1));
+      : theme.chart.getColorPalette(theme.chart.colors.length));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -720,7 +720,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.textColor};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSizeExtraSmall};
+    font-size: ${p.theme.fontSize.xs};
     color: ${p.theme.textColor};
   }
   .tooltip-series {
@@ -735,7 +735,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeightNormal};
+    font-weight: ${p.theme.fontWeight.normal};
     color: ${p.theme.textColor};
   }
   .tooltip-label-value {
@@ -818,8 +818,8 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeightBold};
-    font-size: ${p.theme.fontSizeSmall};
+    font-weight: ${p.theme.fontWeight.bold};
+    font-size: ${p.theme.fontSize.sm};
     line-height: 1.4;
     font-family: ${p.theme.text.family};
     max-width: 230px;

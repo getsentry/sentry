@@ -25,6 +25,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.Transaction>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 };
 
 export function TransactionHighlights(props: HighlightProps) {
@@ -86,6 +87,7 @@ export function TransactionHighlights(props: HighlightProps) {
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
+      hideNodeActions={props.hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         organization: props.organization,
         attributes: props.event.contexts.trace?.data,
@@ -107,7 +109,7 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
 `;

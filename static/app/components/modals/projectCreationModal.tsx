@@ -24,15 +24,13 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
-  MetricValues,
-  RuleAction,
+  getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
@@ -46,12 +44,11 @@ export default function ProjectCreationModal({
 }: Props) {
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
-  const [alertRuleConfig, setAlertRuleConfig] = useState<RequestDataFragment | undefined>(
-    undefined
-  );
   const [projectName, setProjectName] = useState('');
   const [team, setTeam] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState(false);
+  const [alertForm, setAlertForm] = useState<Partial<AlertRuleOptions>>();
+
   const api = useApi();
   const organization = useOrganization();
 
@@ -66,15 +63,8 @@ export default function ProjectCreationModal({
 
   const createProject = useCallback(async () => {
     const {slug} = organization;
-    const {
-      shouldCreateCustomRule,
-      name,
-      conditions,
-      actions,
-      actionMatch,
-      frequency,
-      defaultRules,
-    } = alertRuleConfig || {};
+
+    const alertRuleConfig = getRequestDataFragment(alertForm);
 
     if (platform === undefined) {
       return;
@@ -91,23 +81,23 @@ export default function ProjectCreationModal({
         data: {
           name: projectName,
           platform: platform.key,
-          default_rules: defaultRules ?? true,
+          default_rules: alertRuleConfig.defaultRules ?? true,
           origin: 'ui',
         },
       });
 
       let ruleId: string | undefined;
-      if (shouldCreateCustomRule) {
+      if (alertRuleConfig.shouldCreateCustomRule) {
         const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
             data: {
-              name,
-              conditions,
-              actions,
-              actionMatch,
-              frequency,
+              name: alertRuleConfig.name,
+              conditions: alertRuleConfig.conditions,
+              actions: alertRuleConfig.actions,
+              actionMatch: alertRuleConfig.actionMatch,
+              frequency: alertRuleConfig.frequency,
             },
           }
         );
@@ -118,9 +108,9 @@ export default function ProjectCreationModal({
       clearIndicators();
       trackAnalytics('project_modal.created', {
         organization,
-        issue_alert: defaultRules
+        issue_alert: alertRuleConfig.defaultRules
           ? 'Default'
-          : shouldCreateCustomRule
+          : alertRuleConfig.shouldCreateCustomRule
             ? 'Custom'
             : 'No Rule',
         project_id: projectData.id,
@@ -133,7 +123,7 @@ export default function ProjectCreationModal({
       setCreating(false);
       addErrorMessage(`Failed to create project ${projectName}`);
     }
-  }, [api, alertRuleConfig, organization, platform, projectName, team, closeModal]);
+  }, [api, organization, platform, projectName, team, closeModal, alertForm]);
 
   return (
     <Fragment>
@@ -158,29 +148,16 @@ export default function ProjectCreationModal({
         <Fragment>
           <Subtitle>{t('Set your alert frequency')}</Subtitle>
           <IssueAlertOptions
-            alertSetting={
-              alertRuleConfig?.shouldCreateCustomRule
-                ? RuleAction.CUSTOMIZED_ALERTS
-                : alertRuleConfig?.shouldCreateRule === false
-                  ? RuleAction.CREATE_ALERT_LATER
-                  : RuleAction.DEFAULT_ALERT
-            }
-            interval={
-              defined(alertRuleConfig?.conditions?.[0]?.interval)
-                ? String(alertRuleConfig?.conditions?.[0]?.interval)
-                : undefined
-            }
-            threshold={
-              defined(alertRuleConfig?.conditions?.[0]?.value)
-                ? String(alertRuleConfig?.conditions?.[0]?.value)
-                : undefined
-            }
-            metric={
-              alertRuleConfig?.conditions?.[0]?.id.endsWith('EventFrequencyCondition')
-                ? MetricValues.ERRORS
-                : MetricValues.USERS
-            }
-            onChange={setAlertRuleConfig}
+            alertSetting={alertForm?.alertSetting}
+            interval={alertForm?.interval}
+            metric={alertForm?.metric}
+            threshold={alertForm?.threshold}
+            onFieldChange={(field, value) => {
+              setAlertForm(prev => ({
+                ...prev,
+                [field]: value,
+              }));
+            }}
           />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
           <ProjectNameTeamSection>
@@ -233,7 +210,7 @@ export default function ProjectCreationModal({
               setCreating(true);
               createProject();
             }}
-            disabled={!projectName || !team || !alertRuleConfig || !platform || creating}
+            disabled={!projectName || !team || !platform || creating}
           >
             {t('Create Project')}
           </Button>
@@ -277,7 +254,7 @@ const ProjectNameTeamSection = styled('div')`
 `;
 
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
 `;
 
@@ -287,6 +264,6 @@ const TeamInput = styled(TeamSelector)`
 
 const Subtitle = styled('p')`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

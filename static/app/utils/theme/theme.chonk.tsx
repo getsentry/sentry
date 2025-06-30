@@ -379,18 +379,6 @@ type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
 
 type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -401,16 +389,14 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(
-  length: Length | number
-) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
     length: Length | number
-  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+  ): T[Length] {
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
-    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
-    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
   };
 }
 
@@ -563,23 +549,18 @@ const space = {
   xl: '16px',
   '2xl': '24px',
   '3xl': '32px',
-  '4xl': '48px',
-  '5xl': '64px',
-  '6xl': '80px',
-  '7xl': '96px',
-  '8xl': '112px',
-  '9xl': '128px',
 } as const;
 
 const radius = {
-  nano: '1px',
-  micro: '2px',
-  mini: '3px',
+  none: '0px',
+  '2xs': '2px',
+  xs: '3px',
   sm: '4px',
-  md: '5px',
-  lg: '6px',
-  xl: '8px',
-  // @TODO(jonasbadalic): do we need an xl?
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
+  '2xl': '16px',
+  full: 'calc(infinity*1px)',
 } as const;
 
 const lightColors = {
@@ -1234,8 +1215,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     background: darkColors.surface400,
     header: darkColors.white,
     text: darkAliases.subText,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 
@@ -1311,8 +1292,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     background: darkColors.blue400,
     header: darkColors.white,
     text: darkColors.white,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 

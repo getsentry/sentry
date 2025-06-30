@@ -15,8 +15,7 @@ import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useDevToolbar from 'sentry/utils/useDevToolbar';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import Nav from 'sentry/views/nav';
@@ -35,14 +34,6 @@ const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function DevToolInit() {
-  const isEmployee = useIsSentryEmployee();
-  const organization = useOrganization();
-  const showDevToolbar = organization.features.includes('devtoolbar');
-  useDevToolbar({enabled: showDevToolbar && isEmployee});
-  return null;
-}
-
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
 
@@ -56,6 +47,8 @@ function OrganizationLayout({children}: Props) {
   useRouteAnalyticsParams({
     prefers_stacked_navigation: prefersStackedNav,
   });
+
+  useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
@@ -93,7 +86,6 @@ function AppLayout({children, organization}: LayoutProps) {
         <BodyContainer id="main">
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
-            {organization && <DevToolInit />}
             <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
@@ -111,7 +103,6 @@ function LegacyAppLayout({children, organization}: LayoutProps) {
     <div className="app">
       <DemoHeader />
       {organization && <OrganizationHeader organization={organization} />}
-      {organization && <DevToolInit />}
       <Sidebar />
       <AppBodyContent>
         <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
@@ -127,7 +118,7 @@ const AppContainer = styled('div')`
   flex-direction: column;
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;

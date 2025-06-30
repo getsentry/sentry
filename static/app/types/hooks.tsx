@@ -1,6 +1,7 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/core/button';
+import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
@@ -152,7 +153,12 @@ export type MembershipSettingsProps = {
     'highlighted' | 'fields' | 'additionalFieldProps'
   >;
 };
-
+export type GithubInstallationInstallButtonProps = {
+  handleSubmit: (e: React.MouseEvent) => void;
+  hasSCMMultiOrg: boolean;
+  installationID: SelectKey;
+  isSaving: boolean;
+};
 /**
  * Component wrapping hooks
  */
@@ -193,6 +199,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
+  'component:scm-multi-org-install-button': () => React.ComponentType<GithubInstallationInstallButtonProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;

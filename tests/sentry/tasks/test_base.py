@@ -92,21 +92,21 @@ def test_task_silo_limit_call_monolith():
     assert "Control task hi" == control_task("hi")
 
 
-@patch("sentry.tasks.base.capture_exception")
+@patch("sentry_sdk.capture_exception")
 def test_ignore_and_retry(capture_exception):
     ignore_and_capture_retry_task("bruh")
 
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.tasks.base.capture_exception")
+@patch("sentry_sdk.capture_exception")
 def test_ignore_exception_retry(capture_exception):
     ignore_on_exception_task("bruh")
 
     assert capture_exception.call_count == 0
 
 
-@patch("sentry.tasks.base.capture_exception")
+@patch("sentry_sdk.capture_exception")
 def test_exclude_exception_retry(capture_exception):
     with pytest.raises(Exception):
         exclude_on_exception_task("bruh")
@@ -161,7 +161,7 @@ def test_validate_parameters_call():
 
 
 @patch("sentry.taskworker.retry.current_task")
-@patch("sentry.tasks.base.capture_exception")
+@patch("sentry_sdk.capture_exception")
 def test_retry_on(capture_exception, current_task):
 
     # In reality current_task.retry will cause the given exception to be re-raised but we patch it here so no need to .raises :bufo-shrug:

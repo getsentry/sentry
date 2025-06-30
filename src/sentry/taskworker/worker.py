@@ -13,11 +13,13 @@ from typing import Any
 
 import grpc
 from django.conf import settings
-from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask, TaskActivation
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
-from sentry.taskworker.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
-from sentry.taskworker.workerchild import ProcessingResult, child_process
+from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
@@ -63,7 +65,7 @@ class TaskWorker:
             raise ValueError(f"Invalid process type: {process_type}")
         self._process_type = process_type
 
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = self.mp_context.Queue(
+        self._child_tasks: multiprocessing.Queue[InflightTaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
         self._processed_tasks: multiprocessing.Queue[ProcessingResult] = self.mp_context.Queue(
@@ -71,7 +73,6 @@ class TaskWorker:
         )
         self._children: list[BaseProcess] = []
         self._shutdown_event = self.mp_context.Event()
-        self._task_receive_timing: dict[str, float] = {}
         self._result_thread: threading.Thread | None = None
         self._spawn_children_thread: threading.Thread | None = None
 
@@ -144,11 +145,11 @@ class TaskWorker:
         if self._child_tasks.full():
             return False
 
-        task = self.fetch_task()
-        if task:
+        inflight = self.fetch_task()
+        if inflight:
             try:
                 start_time = time.monotonic()
-                self._child_tasks.put(task)
+                self._child_tasks.put(inflight)
                 metrics.distribution(
                     "taskworker.worker.child_task.put.duration",
                     time.monotonic() - start_time,
@@ -157,7 +158,10 @@ class TaskWorker:
             except queue.Full:
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full",
-                    extra={"task_id": task.id, "processing_pool": self._processing_pool_name},
+                    extra={
+                        "task_id": inflight.activation.id,
+                        "processing_pool": self._processing_pool_name,
+                    },
                 )
             return True
         else:
@@ -199,29 +203,32 @@ class TaskWorker:
         Run in a thread to avoid blocking the process, and during shutdown/
         See `start_result_thread`
         """
-        task_received = self._task_receive_timing.pop(result.task_id, None)
-        if task_received is not None:
-            metrics.distribution(
-                "taskworker.worker.complete_duration",
-                time.monotonic() - task_received,
-                tags={"processing_pool": self._processing_pool_name},
-            )
+        metrics.distribution(
+            "taskworker.worker.complete_duration",
+            time.monotonic() - result.receive_timestamp,
+            tags={"processing_pool": self._processing_pool_name},
+        )
 
         if fetch:
             fetch_next = None
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
-            next_task = self._send_update_task(result, fetch_next)
-            if next_task:
-                self._task_receive_timing[next_task.id] = time.monotonic()
+            next = self._send_update_task(result, fetch_next)
+            if next:
                 try:
-                    self._child_tasks.put(next_task)
+                    start_time = time.monotonic()
+                    self._child_tasks.put(next)
+                    metrics.distribution(
+                        "taskworker.worker.child_task.put.duration",
+                        time.monotonic() - start_time,
+                        tags={"processing_pool": self._processing_pool_name},
+                    )
                 except queue.Full:
                     logger.warning(
                         "taskworker.send_result.child_task_queue_full",
                         extra={
-                            "task_id": next_task.id,
+                            "task_id": next.activation.id,
                             "processing_pool": self._processing_pool_name,
                         },
                     )
@@ -232,7 +239,7 @@ class TaskWorker:
 
     def _send_update_task(
         self, result: ProcessingResult, fetch_next: FetchNextTask | None
-    ) -> TaskActivation | None:
+    ) -> InflightTaskActivation | None:
         """
         Do the RPC call to this worker's taskbroker, and handle errors
         """
@@ -247,18 +254,14 @@ class TaskWorker:
         # Use the shutdown_event as a sleep mechanism
         self._shutdown_event.wait(self._setstatus_backoff_seconds)
         try:
-            next_task = self.client.update_task(
-                task_id=result.task_id,
-                status=result.status,
-                fetch_next_task=fetch_next,
-            )
+            next_task = self.client.update_task(result, fetch_next)
             self._setstatus_backoff_seconds = 0
             return next_task
         except grpc.RpcError as e:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 self._processed_tasks.put(result)
-            logger.exception(
+            logger.warning(
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
             )
@@ -301,7 +304,7 @@ class TaskWorker:
         self._spawn_children_thread = threading.Thread(target=spawn_children_thread)
         self._spawn_children_thread.start()
 
-    def fetch_task(self) -> TaskActivation | None:
+    def fetch_task(self) -> InflightTaskActivation | None:
         # Use the shutdown_event as a sleep mechanism
         self._shutdown_event.wait(self._gettask_backoff_seconds)
         try:
@@ -329,5 +332,4 @@ class TaskWorker:
             return None
 
         self._gettask_backoff_seconds = 0
-        self._task_receive_timing[activation.id] = time.monotonic()
         return activation

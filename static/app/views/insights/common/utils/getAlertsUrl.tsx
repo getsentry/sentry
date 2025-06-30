@@ -15,6 +15,7 @@ export function getAlertsUrl({
   name,
   interval,
   dataset = Dataset.GENERIC_METRICS,
+  referrer,
 }: {
   aggregate: string;
   organization: Organization;
@@ -24,6 +25,7 @@ export function getAlertsUrl({
   name?: string;
   project?: Project;
   query?: string;
+  referrer?: string;
 }) {
   const statsPeriod = getStatsPeriod(pageFilters);
   const environment = pageFilters.environments;
@@ -38,6 +40,7 @@ export function getAlertsUrl({
     environment,
     name,
     interval: supportedInterval,
+    referrer,
   };
 
   return (

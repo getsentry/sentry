@@ -56,7 +56,7 @@ const ChonkToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type'
    * toast is not see-through.
    */
   background: ${p => p.theme.colors.background.primary};
-  border-radius: ${p => p.theme.radius.xl};
+  border-radius: ${p => p.theme.radius.lg};
   border: ${p => getChonkContainerTheme(p.theme, p.type).border};
   box-shadow: ${p => getChonkContainerTheme(p.theme, p.type).boxShadow};
 `;

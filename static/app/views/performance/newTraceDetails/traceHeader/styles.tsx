@@ -48,7 +48,10 @@ function ToggleTraceFormatButton({
   );
 
   return (
-    <Feature organization={organization} features="trace-spans-format">
+    <Feature
+      organization={organization}
+      features={['trace-spans-format', 'trace-view-admin-ui']}
+    >
       <Button
         size="xs"
         aria-label="toggle-trace-format-btn"
@@ -76,7 +79,7 @@ const HeaderRow = styled('div')`
   gap: ${space(2)};
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${space(1)};
     flex-direction: column;
   }

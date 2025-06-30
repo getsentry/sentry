@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import ConfigStore from 'sentry/stores/configStore';
@@ -21,7 +21,8 @@ describe('Logs Field Renderers', function () {
 
   const makeRendererProps = (
     timestamp: string,
-    attributes: Record<string, string | number> = {}
+    attributes: Record<string, string | number> = {},
+    shouldRenderHoverElements = false
   ): LogFieldRendererProps => ({
     item: {
       fieldKey: OurLogKnownFieldKey.TIMESTAMP,
@@ -46,6 +47,7 @@ describe('Logs Field Renderers', function () {
         background: '#fff',
       } as any,
       projectSlug: 'test-project',
+      shouldRenderHoverElements,
     },
     basicRendered: <span>{timestamp}</span>,
   });
@@ -151,6 +153,27 @@ describe('Logs Field Renderers', function () {
       );
       expect(screen.getByText(/Jan 15, 2024 23:30:45\.123/)).toBeInTheDocument();
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
+    });
+
+    it('renders tooltip on hover', async function () {
+      expect(TimestampRenderer).toBeDefined();
+      const props = makeRendererProps(timestamp, {}, true);
+      const result = TimestampRenderer!(props);
+
+      render(
+        <TimezoneProvider timezone="UTC">
+          <Fragment>{result}</Fragment>
+        </TimezoneProvider>
+      );
+
+      const timestampElement = screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/);
+      expect(timestampElement).toBeInTheDocument();
+
+      await userEvent.hover(timestampElement);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Jan 15, 2024.*2:30:45\.123 PM UTC/)).toBeInTheDocument();
+      });
     });
   });
 });

@@ -350,7 +350,7 @@ const Currency = styled('div')`
     padding: 9px ${space(1.5)};
     content: '$';
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -402,12 +402,12 @@ const Box = styled('div')<{padding?: string}>`
 
 const Title = styled('label')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin: 0;
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -421,14 +421,14 @@ const SuggestedAmountTag = styled(Tag)`
 `;
 
 const CategoryInfoDescription = styled(Description)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const CategoryInfoList = styled('ul')`
   margin: ${space(1)} 0;
   padding: 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   li {
     list-style-type: none;

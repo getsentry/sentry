@@ -15,9 +15,9 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcOrganizationMember, organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.auth import auth_control_tasks
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import auth_control_tasks
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
@@ -73,7 +73,9 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
     name="sentry.tasks.check_auth_identities",
     queue="auth.control",
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=auth_control_tasks, processing_deadline_duration=60
+    ),
 )
 def check_auth_identities(
     auth_identity_id: int | None = None,

@@ -6,9 +6,9 @@ import {useHover} from '@react-aria/interactions';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -21,7 +21,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  NAV_SIDEBAR_OPEN_DELAY_MS,
+  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -165,7 +166,7 @@ export function SidebarMenu({
 }
 
 function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {isCollapsed, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
 
   // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,16 +176,14 @@ function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
         clearTimeout(timeoutRef.current);
       }
 
-      // Setting the nav group immediately when there isn't already a selection
-      // ensures that the correct menu is immediately shown when the sidebar expands
-      if (!activePrimaryNavGroup && isCollapsed) {
+      if (isCollapsed && !collapsedNavIsOpen) {
         setActivePrimaryNavGroup(group);
         return;
       }
 
       timeoutRef.current = setTimeout(() => {
         setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_OPEN_DELAY_MS);
+      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
     },
     onHoverEnd: () => {
       if (timeoutRef.current) {
@@ -219,6 +218,9 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      {...{
+        [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
       {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (
@@ -340,8 +342,8 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
   color: ${p.theme.textColor};
-  font-size: ${p.theme.fontSizeMedium};
-  font-weight: ${p.theme.fontWeightNormal};
+  font-size: ${p.theme.fontSize.md};
+  font-weight: ${p.theme.fontWeight.normal};
   line-height: 1;
   width: 100%;
 
@@ -376,7 +378,7 @@ const ChonkNavLinkIconContainer = chonkStyled('span')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
-  border-radius: ${p => p.theme.radius.lg};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const NavLinkIconContainer = withChonk(
@@ -408,8 +410,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
   letter-spacing: -0.05em;
 `;
 
@@ -450,7 +452,7 @@ const ChonkNavLink = chonkStyled(Link, {
     left: 0px;
     width: 4px;
     height: 20px;
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
@@ -595,7 +597,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.purple400};
   width: 10px;
   height: 10px;

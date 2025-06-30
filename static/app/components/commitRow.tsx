@@ -258,7 +258,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4;
   margin: -4px;
 `;
@@ -296,12 +296,12 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSizeMedium : '13px')};
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.subText};
@@ -328,7 +328,7 @@ const MetaWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding-top: ${space(0.25)};
 `;
 

@@ -1,6 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SearchHook} from 'sentry/views/insights/types';
@@ -15,6 +14,7 @@ const {
 } = SpanMetricsField;
 
 interface Props {
+  referrer: string;
   search: MutableSearch;
   enabled?: boolean;
   pageFilters?: PageFilters;
@@ -41,7 +41,7 @@ export function useResourceSummarySeriesSearch(groupId?: string): SearchHook {
 }
 
 export function useResourceSummarySeries(props: Props) {
-  const {search, pageFilters, enabled} = props;
+  const {search, pageFilters, enabled, referrer} = props;
 
   return useSpanMetricsSeries(
     {
@@ -56,7 +56,7 @@ export function useResourceSummarySeries(props: Props) {
       enabled,
       transformAliasToInputFormat: true,
     },
-    Referrer.RESOURCE_SUMMARY_CHARTS,
+    referrer,
     pageFilters
   );
 }

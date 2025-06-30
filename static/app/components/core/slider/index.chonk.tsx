@@ -74,7 +74,7 @@ const StepsContainer = chonkStyled('div')`
     right: 0;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.xl};
+    border-radius: ${p => p.theme.radius.lg};
     background: ${p => p.theme.colors.surface100};
   }
 `;
@@ -90,7 +90,7 @@ const StepMark = chonkStyled('span')<{filled?: boolean}>`
     position: absolute;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.xl};
+    border-radius: ${p => p.theme.radius.lg};
     background: ${p =>
       p.filled ? p.theme.colors.chonk.blue300 : p.theme.colors.surface100};
   }
@@ -124,7 +124,7 @@ const StyledSlider = chonkStyled('input')`
     width: 100%;
     height: 16px;
     background: transparent;
-    border-radius: ${p => p.theme.radius.nano};
+    border-radius: ${p => p.theme.radius['2xs']};
     transition: box-shadow 0.1s;
     box-shadow:
       0 0 0 8px transparent,
@@ -152,12 +152,12 @@ const StyledSlider = chonkStyled('input')`
       position: absolute;
       inset: 0;
       margin: auto 0;
-      min-width: calc(${p => p.theme.radius.micro} * 6);
+      min-width: calc(${p => p.theme.radius['2xs']} * 6);
       width: var(--p, 50%);
       height: 4px;
       background: ${p => p.theme.colors.chonk.blue300};
       border: 1px solid ${p => p.theme.colors.chonk.blue300};
-      border-radius: ${p => p.theme.radius.micro};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     /* Chrome styling */
@@ -166,7 +166,7 @@ const StyledSlider = chonkStyled('input')`
       height: 4px;
       background: ${p => p.theme.colors.surface100};
       border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius.micro};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     &::-webkit-slider-thumb {
@@ -187,7 +187,7 @@ const StyledSlider = chonkStyled('input')`
       height: 4px;
       background: ${p => p.theme.colors.surface100};
       border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius.micro};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     &::-moz-range-thumb {
@@ -215,7 +215,7 @@ const SliderOutput = chonkStyled('output')`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     position: absolute;
     height: 24px;
     width: calc(100% - 16px);
@@ -242,7 +242,7 @@ const SliderLabel = chonkStyled('span')`
   background: ${p => p.theme.colors.chonk.blue300};
   border: 1px solid ${p => p.theme.colors.chonk.blue100};
   color: ${p => p.theme.white};
-  border-radius: ${p => p.theme.radius.micro};
+  border-radius: ${p => p.theme.radius['2xs']};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 

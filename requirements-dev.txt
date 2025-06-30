@@ -1,9 +1,10 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.21
-devservices>=1.1.6
+devservices>=1.2.1
 
 covdefaults>=2.3.0
+ephemeral-port-reserve>=1.1.4
 sentry-covdefaults-disable-branch-coverage>=1.0.2
 docker>=7
 time-machine>=2.16.0
@@ -26,7 +27,7 @@ sentry-cli>=2.16.0
 # pre-commit dependencies
 pre-commit>=4.2
 black>=24.10.0
-flake8>=7.2
+flake8>=7.3
 flake8-bugbear>=22.10
 flake8-logging>=1.5
 pyupgrade>=3.19.1
@@ -38,7 +39,7 @@ pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=5.2.0.post4
+sentry-forked-django-stubs>=5.2.1.post3
 sentry-forked-djangorestframework-stubs>=3.16.0.post1
 lxml-stubs
 msgpack-types>=0.2.0

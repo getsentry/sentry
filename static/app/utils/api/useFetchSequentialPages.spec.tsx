@@ -53,15 +53,18 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).not.toHaveBeenCalled();
 
     rerender({enabled: true, getQueryKey, perPage: 10});
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
     expect(getQueryKey).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
   });
 
   it('should call the queryFn 1 times when the response has no pagination header', async () => {
@@ -80,8 +83,11 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(1);
   });
 
@@ -102,8 +108,11 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(1);
   });
 
@@ -131,8 +140,11 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(2);
   });
 
@@ -161,7 +173,8 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.pages).toEqual([
       'results starting at 0',
       'results starting at 10',
@@ -187,7 +200,8 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.isError).toBeTruthy();
     expect(result.current.error).toEqual(expect.objectContaining({status: 429}));
   });
@@ -221,7 +235,8 @@ describe('useFetchSequentialPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
     expect(result.current.getLastResponseHeader?.('Link')).toBe(secondLinkHeader);
   });

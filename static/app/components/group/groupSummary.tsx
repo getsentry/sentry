@@ -368,8 +368,8 @@ const CardTitle = styled('div')`
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const CardTitleIcon = styled('div')`

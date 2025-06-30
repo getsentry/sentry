@@ -20,6 +20,7 @@ from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComme
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -108,6 +109,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+            {"filename": "raj.cs", "changes": 100, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -122,6 +124,58 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_simple_with_csharp(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.js", "changes": 0, "status": "renamed"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:go-open-pr-comments")
+    def test_simple_with_go(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -482,6 +536,59 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_csharp_simple(self):
+        group_id_1 = [
+            self._create_event(
+                function_names=["test.planet", "test/component.blue"],
+                filenames=["baz.cs", "foo.cs"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["test/component.blue", "world"],
+                filenames=["foo.cs", "baz.cs"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.cs"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:go-open-pr-comments")
+    def test_go_simple(self):
+        # should match function name exactly or struct.functionName
+        group_id_1 = [
+            self._create_event(
+                function_names=["handler.planet", "service.blue"],
+                filenames=["baz.go", "foo.go"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["service.blue", "world"],
+                filenames=["foo.go", "baz.go"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.go"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["handler.planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]

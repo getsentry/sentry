@@ -30,6 +30,7 @@ def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
     task = Task(name="test.do_things", func=do_things, namespace=task_namespace)
     assert task.retry is None
     assert task.name == "test.do_things"
+    assert task.namespace == task_namespace
 
 
 def test_define_task_retry(task_namespace: TaskNamespace) -> None:
@@ -280,6 +281,21 @@ def test_create_activation_tracing_headers(task_namespace: TaskNamespace) -> Non
     assert headers["sentry-trace"]
     assert "baggage" in headers
     assert headers["key"] == "value"
+
+
+def test_create_activation_tracing_disable(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    with sentry_sdk.start_transaction(op="test.task"):
+        activation = with_parameters.create_activation(
+            ["one", 22], {"org_id": 99}, {"sentry-propagate-traces": False}
+        )
+
+    headers = activation.headers
+    assert "sentry-trace" not in headers
+    assert "baggage" not in headers
 
 
 def test_create_activation_headers_scalars(task_namespace: TaskNamespace) -> None:

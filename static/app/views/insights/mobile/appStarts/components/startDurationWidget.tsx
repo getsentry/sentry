@@ -16,7 +16,9 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITIONS = [
@@ -81,7 +83,9 @@ function StartDurationWidget({additionalFilters}: Props) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
   const search = new MutableSearch(queryString);
+  const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
   const groupBy = SpanFields.RELEASE;
+  const yAxis: SpanMetricsProperty = 'avg(span.duration)';
 
   const {
     data,
@@ -89,19 +93,22 @@ function StartDurationWidget({additionalFilters}: Props) {
     error: seriesError,
   } = useTopNSpanMetricsSeries(
     {
-      yAxis: ['avg(span.duration)'],
+      yAxis: [yAxis],
       fields: [groupBy, 'avg(span.duration)'],
       topN: 2,
       search,
       enabled: !isReleasesLoading,
     },
-    'api.starfish.mobile-startup-series'
+    referrer
   );
 
   // Only transform the data is we know there's at least one release
-  const sortedSeries = data.sort((releaseA, _releaseB) =>
-    releaseA.seriesName === primaryRelease ? -1 : 1
-  );
+  const sortedSeries = data
+    .sort((releaseA, _releaseB) => (releaseA.seriesName === primaryRelease ? -1 : 1))
+    .map(serie => ({
+      ...serie,
+      seriesName: `${yAxis} ${serie.seriesName}`,
+    }));
 
   return (
     <InsightsLineChartWidget
@@ -111,7 +118,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       series={sortedSeries}
       isLoading={isSeriesLoading}
       error={seriesError}
-      search={search}
+      queryInfo={{search, groupBy: [groupBy], referrer}}
       showReleaseAs="none"
       showLegend="always"
       height={220}

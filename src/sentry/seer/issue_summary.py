@@ -13,17 +13,22 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
+from sentry.autofix.utils import (
+    SeerAutomationSource,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.seer_utils import FixabilityScoreThresholds
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -35,6 +40,12 @@ from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+auto_run_source_map = {
+    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
+    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
+    SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+}
 
 
 @instrumented_task(
@@ -163,27 +174,29 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-def _generate_fixability_score(group_id: int):
-    path = "/v1/automation/summarize/fixability"
-    body = orjson.dumps(
-        {
-            "group_id": group_id,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
+fixability_connection_pool = connection_from_url(
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
+
+
+def _generate_fixability_score(group: Group):
+    payload = {
+        "group_id": group.id,
+        "organization_slug": group.organization.slug,
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+    }
+    response = make_signed_seer_api_request(
+        fixability_connection_pool,
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
-
-    response = requests.post(
-        f"{settings.SEER_SEVERITY_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-
-    response.raise_for_status()
-
-    return SummarizeIssueResponse.validate(response.json())
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
+    response_data = orjson.loads(response.data)
+    return SummarizeIssueResponse.validate(response_data)
 
 
 def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
@@ -237,17 +250,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == "super_low":
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == "low":
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == "medium":
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == "high":
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == "always":
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 
@@ -257,43 +270,63 @@ def _run_automation(
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
     source: SeerAutomationSource,
-):
-    if features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+) -> None:
+    if (
+        not features.has(
+            "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+        )
+        or source == SeerAutomationSource.ISSUE_DETAILS
     ):
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            try:
-                issue_summary = _generate_fixability_score(group.id)
-            except Exception:
-                logger.exception("Error generating fixability score", extra={"group_id": group.id})
-                return
+        return
 
-        if not issue_summary.scores:
-            return
+    user_id = user.id if user else None
+    auto_run_source = auto_run_source_map.get(source, "unknown_source")
 
-        if issue_summary.scores.fixability_score is None:
-            return
+    sentry_sdk.set_tags(
+        {
+            "group_id": group.id,
+            "user_id": user_id,
+            "auto_run_source": auto_run_source,
+            "org_slug": group.organization.slug,
+            "org_id": group.organization.id,
+            "project_id": group.project.id,
+        }
+    )
 
-        group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group)
 
-        if _is_issue_fixable(group, issue_summary.scores.fixability_score):
-            with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-                autofix_state = get_autofix_state(group_id=group.id)
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
 
-            if (
-                not autofix_state
-            ):  # Only trigger autofix if we don't have an autofix on this issue already.
-                auto_run_source_map = {
-                    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
-                    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
-                    SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
-                }
-                _trigger_autofix_task.delay(
-                    group_id=group.id,
-                    event_id=event.event_id,
-                    user_id=user.id if user else None,
-                    auto_run_source=auto_run_source_map.get(source, "unknown_source"),
-                )
+    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+        return
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return
+
+    autofix_state = get_autofix_state(group_id=group.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
+
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    if is_rate_limited:
+        return
+
+    _trigger_autofix_task.delay(
+        group_id=group.id,
+        event_id=event.event_id,
+        user_id=user_id,
+        auto_run_source=auto_run_source,
+    )
 
 
 def _generate_summary(
@@ -328,7 +361,12 @@ def _generate_summary(
         serialized_events_for_connected_issues,
     )
 
-    _run_automation(group, user, event, source)
+    try:
+        _run_automation(group, user, event, source)
+    except Exception:
+        logger.exception(
+            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+        )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
@@ -347,13 +385,12 @@ def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     )
 
 
-def _has_seer_scanner_budget(group: Group, source: SeerAutomationSource) -> bool:
-    if source == SeerAutomationSource.ISSUE_DETAILS:
-        return True
+def get_issue_summary_cache_key(group_id: int) -> str:
+    return f"ai-group-summary-v2:{group_id}"
 
-    return quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
+
+def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
+    return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
 
 
 def get_issue_summary(
@@ -382,11 +419,8 @@ def get_issue_summary(
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
-    if not _has_seer_scanner_budget(group, source):
-        return {"detail": "No budget for Seer Scanner."}, 402
-
-    cache_key = f"ai-group-summary-v2:{group.id}"
-    lock_key = f"ai-group-summary-v2-lock:{group.id}"
+    cache_key = get_issue_summary_cache_key(group.id)
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock_duration = 10  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
@@ -405,9 +439,9 @@ def get_issue_summary(
     # 2. Try to acquire lock
     try:
         # Acquire lock context manager. This will poll and wait.
-        with locks.get(
-            key=lock_key, duration=lock_duration, name="get_issue_summary"
-        ).blocking_acquire(initial_delay=0.25, timeout=wait_timeout):
+        with locks.get(key=lock_key, duration=lock_duration, name=lock_name).blocking_acquire(
+            initial_delay=0.25, timeout=wait_timeout
+        ):
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):

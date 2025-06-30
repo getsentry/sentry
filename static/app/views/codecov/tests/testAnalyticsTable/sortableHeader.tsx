@@ -25,7 +25,6 @@ function WrapToggle() {
 
   const toggle = useCallback(() => {
     const currentParams = Object.fromEntries(searchParams.entries());
-    // const wrap = wrapValue === 'false' ? 'true' : 'false';
     const updatedParams = {
       ...currentParams,
       wrap: (!wrapValue).toString(),
@@ -98,6 +97,7 @@ const HeaderCell = styled('div')<{alignment: string}>`
   gap: ${space(1)};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StyledLink = styled(Link)`

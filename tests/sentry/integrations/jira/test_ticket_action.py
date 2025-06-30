@@ -123,7 +123,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
-            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")

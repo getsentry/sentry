@@ -24,11 +24,12 @@ import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {
-  BillingConfig,
-  Plan,
-  ReservedBudgetMetricHistory,
-  Subscription,
+import {
+  type BillingConfig,
+  type Plan,
+  ReservedBudgetCategoryType,
+  type ReservedBudgetMetricHistory,
+  type Subscription,
 } from 'getsentry/types';
 import {
   getAmPlanTier,
@@ -231,6 +232,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         reservedBudgetMetricHistories[category] = info;
       });
     });
+    const seerBudget = reservedBudgets?.find(
+      budget => budget.apiName === ReservedBudgetCategoryType.SEER
+    )?.reservedBudget;
+    const dynamicSamplingBudget = reservedBudgets?.find(
+      budget => budget.apiName === ReservedBudgetCategoryType.DYNAMIC_SAMPLING
+    )?.reservedBudget;
 
     const infoFromMetricHistories: Record<string, any> = {};
     Object.entries(subscription.categories).forEach(([category, info]) => {
@@ -280,6 +287,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         ...state.data,
         ...enterpriseData,
         ...infoFromMetricHistories,
+        seerBudget: toDollars(seerBudget ?? 0),
+        dynamicSamplingBudget: toDollars(dynamicSamplingBudget ?? 0),
       },
     }));
   }
@@ -319,7 +328,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     isAm3DsPlan(this.state.data.plan) &&
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null || value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
       .length >= 2;
 
@@ -327,7 +336,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null && value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
       .length >= 2;
 
@@ -354,7 +363,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSpans'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSpans;
+    this.state.data.dynamicSamplingBudget;
 
   // Same as above, but for Seer budgets
   hasCompleteSeerBudget = () =>
@@ -362,7 +371,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSeer'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSeerAutofix;
+    this.state.data.seerBudget;
 
   /**
    * If the user is changing the on-demand max spend mode or disabling it,
@@ -490,7 +499,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         !isNaN(value as number)
       ) {
         postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
-      } else if (key.startsWith('customPrice') && !isNaN(value as number)) {
+      } else if (
+        (key.startsWith('customPrice') ||
+          key === 'seerBudget' ||
+          key === 'dynamicSamplingBudget') &&
+        !isNaN(value as number)
+      ) {
         postData[key] = toCents(value as number); // price should be in cents
       }
     });
@@ -555,7 +569,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
             DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
           ],
-          budget: postData.customPriceSpans,
+          budget: postData.dynamicSamplingBudget,
         });
       } else {
         onSubmitError({
@@ -568,12 +582,19 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         return;
       }
     }
+    delete postData.dynamicSamplingBudget;
+
     if (this.hasCompleteSeerBudget()) {
       postData.reservedBudgets.push({
         categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-        budget: postData.customPriceSeerAutofix,
+        budget: postData.seerBudget,
       });
+    } else {
+      delete postData.reservedCpeSeerAutofix;
+      delete postData.reservedCpeSeerScanner;
     }
+    delete postData.seerBudget;
+
     this.props.api.request(this.endpoint, {
       method: 'POST',
       data: postData,
@@ -871,7 +892,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                   name={`reservedCpe${capitalizedApiName}`}
                                   value={data[`reservedCpe${capitalizedApiName}`]}
                                   step={0.00000001}
-                                  min={0.00000001}
+                                  min={0}
                                   max={1}
                                   onChange={v =>
                                     this.setState(state => ({
@@ -939,6 +960,42 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             </Fragment>
                           );
                         })}
+                      {this.isSettingSeerBudget() && (
+                        <StyledDollarsField
+                          label="Seer Budget"
+                          name="seerBudget"
+                          help="Monthly reserved budget for Seer"
+                          required={this.isSettingSeerBudget()}
+                          value={data.seerBudget}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                seerBudget: v,
+                              },
+                            }))
+                          }
+                        />
+                      )}
+                      {isAm3DsPlan(this.state.data.plan) && (
+                        <StyledDollarsField
+                          label="Dynamic Sampling Budget"
+                          name="dynamicSamplingBudget"
+                          help="Monthly reserved budget for Dynamic Sampling"
+                          required={this.isSettingSpansBudget()}
+                          value={data.dynamicSamplingBudget}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                dynamicSamplingBudget: v,
+                              },
+                            }))
+                          }
+                        />
+                      )}
                     </Fragment>
                   )}
               </div>
@@ -970,14 +1027,14 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         settingReservedBudget &&
                         (category === DataCategory.SPANS ||
                           category === DataCategory.SEER_AUTOFIX)
-                          ? ` (Reserved ${toTitleCase(
+                          ? ` (${toTitleCase(
                               Object.values(
                                 this.state.provisionablePlans[this.state.data.plan]
                                   ?.availableReservedBudgetTypes ?? {}
                               ).find(budgetInfo =>
                                 budgetInfo.dataCategories.includes(category)
-                              )?.name ?? ''
-                            )})`
+                              )?.productName ?? ''
+                            )} ARR)`
                           : '';
                       const capitalizedApiName = this.capitalizeForApiName(
                         categoryInfo.plural

@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -42,8 +43,8 @@ logger = logging.getLogger(__name__)
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 UNSUPPORTED_QUERIES = {"release:latest"}
 
-# Allowed time windows (in minutes) for crash rate alerts
-CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
+# Allowed time windows (in seconds) for crash rate alerts
+CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
 
 
 QUERY_TYPE_VALID_DATASETS = {
@@ -61,14 +62,18 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.ERROR,
         SnubaQueryEventType.EventType.DEFAULT,
     },
-    SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
+    SnubaQuery.Type.PERFORMANCE: {
+        SnubaQueryEventType.EventType.TRANSACTION,
+        SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+        SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+    },
 }
 
 
 class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
@@ -89,6 +94,13 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
+
+    def __init__(self, *args, timeWindowSeconds=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        # if true, time_window is interpreted as seconds.
+        # if false, time_window is interpreted as minutes.
+        # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
+        self.time_window_seconds = timeWindowSeconds
 
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
@@ -119,12 +131,21 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
-            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
+            validated = [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
         except KeyError:
             raise serializers.ValidationError(
                 "Invalid event_type, valid values are %s"
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
+
+        if not features.has(
+            "organizations:ourlogs-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
+            raise serializers.ValidationError("You do not have access to the log alerts feature.")
+
+        return validated
 
     def validate(self, data):
         data = super().validate(data)
@@ -140,6 +161,13 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
+                % sorted(et.name.lower() for et in valid_event_types)
+            )
+
+        dataset = data.get("dataset")
+        if dataset == Dataset.EventsAnalyticsPlatform and event_types and len(event_types) > 1:
+            raise serializers.ValidationError(
+                "Multiple event types not allowed. Valid event types are %s"
                 % sorted(et.name.lower() for et in valid_event_types)
             )
 
@@ -230,7 +258,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 query_type,
                 dataset=dataset,
                 aggregate=data["aggregate"],
-                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
+                time_window=data["time_window"],
                 extra_fields={
                     "org_id": projects[0].organization_id,
                     "event_types": data.get("event_types"),
@@ -289,13 +317,15 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset):
+        time_window_seconds = value * 60 if not self.time_window_seconds else value
+
         if dataset == Dataset.Metrics:
-            if value not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
+            if time_window_seconds not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
-        return value
+        return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
         if dataset != Dataset.Transactions:
@@ -321,13 +351,14 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],
             query=validated_data["query"],
             aggregate=validated_data["aggregate"],
-            time_window=timedelta(minutes=validated_data["time_window"]),
+            time_window=timedelta(seconds=validated_data["time_window"]),
             resolution=timedelta(minutes=1),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],

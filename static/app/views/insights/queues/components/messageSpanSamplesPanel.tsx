@@ -130,6 +130,7 @@ export function MessageSpanSamplesPanel() {
   const timeseriesFilters = new MutableSearch(queryFilter);
   timeseriesFilters.addFilterValue('transaction', query.transaction);
   timeseriesFilters.addFilterValue('messaging.destination.name', query.destination);
+  const timeseriesReferrer = Referrer.QUEUES_SAMPLES_PANEL_DURATION_CHART;
 
   const sampleFilters = new MutableSearch(queryFilter);
   sampleFilters.addFilterValue('transaction', query.transaction);
@@ -177,7 +178,7 @@ export function MessageSpanSamplesPanel() {
       enabled: isPanelOpen,
       transformAliasToInputFormat: true,
     },
-    'api.performance.queues.avg-duration-chart'
+    timeseriesReferrer
   );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
@@ -313,7 +314,7 @@ export function MessageSpanSamplesPanel() {
             <ModuleLayout.Full>
               <InsightsLineChartWidget
                 showLegend="never"
-                search={timeseriesFilters}
+                queryInfo={{search: timeseriesFilters, referrer: timeseriesReferrer}}
                 title={getDurationChartTitle('queue')}
                 isLoading={isDurationDataFetching}
                 error={durationError}

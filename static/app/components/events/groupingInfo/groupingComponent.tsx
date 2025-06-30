@@ -64,7 +64,7 @@ export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>
 export const GroupingValue = styled('code')<{valueType: string}>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
   background: rgba(112, 163, 214, 0.1);
   color: ${p => p.theme.textColor};
@@ -72,7 +72,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
   ${({valueType, theme}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     css`
-      font-weight: ${theme.fontWeightBold};
+      font-weight: ${theme.fontWeight.bold};
       color: ${theme.textColor};
     `}
 `;

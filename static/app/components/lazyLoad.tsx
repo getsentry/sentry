@@ -71,6 +71,17 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
 
   state = {hasError: false, error: null};
 
+  componentDidMount(): void {
+    // Reset error state on HMR (Hot Module Replacement) in development
+    // This ensures that when React Fast Refresh occurs, the error boundary
+    // doesn't persist stale error state after code fixes
+    if (process.env.NODE_ENV === 'development') {
+      if (typeof module !== 'undefined' && module.hot) {
+        module.hot.accept(this.handleRetry);
+      }
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     Sentry.withScope(scope => {
       if (isWebpackChunkLoadingError(error)) {
@@ -94,6 +105,15 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
 
     // eslint-disable-next-line no-console
     console.error(error);
+  }
+
+  componentWillUnmount(): void {
+    // Clean up HMR listeners to prevent memory leaks
+    if (process.env.NODE_ENV === 'development') {
+      if (typeof module !== 'undefined' && module.hot) {
+        module.hot.dispose(this.handleRetry);
+      }
+    }
   }
 
   // Reset `hasError` so that we attempt to render `this.props.children` again

@@ -76,7 +76,7 @@ export function SamplingBreakdown({
 
   const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
-  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW - 1);
+  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW);
 
   return (
     <StyledPanel {...props}>
@@ -175,7 +175,7 @@ const StyledPanel = styled(Panel)`
 
 const Heading = styled('h6')`
   margin-bottom: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Footer = styled('div')`
@@ -198,7 +198,7 @@ const Legend = styled('div')`
   flex-wrap: wrap;
   margin-top: ${space(1.5)};
   gap: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   flex: 1;
 `;
 
@@ -206,7 +206,7 @@ const Total = styled('div')`
   display: flex;
   align-items: center;
   margin-top: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   flex-shrink: 0;
 `;
 

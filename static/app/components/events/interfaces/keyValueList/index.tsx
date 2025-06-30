@@ -118,7 +118,7 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
 export default KeyValueList;
 
 const TableSubject = styled('td')<{wide?: boolean}>`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
@@ -137,7 +137,7 @@ const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.bodyBackground};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;
@@ -147,7 +147,7 @@ const ValueWithButtonContainer = styled('div')`
     margin: 0 !important;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr max-content;
   }
 `;

@@ -549,17 +549,15 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score is None
 
-        _run_automation(
-            self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
-        )
+        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
 
-        mock_generate_fixability_score.assert_called_once_with(self.group.id)
+        mock_generate_fixability_score.assert_called_once_with(self.group)
 
         mock_trigger_autofix_task.assert_called_once_with(
             group_id=self.group.id,
             event_id="test_event_id",
             user_id=mock_user.id,
-            auto_run_source="issue_summary_fixability",
+            auto_run_source="issue_summary_on_post_process_fixability",
         )
 
         self.group.refresh_from_db()
@@ -617,10 +615,10 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             with self.subTest(option=option_value, score=score, should_trigger=should_trigger):
                 self.group.project.update_option("sentry:autofix_automation_tuning", option_value)
                 _run_automation(
-                    self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
+                    self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS
                 )
 
-                mock_generate_fixability_score.assert_called_once_with(self.group.id)
+                mock_generate_fixability_score.assert_called_once_with(self.group)
                 self.group.refresh_from_db()
                 assert self.group.seer_fixability_score == score
 
@@ -629,7 +627,53 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                         group_id=self.group.id,
                         event_id="test_event_id",
                         user_id=mock_user.id,
-                        auto_run_source="issue_summary_fixability",
+                        auto_run_source="issue_summary_on_post_process_fixability",
                     )
                 else:
                     mock_trigger_autofix_task.assert_not_called()
+
+    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
+    @patch("sentry.seer.issue_summary._run_automation")
+    @patch("sentry.seer.issue_summary._call_seer")
+    @patch("sentry.seer.issue_summary._get_event")
+    @patch("sentry.seer.issue_summary._get_trace_connected_issues")
+    def test_get_issue_summary_continues_when_automation_fails(
+        self,
+        mock_get_connected_issues,
+        mock_get_event,
+        mock_call_seer,
+        mock_run_automation,
+        mock_get_acknowledgement,
+    ):
+        """Test that issue summary is still returned when _run_automation throws an exception."""
+        mock_get_acknowledgement.return_value = True
+
+        # Set up event and seer response
+        event = Mock(event_id="test_event_id", datetime=datetime.datetime.now())
+        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
+        mock_get_event.return_value = [serialized_event, event]
+        mock_get_connected_issues.return_value = []
+
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+        )
+        mock_call_seer.return_value = mock_summary
+
+        # Make _run_automation raise an exception
+        mock_run_automation.side_effect = Exception("Automation failed")
+
+        # Call get_issue_summary and verify it still returns successfully
+        summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 200
+        expected_response = mock_summary.dict()
+        expected_response["event_id"] = event.event_id
+        assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
+
+        # Verify _run_automation was called and failed
+        mock_run_automation.assert_called_once()
+        mock_call_seer.assert_called_once()

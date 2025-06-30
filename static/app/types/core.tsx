@@ -12,7 +12,7 @@ import type {ALLOWED_SCOPES} from 'sentry/constants';
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
   avatarUrl?: string | null;
   color?: boolean;
@@ -93,6 +93,7 @@ export enum DataCategory {
   LOG_BYTE = 'logBytes',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 /**
@@ -123,6 +124,7 @@ export enum DataCategoryExact {
   LOG_BYTE = 'logByte',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 export interface DataCategoryInfo {

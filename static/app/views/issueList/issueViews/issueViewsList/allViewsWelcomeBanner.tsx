@@ -78,21 +78,21 @@ const Banner = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerSubTitle = styled('div')`
   display: flex;
   flex-direction: column;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.5)};
 `;
 
 const BannerNoteBold = styled('div')`
   display: inline;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const BannerStar1 = styled('img')`
   position: absolute;
@@ -100,7 +100,7 @@ const BannerStar1 = styled('img')`
   right: 150px;
   transform: scale(0.9);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -110,7 +110,7 @@ const BannerStar2 = styled('img')`
   right: 120px;
   transform: rotate(-30deg) scale(0.7);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -120,7 +120,7 @@ const BannerStar3 = styled('img')`
   right: 80px;
   transform: rotate(80deg) scale(0.6);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;

@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {Toast, type ToastProps} from 'sentry/components/core/toast';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/toast';
 
 function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastProps {

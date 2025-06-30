@@ -11,16 +11,38 @@ from sentry.issues.auto_source_code_config.errors import (
 from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 
 UNSUPPORTED_FRAME_FILENAMES = [
+    # HTTP/HTTPS URLs
+    "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "http://example.com/script.js",
+    "HTTP://EXAMPLE.COM/SCRIPT.JS",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "webpack:///https://cdn.example.com/bundle.js",
+    # Special frame types
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
+    "O$t",
+    "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    # Top level files
+    "README",  # top level file
+    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
+    "ssl.py",
+    "initialization.dart",
+    "backburner.js",
+]
+
+# Files with "http" substring that should be ACCEPTED
+LEGITIMATE_HTTP_FILENAMES = [
+    "src/httpclient/request.py",
+    "/usr/local/httpd/config.py",
+    "lib/http_utils.js",
+    "services/httpserver/main.go",
+    "lib/https_client.rb",
+    "network/http2/stream.go",
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
-    "/foo/bar/baz",
-    "README",
-    "O$t",
+    "/foo/bar/baz",  # no extension
 ]
 
 
@@ -34,10 +56,16 @@ class TestFrameInfo:
         with pytest.raises(UnsupportedFrameInfo):
             FrameInfo({"filename": filepath})
 
-    @pytest.mark.parametrize("filepath", NO_EXTENSION_FRAME_FILENAMES)
-    def test_raises_no_extension(self, filepath: str) -> None:
-        with pytest.raises(NeedsExtension):
-            FrameInfo({"filename": filepath})
+    @pytest.mark.parametrize("filepath", LEGITIMATE_HTTP_FILENAMES)
+    def test_legitimate_http_filenames_accepted(self, filepath: str) -> None:
+        # These files contain "http" but should NOT be rejected
+        frame_info = FrameInfo({"filename": filepath})
+        assert frame_info.raw_path == filepath
+
+    def test_raises_no_extension(self) -> None:
+        for filepath in NO_EXTENSION_FRAME_FILENAMES:
+            with pytest.raises(NeedsExtension):
+                FrameInfo({"filename": filepath})
 
     @pytest.mark.parametrize(
         "frame, expected_exception",

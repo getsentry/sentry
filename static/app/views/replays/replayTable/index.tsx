@@ -4,16 +4,11 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
+import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
@@ -39,7 +34,7 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   gridRows?: string;
-  onClickPlay?: (index: number) => void;
+  onClickRow?: (index: number) => void;
   referrerLocation?: string;
   showDropdownFilters?: boolean;
 };
@@ -71,20 +66,10 @@ function ReplayTable({
   emptyMessage,
   gridRows,
   showDropdownFilters,
-  onClickPlay,
+  onClickRow,
   referrerLocation,
 }: Props) {
-  const routes = useRoutes();
-  const location = useLocation();
-  const organization = useOrganization();
-
-  // we may have a selected replay index in the URLs
-  const urlParams = useUrlParams();
-  const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
-  const selectedReplayIndex = parseInt(
-    typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
-    10
-  );
+  const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -107,9 +92,6 @@ function ReplayTable({
     );
   }
 
-  const referrer = getRouteStringFromRoutes(routes);
-  const eventView = EventView.fromLocation(location);
-
   return (
     <StyledPanelTable
       headers={tableHeaders}
@@ -129,8 +111,8 @@ function ReplayTable({
             <Row
               key={replay.id}
               isPlaying={index === selectedReplayIndex && referrerLocation !== 'replay'}
-              onClick={() => onClickPlay?.(index)}
-              showCursor={onClickPlay !== undefined}
+              onClick={() => onClickRow?.(index)}
+              showCursor={onClickRow !== undefined}
               referrerLocation={referrerLocation}
             >
               {visibleColumns.map(column => {
@@ -140,6 +122,7 @@ function ReplayTable({
                       <ActivityCell
                         key="activity"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -149,6 +132,7 @@ function ReplayTable({
                       <BrowserCell
                         key="browser"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -158,6 +142,7 @@ function ReplayTable({
                       <DeadClickCountCell
                         key="countDeadClicks"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -167,6 +152,7 @@ function ReplayTable({
                       <ErrorCountCell
                         key="countErrors"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -176,6 +162,7 @@ function ReplayTable({
                       <RageClickCountCell
                         key="countRageClicks"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -185,6 +172,7 @@ function ReplayTable({
                       <DurationCell
                         key="duration"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
@@ -194,37 +182,23 @@ function ReplayTable({
                       <OSCell
                         key="os"
                         replay={replay}
+                        rowIndex={index}
                         showDropdownFilters={showDropdownFilters}
                       />
                     );
 
                   case ReplayColumn.REPLAY:
-                    return (
-                      <ReplayCell
-                        key="session"
-                        replay={replay}
-                        eventView={eventView}
-                        organization={organization}
-                        referrer={referrer}
-                        referrer_table="main"
-                      />
-                    );
+                    return <ReplayCell key="session" replay={replay} rowIndex={index} />;
 
                   case ReplayColumn.PLAY_PAUSE:
-                    return (
-                      <PlayPauseCell
-                        key="play"
-                        isSelected={selectedReplayIndex === index}
-                        handleClick={() => onClickPlay?.(index)}
-                      />
-                    );
+                    return <PlayPauseCell key="play" replay={replay} rowIndex={index} />;
 
                   case ReplayColumn.SLOWEST_TRANSACTION:
                     return (
                       <TransactionCell
                         key="slowestTransaction"
                         replay={replay}
-                        organization={organization}
+                        rowIndex={index}
                       />
                     );
 

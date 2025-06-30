@@ -33,9 +33,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -76,7 +74,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
-import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -108,7 +105,6 @@ interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
   manager: VirtualizedViewManager;
-  metaQueryResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -131,7 +127,6 @@ export function Trace({
   onRowClick,
   manager,
   previouslyFocusedNodeRef,
-  metaQueryResults,
   onTraceSearch,
   rerender,
   scheduler,
@@ -146,7 +141,6 @@ export function Trace({
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -412,12 +406,6 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        {hasTraceTabsUi ? null : (
-          <TraceLevelOpsBreakdown
-            isTraceLoading={isLoading}
-            metaQueryResults={metaQueryResults}
-          />
-        )}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -924,7 +912,7 @@ const TraceStylingWrapper = styled('div')`
     text-align: center;
     position: absolute;
     font-size: 10px;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.background};
     border-radius: 100px;
@@ -1097,7 +1085,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabelContainer {
-        font-weight: ${p => p.theme.fontWeightNormal};
+        font-weight: ${p => p.theme.fontWeight.normal};
         min-width: 0;
         top: 22px;
         width: auto;
@@ -1200,7 +1188,7 @@ const TraceStylingWrapper = styled('div')`
     height: 24px;
     width: 100%;
     transition: none;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.backgroundSecondary};
@@ -1396,7 +1384,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: ${p => p.theme.fontWeightBold};
+        font-weight: ${p => p.theme.fontWeight.bold};
       }
 
       .TraceChildrenCountWrapper {
@@ -1518,7 +1506,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: transparent;
     border: none;
     transition: 60ms ease-out;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     padding: 0 2px;
     display: flex;
@@ -1540,7 +1528,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBarDuration {
     display: inline-block;
     transform-origin: left center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -1712,7 +1700,7 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   .TraceEmDash {

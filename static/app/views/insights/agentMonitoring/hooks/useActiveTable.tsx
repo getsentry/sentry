@@ -50,9 +50,10 @@ export function useActiveTable() {
       });
       updateQuery({
         view,
-        tracesCursor: undefined,
-        modelsCursor: undefined,
-        toolsCursor: undefined,
+        // Clear table cursors and sort order
+        tableCursor: undefined,
+        field: undefined,
+        order: undefined,
       });
     },
     [organization, updateQuery]

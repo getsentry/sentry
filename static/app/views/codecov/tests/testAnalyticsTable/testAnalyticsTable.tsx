@@ -1,7 +1,7 @@
 import {useSearchParams} from 'react-router-dom';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {renderTableBody} from 'sentry/views/codecov/tests/testAnalyticsTable/tableBody';
@@ -47,7 +47,14 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
   'commitsFailed',
 ]);
 
-export const SORTABLE_FIELDS = [
+export type SortableTAOptions =
+  | 'testName'
+  | 'averageDurationMs'
+  | 'flakeRate'
+  | 'commitsFailed'
+  | 'lastRun';
+
+export const SORTABLE_FIELDS: SortableTAOptions[] = [
   'testName',
   'averageDurationMs',
   'flakeRate',

@@ -485,10 +485,8 @@ class MonitorCheckIn(Model):
 
     date_updated = models.DateTimeField(default=timezone.now)
     """
-    Represents the last time a check-in was updated by . This will typically be by the terminal state
-    Currently only updated when a in_progress check-in is sent with this
-    check-in's guid. Can be used to extend the lifetime of a check-in so that
-    it does not time out.
+    Represents the last time a check-in was updated. This will typically be by
+    the terminal state.
     """
 
     date_clock = models.DateTimeField(null=True)

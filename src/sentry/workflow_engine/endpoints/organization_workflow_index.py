@@ -1,6 +1,10 @@
-from django.db.models import Count, Q
+from datetime import datetime
+
+from django.db.models import Count, Max, Q
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.db.models.query import in_icontains, in_iexact
 from sentry.search.utils import tokenize_query
+from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -34,6 +39,7 @@ SORT_COL_MAP = {
     "dateUpdated": "date_updated",
     "connectedDetectors": "connected_detectors",
     "actions": "actions",
+    "lastTriggered": "last_triggered",
 }
 
 
@@ -64,6 +70,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
             WorkflowParams.QUERY,
+            WorkflowParams.ID,
             OrganizationParams.PROJECT,
         ],
         responses={
@@ -81,6 +88,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = Workflow.objects.filter(organization_id=organization.id)
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
             tokenized_query = tokenize_query(raw_query)
@@ -104,7 +118,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             )
                         ).distinct()
                     case _:
-                        # TODO: What about unreecognized keys?
+                        # TODO: What about unrecognized keys?
                         pass
 
         projects = self.get_projects(request, organization)
@@ -123,6 +137,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     actions=Count(
                         "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action",
                     )
+                )
+            case "last_triggered":
+                # If a workflow has never triggered, it should be treated as having a last_triggered
+                # order before any that have. We can coalesce an arbitrary value here because
+                # the annotated value isn't returned in the results.
+                long_ago = ensure_aware(datetime(1970, 1, 1))
+                queryset = queryset.annotate(
+                    last_triggered=Max(Coalesce("workflowfirehistory__date_added", long_ago)),
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)

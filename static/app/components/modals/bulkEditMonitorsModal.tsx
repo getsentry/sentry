@@ -30,7 +30,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 
-const NUM_PLACEHOLDER_ROWS = 5;
+const NUM_PLACEHOLDER_ROWS = 7;
 
 export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props) {
   const organization = useOrganization();
@@ -153,20 +153,22 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <SearchBar
-            size="sm"
-            placeholder={t('Search Monitors')}
-            query={searchQuery}
-            onSearch={handleSearch}
-          />
-          <SortSelector
-            size="sm"
-            onChangeOrder={({value: order}) =>
-              setSortSelection({...sortSelection, order})
-            }
-            onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
-            {...sortSelection}
-          />
+          <ButtonBar gap={1}>
+            <SearchBar
+              size="sm"
+              placeholder={t('Search Monitors')}
+              query={searchQuery}
+              onSearch={handleSearch}
+            />
+            <SortSelector
+              size="sm"
+              onChangeOrder={({value: order}) =>
+                setSortSelection({...sortSelection, order})
+              }
+              onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
+              {...sortSelection}
+            />
+          </ButtonBar>
         </Actions>
         <StyledPanelTable
           headers={headers}
@@ -177,7 +179,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
           {isPending || !monitorList
             ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
                 <RowPlaceholder key={i}>
-                  <Placeholder height="2rem" />
+                  <Placeholder height="20px" />
                 </RowPlaceholder>
               ))
             : monitorList.map(monitor => (
@@ -197,9 +199,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                 </Fragment>
               ))}
         </StyledPanelTable>
-        {monitorPageLinks && (
-          <Pagination pageLinks={monitorListHeaders?.('Link')} onCursor={setCursor} />
-        )}
+        <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
         <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
@@ -216,8 +216,9 @@ export const modalCss = css`
 `;
 
 const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
@@ -227,13 +228,17 @@ const ActionButtons = styled(ButtonBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  overflow: scroll;
-  max-height: 425px;
+  overflow-y: scroll;
+  max-height: 390px; /* Cut one row off to make it clear there's more content */
 `;
 
 const RowPlaceholder = styled('div')`
   grid-column: 1 / -1;
-  padding: ${space(1)};
+  padding: ${space(2)};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const MonitorSlug = styled('div')`

@@ -297,7 +297,7 @@ export function SpanBreakdownSliceRenderer({
 }
 
 const Subtext = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 const FlexContainer = styled('div')`
@@ -438,7 +438,7 @@ export function TraceIssuesRenderer({
   return (
     <LinkButton
       to={normalizeUrl({
-        pathname: `/organizations/${organization.slug}/issues`,
+        pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:"${trace.trace}"`,
         },

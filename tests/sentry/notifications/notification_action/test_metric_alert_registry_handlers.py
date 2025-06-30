@@ -36,7 +36,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -62,7 +62,11 @@ class TestHandler(BaseMetricAlertHandler):
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
+        self.detector = self.create_detector(
+            project=self.project,
+            config={"detection_type": "static", "threshold_period": 1},
+            type="metric_issue",
+        )
 
         with self.tasks():
             self.snuba_query = create_snuba_query(
@@ -100,12 +104,23 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
 
         self.evidence_data = MetricIssueEvidenceData(
             value=123.45,
-            data_condition_ids=[],
-            data_condition_type=Condition.GREATER_OR_EQUAL,
-            data_condition_comparison_value=123,
-            alert_id=self.alert_rule.id,
             detector_id=self.detector.id,
-            data_source_ids=[self.data_source.id],
+            data_packet_source_id=int(self.data_source.source_id),
+            conditions=[
+                {
+                    "id": 1,
+                    "type": Condition.GREATER_OR_EQUAL,
+                    "comparison": 123,
+                    "condition_result": DetectorPriorityLevel.HIGH.value,
+                },
+                {
+                    "id": 2,
+                    "type": Condition.GREATER_OR_EQUAL,
+                    "comparison": 100,
+                    "condition_result": DetectorPriorityLevel.MEDIUM.value,
+                },
+            ],
+            alert_id=self.alert_rule.id,
         )
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.create_issue_occurrence(
@@ -334,7 +349,10 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def test_build_alert_context(self):
         assert self.group_event.occurrence is not None
         alert_context = self.handler.build_alert_context(
-            self.detector, self.evidence_data, self.group_event.group.status
+            self.detector,
+            self.evidence_data,
+            self.group_event.group.status,
+            self.group_event.occurrence.priority,
         )
         assert isinstance(alert_context, AlertContext)
         assert alert_context.name == self.detector.name
@@ -392,11 +410,11 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             name=self.detector.name,
             action_identifier_id=self.detector.id,
             threshold_type=AlertRuleThresholdType.ABOVE,
-            detection_type=None,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,
-            alert_threshold=self.evidence_data.data_condition_comparison_value,
+            alert_threshold=self.evidence_data.conditions[0]["comparison"],
         )
         self.assert_metric_issue_context(
             metric_issue_context,

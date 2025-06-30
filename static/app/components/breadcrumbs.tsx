@@ -159,6 +159,7 @@ const BreadcrumbLink = styled(
     )
 )`
   ${getBreadcrumbListItemStyles}
+  max-width: 400px;
 
   &:hover,
   &:active {

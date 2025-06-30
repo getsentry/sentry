@@ -15,7 +15,7 @@ from sentry.integrations.opsgenie.tasks import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.asserts import assert_slo_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -64,8 +64,12 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.post(self.init_path, data=config)
         assert resp.status_code == 200
 
-    def test_installation_no_key(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_no_key(self, mock_record):
         self.assert_setup_flow(self.config_no_key)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
 
         integration = Integration.objects.get(provider=self.provider.key)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)

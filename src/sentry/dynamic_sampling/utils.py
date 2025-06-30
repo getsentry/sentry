@@ -25,6 +25,18 @@ def has_custom_dynamic_sampling(
     )
 
 
+def has_dynamic_sampling_minimum_sample_rate(
+    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
+) -> bool:
+    return (
+        organization is not None
+        and features.has(
+            "organizations:dynamic-sampling-minimum-sample-rate", organization, actor=actor
+        )
+        and has_custom_dynamic_sampling(organization, actor=actor)
+    )
+
+
 def is_project_mode_sampling(organization: Organization | None) -> bool:
     return (
         organization is not None

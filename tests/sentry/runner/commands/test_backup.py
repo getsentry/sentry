@@ -590,6 +590,24 @@ class GoodImportExportCommandTests(TransactionTestCase):
                 export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
             )
 
+    def test_export_user_scope_filter_usernames_empty(self):
+        # create a user that should not be in the export
+        self.create_user("admin@example.com", is_staff=True, is_superuser=True)
+        with TemporaryDirectory() as tmp_dir:
+            output = Path(tmp_dir).joinpath("output.tar")
+            filter_users = Path(tmp_dir).joinpath("filter-usernames.txt")
+            with open(filter_users, "w") as f:
+                f.write("")
+
+            rv = CliRunner().invoke(
+                export,
+                ["users", str(output), "--filter-usernames-file", str(filter_users)],
+            )
+            assert rv.exit_code == 0, rv.output
+            with open(output) as f:
+                contents = f.read()
+            assert contents.strip() == "[]"
+
 
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """

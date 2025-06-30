@@ -71,7 +71,7 @@ def create_dummy_response(*args, **kwargs):
             )
         ],
         created=int(time.time()),
-        model="gpt3.5-trubo",
+        model="gpt3.5-turbo",
         object="chat.completion",
     )
 

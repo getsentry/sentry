@@ -14,15 +14,10 @@ from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.tasks import (
-    AdoptedRelease,
-    adopt_release_project_environments,
-    find_adopted_but_missing_releases,
-    find_missing,
     has_been_adopted,
     iter_adopted_releases,
     monitor_release_adoption,
     process_projects_with_sessions,
-    query_adopted_release_project_environments,
     valid_and_adopted_release,
     valid_environment,
 )
@@ -554,129 +549,6 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         assert not no_env_project.flags.has_releases
 
 
-class ReleaseHealthIntegrationTestCase(TestCase, BaseMetricsTestCase):
-
-    def mock_release_project_environments(self):
-        self.project1 = self.create_project()
-        self.project2 = self.create_project()
-
-        self.project1.update(flags=F("flags").bitor(Project.flags.has_releases))
-        self.project2.update(flags=F("flags").bitor(Project.flags.has_releases))
-
-        self.release1 = self.create_release(project=self.project1, version="foo@1.0.0")
-        self.release2 = self.create_release(project=self.project1, version="foo@2.0.0")
-        self.environment1 = self.create_environment(name="prod", project=self.project1)
-        self.environment2 = self.create_environment(name="canary", project=self.project2)
-
-        self.rpe1 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project1.id,
-            release_id=self.release1.id,
-            environment_id=self.environment1.id,
-        )
-        self.rpe2 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project2.id,
-            release_id=self.release1.id,
-            environment_id=self.environment1.id,
-        )
-        self.rpe3 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project1.id,
-            release_id=self.release2.id,
-            environment_id=self.environment1.id,
-        )
-        self.rpe4 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project1.id,
-            release_id=self.release1.id,
-            environment_id=self.environment2.id,
-        )
-
-    def test_query_adopted_release_project_environments(self):
-        self.mock_release_project_environments()
-
-        def to_adopted_release(rpe: ReleaseProjectEnvironment) -> AdoptedRelease:
-            return {
-                "project_id": rpe.project_id,
-                "environment": rpe.environment.name,
-                "version": rpe.release.version,
-            }
-
-        # Assert similar releases are ignored. All three pieces of metadata must match
-        # simultaneously for a row to be returned.
-        adopted_releases = [to_adopted_release(self.rpe1)]
-        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
-        assert len(results) == 1
-
-        # Assert only the extra valid release is found.
-        adopted_releases.append(to_adopted_release(self.rpe3))
-        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
-        assert len(results) == 2
-
-        # Extra release not found because it doesn't exist in the database.
-        adopted_releases.append({"project_id": 1, "environment": "any", "version": "whatever"})
-        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
-        assert len(results) == 2
-
-        # Different organization
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        project.update(flags=F("flags").bitor(Project.flags.has_releases))
-        release = self.create_release(project=project, version="foo@1.0.0")
-        environment = self.create_environment(name="prod", project=project)
-        rpe = ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=environment.id,
-        )
-
-        results = query_adopted_release_project_environments(
-            [to_adopted_release(rpe)], self.organization.id
-        )
-        assert len(results) == 0
-
-        results = query_adopted_release_project_environments(
-            [to_adopted_release(rpe)], organization.id
-        )
-        assert len(results) == 1
-
-    def test_adopt_release_project_environments(self):
-        self.mock_release_project_environments()
-
-        adopted_time = timezone.now()
-
-        rpe5 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project2.id,
-            release_id=self.release1.id,
-            environment_id=self.environment2.id,
-            unadopted=timezone.now(),
-        )
-
-        rpe6 = ReleaseProjectEnvironment.objects.create(
-            project_id=self.project2.id,
-            release_id=self.release2.id,
-            environment_id=self.environment2.id,
-            adopted=adopted_time,
-        )
-
-        # Assert none of the releases have been adopted yet.
-        assert self.rpe1.adopted is None
-        assert self.rpe2.adopted is None
-        assert self.rpe3.adopted is None
-        assert self.rpe4.adopted is None
-        assert rpe5.unadopted is not None
-        assert rpe6.adopted == adopted_time
-
-        adopt_release_project_environments([self.rpe1, self.rpe2, rpe5, rpe6])
-
-        # Only the releases found in the list are updated. The remainder are unchanged.
-        assert self.rpe1.adopted is not None
-        assert self.rpe2.adopted is not None  # type: ignore[unreachable]
-        assert self.rpe3.adopted is None
-        assert self.rpe4.adopted is None
-        assert rpe5.adopted is not None
-        assert rpe5.unadopted is None
-        assert rpe6.adopted == adopted_time
-        assert rpe6.unadopted is None
-
-
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
 
@@ -730,38 +602,3 @@ def test_has_been_adopted():
     assert not has_been_adopted(100, 0)
     assert not has_been_adopted(100, 1)
     assert not has_been_adopted(100, 9)
-
-
-def test_find_adopted_but_missing_releases():
-    # We're considering version.
-    missing_releases = find_adopted_but_missing_releases(
-        adopted_releases=[
-            {"project_id": 1, "environment": "prod", "version": "0.1"},
-            {"project_id": 1, "environment": "prod", "version": "0.2"},
-            {"project_id": 1, "environment": "prod", "version": "0.3"},
-        ],
-        found_rows=[
-            (1, "prod", "0.1"),
-            (1, "prod", "0.3"),
-        ],
-    )
-    assert missing_releases == [{"project_id": 1, "environment": "prod", "version": "0.2"}]
-
-    # We're considering environment.
-    missing_releases = find_adopted_but_missing_releases(
-        adopted_releases=[
-            {"project_id": 1, "environment": "canary", "version": "0.1"},
-            {"project_id": 1, "environment": "staging", "version": "0.1"},
-            {"project_id": 1, "environment": "prod", "version": "0.1"},
-        ],
-        found_rows=[
-            (1, "canary", "0.1"),
-            (1, "staging", "0.1"),
-        ],
-    )
-    assert missing_releases == [{"project_id": 1, "environment": "prod", "version": "0.1"}]
-
-
-def test_find_missing():
-    difference = find_missing(list(range(10)), lambda a: a, list(range(5)), lambda a: a)
-    assert difference == list(range(5, 10))

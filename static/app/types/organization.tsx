@@ -92,7 +92,15 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
-  defaultAutofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always' | null;
+  defaultAutofixAutomationTuning?:
+    | 'off'
+    | 'super_low'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'always'
+    | null;
+  defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   extraOptions?: {

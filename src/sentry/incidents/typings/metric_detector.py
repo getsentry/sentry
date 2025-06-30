@@ -11,14 +11,13 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action, Condition, DataCondition, Detector
-from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models import Action, Condition, Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
     from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -30,39 +29,38 @@ CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
     Condition.LESS: AlertRuleThresholdType.BELOW,
 }
 
+PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL = {
+    PriorityLevel.LOW: DetectorPriorityLevel.LOW,
+    PriorityLevel.MEDIUM: DetectorPriorityLevel.MEDIUM,
+    PriorityLevel.HIGH: DetectorPriorityLevel.HIGH,
+}
 
-def fetch_threshold_type(evidence_data: MetricIssueEvidenceData) -> AlertRuleThresholdType:
-    return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[evidence_data.data_condition_type]
+
+def fetch_threshold_type(type: Condition) -> AlertRuleThresholdType:
+    return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[type]
 
 
-def fetch_alert_threshold(
-    evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
-) -> float | None:
+def fetch_alert_threshold(comparison_value: float, group_status: GroupStatus) -> float | None:
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return None
     else:
-        return evidence_data.data_condition_comparison_value
+        return comparison_value
 
 
-def fetch_resolve_threshold(
-    evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
-) -> float | None:
+def fetch_resolve_threshold(comparison_value: float, group_status: GroupStatus) -> float | None:
     """
     This is the opposite of `fetch_alert_threshold`.
     We keep it explicitly separate to make it clear that we are fetching the resolve threshold and to consolidate tech debt.
     """
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
-        return evidence_data.data_condition_comparison_value
+        return comparison_value
     else:
         return None
 
 
-def fetch_sensitivity(evidence_data: MetricIssueEvidenceData) -> str | None:
-    # TODO - (saponifi3d) - Update this once the platform supports this
-    for data_condition_id in evidence_data.data_condition_ids:
-        data_condition = DataCondition.objects.get(id=data_condition_id)
-        if data_condition.type == Condition.ANOMALY_DETECTION:
-            return data_condition.comparison.get("sensitivity")
+def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
+    if condition.get("type") == Condition.ANOMALY_DETECTION:
+        return condition.get("comparison", {}).get("sensitivity", None)
     return None
 
 
@@ -94,18 +92,35 @@ class AlertContext:
 
     @classmethod
     def from_workflow_engine_models(
-        cls, detector: Detector, evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
+        cls,
+        detector: Detector,
+        evidence_data: MetricIssueEvidenceData,
+        group_status: GroupStatus,
+        priority_level: int | None,
     ) -> AlertContext:
-        threshold_type = fetch_threshold_type(evidence_data)
-        resolve_threshold = fetch_resolve_threshold(evidence_data, group_status)
-        alert_threshold = fetch_alert_threshold(evidence_data, group_status)
-        sensitivity = fetch_sensitivity(evidence_data)
+        # This should never happen, but we need to handle it for now
+        if priority_level is None:
+            raise ValueError("Priority level is required for metric issues")
+
+        target_priority = PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL[PriorityLevel(priority_level)]
+        try:
+            condition = next(
+                cond
+                for cond in evidence_data.conditions
+                if cond["condition_result"] == target_priority
+            )
+            threshold_type = fetch_threshold_type(Condition(condition["type"]))
+            resolve_threshold = fetch_resolve_threshold(condition["comparison"], group_status)
+            alert_threshold = fetch_alert_threshold(condition["comparison"], group_status)
+            sensitivity = fetch_sensitivity(condition)
+        except StopIteration:
+            raise ValueError("No threshold type found for metric issues")
 
         return cls(
             name=detector.name,
             action_identifier_id=detector.id,
             threshold_type=threshold_type,
-            detection_type=detector.config.get("detection_type"),
+            detection_type=AlertRuleDetectionType(detector.config.get("detection_type")),
             comparison_delta=detector.config.get("comparison_delta"),
             sensitivity=sensitivity,
             resolve_threshold=resolve_threshold,
@@ -197,15 +212,7 @@ class MetricIssueContext:
 
     @classmethod
     def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
-        data_source_ids = evidence_data.data_source_ids
-        data_source = DataSource.objects.filter(
-            id__in=data_source_ids, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-        ).first()
-
-        if data_source is None:
-            raise ValueError("No data sources found for alert context")
-
-        subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        subscription = QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
         return subscription
 
     @classmethod

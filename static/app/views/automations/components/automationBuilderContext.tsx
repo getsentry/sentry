@@ -2,17 +2,21 @@ import {createContext, type Reducer, useCallback, useContext, useReducer} from '
 import {uuid4} from '@sentry/core';
 
 import {
+  type ActionConfig,
   type ActionHandler,
   ActionTarget,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
   DataConditionGroupLogicType,
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
-export function useAutomationBuilderReducer() {
+export function useAutomationBuilderReducer(initialState?: AutomationBuilderState) {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
     (state, action): AutomationBuilderState => {
       switch (action.type) {
@@ -51,7 +55,10 @@ export function useAutomationBuilderReducer() {
     []
   );
 
-  const [state, dispatch] = useReducer(reducer, initialAutomationBuilderState);
+  const [state, dispatch] = useReducer(
+    reducer,
+    initialState ?? initialAutomationBuilderState
+  );
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
@@ -135,7 +142,7 @@ export function useAutomationBuilderReducer() {
   return {state, actions};
 }
 
-interface AutomationBuilderState {
+export interface AutomationBuilderState {
   actionFilters: DataConditionGroup[];
   triggers: DataConditionGroup;
 }
@@ -322,7 +329,8 @@ function addWhenCondition(
         {
           id: uuid4(),
           type: action.conditionType,
-          comparison: {},
+          comparison: true,
+          conditionResult: true,
         },
       ],
     },
@@ -384,7 +392,7 @@ function addIf(
       {
         id: uuid4(),
         conditions: [],
-        logicType: DataConditionGroupLogicType.ANY,
+        logicType: DataConditionGroupLogicType.ALL,
       },
     ],
   };
@@ -419,7 +427,10 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            comparison: {},
+            // comparison: true,
+            comparison:
+              dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
+            conditionResult: true,
           },
         ],
       };
@@ -488,8 +499,10 @@ function updateIfCondition(
   };
 }
 
-function getActionTargetType(actionType: ActionType): ActionTarget {
+function getActionTargetType(actionType: ActionType): ActionTarget | null {
   switch (actionType) {
+    case ActionType.PLUGIN:
+      return null;
     case ActionType.EMAIL:
       return ActionTarget.ISSUE_OWNERS;
     case ActionType.SENTRY_APP:
@@ -499,13 +512,30 @@ function getActionTargetType(actionType: ActionType): ActionTarget {
   }
 }
 
+function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
+  const targetType = getActionTargetType(actionHandler.type);
+  const targetIdentifier =
+    actionHandler.sentryApp?.id ??
+    actionHandler.integrations?.[0]?.services?.[0]?.id ??
+    actionHandler.services?.[0]?.slug ??
+    undefined;
+
+  return {
+    target_type: targetType,
+    ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    ...(actionHandler.sentryApp?.id && {
+      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+    }),
+  };
+}
+
 function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, actionHandler} = action;
 
-  const targetType = getActionTargetType(actionHandler.type);
+  const defaultIntegration = actionHandler.integrations?.[0];
 
   return {
     ...state,
@@ -520,13 +550,11 @@ function addIfAction(
           {
             id: actionId,
             type: actionHandler.type,
-            config: {
-              target_type: targetType,
-              ...(actionHandler.sentryApp
-                ? {target_identifier: actionHandler.sentryApp.id}
-                : {}),
-            },
-            data: {},
+            config: getDefaultConfig(actionHandler),
+            ...(defaultIntegration && {
+              integrationId: defaultIntegration.id,
+            }),
+            data: actionNodesMap.get(actionHandler.type)?.defaultData || {},
           },
         ],
       };

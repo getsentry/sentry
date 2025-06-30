@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -26,6 +27,20 @@ export enum Actions {
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
+  COPY_TO_CLIPBOARD = 'copy_to_clipboard',
+}
+
+export function copyToClipBoard(data: any) {
+  function stringifyValue(value: any): string {
+    if (!value) return '';
+    if (typeof value !== 'object') {
+      return value.toString();
+    }
+    return JSON.stringify(value) ?? value.toString();
+  }
+  navigator.clipboard.writeText(stringifyValue(data)).catch(_ => {
+    addErrorMessage('Error copying to clipboard');
+  });
 }
 
 export function updateQuery(
@@ -83,6 +98,9 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
+    case Actions.COPY_TO_CLIPBOARD:
+      copyToClipBoard(value);
+      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
@@ -231,6 +249,8 @@ function makeCellActions({
       t('Edit threshold')
     );
   }
+
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (actions.length === 0) {
     return null;
