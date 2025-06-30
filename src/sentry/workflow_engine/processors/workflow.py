@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import buffer, features
 from sentry.eventstore.models import GroupEvent
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.utils import json
 from sentry.workflow_engine.models import (
@@ -271,7 +272,7 @@ def evaluate_workflows_action_filters(
     return filtered_action_groups
 
 
-def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
+def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
     if isinstance(event_data.event, GroupEvent):
         try:
             environment = event_data.event.get_environment()
@@ -283,22 +284,27 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
             raise Environment.DoesNotExist("Environment does not exist for the event")
 
         return environment
+    elif isinstance(event_data.event, Activity):
+        return None
 
-    raise TypeError(
-        "Expected event_data.event to be an instance of GroupEvent, got %s" % type(event_data.event)
-    )
+    raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
 def _get_associated_workflows(
-    detector: Detector, environment: Environment, event_data: WorkflowEventData
+    detector: Detector, environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
     """
+    environment_filter = (
+        (Q(environment_id=None) | Q(environment_id=environment.id))
+        if environment
+        else Q(environment_id=None)
+    )
     workflows = set(
         Workflow.objects.filter(
-            (Q(environment_id=None) | Q(environment_id=environment.id)),
+            environment_filter,
             detectorworkflow__detector_id=detector.id,
             enabled=True,
         )
@@ -324,7 +330,7 @@ def _get_associated_workflows(
                 "group_id": event_data.group.id,
                 "event_id": event_id,
                 "event_data": asdict(event_data),
-                "event_environment_id": environment.id,
+                "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
                 "detector_type": detector.type,
             },
@@ -347,7 +353,8 @@ def process_workflows(
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
             detector = get_detector_by_event(event_data)
-        else:
+
+        if detector is None:
             raise ValueError("Unable to determine the detector for the event")
 
         log_context.add_extras(detector_id=detector.id)
