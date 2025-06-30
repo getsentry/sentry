@@ -8,7 +8,6 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 
 import type {Flow} from './types';
 
-
 const sampleFlows: Flow[] = [
   {
     id: 'flow1',
@@ -71,7 +70,6 @@ const breadcrumbToFlow = (breadcrumbs: Breadcrumb[]): Flow[] => {
     createdBy: breadcrumb.createdBy,
   }));
 };
-
 
 const StatusBadge = styled('span')<{status: string}>`
   display: inline-block;
@@ -172,18 +170,18 @@ export default function FlowDetail() {
   // Find the flow by ID
   const flow = sampleFlows.find(f => f.id === flowId);
 
-    const replaySlug = 'acd5d72f6ba54385ac80abe9dfadb142';
-    const orgSlug = 'codecov';
+  const replaySlug = 'acd5d72f6ba54385ac80abe9dfadb142';
+  const orgSlug = 'codecov';
 
-    const readerResult = useLoadReplayReader({
-      replaySlug,
-      orgSlug,
-    });
+  const readerResult = useLoadReplayReader({
+    replaySlug,
+    orgSlug,
+  });
 
-    const {replay, replayRecord} = readerResult;
+  const {replay, replayRecord} = readerResult;
 
-    console.log({replay});
-    console.log({replayRecord});
+  console.log({replay});
+  console.log({replayRecord});
 
   if (!flow) {
     return (
