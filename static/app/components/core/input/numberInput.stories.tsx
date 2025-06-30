@@ -19,7 +19,12 @@ export default Storybook.story('NumberInput', (story, APIReference) => {
           <Storybook.JSXProperty name="max" value="number" /> validation, and comes with
           full accessibility features through React Aria.
         </p>
+        <label>Default size</label>
         <NumberInput />
+        <br />
+        <label>Extra small size</label>
+        <br />
+        <NumberInput size="xs" />
       </Fragment>
     );
   });

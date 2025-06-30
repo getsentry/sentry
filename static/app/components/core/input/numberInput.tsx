@@ -78,12 +78,22 @@ export function NumberInput({
       />
       <InputGroup.TrailingItems>
         <StepWrap size={size}>
-          <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
-            <StyledIconChevron direction="up" />
-          </StepButton>
-          <StepButton ref={decrementButtonRef} size="zero" borderless {...decrementProps}>
-            <StyledIconChevron direction="down" />
-          </StepButton>
+          <StepButton
+            ref={incrementButtonRef}
+            size="zero"
+            borderless
+            {...incrementProps}
+            aria-label={incrementProps['aria-label'] ?? 'Increment'}
+            icon={<StyledIconChevron direction="up" />}
+          />
+          <StepButton
+            ref={decrementButtonRef}
+            size="zero"
+            borderless
+            {...decrementProps}
+            aria-label={decrementProps['aria-label'] ?? 'Decrement'}
+            icon={<StyledIconChevron direction="down" />}
+          />
         </StepWrap>
       </InputGroup.TrailingItems>
     </InputGroup>
@@ -102,6 +112,7 @@ const StepButton = styled(Button)`
   display: flex;
   height: 50%;
   padding: 0 ${space(0.25)};
+  min-height: 0;
   color: ${p => p.theme.subText};
 `;
 
