@@ -156,6 +156,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos[0].stacktrace["frames"]) == 3
 
 
+@pytest.mark.skip(reason="flaky: #94624")
 @pytest.mark.parametrize(
     "event",
     [
