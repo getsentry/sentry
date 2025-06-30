@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0934_options_nullable_value"),
+        ("sentry", "0939_rm_eventattachment_fileid_part2"),
     ]
 
     operations = [
