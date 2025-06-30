@@ -265,44 +265,44 @@ class SubscriptionProcessor:
 
         if has_anomaly and not trigger_matches_status:
             incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
-            if incident_trigger is not None:
-                metrics.incr(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": self.alert_rule.detection_type},
+            metrics.incr(
+                "incidents.alert_rules.threshold.alert",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                self.subscription.project.organization,
+            ):
+                logger.info(
+                    "Firing dynamic rule",
+                    extra={
+                        "rule_id": self.alert_rule.id,
+                        "aggregation_value": aggregation_value,
+                    },
                 )
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    self.subscription.project.organization,
-                ):
-                    logger.info(
-                        "Firing dynamic rule",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "aggregation_value": aggregation_value,
-                        },
-                    )
+            if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
         else:
             self.trigger_alert_counts[trigger.id] = 0
 
         if not has_anomaly and self.active_incident and trigger_matches_status:
             incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
-            if incident_trigger is not None:
-                metrics.incr(
-                    "incidents.alert_rules.threshold.resolve",
-                    tags={"detection_type": self.alert_rule.detection_type},
+            metrics.incr(
+                "incidents.alert_rules.threshold.resolve",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                self.subscription.project.organization,
+            ):
+                logger.info(
+                    "Resolving dynamic rule",
+                    extra={
+                        "rule_id": self.alert_rule.id,
+                        "aggregation_value": aggregation_value,
+                    },
                 )
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    self.subscription.project.organization,
-                ):
-                    logger.info(
-                        "Resolving dynamic rule",
-                        extra={
-                            "rule_id": self.alert_rule.id,
-                            "aggregation_value": aggregation_value,
-                        },
-                    )
+            if incident_trigger is not None:
                 fired_incident_triggers.append(incident_trigger)
 
         else:
