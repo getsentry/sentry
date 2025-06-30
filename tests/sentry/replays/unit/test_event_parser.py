@@ -1033,8 +1033,6 @@ def test_as_trace_item_context_memory():
 
 def test_as_trace_item_context_returns_none_for_unsupported_events():
     event = {"data": {"payload": {}}}
-
-    # These event types should return None
     assert as_trace_item_context(EventType.CONSOLE, event) is None
     assert as_trace_item_context(EventType.UI_BLUR, event) is None
     assert as_trace_item_context(EventType.UI_FOCUS, event) is None
@@ -1235,21 +1233,3 @@ def test_iter_trace_items_empty_list():
 
     trace_items = list(iter_trace_items(context, []))
     assert len(trace_items) == 0
-
-
-@pytest.mark.parametrize(
-    "event_type",
-    [
-        EventType.CONSOLE,
-        EventType.UI_BLUR,
-        EventType.UI_FOCUS,
-        EventType.UNKNOWN,
-        EventType.CANVAS,
-        EventType.FEEDBACK,
-    ],
-)
-def test_as_trace_item_context_unsupported_event_types(event_type):
-    """Test that unsupported event types return None"""
-    event = {"data": {"payload": {}}}
-    result = as_trace_item_context(event_type, event)
-    assert result is None
