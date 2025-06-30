@@ -657,13 +657,13 @@ const ReleaseDetailsPageFilters = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 

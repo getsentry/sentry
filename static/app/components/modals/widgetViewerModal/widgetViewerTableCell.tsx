@@ -5,8 +5,8 @@ import type {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -19,7 +19,6 @@ import {
 import type {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
@@ -32,7 +31,6 @@ import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfi
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -196,9 +194,15 @@ export const renderGridBodyCell = ({
     let cell: React.ReactNode;
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        cell = (
-          getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
-        )(dataRow, {organization, location, theme});
+        if (!tableData || !tableData.meta) {
+          return dataRow[column.key];
+        }
+
+        cell = getIssueFieldRenderer(columnKey, tableData.meta)(dataRow, {
+          organization,
+          location,
+          theme,
+        });
         break;
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:

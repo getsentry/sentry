@@ -8,7 +8,7 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
+import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
@@ -17,6 +17,7 @@ type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
+  replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -61,6 +62,7 @@ export function useSearchQueryBuilderProps({
   portalTarget,
   projects,
   supportedAggregates = [],
+  replaceRawSearchKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const organization = useOrganization();
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
@@ -68,10 +70,8 @@ export function useSearchQueryBuilderProps({
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
 
-  const getTraceItemAttributeValues = useTraceItemAttributeValues({
+  const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
-    attributeKey: '',
-    enabled: true,
     type: 'string',
     projectIds: projects,
   });
@@ -113,6 +113,7 @@ export function useSearchQueryBuilderProps({
     recentSearches: itemTypeToRecentSearches(itemType),
     showUnsubmittedIndicator: true,
     portalTarget,
+    replaceRawSearchKeys,
   };
 }
 

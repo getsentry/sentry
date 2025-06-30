@@ -172,6 +172,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         has_grace_period: bool | None = None,
         grace_period_expired: bool | None = None,
         limit: int | None = None,
+        name: str | None = None,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -191,6 +192,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if grace_period_expired:
             # Used by getsentry
             oi_kwargs["grace_period_end__lte"] = timezone.now()
+        if name is not None:
+            oi_kwargs["integration__name"] = name
 
         if not oi_kwargs:
             return []

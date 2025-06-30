@@ -10,7 +10,7 @@ export const ConditionBadge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.5;
 `;

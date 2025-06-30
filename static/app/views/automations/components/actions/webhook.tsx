@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
@@ -30,17 +31,17 @@ function ServicesField() {
   const services = handler?.services;
 
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.config.target_identifier`}
       value={action.config.target_identifier}
       options={services?.map(service => ({
         label: service.name,
         value: service.slug,
       }))}
-      onChange={(value: string) => {
+      onChange={(option: SelectValue<string>) => {
         onUpdate({
           config: {
-            target_identifier: value,
+            target_identifier: option.value,
           },
         });
       }}

@@ -17,7 +17,8 @@ const trackTraceMetadata = (
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string
 ) => {
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
@@ -44,6 +45,7 @@ const trackTraceMetadata = (
     project_platforms: projectPlatforms,
     organization,
     source,
+    trace_age: traceAge,
   });
 };
 
@@ -243,7 +245,8 @@ function trackTraceShape(
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string
 ) {
   switch (tree.shape) {
     case TraceShape.BROKEN_SUBTRACES:
@@ -258,7 +261,8 @@ function trackTraceShape(
         projects,
         organization,
         hasExceededPerformanceUsageLimit,
-        source
+        source,
+        traceAge
       );
       break;
     default: {

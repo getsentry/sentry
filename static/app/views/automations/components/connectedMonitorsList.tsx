@@ -1,16 +1,15 @@
 import type {Dispatch, SetStateAction} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import ActorBadge from 'sentry/components/idBadge/actorBadge';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
   monitors: Detector[];
@@ -23,7 +22,6 @@ export default function ConnectedMonitorsList({
   connectedIds,
   setConnectedIds,
 }: Props) {
-  const organization = useOrganization();
   const canEdit = connectedIds && !!setConnectedIds;
 
   const toggleConnected = (id: string) => {
@@ -38,103 +36,91 @@ export default function ConnectedMonitorsList({
     });
   };
 
-  const data = monitors.map(monitor => ({
-    title: {
-      name: monitor.name,
-      createdBy: monitor.createdBy,
-      projectId: monitor.projectId,
-      link: makeMonitorDetailsPathname(organization.slug, monitor.id),
-    },
-    type: monitor.type,
-    lastIssue: undefined, // TODO: call API to get last issue
-    owner: monitor.owner,
-    connected: canEdit
-      ? {
-          isConnected: connectedIds?.has(monitor.id),
-          toggleConnected: () => toggleConnected?.(monitor.id),
-        }
-      : undefined,
-  }));
-
-  if (canEdit) {
-    return <SimpleTable columns={connectedColumns} data={data} />;
-  }
-
   return (
-    <SimpleTable
-      columns={baseColumns}
-      data={data}
-      fallback={t('No monitors connected')}
-    />
+    <Container>
+      <SimpleTableWithColumns>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="type">
+            {t('Type')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="last-issue">
+            {t('Last Issue')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="owner">
+            {t('Assignee')}
+          </SimpleTable.HeaderCell>
+          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+        </SimpleTable.Header>
+        {monitors.length === 0 && (
+          <SimpleTable.Empty>{t('No monitors connected')}</SimpleTable.Empty>
+        )}
+        {monitors.map(monitor => (
+          <SimpleTable.Row key={monitor.id}>
+            <SimpleTable.RowCell>
+              <DetectorLink detector={monitor} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell data-column-name="type">
+              <DetectorTypeCell type={monitor.type} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell data-column-name="last-issue">
+              <IssueCell group={undefined} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell data-column-name="owner">
+              <DetectorAssigneeCell assignee={monitor.owner} />
+            </SimpleTable.RowCell>
+            {canEdit && (
+              <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
+                <Button onClick={() => toggleConnected(monitor.id)} size="sm">
+                  {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
+                </Button>
+              </SimpleTable.RowCell>
+            )}
+          </SimpleTable.Row>
+        ))}
+      </SimpleTableWithColumns>
+    </Container>
   );
 }
 
-interface BaseMonitorsData {
-  lastIssue: Group | undefined;
-  owner: Detector['owner'];
-  title: {createdBy: string | null; link: string; name: string; projectId: string};
-  type: Detector['type'];
-}
+const Container = styled('div')`
+  container-type: inline-size;
+`;
 
-const baseColumns = defineColumns<BaseMonitorsData>({
-  title: {
-    Header: () => t('Name'),
-    Cell: ({value}) => (
-      <TitleCell
-        name={value.name}
-        createdBy={value.createdBy}
-        projectId={value.projectId}
-        link={value.link}
-      />
-    ),
-    width: '4fr',
-  },
-  type: {
-    Header: () => t('Type'),
-    Cell: ({value}) => <DetectorTypeCell type={value} />,
-    width: '1fr',
-  },
-  lastIssue: {
-    Header: () => t('Last Issue'),
-    Cell: ({value}) => <IssueCell group={value} />,
-    width: '1.5fr',
-  },
-  owner: {
-    Header: () => t('Assignee'),
-    Cell: ({value}) => <MonitorOwner owner={value} />,
-    width: '1fr',
-  },
-});
+const SimpleTableWithColumns = styled(SimpleTable)`
+  grid-template-columns: 1fr 100px auto auto auto;
 
-function MonitorOwner({owner}: {owner: string | null}) {
-  if (!owner) {
-    return t('Unassigned');
+  margin-bottom: ${space(2)};
+
+  /*
+    The connected column can be added/removed depending on props, so in order to
+    have a constant width we have an auto grid column and set the width here.
+  */
+  [data-column-name='connected'] {
+    width: 140px;
   }
 
-  const [ownerType, ownerId] = owner.split(':');
-  if (!ownerId || (ownerType !== 'user' && ownerType !== 'team')) {
-    return t('Unknown Owner');
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr 100px auto auto;
+
+    [data-column-name='last-issue'] {
+      display: none;
+    }
   }
-  return <ActorBadge actor={{id: ownerId, name: '', type: ownerType}} />;
-}
 
-interface ConnectedMonitorsData extends BaseMonitorsData {
-  connected?: {
-    isConnected: boolean;
-    toggleConnected: () => void;
-  };
-}
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr 100px auto;
 
-const connectedColumns = defineColumns<ConnectedMonitorsData>({
-  ...baseColumns,
-  connected: {
-    Header: () => null,
-    Cell: ({value}) =>
-      value && (
-        <Button onClick={value.toggleConnected}>
-          {value.isConnected ? t('Disconnect') : t('Connect')}
-        </Button>
-      ),
-    width: '1fr',
-  },
-});
+    [data-column-name='owner'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr 100px;
+
+    [data-column-name='type'] {
+      display: none;
+    }
+  }
+`;

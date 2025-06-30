@@ -103,13 +103,13 @@ const ButtonContent = styled('div')`
 `;
 
 const ButtonTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ButtonSubtitle = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledLinkButton = styled(LinkButton)`

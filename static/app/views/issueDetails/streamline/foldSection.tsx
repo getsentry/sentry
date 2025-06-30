@@ -221,7 +221,7 @@ export const SectionDivider = styled('hr')`
 `;
 
 export const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: -${space(1)};
 `;
 
@@ -245,8 +245,8 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   user-select: none;
 `;
 

@@ -59,7 +59,10 @@ export function ToolbarSaveAs() {
   const sortBys = useExploreSortBys();
   const mode = useExploreMode();
   const id = useExploreId();
-  const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
+  const visualizeYAxes = useMemo(
+    () => dedupeArray(visualizes.map(v => v.yAxis)),
+    [visualizes]
+  );
 
   const [interval] = useChartInterval();
 
@@ -150,30 +153,33 @@ export function ToolbarSaveAs() {
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
-  const chartOptions = visualizes.map((chart, index) => {
-    const dedupedYAxes = dedupeArray(chart.yAxes);
-    const formattedYAxes = dedupedYAxes.map(yaxis => {
-      const func = parseFunction(yaxis);
-      return func ? prettifyParsedFunction(func) : undefined;
+  const chartOptions = useMemo(() => {
+    return visualizeYAxes.map((yAxis, index) => {
+      const dedupedYAxes = [yAxis];
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      return {
+        key: String(index),
+        label: formattedYAxes.filter(Boolean).join(', '),
+        onAction: () => {
+          if (disableAddToDashboard) {
+            return undefined;
+          }
+
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'toolbar',
+            organization,
+          });
+          return addToDashboard(index);
+        },
+      };
     });
+  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
 
-    return {
-      key: chart.label,
-      label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'toolbar',
-          organization,
-        });
-        return addToDashboard(index);
-      },
-    };
-  });
   items.push({
     key: 'add-to-dashboard',
     textValue: t('A Dashboard widget'),

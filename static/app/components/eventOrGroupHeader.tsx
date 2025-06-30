@@ -159,11 +159,11 @@ function EventOrGroupHeader({
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   & em {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
   }
 `;
@@ -194,5 +194,5 @@ const TitleWithoutLink = styled('span')`
 export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

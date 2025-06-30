@@ -305,7 +305,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   box-shadow: unset;
 
   & > div {

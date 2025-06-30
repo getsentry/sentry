@@ -75,10 +75,10 @@ const Row = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>
-      p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
+      p.theme.breakpoints.lg}) {
     grid-template-columns: 200px max-content;
   }
 `;

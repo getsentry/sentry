@@ -14,6 +14,31 @@ class QueryParts(TypedDict):
     orderby: list[str] | None
 
 
+def format_percentile_term(term):
+    function, args, alias = fields.parse_function(term)
+
+    percentile_replacement_function = {
+        0.5: "p50",
+        0.75: "p75",
+        0.90: "p90",
+        0.95: "p95",
+        0.99: "p99",
+        1.0: "p100",
+    }
+    try:
+        translated_column = column_switcheroo(args[0])[0]
+        percentile_value = args[1]
+        numeric_percentile_value = float(percentile_value)
+        new_function = percentile_replacement_function.get(numeric_percentile_value, function)
+    except (IndexError, ValueError):
+        return term
+
+    if new_function == function:
+        return term
+
+    return f"{new_function}({translated_column})"
+
+
 def apply_is_segment_condition(query: str) -> str:
     if query:
         return f"({query}) AND is_transaction:1"
@@ -33,6 +58,11 @@ def column_switcheroo(term):
         "url": "request.url",
         "http.url": "request.url",
         "transaction.status": "trace.status",
+        "geo.city": "user.geo.city",
+        "geo.country_code": "user.geo.country_code",
+        "geo.region": "user.geo.region",
+        "geo.subdivision": "user.geo.subdivision",
+        "geo.subregion": "user.geo.subregion",
     }
 
     swapped_term = column_swap_map.get(term, term)
@@ -45,6 +75,8 @@ def function_switcheroo(term):
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
+    elif term.startswith("percentile("):
+        swapped_term = format_percentile_term(term)
 
     return swapped_term, swapped_term != term
 

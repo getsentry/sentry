@@ -402,7 +402,7 @@ const StyledUserListElement = styled('div')`
 `;
 
 const StyledNameOrEmail = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis};
 `;
 

@@ -18,6 +18,7 @@ from usageaccountant import UsageUnit
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.retry import NoRetriesRemainingError
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process
@@ -422,6 +423,52 @@ def test_child_process_retry_task() -> None:
     result = processed.get()
     assert result.task_id == RETRY_TASK.activation.id
     assert result.status == TASK_ACTIVATION_STATUS_RETRY
+
+
+@mock.patch("sentry.taskworker.workerchild.sentry_sdk.capture_exception")
+@pytest.mark.django_db
+def test_child_process_retry_task_max_attempts(mock_capture: mock.Mock) -> None:
+    # Create an activation that is on its final attempt and
+    # will raise an error again.
+    activation = InflightTaskActivation(
+        host="localhost:50051",
+        receive_timestamp=0,
+        activation=TaskActivation(
+            id="6789",
+            taskname="examples.will_retry",
+            namespace="examples",
+            parameters='{"args": ["raise"], "kwargs": {}}',
+            processing_deadline_duration=100000,
+            retry_state=RetryState(
+                attempts=2,
+                max_attempts=3,
+            ),
+        ),
+    )
+    todo: queue.Queue[InflightTaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(activation)
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == activation.activation.id
+    assert result.status == TASK_ACTIVATION_STATUS_FAILURE
+
+    assert mock_capture.call_count == 1
+    capture_call = mock_capture.call_args[0]
+    # Error type and chained error should be captured.
+    assert isinstance(capture_call[0], NoRetriesRemainingError)
+    assert isinstance(capture_call[0].__cause__, RuntimeError)
 
 
 @pytest.mark.django_db

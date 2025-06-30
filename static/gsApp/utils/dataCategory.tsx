@@ -123,6 +123,19 @@ export function getReservedBudgetCategoryFromCategories(
 }
 
 /**
+ * Whether a category is part of a reserved budget.
+ * This will also return true for categories that can
+ * only be bought as part of a reserved budget (ie. Seer
+ * categories without having bought Seer).
+ */
+export function isPartOfReservedBudget(
+  category: DataCategory,
+  reservedBudgets: ReservedBudget[]
+): boolean {
+  return reservedBudgets.some(budget => budget.dataCategories.includes(category));
+}
+
+/**
  * Convert a list of reserved budget categories to a display name for the budget
  */
 export function getReservedBudgetDisplayName({
@@ -272,8 +285,4 @@ export function getChunkCategoryFromDuration(category: DataCategory) {
     return DataCategory.PROFILE_CHUNKS_UI;
   }
   return '';
-}
-
-export function isSeer(category: DataCategory): boolean {
-  return category === DataCategory.SEER_AUTOFIX || category === DataCategory.SEER_SCANNER;
 }

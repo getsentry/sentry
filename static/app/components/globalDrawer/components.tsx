@@ -176,7 +176,7 @@ const Header = styled('header')`
 
 export const DrawerBody = styled('aside')`
   padding: ${space(2)} 24px;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const DrawerContainer = styled('div')`

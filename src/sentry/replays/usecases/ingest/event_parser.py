@@ -77,9 +77,9 @@ class EventType(Enum):
     HYDRATION_ERROR = 11
     MUTATIONS = 12
     UNKNOWN = 13
-    FEEDBACK = 14
-    CANVAS = 15
-    OPTIONS = 16
+    CANVAS = 14
+    OPTIONS = 15
+    FEEDBACK = 16
     MEMORY = 17
 
 
@@ -140,8 +140,6 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.HYDRATION_ERROR
                 elif category == "replay.mutations":
                     return EventType.MUTATIONS
-                elif category == "sentry.feedback":
-                    return EventType.FEEDBACK
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
@@ -244,11 +242,13 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return None
         case EventType.UNKNOWN:
             return None
-        case EventType.FEEDBACK:
-            return "The user filled out a feedback form describing their experience using the application."
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
+            return None
+        case EventType.FEEDBACK:
+            return "The user filled out a feedback form describing their experience using the application."
+        case EventType.MEMORY:
             return None
 
 

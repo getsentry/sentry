@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <FlexContainer>
+        <IntegrationDescription>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -261,7 +261,7 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </FlexContainer>
+        </IntegrationDescription>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -309,6 +309,10 @@ const IntegrationLayout = {
 
 export default IntegrationLayout;
 
+const IntegrationDescription = styled('div')`
+  flex-grow: 1;
+`;
+
 const TopSectionWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -323,7 +327,7 @@ const NameContainer = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -353,10 +357,6 @@ const DisableWrapper = styled('div')`
   align-items: center;
 `;
 
-const FlexContainer = styled('div')`
-  flex: 1;
-`;
-
 const Description = styled(MarkedText)`
   li {
     margin-bottom: 6px;
@@ -382,7 +382,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 12px;
 `;
 

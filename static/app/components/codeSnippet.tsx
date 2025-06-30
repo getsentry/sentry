@@ -206,6 +206,10 @@ export function CodeSnippet({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
+const FlexSpacer = styled('div')`
+  flex-grow: 1;
+`;
+
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   background: var(--prism-block-background);
@@ -227,7 +231,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;
 
   ${p =>
@@ -245,7 +249,7 @@ const Header = styled('div')<{isFloating: boolean}>`
         `
       : css`
           gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
           border-bottom: solid 1px ${p.theme.border};
         `}
 `;
@@ -274,10 +278,6 @@ const Tab = styled('button')<{isSelected: boolean}>`
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}
-`;
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
 `;
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`

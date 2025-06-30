@@ -182,6 +182,12 @@ export function isPageloadTransactionNode(
   );
 }
 
+export function isTransactionNodeEquivalent(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> {
+  return isTransactionNode(node) || isEAPTransaction(node.value);
+}
+
 export function isServerRequestHandlerTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {

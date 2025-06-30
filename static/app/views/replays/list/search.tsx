@@ -42,7 +42,7 @@ const SearchContainer = styled('div')`
   max-width: 100%;
   width: auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     min-width: auto;
   }
 `;
