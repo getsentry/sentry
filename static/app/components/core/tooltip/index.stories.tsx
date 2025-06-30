@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Storybook from 'sentry/stories';
 
@@ -46,6 +47,43 @@ export default Storybook.story('Tooltip', (story, APIReference) => {
             <Button>Non Hoverable Tooltip</Button>
           </Tooltip>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('All Positions', () => {
+    return (
+      <Fragment>
+        <p>
+          Tooltips can be positioned in different directions. Use the{' '}
+          <Storybook.JSXNode name="position" /> prop to control placement.
+        </p>
+        <Flex direction="column" gap={1} align="center">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              margin: '40px 0 40px 0',
+              alignItems: 'center',
+            }}
+          >
+            <Tooltip title="Top Tooltip Position" position="top" forceVisible>
+              <Button>Top</Button>
+            </Tooltip>
+            <div style={{display: 'flex', gap: '8px'}}>
+              <Tooltip title="Left Tooltip Position" position="left" forceVisible>
+                <Button>Left</Button>
+              </Tooltip>
+              <Tooltip title="Right Tooltip Position" position="right" forceVisible>
+                <Button>Right</Button>
+              </Tooltip>
+            </div>
+            <Tooltip title="Bottom Tooltip Position" position="bottom" forceVisible>
+              <Button>Bottom</Button>
+            </Tooltip>
+          </div>
+        </Flex>
       </Fragment>
     );
   });
