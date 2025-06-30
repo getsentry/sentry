@@ -34,8 +34,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
         headers = self._get_authenticated_request_headers(url)
 
-        with self.feature("organizations:preprod-artifact-assemble"):
-            response = self.client.get(url, **headers)
+        response = self.client.get(url, **headers)
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/octet-stream"
@@ -47,8 +46,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
         headers = self._get_authenticated_request_headers(url)
 
-        with self.feature("organizations:preprod-artifact-assemble"):
-            response = self.client.get(url, **headers)
+        response = self.client.get(url, **headers)
 
         assert response.status_code == 404
         assert "not found" in response.json()["error"]
@@ -66,8 +64,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
         headers = self._get_authenticated_request_headers(url)
 
-        with self.feature("organizations:preprod-artifact-assemble"):
-            response = self.client.get(url, **headers)
+        response = self.client.get(url, **headers)
 
         assert response.status_code == 400
         assert "not ready for download" in response.json()["error"]
