@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0007_add_install_file
+preprod: 0008_make_preprod_analysis_file_id_in_size_metrics_table
 
 replays: 0006_add_bulk_delete_job
 
