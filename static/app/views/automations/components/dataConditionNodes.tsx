@@ -40,6 +40,10 @@ import {
   EventUniqueUserFrequencyPercentDetails,
 } from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import {
+  IssueCategoryDetails,
+  IssueCategoryNode,
+} from 'sentry/views/automations/components/actionFilters/issueCategory';
+import {
   IssueOccurrencesDetails,
   IssueOccurrencesNode,
 } from 'sentry/views/automations/components/actionFilters/issueOccurrences';
@@ -151,6 +155,14 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Issue frequency'),
       dataCondition: IssueOccurrencesNode,
       details: IssueOccurrencesDetails,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_CATEGORY,
+    {
+      label: t('Issue category'),
+      dataCondition: IssueCategoryNode,
+      details: IssueCategoryDetails,
     },
   ],
   [
