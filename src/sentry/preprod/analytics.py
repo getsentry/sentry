@@ -17,20 +17,18 @@ class PreprodArtifactApiUpdateEvent(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
     )
 
 
-class PreprodArtifactApiAssembleSizeAnalysisEvent(analytics.Event):
-    type = "preprod_artifact.api.assemble_size_analysis"
+class PreprodArtifactApiAssembleGenericEvent(analytics.Event):
+    type = "preprod_artifact.api.assemble_generic"
 
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
     )
 
 
 analytics.register(PreprodArtifactApiAssembleEvent)
 analytics.register(PreprodArtifactApiUpdateEvent)
-analytics.register(PreprodArtifactApiAssembleSizeAnalysisEvent)
+analytics.register(PreprodArtifactApiAssembleGenericEvent)
