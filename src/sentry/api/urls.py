@@ -74,6 +74,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -3362,6 +3363,11 @@ urlpatterns = [
     re_path(
         r"^auth/",
         include(AUTH_URLS),
+    ),
+    # Auth
+    re_path(
+        r"^auth-v2/",
+        include(AUTH_V2_URLS),
     ),
     # Broadcasts
     re_path(

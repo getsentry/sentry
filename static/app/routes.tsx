@@ -12,6 +12,7 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import AuthLayout from 'sentry/views/auth/layout';
+import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -2561,6 +2562,7 @@ function buildRoutes() {
         {experimentalSpaRoutes}
         <Route path="/" component={errorHandler(App)}>
           {rootRoutes}
+          {authV2Routes}
           {organizationRoutes}
           {legacyRedirectRoutes}
           <Route path="*" component={errorHandler(RouteNotFound)} />
