@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
@@ -15,6 +16,7 @@ from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
@@ -42,7 +44,7 @@ logger = log_context.get_logger(__name__)
         ),
     ),
 )
-def process_workflow_activity(activity_id: int, detector_id: int) -> None:
+def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
     Process a workflow task identified by the given Activity ID and Detector ID.
 
@@ -52,7 +54,32 @@ def process_workflow_activity(activity_id: int, detector_id: int) -> None:
     # TODO - @saponifi3d - implement this in a follow-up PR. This update will require WorkflowEventData
     # to allow for an activity in the `event` attribute. That refactor is a bit noisy
     # and will be done in a subsequent pr.
-    pass
+
+    with transaction.atomic(router.db_for_write(Detector)):
+        try:
+            activity = Activity.objects.get(id=activity_id)
+            group = Group.objects.get(id=group_id)
+            detector = Detector.objects.get(id=detector_id)
+        except (Activity.DoesNotExist, Group.DoesNotExist, Detector.DoesNotExist):
+            logger.exception(
+                "Unable to fetch data to process workflow activity",
+                extra={
+                    "activity_id": activity_id,
+                    "group_id": group_id,
+                    "detector_id": detector_id,
+                },
+            )
+
+    event_data = WorkflowEventData(
+        event=activity,
+        group=group,
+    )
+
+    process_workflows(event_data, detector)
+    metrics.incr(
+        "workflow_engine.process_workflow.activity_update.executed",
+        tags={"activity_type": activity.type},
+    )
 
 
 @group_status_update_registry.register("workflow_status_update")
@@ -65,6 +92,9 @@ def workflow_status_update_handler(
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
+    metrics.incr(
+        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+    )
     if activity.type not in SUPPORTED_ACTIVITIES:
         # If the activity type is not supported, we do not need to process it.
         return
@@ -77,10 +107,10 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.error.tasks.no_detector_id")
         return
 
-    # TODO - implement in follow-up PR for now, just track a metric that we are seeing the activities.
-    # process_workflow_task.delay(activity.id, detector_id)
-    metrics.incr(
-        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+    process_workflow_activity.delay(
+        activity_id=activity.id,
+        group_id=group.id,
+        detector_id=detector_id,
     )
 
 

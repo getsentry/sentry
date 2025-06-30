@@ -335,7 +335,7 @@ def _get_associated_workflows(
 
 @log_context.root()
 def process_workflows(
-    event_data: WorkflowEventData, detector_id: DetectorId = None
+    event_data: WorkflowEventData, detector: Detector | None = None
 ) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -345,13 +345,10 @@ def process_workflows(
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     try:
-        detector: Detector
-        if detector_id is not None:
-            detector = Detector.objects.get(id=detector_id)
-        elif isinstance(event_data.event, GroupEvent):
+        if detector is None and isinstance(event_data.event, GroupEvent):
             detector = get_detector_by_event(event_data)
         else:
-            raise ValueError("Unable to determine the detector_id for the event")
+            raise ValueError("Unable to determine the detector for the event")
 
         log_context.add_extras(detector_id=detector.id)
         organization = detector.project.organization
