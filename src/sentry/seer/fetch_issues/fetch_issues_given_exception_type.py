@@ -3,14 +3,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.db.models.expressions import RawSQL
-from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
 from sentry.models.repository import Repository
-from sentry.snuba.dataset import Dataset
 
 MAX_NUM_ISSUES_DEFAULT = 5
 """
@@ -26,44 +23,32 @@ This number is global so that fetching issues and events is consistent.
 logger = logging.getLogger(__name__)
 
 
-def get_latest_issue_stack_trace(group: Group, exception_type: str | None = None) -> dict[str, Any]:
+def get_latest_issue_event(group_id: int) -> dict[str, Any]:
     """
-    Get the latest event stack trace for a group filtered by exception type if provided.
+    Get the latest event for a group.
     """
-    events = eventstore.backend.get_events_snql(
-        organization_id=group.project.organization_id,
-        group_id=group.id,
-        start=None,
-        end=None,
-        conditions=[
-            Condition(Column("project_id"), Op.EQ, group.project.id),
-            Condition(Column("group_id"), Op.EQ, group.id),
-        ],
-        limit=1,
-        orderby=["-timestamp", "-event_id"],
-        referrer="Group.get_latest",
-        dataset=Dataset.Events,
-        tenant_ids={"organization_id": group.project.organization_id},
-    )
+    group = Group.objects.filter(id=group_id).first()
+    if not group:
+        logger.warning(
+            "Group not found",
+            extra={"group_id": group_id},
+        )
+        return {}
 
-    if not events:
-        return {"error": "No events found"}
+    event = group.get_latest_event()
+    if not event:
+        logger.warning(
+            "No event found",
+            extra={"group_id": group_id},
+        )
+        return {}
 
-    data = serialize(events[0].for_group(group), user=None, serializer=EventSerializer())
-    results = []
-    for entry in data["entries"]:
-        if entry["type"] == "exception":
-            values = entry.get("data", {}).get("values", [])
-            for value in values:
-                if not exception_type or value.get("type") == exception_type:
-                    results.append(
-                        {
-                            "type": value.get("type", ""),
-                            "value": value.get("value", ""),
-                            "frames": value.get("stacktrace", {}).get("frames", []),
-                        }
-                    )
-    return {"stacktrace": results}
+    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    return {  # Structured like seer.automation.models.IssueDetails
+        "id": int(serialized_event["groupID"]),
+        "title": serialized_event["title"],
+        "events": [serialized_event],
+    }
 
 
 def get_issues_related_to_exception_type(
