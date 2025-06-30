@@ -40,7 +40,7 @@ export default function ProjectReplaySettings({
 }: Props) {
   const formGroups: JsonFormObject[] = [
     {
-      title: 'Replay Issues',
+      title: t('Replay Issues'),
       fields: [
         {
           name: 'sentry:replay_rage_click_issues',
@@ -76,7 +76,7 @@ export default function ProjectReplaySettings({
   ];
 
   const {getParamValue, setParamValue} = useUrlParams(
-    'replay-settings-tab',
+    'replaySettingsTab',
     'replay-issues'
   );
 
@@ -98,8 +98,8 @@ export default function ProjectReplaySettings({
         onChange={value => setParamValue(String(value))}
       >
         <TabList>
-          <TabList.Item key="replay-issues">Replay Issues</TabList.Item>
-          <TabList.Item key="bulk-delete">Bulk Delete</TabList.Item>
+          <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
+          <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
         </TabList>
         <TabPanels>
           <TabPanels.Item key="replay-issues">
@@ -128,8 +128,8 @@ export default function ProjectReplaySettings({
           </TabPanels.Item>
           <TabPanels.Item key="bulk-delete">
             <p>
-              Deleting replays requires us to remove data from multiple storage locations
-              which can take some time. You can monitor progress, and audit requests here.
+              {t('Deleting replays requires us to remove data from multiple storage locations
+              which can take some time. You can monitor progress and audit requests here.')}
             </p>
             <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
           </TabPanels.Item>
