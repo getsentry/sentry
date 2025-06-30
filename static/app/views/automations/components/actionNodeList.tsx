@@ -38,15 +38,21 @@ function getActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    return availableActions.find(
-      handler =>
-        handler.type === ActionType.SENTRY_APP &&
-        ((action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID &&
-          action.config.target_identifier === handler.sentryApp?.id) ||
-          (action.config.sentry_app_identifier ===
-            SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
-            action.config.target_identifier === handler.sentryApp?.installationUuid))
-    );
+    return availableActions.find(handler => {
+      if (handler.type !== ActionType.SENTRY_APP) {
+        return false;
+      }
+      const {sentry_app_identifier, target_identifier} = action.config;
+      const sentryApp = handler.sentryApp;
+
+      const isMatchingAppId =
+        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID &&
+        target_identifier === sentryApp?.id;
+      const isMatchingInstallationUuid =
+        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
+        target_identifier === sentryApp?.installationUuid;
+      return isMatchingAppId || isMatchingInstallationUuid;
+    });
   }
   return availableActions.find(handler => handler.type === action.type);
 }
