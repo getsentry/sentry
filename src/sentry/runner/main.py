@@ -129,7 +129,6 @@ def main() -> None:
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
-
         try:
             func(**kwargs)
         except Exception as e:

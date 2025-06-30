@@ -106,7 +106,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         query_source = self.get_request_source(request)
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+            span.set_attribute("organization", organization)
 
             top_events = 0
 
