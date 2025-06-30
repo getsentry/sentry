@@ -249,7 +249,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
 ):
     __test__ = True
 
-    def store_uptime_datastore_uptime_data(
+    def store_uptime_data(
         self,
         subscription_id,
         check_status,
