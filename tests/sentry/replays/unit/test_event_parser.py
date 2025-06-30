@@ -785,7 +785,7 @@ def test_as_trace_item_context_click_event():
     assert result["attributes"]["component_name"] == "SubmitButton"
     assert result["attributes"]["testid"] == "submit-test"
     assert result["attributes"]["url"] == "https://example.com/form"
-    assert "event_hash" in result and len(result["event_hash"]) == 32
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_dead_click_event():

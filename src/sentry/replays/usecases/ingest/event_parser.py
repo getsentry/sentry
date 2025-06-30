@@ -192,7 +192,7 @@ class MessageContext(TypedDict):
 
 class TraceItemContext(TypedDict):
     attributes: dict[str, str | int | bool | float]
-    event_hash: str
+    event_hash: bytes
     timestamp: float
 
 
@@ -221,13 +221,16 @@ def as_trace_item(
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
 
+    timestamp = Timestamp()
+    timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
+
     return TraceItem(
         organization_id=context["organization_id"],
         project_id=context["project_id"],
         trace_id=context["trace_id"] or context["replay_id"],
         item_id=trace_item_context["event_hash"],
         item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-        timestamp=Timestamp().FromMilliseconds(int(trace_item_context["timestamp"] * 1000)),
+        timestamp=timestamp,
         attributes=trace_item_context["attributes"],
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -274,7 +277,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             return {
                 "attributes": attributes,
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
         case EventType.NAVIGATION:
@@ -289,7 +292,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             return {
                 "attributes": attributes,
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
         case EventType.CONSOLE:
@@ -313,7 +316,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
 
             return {
                 "attributes": attributes,
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
             }
         case EventType.LCP | EventType.FCP:
@@ -325,7 +328,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "size": int(payload["data"]["size"]),
                     "value": int(payload["data"]["value"]),
                 },
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
         case EventType.HYDRATION_ERROR:
@@ -335,7 +338,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "category": "replay.hydrate-error",
                     "url": to_string(payload["data"]["url"]),
                 },
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
             }
         case EventType.MUTATIONS:
@@ -345,7 +348,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "category": "replay.mutations",
                     "count": int(payload["data"]["count"]),
                 },
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": event["timestamp"],
             }
         case EventType.UNKNOWN:
@@ -370,7 +373,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
                     "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
                 },
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": event["timestamp"] / 1000,
             }
         case EventType.FEEDBACK:
@@ -385,7 +388,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                     "usedJSHeapSize": int(payload["data"]["usedJSHeapSize"]),
                     "endTimestamp": float(payload["endTimestamp"]),
                 },
-                "event_hash": uuid.uuid4().hex,
+                "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["startTimestamp"]),
             }
 
