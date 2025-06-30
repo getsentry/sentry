@@ -507,11 +507,17 @@ export function getBestActionToIncreaseEventLimits(
     return UsageAction.START_TRIAL;
   }
   // paid plans should add events without changing plans
-  if (isPaidPlan && hasPerformance(subscription.planDetails)) {
+  const hasAnyUsageExceeded = Object.values(subscription.categories).some(
+    category => category.usageExceeded
+  );
+  if (isPaidPlan && hasPerformance(subscription.planDetails) && hasAnyUsageExceeded) {
     return hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS;
   }
-  // otherwise, we want them to upgrade to a different plan
-  return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  // otherwise, we want them to upgrade to a different plan if they're not already on a Business plan
+  if (!isBizPlanFamily(subscription.planDetails)) {
+    return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  }
+  return '';
 }
 
 /**
