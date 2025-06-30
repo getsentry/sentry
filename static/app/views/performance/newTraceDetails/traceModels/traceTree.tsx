@@ -888,7 +888,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         } else {
           const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            Sentry.captureException('Detecting missing instrumentation failed');
+            Sentry.logger.error('Detecting missing instrumentation failed');
             return;
           }
 
