@@ -74,7 +74,7 @@
     "@sentry/status-page-list": "^0.6.1",
     "@sentry/toolbar": "1.0.0-beta.16",
     "@sentry/webpack-plugin": "^3.4.0",
-    "@swc/plugin-emotion": "9.0.4",
+    "@swc/plugin-emotion": "10.0.2",
     "@tanstack/query-async-storage-persister": "^5.72.1",
     "@tanstack/react-query": "^5.72.1",
     "@tanstack/react-query-devtools": "^5.72.1",
