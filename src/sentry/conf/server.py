@@ -3433,6 +3433,21 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 
 
+# Configuration for multi-producer setups to enable load balancing across multiple
+# Kafka clusters/brokers. Each topic can have multiple producers configured.
+# Producer configs are taken from KAFKA_CLUSTERS.
+# Example:
+# KAFKA_MULTI_PRODUCER_CONFIGS = {
+#     "buffered-segments": {
+#         "producers": [
+#             {"cluster": "default", "topic": "buffered-segments-1"},
+#             {"cluster": "secondary", "topic": "buffered-segments-2"}
+#         ]
+#     }
+# }
+KAFKA_MULTI_PRODUCER_CONFIGS: dict[str, dict[str, Any]] = {}
+
+
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
 # We use the email with Jira 2-way sync in order to match the user

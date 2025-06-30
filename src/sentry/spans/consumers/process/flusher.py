@@ -12,6 +12,7 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
+from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -24,6 +25,76 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 MAX_PROCESS_RESTARTS = 10
 
 logger = logging.getLogger(__name__)
+
+
+class MultiProducerManager:
+    """
+    Manages multiple Kafka producers for load balancing across brokers/topics.
+
+    Configure multiple producers in settings.py:
+
+    KAFKA_MULTI_PRODUCER_CONFIGS = {
+        "buffered-segments": {
+            "producers": [
+                {"cluster": "default", "topic": "buffered-segments-1"},
+                {"cluster": "secondary", "topic": "buffered-segments-2"}
+            ]
+        }
+    }
+    """
+
+    def __init__(self, topic: Topic):
+        self.topic = topic
+        self.producers = []
+        self.topics = []
+        self.current_index = 0
+        self._setup_producers()
+
+    def _setup_producers(self):
+        """Setup producers based on configuration."""
+        # Get multi-producer config if available, otherwise use single producer
+        multi_config = getattr(settings, "KAFKA_MULTI_PRODUCER_CONFIGS", {}).get(self.topic.value)
+
+        if multi_config:
+            # Multiple producers configured
+            for config in multi_config["producers"]:
+                cluster_name = config["cluster"]
+                topic_name = config.get(
+                    "topic", get_topic_definition(self.topic)["real_topic_name"]
+                )
+
+                producer_config = get_kafka_producer_cluster_options(cluster_name)
+                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+                topic = ArroyoTopic(topic_name)
+
+                self.producers.append(producer)
+                self.topics.append(topic)
+        else:
+            # Single producer (backward compatibility)
+            cluster_name = get_topic_definition(self.topic)["cluster"]
+            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+            topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
+
+            self.producers.append(producer)
+            self.topics.append(topic)
+
+    def produce(self, payload: KafkaPayload, key: str | None = None):
+        """Produce message with load balancing."""
+        if len(self.producers) == 1:
+            # Single producer - no load balancing needed
+            return self.producers[0].produce(self.topics[0], payload)
+
+        # Round-robin load balancing
+        producer_index = self.current_index % len(self.producers)
+        self.current_index += 1
+
+        return self.producers[producer_index].produce(self.topics[producer_index], payload)
+
+    def close(self):
+        """Close all producers."""
+        for producer in self.producers:
+            producer.close()
 
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
@@ -154,18 +225,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             if produce_to_pipe is not None:
                 produce = produce_to_pipe
-                producer = None
+                producer_manager = None
             else:
-                cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
-
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-                )
+                producer_manager = MultiProducerManager(Topic.BUFFERED_SEGMENTS)
 
                 def produce(payload: KafkaPayload) -> None:
-                    producer_futures.append(producer.produce(topic, payload))
+                    producer_futures.append(producer_manager.produce(payload))
 
             while not stopped.value:
                 system_now = int(time.time())
@@ -208,8 +273,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                 buffer.done_flush_segments(flushed_segments)
 
-            if producer is not None:
-                producer.close()
+            if producer_manager is not None:
+                producer_manager.close()
         except KeyboardInterrupt:
             pass
         except Exception:
