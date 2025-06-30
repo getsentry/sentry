@@ -225,8 +225,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
         assert assignee and (assignee.id == self.user.id)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+        self.subscription.refresh_from_db()
+        assert self.subscription.uptime_status == UptimeStatus.FAILED
 
         # Issue is resolved
         with (
@@ -477,8 +477,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+        self.subscription.refresh_from_db()
+        assert self.subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
         features = [
@@ -1028,7 +1028,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
 
-        uptime_subscription = self.project_subscription.uptime_subscription
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_SUCCESS,
@@ -1081,11 +1080,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
-        uptime_subscription.refresh_from_db()
-        assert uptime_subscription.interval_seconds == int(
+        self.subscription.refresh_from_db()
+        assert self.subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
-        assert uptime_subscription.url == uptime_subscription.url
+        assert self.subscription.url == self.subscription.url
 
     def test_parallel(self) -> None:
         """
