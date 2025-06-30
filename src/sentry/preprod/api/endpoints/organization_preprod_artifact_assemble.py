@@ -1,6 +1,7 @@
 import jsonschema
 import orjson
 import sentry_sdk
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -85,7 +86,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             user_id=request.user.id,
         )
 
-        if not features.has(
+        if not settings.IS_DEV and not features.has(
             "organizations:preprod-artifact-assemble", project.organization, actor=request.user
         ):
             return Response({"error": "Feature not enabled"}, status=403)
