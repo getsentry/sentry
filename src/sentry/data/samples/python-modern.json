@@ -113,7 +113,6 @@
   },
   "key_id": "4616216",
   "level": "error",
-  "location": "main.py",
   "logger": "",
   "metadata": {
     "filename": "main.py",
@@ -128,7 +127,6 @@
     "sentry-sdk": "2.31.0",
     "urllib3": "2.5.0"
   },
-  "nodestore_insert": 1751006915.57614,
   "received": 1751006913.10689,
   "sdk": {
     "name": "sentry.python",
@@ -151,7 +149,6 @@
     ]
   },
   "timestamp": 1751006912.86742,
-  "title": "Exception: This is an example Python exception",
   "transaction_info": {},
   "type": "error",
   "version": "7"
