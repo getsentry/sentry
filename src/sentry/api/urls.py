@@ -932,7 +932,7 @@ AUTH_URLS = [
         name="sentry-api-0-auth-test",
     ),
     re_path(
-        r"merge-accounts/$",
+        r"^merge-accounts/$",
         AuthMergeUserAccountsEndpoint.as_view(),
         name="sentry-api-0-auth-merge-accounts",
     ),
