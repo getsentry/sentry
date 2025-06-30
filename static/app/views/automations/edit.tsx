@@ -91,7 +91,7 @@ export default function AutomationEdit() {
     };
   }, [automation]);
 
-  const model = useMemo(() => new FormModel({initialData}), [initialData]);
+  const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
   if (isPending && !initialData) {
@@ -103,7 +103,7 @@ export default function AutomationEdit() {
   }
 
   return (
-    <FullHeightForm hideFooter model={model}>
+    <FullHeightForm hideFooter model={model} initialData={initialData}>
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>

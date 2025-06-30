@@ -6,6 +6,7 @@ import {
   type ActionHandler,
   ActionTarget,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
@@ -522,6 +523,9 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
   return {
     target_type: targetType,
     ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    ...(actionHandler.sentryApp?.id && {
+      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+    }),
   };
 }
 
