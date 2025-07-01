@@ -1,8 +1,11 @@
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
@@ -175,13 +178,9 @@ class Settings extends DefaultSettings<Props, State> {
         submitLabel={submitLabel}
         extraButton={
           this.state.page === 0 ? null : (
-            <a
-              href="#"
-              className={'btn btn-default pull-left' + (isSaving ? ' disabled' : '')}
-              onClick={this.back}
-            >
-              Back
-            </a>
+            <FloatLeftButton onClick={this.back} busy={isSaving}>
+              {t('Back')}
+            </FloatLeftButton>
           )
         }
       >
@@ -204,5 +203,9 @@ class Settings extends DefaultSettings<Props, State> {
     );
   }
 }
+
+const FloatLeftButton = styled(Button)`
+  float: left;
+`;
 
 export default Settings;

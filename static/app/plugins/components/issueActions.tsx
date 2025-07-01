@@ -1,3 +1,5 @@
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -462,9 +464,9 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <button onClick={this.unlinkIssue} className="btn btn-danger">
+            <Button onClick={this.unlinkIssue} priority="danger">
               {t('Unlink Issue')}
-            </button>
+            </Button>
           </div>
         );
       default:
@@ -499,9 +501,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
               this.props.plugin.name +
               ' before you can create issues with this service.'}
           </div>
-          <a className="btn btn-primary" href={authUrl}>
-            Associate Identity
-          </a>
+          <LinkButton href={authUrl ?? '#'}>{t('Associate Identity')}</LinkButton>
         </div>
       );
     }
