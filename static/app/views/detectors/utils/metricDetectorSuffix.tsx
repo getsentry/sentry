@@ -26,6 +26,11 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
 }
 
 export function getMetricDetectorSuffix(detector: Detector) {
+  // TODO: Use a MetricDetector type to avoid checking for this
+  if (!('detection_type' in detector.config)) {
+    return '';
+  }
+
   switch (detector.config.detection_type) {
     case 'static':
     case 'dynamic':

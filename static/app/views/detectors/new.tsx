@@ -33,6 +33,7 @@ export default function DetectorNew() {
   useWorkflowEngineFeatureGate({redirect: true});
   const location = useLocation();
   const {projects} = useProjects();
+  const detectorType = location.query.detectorType as DetectorType;
 
   const projectIdFromLocation =
     typeof location.query.project === 'string' ? location.query.project : undefined;
@@ -55,7 +56,7 @@ export default function DetectorNew() {
       hideFooter
       initialData={
         {
-          detectorType: 'metric_issue',
+          detectorType,
           project: projectIdFromLocation ?? defaultProject?.id ?? '',
         } satisfies NewDetectorFormData
       }

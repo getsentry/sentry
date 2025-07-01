@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {DetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 
 interface BaseDetectionParams {
-  detectionType: DetectorConfig['detection_type'];
+  detectionType: MetricDetectorConfig['detection_type'];
   /**
    * Formatting units for the condition value.
    */
