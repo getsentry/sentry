@@ -149,7 +149,7 @@ function StoryContentsList({entry}: {entry: NestedEntry}) {
 }
 
 const StoryIndexContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;

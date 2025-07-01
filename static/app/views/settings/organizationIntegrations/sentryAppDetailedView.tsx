@@ -325,10 +325,13 @@ export default function SentryAppDetailedView() {
       }
 
       if (userHasAccess) {
+        // TODO: @sentaur-athena: Remove hardcoded github-deployment-gates after deleting the code
         return (
           <InstallButton
             data-test-id="install-button"
-            disabled={disabledFromFeatures}
+            disabled={
+              disabledFromFeatures || integrationSlug === 'github-deployment-gates'
+            }
             onClick={() => handleInstall()}
             priority="primary"
             size="sm"
@@ -415,7 +418,7 @@ const PermissionWrapper = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`

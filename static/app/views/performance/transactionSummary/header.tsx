@@ -211,9 +211,6 @@ function TransactionHeader({
             <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
             <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
             <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-            <TabList.Item key={Tab.SPANS} hidden>
-              {t('Spans')}
-            </TabList.Item>
             <TabList.Item
               key={Tab.WEB_VITALS}
               textValue={t('Web Vitals')}
@@ -412,7 +409,6 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
                 key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}

@@ -2,29 +2,35 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+} from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {
+  AI_COST_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignRight,
+} from 'sentry/views/insights/common/components/textAlign';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
@@ -35,6 +41,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
+  totalCost: number;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -45,12 +52,13 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
-  {key: 'duration', name: t('Duration'), width: 100},
+  {key: 'transaction', name: t('Trace Root'), width: COL_WIDTH_UNDEFINED},
+  {key: 'duration', name: t('Root Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
+  {key: 'totalCost', name: t('Total Cost'), width: 120},
   {key: 'timestamp', name: t('Timestamp'), width: 100},
 ];
 
@@ -60,6 +68,7 @@ const rightAlignColumns = new Set([
   'llmCalls',
   'totalTokens',
   'toolCalls',
+  'totalCost',
   'timestamp',
 ]);
 
@@ -69,8 +78,7 @@ export function TracesTable() {
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
   const tracesRequest = useTraces({
-    dataset: DiscoverDatasets.SPANS_EAP,
-    query: `${getAITracesFilter()}`,
+    query: getAITracesFilter(),
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
@@ -91,6 +99,7 @@ export function TracesTable() {
         'count_if(span.op,gen_ai.generate_text)',
         'count_if(span.op,gen_ai.execute_tool)',
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_COST_ATTRIBUTE_SUM,
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -111,10 +120,14 @@ export function TracesTable() {
             (span['count_if(span.op,gen_ai.generate_text)'] ?? 0),
           toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
+          totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
         };
         return acc;
       },
-      {} as Record<string, {llmCalls: number; toolCalls: number; totalTokens: number}>
+      {} as Record<
+        string,
+        {llmCalls: number; toolCalls: number; totalCost: number; totalTokens: number}
+      >
     );
   }, [spansRequest.data]);
 
@@ -144,6 +157,7 @@ export function TracesTable() {
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
       timestamp: span.start,
       isSpanDataLoading: spansRequest.isLoading,
     }));
@@ -153,6 +167,7 @@ export function TracesTable() {
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
+        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'transaction' && <CellExpander />}
       </HeadCell>
     );
@@ -207,7 +222,13 @@ const BodyCell = memo(function BodyCell({
         </span>
       );
     case 'transaction':
-      return dataRow.transaction;
+      return (
+        <Tooltip title={dataRow.transaction} showOnlyOnOverflow skipWrapper>
+          <OverflowEllipsisTextContainer>
+            {dataRow.transaction}
+          </OverflowEllipsisTextContainer>
+        </Tooltip>
+      );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
@@ -219,6 +240,15 @@ const BodyCell = memo(function BodyCell({
         return <NumberPlaceholder />;
       }
       return <NumberCell value={dataRow[column.key]} />;
+    case 'totalCost':
+      if (dataRow.isSpanDataLoading) {
+        return <NumberPlaceholder />;
+      }
+      return (
+        <TextAlignRight>
+          <LLMCosts cost={dataRow.totalCost} />
+        </TextAlignRight>
+      );
     case 'timestamp':
       return (
         <TextAlignRight>
@@ -262,5 +292,6 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
 `;

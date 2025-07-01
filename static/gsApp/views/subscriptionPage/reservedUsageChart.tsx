@@ -51,7 +51,11 @@ import {
   formatReservedWithUnits,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  hasCategoryFeature,
+  isPartOfReservedBudget,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   calculateCategoryOnDemandUsage,
@@ -451,12 +455,14 @@ function ReservedUsageChart({
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const isReservedBudgetCategory =
-    subscription.reservedBudgetCategories?.includes(category) ?? false;
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
 
   // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
   // since they don't have access to the usage/cost toggle
-  if (isReservedBudgetCategory && !subscription.canSelfServe) {
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -480,7 +486,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory && displayMode === 'cost') {
+      if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
@@ -747,6 +753,6 @@ function ReservedUsageChart({
 export default ReservedUsageChart;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
 `;

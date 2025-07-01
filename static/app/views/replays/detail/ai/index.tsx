@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -11,17 +12,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-interface Props {
-  replayRecord: ReplayRecord | undefined;
-}
 
 interface SummaryResponse {
   data: {
@@ -41,22 +38,31 @@ function createAISummaryQueryKey(
   ];
 }
 
-export default function Ai({replayRecord}: Props) {
+export default function Ai() {
   return (
     <PaddedFluidHeight>
       <TabItemContainer data-test-id="replay-details-ai-summary-tab">
         <ErrorBoundary mini>
-          <AiContent replayRecord={replayRecord} />
+          <AiContent />
         </ErrorBoundary>
       </TabItemContainer>
     </PaddedFluidHeight>
   );
 }
 
-function AiContent({replayRecord}: Props) {
-  const {replay} = useReplayContext();
+function AiContent() {
   const organization = useOrganization();
+  const {replay, setCurrentTime} = useReplayContext();
+  const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const {onClickTimestamp} = useCrumbHandlers();
+  const onClickChapterTimestamp = useCallback(
+    (event: React.MouseEvent<Element>, start: number) => {
+      event.stopPropagation();
+      setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
+    },
+    [replay, setCurrentTime]
+  );
 
   const {
     data: summaryData,
@@ -159,6 +165,9 @@ function AiContent({replayRecord}: Props) {
                     <TimestampButton
                       startTimestampMs={replay?.getStartTimestampMs() ?? 0}
                       timestampMs={start}
+                      onClick={event => {
+                        onClickChapterTimestamp(event, start);
+                      }}
                     />
                   </ReplayTimestamp>
                 </SummaryTitle>
@@ -171,7 +180,7 @@ function AiContent({replayRecord}: Props) {
                   <BreadcrumbRow
                     frame={breadcrumb}
                     index={j}
-                    onClick={() => {}}
+                    onClick={onClickTimestamp}
                     onInspectorExpanded={() => {}}
                     onShowSnippet={() => {}}
                     showSnippet={false}
@@ -228,7 +237,7 @@ const Summary = styled('summary')`
   cursor: pointer;
   display: list-item;
   padding: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   /* sorry */
   &:focus-visible {
@@ -245,7 +254,7 @@ const Summary = styled('summary')`
     display: inline-block;
     width: 14px;
     margin-right: ${space(1)};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 
@@ -264,5 +273,5 @@ const SummaryText = styled('p')`
 // Copied from breadcrumbItem
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

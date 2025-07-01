@@ -33,6 +33,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -47,6 +48,9 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -62,22 +66,33 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
+        const allContains =
+          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
+
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value)}
+            {formatFilterValue({
+              token: items[0]!.value,
+              stripWildcards: allContains && hasWildcardOperators,
+            })}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
+      const allContains = items.every(
+        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
+      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value)}
+                {formatFilterValue({
+                  token: item.value!,
+                  stripWildcards: allContains && hasWildcardOperators,
+                })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -95,12 +110,18 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     }
-    default:
+    default: {
+      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
+
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue({
+            token: token.value,
+            stripWildcards: allContains && hasWildcardOperators,
+          })}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 

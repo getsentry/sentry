@@ -1187,7 +1187,7 @@ const StyledMain = styled('section')`
   grid-area: content;
   padding: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(3)} ${space(4)};
   }
 `;

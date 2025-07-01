@@ -6,7 +6,7 @@ export interface NewAutomation {
   detectorIds: string[];
   environment: string | null;
   name: string;
-  triggers: DataConditionGroup;
+  triggers: DataConditionGroup | null;
   disabled?: boolean;
 }
 

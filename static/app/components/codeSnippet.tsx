@@ -231,7 +231,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;
 
   ${p =>
@@ -249,7 +249,7 @@ const Header = styled('div')<{isFloating: boolean}>`
         `
       : css`
           gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
           border-bottom: solid 1px ${p.theme.border};
         `}
 `;

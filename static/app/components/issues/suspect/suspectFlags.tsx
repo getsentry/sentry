@@ -101,8 +101,8 @@ const TagHeader = styled('h4')`
   align-items: center;
 
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const TagValueGrid = styled('ul')`

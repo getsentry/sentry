@@ -110,6 +110,7 @@ def child_process(
 
     from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task
     from sentry.utils import metrics
@@ -258,18 +259,36 @@ def child_process(
                 )
                 next_state = TASK_ACTIVATION_STATUS_FAILURE
             except Exception as err:
-                if task_func.should_retry(inflight.activation.retry_state, err):
-                    logger.info(
-                        "taskworker.task.retry",
-                        extra={
-                            "namespace": inflight.activation.namespace,
-                            "taskname": inflight.activation.taskname,
-                            "processing_pool": processing_pool_name,
-                        },
-                    )
-                    next_state = TASK_ACTIVATION_STATUS_RETRY
+                retry = task_func.retry
+                captured_error = False
+                if retry:
+                    if retry.should_retry(inflight.activation.retry_state, err):
+                        logger.info(
+                            "taskworker.task.retry",
+                            extra={
+                                "namespace": inflight.activation.namespace,
+                                "taskname": inflight.activation.taskname,
+                                "processing_pool": processing_pool_name,
+                                "error": str(err),
+                            },
+                        )
+                        next_state = TASK_ACTIVATION_STATUS_RETRY
+                    elif retry.max_attempts_reached(inflight.activation.retry_state):
+                        with sentry_sdk.isolation_scope() as scope:
+                            retry_error = NoRetriesRemainingError(
+                                f"{inflight.activation.taskname} has consumed all of its retries"
+                            )
+                            retry_error.__cause__ = err
+                            scope.fingerprint = [
+                                "taskworker.no_retries_remaining",
+                                inflight.activation.namespace,
+                                inflight.activation.taskname,
+                            ]
+                            scope.set_transaction_name(inflight.activation.taskname)
+                            sentry_sdk.capture_exception(retry_error)
+                            captured_error = True
 
-                if next_state != TASK_ACTIVATION_STATUS_RETRY:
+                if not captured_error and next_state != TASK_ACTIVATION_STATUS_RETRY:
                     sentry_sdk.capture_exception(err)
 
             clear_current_task()
@@ -325,7 +344,8 @@ def child_process(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
             )
             task_added_time = activation.received_at.ToDatetime().timestamp()
-            latency = time.time() - task_added_time
+            # latency attribute needs to be in milliseconds
+            latency = (time.time() - task_added_time) * 1000
 
             with sentry_sdk.start_span(
                 op=OP.QUEUE_PROCESS,

@@ -67,21 +67,26 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
       </span>
       {' | '}
       <span>
-        <Subheading>{t('Fixes')}:</Subheading> {getSeerLabel(autofixAutomationTuning)}
+        <Subheading>{t('Fixes')}:</Subheading>{' '}
+        {getSeerLabel(autofixAutomationTuning, seerScannerAutomation)}
       </span>
     </SeerValue>
   );
 }
 
 const Subheading = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SeerSelectLabel = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-function getSeerLabel(key: string) {
+function getSeerLabel(key: string, seerScannerAutomation: boolean) {
+  if (!seerScannerAutomation) {
+    return t('Off');
+  }
+
   switch (key) {
     case 'off':
       return t('Off');
@@ -220,7 +225,7 @@ export function SeerAutomationProjectList() {
 
   const actionMenuItems = SEER_THRESHOLD_MAP.map(key => ({
     key,
-    label: <SeerSelectLabel>{getSeerLabel(key)}</SeerSelectLabel>,
+    label: <SeerSelectLabel>{getSeerLabel(key, true)}</SeerSelectLabel>,
     onAction: () => updateProjectsSeerValue(key),
   }));
 

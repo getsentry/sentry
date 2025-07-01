@@ -43,6 +43,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
@@ -65,7 +66,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
@@ -318,7 +318,7 @@ const PerformanceOnboardingContainer = styled('div')`
 `;
 
 const PerfImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: unset;
     user-select: none;
     position: absolute;
@@ -329,11 +329,11 @@ const PerfImage = styled('img')`
     margin-bottom: auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 480px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 600px;
   }
 `;
@@ -492,11 +492,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
-  const dataset = useExploreDataset();
   const tracesQuery = useTraces({
     enabled: received,
     limit: 1,
-    dataset,
     sort: 'timestamp',
     refetchInterval: query => {
       const trace = query.state.data?.[0]?.data?.[0]?.trace;
@@ -660,7 +658,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   return (
     <OnboardingPanel project={project}>
-      <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      <SetupTitle project={project} />
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -797,7 +795,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   position: relative;
   z-index: 10;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.pink400};
 `;
 
@@ -808,7 +806,7 @@ const PulsingIndicator = styled('div')`
 
 const OptionalText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -820,7 +818,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.successText};
 `;
 
@@ -830,7 +828,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`
@@ -854,15 +852,9 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   flex: 0.65;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
   }
-`;
-
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
 `;
 
 const Setup = styled('div')`
@@ -899,7 +891,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

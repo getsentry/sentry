@@ -14,7 +14,7 @@ export const getDefaultLayout = (collapsed: boolean, theme: Theme): LayoutKey =>
     10
   );
 
-  const mediumScreenWidth = parseInt(theme.breakpoints.medium, 10);
+  const mediumScreenWidth = parseInt(theme.breakpoints.md, 10);
 
   const windowsWidth =
     innerWidth <= mediumScreenWidth ? innerWidth : innerWidth - sidebarWidth;

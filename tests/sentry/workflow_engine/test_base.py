@@ -155,13 +155,14 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         timestamp: datetime,
         fingerprint: str,
         environment=None,
+        level="error",
         tags: list[list[str]] | None = None,
     ) -> Event:
         data = {
             "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
-            "level": "error",
+            "level": level,
             "user": {"id": uuid4().hex},
             "exception": {
                 "values": [

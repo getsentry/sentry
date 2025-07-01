@@ -139,7 +139,7 @@ const QuickLinkTextContainer = styled('div')`
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis}
 `;
 

@@ -348,7 +348,7 @@ const ProductLabel = styled('div')<{productColor: string}>`
 `;
 
 const ProductName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
@@ -364,7 +364,7 @@ const PriceContainer = styled(Column)`
 
 const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;
@@ -385,7 +385,7 @@ const Amount = styled('span')`
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-self: end;
   padding-bottom: ${space(0.25)};
 `;
@@ -423,7 +423,7 @@ const Features = styled('div')`
 `;
 
 const Feature = styled(Column)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const FeatureHeader = styled(Row)`
@@ -451,7 +451,7 @@ const FeatureDescription = styled('div')`
 const IllustrationContainer = styled('div')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     display: block;
     position: absolute;
     bottom: 0px;

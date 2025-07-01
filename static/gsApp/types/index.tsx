@@ -172,11 +172,7 @@ export type Plan = {
 
 type PendingChanges = {
   customPrice: number | null;
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
-  // TODO(data categories): BIL-964
   customPrices: Partial<Record<DataCategory, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
@@ -185,14 +181,9 @@ type PendingChanges = {
   plan: string;
   planDetails: Plan;
   planName: string;
-  // TODO(data categories): BIL-964
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
-  reservedErrors: number | null;
-  reservedEvents: number;
-  reservedTransactions: number | null;
 };
 
 enum VatStatus {
@@ -330,7 +321,6 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasOverageNotificationsDisabled: boolean;
-  hasReservedBudgets: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
@@ -386,7 +376,6 @@ export type Subscription = {
   renewalDate: string;
   // TODO(data categories): BIL-960
   reservedAttachments: number | null;
-  reservedBudgetCategories: DataCategory[] | null;
   /**
    * For AM plan tier, null for previous tiers
    */
@@ -715,7 +704,6 @@ export type BillingMetricHistory = {
 export type BillingHistory = {
   categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
-  hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;
   links: {
@@ -731,7 +719,6 @@ export type BillingHistory = {
   plan: string;
   planName: string;
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedBudgetCategories: DataCategory[];
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
@@ -1039,6 +1026,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The event multiplier for gifts
    */
   freeEventsMultiple: number;
+  /**
+   * Whether the category has spike protection support
+   */
+  hasSpikeProtection: boolean;
   /**
    * The maximum number of free events that can be gifted
    */

@@ -136,22 +136,6 @@ def test_validator_should_not_filter_empty_message_without_option(set_sentry_opt
 
 
 @django_db_all
-def test_validator_should_filter_invalid_email():
-    should_filter, tag, reason = validate_user_report(
-        {
-            "name": "",
-            "email": "invalid-email",
-            "comments": "hello",
-            "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
-        },
-        1,
-    )
-    assert should_filter is True
-    assert tag is not None
-    assert reason is not None
-
-
-@django_db_all
 def test_validator_should_not_filter_empty_email():
     should_filter, tag, reason = validate_user_report(
         {

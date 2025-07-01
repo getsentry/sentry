@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {
@@ -16,63 +17,49 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DetectorSubtitle} from 'sentry/views/detectors/components/detectorSubtitle';
-import {EditableDetectorName} from 'sentry/views/detectors/components/forms/editableDetectorName';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import useProjects from 'sentry/utils/useProjects';
+import {DetectorForm} from 'sentry/views/detectors/components/forms';
+import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   getNewMetricDetectorData,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
 
-function DetectorDocumentTitle() {
-  const title = useMetricDetectorFormField('name');
-  return (
-    <SentryDocumentTitle
-      title={title ? t('%s - New Monitor', title) : t('New Monitor')}
-    />
-  );
-}
-
-function DetectorBreadcrumbs() {
-  const title = useMetricDetectorFormField('name');
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-        {label: title ? title : t('New Monitor')},
-      ]}
-    />
-  );
-}
+const friendlyDetectorTypeMap: Record<DetectorType, string> = {
+  error: t('Error'),
+  metric_issue: t('Metric'),
+  uptime_subscription: t('Crons'),
+  uptime_domain_failure: t('Uptime'),
+};
 
 export default function DetectorNewSettings() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {projects, fetching: isFetchingProjects} = useProjects();
   // We'll likely use more query params on this page to open drawers, validate once
   const validatedRequiredQueryParams = useRef(false);
 
   useWorkflowEngineFeatureGate({redirect: true});
 
-  // Kick user back to the previous step if they don't have a project or detectorType
+  // Kick user back to the previous step if they don't have a detectorType
   useLayoutEffect(() => {
-    const {project, detectorType} = location.query;
+    const {detectorType} = location.query;
     if (validatedRequiredQueryParams.current) {
       return;
     }
 
-    if (!project || !detectorType) {
+    if (!detectorType) {
       navigate(`${makeMonitorBasePathname(organization.slug)}new/`);
     }
     validatedRequiredQueryParams.current = true;
@@ -96,37 +83,49 @@ export default function DetectorNewSettings() {
   );
 
   // Defaults and data from the previous step passed in as query params
-  const initialData = useMemo(
-    (): MetricDetectorFormData => ({
+  const initialData = useMemo((): MetricDetectorFormData => {
+    const defaultProjectId = projects.find(p => p.isMember)?.id ?? projects[0]?.id;
+
+    return {
       ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-      projectId: (location.query.project as string) ?? '',
+      projectId: (location.query.project as string) ?? defaultProjectId ?? '',
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
-    }),
-    [location.query]
-  );
+    };
+  }, [location.query, projects]);
+
+  if (isFetchingProjects) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
-      <DetectorDocumentTitle />
+      <SentryDocumentTitle
+        title={t(
+          'New %s Monitor',
+          friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
+        )}
+      />
       <Layout.Page>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
-            <DetectorBreadcrumbs />
-            <Flex gap={space(1)} direction="column">
-              <Layout.Title>
-                <EditableDetectorName />
-              </Layout.Title>
-              <DetectorSubtitle
-                projectId={initialData.projectId}
-                environment={initialData.environment}
-              />
-            </Flex>
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {
+                  label: t(
+                    'New %s Monitor',
+                    friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
+                  ),
+                },
+              ]}
+            />
+            <DetectorBaseFields />
           </Layout.HeaderContent>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricDetectorForm />
+            <DetectorForm detectorType={location.query.detectorType as DetectorType} />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

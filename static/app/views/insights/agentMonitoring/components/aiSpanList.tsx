@@ -1,21 +1,28 @@
-import {useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
+import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconCode} from 'sentry/icons';
+import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
+import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
+  AI_COST_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
   AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
+  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
   AI_TOOL_CALL_DESCRIPTIONS,
@@ -34,8 +41,38 @@ import {
   isTransactionNode,
   isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+
+function getTimeBounds(transactionNode: AITraceSpanNode | null) {
+  if (!transactionNode?.value) return {startTime: 0, endTime: 0, duration: 0};
+
+  const startTime = transactionNode.value.start_timestamp;
+  let endTime = 0;
+  if (isTransactionNode(transactionNode) || isSpanNode(transactionNode)) {
+    endTime = transactionNode.value.timestamp;
+  } else if (isEAPSpanNode(transactionNode)) {
+    endTime = transactionNode.value.end_timestamp;
+  }
+
+  if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
+
+  return {
+    startTime,
+    endTime,
+    duration: endTime - startTime,
+  };
+}
+
+function getClosestAiRunNode<T extends AITraceSpanNode>(
+  node: AITraceSpanNode,
+  predicate: (node: TraceTreeNode) => node is T
+): T {
+  if (predicate(node)) {
+    return node;
+  }
+  return TraceTree.ParentNode(node, predicate) as T;
+}
 
 export function AISpanList({
   nodes,
@@ -47,105 +84,116 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(5);
-  let transactionBounds = {startTime: 0, endTime: 0, duration: 0};
-
-  const getTransactionBounds = (
-    transactionNode: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>
-  ) => {
-    if (!transactionNode?.value) return {startTime: 0, endTime: 0, duration: 0};
-
-    const startTime = transactionNode.value.start_timestamp;
-    let endTime = 0;
-    if (isTransactionNode(transactionNode)) {
-      endTime = transactionNode.value.timestamp;
-    } else if (isEAPSpanNode(transactionNode)) {
-      endTime = transactionNode.value.end_timestamp;
-    }
-
-    if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
-
-    return {
-      startTime,
-      endTime,
-      duration: endTime - startTime,
-    };
-  };
+  const colors = [...theme.chart.getColorPalette(5), theme.red300];
 
   const spanAttributesRequest = useEAPSpanAttributes(nodes);
+  let currentTransaction: TraceTreeNode<
+    TraceTree.Transaction | TraceTree.EAPSpan
+  > | null = null;
+  let currentAiRunNode: AITraceSpanNode | null = null;
 
   return (
     <TraceListContainer>
       {nodes.map(node => {
-        const isTransaction = isTransactionNodeEquivalent(node);
-        if (isTransaction) {
-          transactionBounds = getTransactionBounds(node);
+        // find the closest transaction node
+        const transactionNode = getClosestAiRunNode(node, isTransactionNodeEquivalent);
+        const aiRunNode = getClosestAiRunNode(node, getIsAiRunNode);
+
+        if (aiRunNode !== currentAiRunNode) {
+          currentAiRunNode = aiRunNode;
         }
+
+        let transactionName: string | null = null;
+        if (transactionNode !== currentTransaction) {
+          currentTransaction = transactionNode;
+          if (
+            transactionNode &&
+            (isTransactionNode(transactionNode) || isEAPSpanNode(transactionNode))
+          ) {
+            transactionName = transactionNode.value.transaction;
+          }
+        }
+
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
 
         const uniqueKey = getNodeId(node);
         return (
-          <TraceListItem
-            key={uniqueKey}
-            node={node}
-            traceBounds={transactionBounds}
-            onClick={() => onSelectNode(node)}
-            isSelected={uniqueKey === selectedNodeKey}
-            colors={colors}
-            isLoadingAttributes={
-              isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
-            }
-            spanAttributes={
-              isEAPSpanNode(node)
-                ? spanAttributesRequest.data[node.value.event_id]
-                : undefined
-            }
-          />
+          <Fragment key={uniqueKey}>
+            {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
+            <TraceListItem
+              indent={shouldIndent ? 1 : 0}
+              traceBounds={getTimeBounds(currentAiRunNode)}
+              key={uniqueKey}
+              node={node}
+              onClick={() => onSelectNode(node)}
+              isSelected={uniqueKey === selectedNodeKey}
+              colors={colors}
+              isLoadingAttributes={
+                isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
+              }
+              spanAttributes={
+                isEAPSpanNode(node)
+                  ? spanAttributesRequest.data[node.value.event_id]
+                  : undefined
+              }
+            />
+          </Fragment>
         );
       })}
     </TraceListContainer>
   );
 }
 
-function TraceListItem({
+const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
-  traceBounds,
   colors,
   spanAttributes = {},
   isLoadingAttributes = false,
+  traceBounds,
+  indent,
 }: {
   colors: readonly string[];
+  indent: number;
   isSelected: boolean;
   node: AITraceSpanNode;
   onClick: () => void;
   spanAttributes: Record<string, string> | undefined;
-  traceBounds: {duration: number; endTime: number; startTime: number};
+  traceBounds: TraceBounds;
   isLoadingAttributes?: boolean;
 }) {
   const {icon, title, subtitle, color} = getNodeInfo(node, colors, spanAttributes);
-
   const safeColor = color || colors[0] || '#9ca3af';
-
   const relativeTiming = calculateRelativeTiming(node, traceBounds);
+  const duration = getTimeBounds(node).duration;
 
   return (
-    <ListItemContainer isSelected={isSelected} onClick={onClick}>
-      <ListItemIcon color={safeColor}>{icon}</ListItemIcon>
+    <ListItemContainer
+      hasErrors={node.errors.size > 0}
+      isSelected={isSelected}
+      onClick={onClick}
+      indent={indent}
+    >
+      <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
-        <ListItemHeader>
+        <ListItemHeader align="center" gap={space(0.5)}>
           <ListItemTitle>{title}</ListItemTitle>
           {isLoadingAttributes ? (
             <Placeholder height="12px" width="60px" />
           ) : (
             subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>
           )}
+          <FlexSpacer />
+          <DurationText>{getDuration(duration, 2, true, true)}</DurationText>
         </ListItemHeader>
         <DurationBar color={safeColor} relativeTiming={relativeTiming} />
       </ListItemContent>
     </ListItemContainer>
   );
-}
+});
 
 const keyToTag = (key: string, type: 'string' | 'number') => {
   return `tags[${key},${type}]`;
@@ -173,26 +221,35 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
   const spans = useMemo(() => {
     return nodes.filter(node => isEAPSpanNode(node));
   }, [nodes]);
-  const projectIds = spans.map(span => span.value.project_id);
+  const projectIds = new Set(spans.map(span => span.value.project_id));
+  const totalStart = Math.min(
+    ...spans.map(span => new Date(span.value.start_timestamp * 1000).getTime())
+  );
+  const totalEnd = Math.max(
+    ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
+  );
 
   const spanAttributesRequest = useEAPSpans(
     {
-      search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
+      search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
       fields: [
         'span_id',
-        keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
+        AI_AGENT_NAME_ATTRIBUTE,
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
-        keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
+        keyToTag(AI_COST_ATTRIBUTE, 'number'),
+        AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
       // Pass custom values as the page filters are not available in the trace view
       pageFilters: {
-        projects: projectIds,
+        projects: Array.from(projectIds),
         environments: [],
         datetime: {
-          period: '90d',
-          start: null,
-          end: null,
+          period: null,
+          start: new Date(totalStart),
+          end: new Date(totalEnd),
           utc: true,
         },
       },
@@ -256,13 +313,21 @@ function calculateRelativeTiming(
   return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
 }
 
+interface NodeInfo {
+  color: string | undefined;
+  icon: React.ReactNode;
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}
+
+// TODO: consider splitting this up
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
   spanAttributes: Record<string, string>
 ) {
   // Default return value
-  const nodeInfo = {
+  const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
@@ -292,42 +357,74 @@ function getNodeInfo(
     description: node.value?.description,
   });
 
+  const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
+  nodeInfo.title = truncatedOp;
+
   if (
     AI_RUN_OPS.includes(op) ||
     AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
-    const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
+    const model =
+      getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
+      getNodeAttribute(AI_MODEL_NAME_FALLBACK_ATTRIBUTE) ||
+      '';
     nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.title = op;
-    nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
+    nodeInfo.subtitle = agentName;
+    if (model) {
+      nodeInfo.subtitle = nodeInfo.subtitle ? (
+        <Fragment>
+          {nodeInfo.subtitle} ({model})
+        </Fragment>
+      ) : (
+        model
+      );
+    }
     nodeInfo.color = colors[0];
   } else if (
     AI_GENERATION_OPS.includes(op) ||
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
+    const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
-    nodeInfo.title = op;
-    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    nodeInfo.subtitle = tokens ? (
+      <Fragment>
+        <Count value={tokens} />
+        {' Tokens'}
+      </Fragment>
+    ) : (
+      ''
+    );
+    if (cost) {
+      nodeInfo.subtitle = (
+        <Fragment>
+          {nodeInfo.subtitle} ({<LLMCosts cost={cost} />})
+        </Fragment>
+      );
+    }
     nodeInfo.color = colors[2];
   } else if (
     AI_TOOL_CALL_OPS.includes(op) ||
     AI_TOOL_CALL_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.title = op || 'gen_ai.toolCall';
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
     nodeInfo.color = colors[5];
   } else if (AI_HANDOFF_OPS.includes(op)) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
-    nodeInfo.title = op;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
   } else {
-    nodeInfo.title = op || 'Span';
     nodeInfo.subtitle = node.value.description || '';
   }
+
+  // Override the color and icon if the node has errors
+  if (node.errors.size > 0) {
+    nodeInfo.icon = <IconFire size="md" color="red300" />;
+    nodeInfo.color = colors[6];
+  }
+
   return nodeInfo;
 }
 
@@ -339,15 +436,25 @@ const TraceListContainer = styled('div')`
   overflow: hidden;
 `;
 
-const ListItemContainer = styled('div')<{isSelected: boolean}>`
+const ListItemContainer = styled('div')<{
+  hasErrors: boolean;
+  indent: number;
+  isSelected: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(0.5)};
+  padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
   background-color: ${p =>
     p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple200}` : 'none')};
+  outline: ${p =>
+    p.isSelected
+      ? p.hasErrors
+        ? `2px solid ${p.theme.red200}`
+        : `2px solid ${p.theme.purple200}`
+      : 'none'};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -366,31 +473,27 @@ const ListItemContent = styled('div')`
   min-width: 0;
 `;
 
-const ListItemHeader = styled('div')`
-  display: flex;
-  align-items: center;
+const ListItemHeader = styled(Flex)`
   margin-bottom: ${space(0.5)};
 `;
 
 const ListItemTitle = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  flex-basis: max-content;
+  flex-shrink: 0;
 `;
 
 const ListItemSubtitle = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
-  min-width: 0;
+  flex-basis: max-content;
 `;
 
 const DurationBar = styled('div')<{
@@ -413,4 +516,29 @@ const DurationBar = styled('div')<{
     background-color: ${p => p.color};
     border-radius: 2px;
   }
+`;
+
+const DurationText = styled('div')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+`;
+
+const TransactionItem = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  padding: ${space(2)} ${space(0.5)} 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  min-width: 0;
+  &:first-child {
+    padding-top: 0;
+  }
+`;
+
+const FlexSpacer = styled('div')`
+  flex-grow: 1;
+  min-width: 0;
+  flex-basis: 0;
 `;

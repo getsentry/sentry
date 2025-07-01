@@ -4,9 +4,11 @@ import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  RawSearchFilterValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -143,6 +145,24 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
+export function createRawSearchFilterValueItem(
+  key: string,
+  value: string
+): RawSearchFilterValueItem {
+  const filter = `${key}:${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
@@ -175,6 +195,17 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerItem(): AskSeerItem {
+  return {
+    key: getEscapedKey('ask_seer'),
+    value: 'ask_seer',
+    textValue: 'Ask Seer',
+    type: 'ask-seer' as const,
+    label: t('Ask Seer'),
     hideCheck: true,
   };
 }

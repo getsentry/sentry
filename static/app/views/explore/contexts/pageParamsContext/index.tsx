@@ -230,9 +230,26 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
-export function useExploreAggregateFields(): AggregateField[] {
+interface UseExploreAggregateFieldsOptions {
+  validate?: boolean;
+}
+
+export function useExploreAggregateFields(
+  options?: UseExploreAggregateFieldsOptions
+): AggregateField[] {
+  const {validate = false} = options || {};
   const pageParams = useExplorePageParams();
-  return pageParams.aggregateFields;
+  return useMemo(() => {
+    if (validate) {
+      return pageParams.aggregateFields.filter(aggregateField => {
+        if (isVisualize(aggregateField)) {
+          return aggregateField.isValid();
+        }
+        return true;
+      });
+    }
+    return pageParams.aggregateFields;
+  }, [pageParams.aggregateFields, validate]);
 }
 
 export function useExploreFields(): string[] {
@@ -270,9 +287,20 @@ export function useExploreId(): string | undefined {
   return pageParams.id;
 }
 
-export function useExploreVisualizes(): Visualize[] {
+interface UseExploreVisualizesOptions {
+  validate: boolean;
+}
+
+export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
+  const {validate = false} = options || {};
   const pageParams = useExplorePageParams();
-  return pageParams.visualizes;
+
+  return useMemo(() => {
+    if (validate) {
+      return pageParams.visualizes.filter(visualize => visualize.isValid());
+    }
+    return pageParams.visualizes;
+  }, [pageParams.visualizes, validate]);
 }
 
 export function newExploreTarget(

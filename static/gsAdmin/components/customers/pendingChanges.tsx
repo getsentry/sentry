@@ -117,16 +117,13 @@ function getRegularChanges(subscription: Subscription) {
     changes.push(`Billing period — ${old} → ${change}`);
   }
 
-  if (
-    pendingChanges.reservedEvents !== subscription.reservedEvents ||
-    pendingChanges.reserved.errors !== subscription.categories.errors?.reserved
-  ) {
+  if (pendingChanges.reserved.errors !== subscription.categories.errors?.reserved) {
     const old = formatReservedWithUnits(
       subscription.reservedEvents || (subscription.categories.errors?.reserved ?? null),
       DataCategory.ERRORS
     );
     const change = formatReservedWithUnits(
-      pendingChanges.reservedEvents || (pendingChanges.reserved?.errors ?? null),
+      pendingChanges.reserved?.errors ?? null,
       DataCategory.ERRORS
     );
     changes.push(

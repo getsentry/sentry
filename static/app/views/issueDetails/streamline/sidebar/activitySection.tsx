@@ -392,7 +392,7 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 `;
 
 const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
@@ -402,11 +402,11 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
 
 const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const CommentsLink = styled(Link)`

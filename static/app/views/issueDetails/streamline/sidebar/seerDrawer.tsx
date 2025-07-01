@@ -431,8 +431,8 @@ const SeerDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 `;
 
@@ -449,7 +449,7 @@ const CrumbContainer = styled('div')`
 
 const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

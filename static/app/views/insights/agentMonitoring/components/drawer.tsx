@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -7,37 +7,61 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
+const LEFT_PANEL_WIDTH = 400;
+const RIGHT_PANEL_WIDTH = 400;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
+
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
 
-function TraceViewDrawer({
+const TraceViewDrawer = memo(function TraceViewDrawer({
   traceSlug,
   closeDrawer,
 }: {
   closeDrawer: () => void;
   traceSlug: string;
 }) {
+  const organization = useOrganization();
   const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey, removeSelectedNodeParam] =
+    useLocationSyncedState(DrawerUrlParams.SELECTED_SPAN, decodeScalar);
 
-  const handleSelectNode = useCallback((node: AITraceSpanNode) => {
-    const uniqueKey = getNodeId(node);
-    setSelectedNodeKey(uniqueKey);
+  useEffect(() => {
+    return () => {
+      removeSelectedNodeParam();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
+
+  const handleSelectNode = useCallback(
+    (node: AITraceSpanNode) => {
+      const uniqueKey = getNodeId(node);
+      setSelectedNodeKey(uniqueKey);
+
+      trackAnalytics('agent-monitoring.drawer.span-select', {
+        organization,
+      });
+    },
+    [setSelectedNodeKey, organization]
+  );
 
   const selectedNode =
     (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
@@ -49,12 +73,19 @@ function TraceViewDrawer({
     source: TraceViewSources.AGENT_MONITORING,
   });
 
+  const handleViewFullTraceClick = useCallback(() => {
+    trackAnalytics('agent-monitoring.drawer.view-full-trace-click', {
+      organization,
+    });
+    closeDrawer();
+  }, [organization, closeDrawer]);
+
   return (
     <DrawerWrapper>
       <StyledDrawerHeader>
         <HeaderContent>
           {t('Abbreviated Trace')}
-          <LinkButton size="xs" onMouseDown={closeDrawer} to={nodeDetailsLink}>
+          <LinkButton size="xs" onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>
@@ -73,33 +104,40 @@ function TraceViewDrawer({
       </StyledDrawerBody>
     </DrawerWrapper>
   );
-}
+});
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
+  const organization = useOrganization();
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
   const openTraceViewDrawer = useCallback(
-    (traceSlug: string) =>
-      openDrawer(
+    (traceSlug: string) => {
+      trackAnalytics('agent-monitoring.drawer.open', {
+        organization,
+      });
+
+      return openDrawer(
         () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
         {
           ariaLabel: t('Abbreviated Trace'),
           onClose,
           shouldCloseOnInteractOutside: () => true,
-          drawerWidth: '40%',
+          drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
           drawerKey: 'abbreviated-trace-view-drawer',
         }
-      ),
-    [openDrawer, onClose, closeDrawer]
+      );
+    },
+    [openDrawer, onClose, closeDrawer, organization]
   );
 
   useEffect(() => {
     if (drawerUrlState.trace && !isDrawerOpen) {
       openTraceViewDrawer(drawerUrlState.trace);
     }
-  }, [drawerUrlState.trace, isDrawerOpen, openTraceViewDrawer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
+  }, []);
 
   return {
     openTraceViewDrawer,
@@ -181,7 +219,7 @@ const SplitContainer = styled('div')`
 
 const LeftPanel = styled('div')`
   flex: 1;
-  min-width: 300px;
+  min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
@@ -191,7 +229,7 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
-  min-width: 400px;
+  min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.background};
@@ -226,7 +264,7 @@ const HeaderContent = styled('div')`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
   margin-bottom: ${space(2)};
 `;

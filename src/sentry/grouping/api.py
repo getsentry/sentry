@@ -432,13 +432,17 @@ def get_grouping_variants_for_event(
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "built-in"
         else:
             additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "custom server" if matched_rule else "custom client"
+
+        hint = f"{fingerprint_source} fingerprint takes precedence"
 
         for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
+            variant.component.update(contributes=False, hint=hint)
 
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():

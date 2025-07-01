@@ -82,7 +82,7 @@ function ProjectTeamAccess({organization, project}: Props) {
 }
 
 const StyledSidebarSection = styled(SidebarSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledLink = styled(Link)`

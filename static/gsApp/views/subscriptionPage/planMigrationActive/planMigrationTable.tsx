@@ -318,7 +318,7 @@ const TableContainer = styled('div')`
 `;
 
 const Credits = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

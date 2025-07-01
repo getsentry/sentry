@@ -79,12 +79,12 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
         // Keep only transactions that include AI spans and the AI spans themselves
         const flattenedNodes = TraceTree.FindAll(tree.root, node => {
-          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+          if (
+            !isTransactionNodeEquivalent(node) &&
+            !isSpanNode(node) &&
+            !isEAPSpanNode(node)
+          ) {
             return false;
-          }
-
-          if (isTransactionNodeEquivalent(node)) {
-            return TraceTree.Find(node, child => getIsAiNode(child)) !== null;
           }
 
           return getIsAiNode(node);

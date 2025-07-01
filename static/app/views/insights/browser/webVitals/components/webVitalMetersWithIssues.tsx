@@ -293,8 +293,8 @@ const MeterBarBody = styled('div')`
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   display: flex;
   width: 100%;
@@ -306,7 +306,7 @@ const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   flex: 1;
   text-align: center;

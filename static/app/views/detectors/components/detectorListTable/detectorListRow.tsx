@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
@@ -14,36 +14,28 @@ interface DetectorListRowProps {
   detector: Detector;
 }
 
-export function DetectorListRow({
-  detector: {workflowIds, owner, id, projectId, name, disabled, type, createdBy},
-}: DetectorListRowProps) {
+export function DetectorListRow({detector}: DetectorListRowProps) {
   const issues: Group[] = [];
 
   return (
     <DetectorSimpleTableRow
-      variant={disabled ? 'faded' : 'default'}
+      variant={detector.disabled ? 'faded' : 'default'}
       data-test-id="detector-list-row"
     >
-      <SimpleTable.RowCell name="name">
-        <DetectorLink
-          detectorId={id}
-          name={name}
-          createdBy={createdBy}
-          projectId={projectId}
-          disabled={disabled}
-        />
+      <SimpleTable.RowCell>
+        <DetectorLink detector={detector} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="type">
-        <DetectorTypeCell type={type} />
+      <SimpleTable.RowCell data-column-name="type">
+        <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="last-issue">
+      <SimpleTable.RowCell data-column-name="last-issue">
         <IssueCell group={issues.length > 0 ? issues[0] : undefined} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="assignee">
-        <DetectorAssigneeCell assignee={owner} />
+      <SimpleTable.RowCell data-column-name="assignee">
+        <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="connected-automations">
-        <DetectorListConnectedAutomations automationIds={workflowIds} />
+      <SimpleTable.RowCell data-column-name="connected-automations">
+        <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
       </SimpleTable.RowCell>
     </DetectorSimpleTableRow>
   );
@@ -52,22 +44,22 @@ export function DetectorListRow({
 export function DetectorListRowSkeleton() {
   return (
     <DetectorSimpleTableRow>
-      <SimpleTable.RowCell name="name">
+      <SimpleTable.RowCell>
         <div style={{width: '100%'}}>
           <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
           <Placeholder height="16px" width="20%" />
         </div>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="type">
+      <SimpleTable.RowCell data-column-name="type">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="last-issue">
+      <SimpleTable.RowCell data-column-name="last-issue">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="assignee">
+      <SimpleTable.RowCell data-column-name="assignee">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell name="connected-automations">
+      <SimpleTable.RowCell data-column-name="connected-automations">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
     </DetectorSimpleTableRow>

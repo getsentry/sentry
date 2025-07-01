@@ -366,7 +366,11 @@ class SentryAppCreator:
 
     def _create_proxy_user(self, slug: str) -> User:
         # need a proxy user name that will always be unique
-        return User.objects.create(username=f"{slug}-{default_uuid()}", is_sentry_app=True)
+        username = f"{slug}-{default_uuid()}"
+        proxy_user = User.objects.create(
+            username=username, email=f"{username}@proxy-user.sentry.io", is_sentry_app=True
+        )
+        return proxy_user
 
     def _create_api_application(self, proxy: User) -> ApiApplication:
         return ApiApplication.objects.create(
