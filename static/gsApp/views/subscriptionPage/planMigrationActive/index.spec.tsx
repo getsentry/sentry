@@ -869,3 +869,46 @@ describe('PlanMigrationActive cohort 10', function () {
     );
   });
 });
+
+describe('PlanMigrationActive cohort 11 -- TEST ONLY', function () {
+  const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({
+    plan: 'am3_business_auf',
+    organization,
+  });
+
+  const migrationDate = moment().add(1, 'days').format('ll');
+  const migration = PlanMigrationFixture({
+    cohortId: CohortId.ELEVENTH,
+    effectiveAt: migrationDate,
+  });
+
+  function renderSimple() {
+    render(<PlanMigrationActive migration={migration} subscription={subscription} />);
+  }
+
+  it('renders with active migration', function () {
+    renderSimple();
+  });
+
+  it('renders plan migration table', function () {
+    renderSimple();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(8);
+  });
+
+  it('renders combined credit message', function () {
+    renderSimple();
+    expect(screen.getByTestId('recurring-credits')).toHaveTextContent(
+      /\*We'll provide an additional 100000 errors for the next 1 months, 100000 replays for the next 1 months, and 100000 spans for the next 1 months following the end of your current annual contract, at no charge./
+    );
+  });
+
+  it('renders monitor seats row', function () {
+    renderSimple();
+    expect(screen.getByTestId('current-monitorSeats')).toHaveTextContent(
+      /1 cron monitor/
+    );
+    expect(screen.getByTestId('new-monitorSeats')).toHaveTextContent(/1 cron monitor/);
+  });
+});

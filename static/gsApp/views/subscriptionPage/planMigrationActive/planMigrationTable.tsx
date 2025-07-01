@@ -13,7 +13,6 @@ import {
   type PlanMigration,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
@@ -184,22 +183,6 @@ function PlanMigrationTable({subscription, migration}: Props) {
           )}
         </tbody>
       </AlertStripedTable>
-      {Object.entries(nextPlan.categoryCredits ?? {}).map(
-        ([category, {credits, months}]) => (
-          <Credits data-test-id={`${category}-credits`} key={category}>
-            *
-            {tct(
-              'We will provide an extra [credits] [category] for [months] months at no additional charge.',
-              {
-                credits: formatReservedWithUnits(credits, category as DataCategory, {
-                  isAbbreviated: true,
-                }),
-                months,
-              }
-            )}
-          </Credits>
-        )
-      )}
       {hasMonthlyDiscount && (
         <Credits data-test-id="dollar-credits">
           *
