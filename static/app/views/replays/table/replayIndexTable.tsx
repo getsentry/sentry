@@ -68,7 +68,7 @@ export default function ReplayIndexTable() {
   const {data, isPending, error, getResponseHeader} = useApiQuery<{
     data: ReplayListRecord[];
   }>(queryKey, {staleTime: 0});
-  const replays = data?.data.map(mapResponseToReplayRecord) ?? [];
+  const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
