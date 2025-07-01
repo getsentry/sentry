@@ -8,7 +8,11 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  DetectorConfig,
+  MetricDetectorUpdatePayload,
+} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {
   AlertRuleSensitivity,
@@ -144,13 +148,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
   query: '',
-
-  // Passed in from step 1
-  environment: '',
-  projectId: '',
-  name: '',
-  owner: '',
-} satisfies MetricDetectorFormData;
+} satisfies Partial<MetricDetectorFormData>;
 
 /**
  * Small helper to automatically get the type of the form field.
@@ -177,7 +175,7 @@ interface NewDataSource {
   timeWindow: number;
 }
 
-export interface NewMetricDetector {
+export interface NewMetricDetectorPayload {
   conditionGroup: NewConditionGroup;
   config: DetectorConfig;
   dataSource: NewDataSource; // Single data source object (not array)
@@ -304,9 +302,9 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   };
 }
 
-export function getNewMetricDetectorData(
+export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
-): NewMetricDetector {
+): MetricDetectorUpdatePayload {
   const conditions = createConditions(data);
   const dataSource = createDataSource(data);
 
@@ -405,7 +403,9 @@ function processDetectorConditions(
 /**
  * Converts a Detector to MetricDetectorFormData for editing
  */
-export function getMetricDetectorFormData(detector: Detector): MetricDetectorFormData {
+export function metricSavedDetectorToFormData(
+  detector: Detector
+): MetricDetectorFormData {
   // Get the first data source (assuming metric detectors have one)
   const dataSource = detector.dataSources?.[0];
 
@@ -425,6 +425,14 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
     ? getDetectorDataset(snubaQuery.dataset)
     : DetectorDataset.SPANS;
 
+  const metricDetectorConfig =
+    'detection_type' in detector.config
+      ? detector.config
+      : {
+          detection_type: 'static' as const,
+          threshold_period: 1,
+        };
+
   return {
     // Core detector fields
     name: detector.name,
@@ -438,22 +446,22 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
-    kind: detector.config.detection_type || 'static',
+    kind: metricDetectorConfig.detection_type,
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      (detector.config?.detection_type === 'percent'
-        ? detector.config.comparison_delta
+      (metricDetectorConfig.detection_type === 'percent'
+        ? metricDetectorConfig.comparison_delta
         : null) || 3600,
 
     // Dynamic fields - extract from config for dynamic detectors
     sensitivity:
-      detector.config?.detection_type === 'dynamic'
-        ? detector.config.sensitivity || AlertRuleSensitivity.LOW
+      metricDetectorConfig.detection_type === 'dynamic'
+        ? metricDetectorConfig.sensitivity || AlertRuleSensitivity.LOW
         : AlertRuleSensitivity.LOW,
     thresholdType:
-      detector.config?.detection_type === 'dynamic'
-        ? (detector.config as any).threshold_type || AlertRuleThresholdType.ABOVE
+      metricDetectorConfig.detection_type === 'dynamic'
+        ? metricDetectorConfig.threshold_type || AlertRuleThresholdType.ABOVE
         : AlertRuleThresholdType.ABOVE,
   };
 }

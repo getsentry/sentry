@@ -15,18 +15,19 @@ import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetectorForm} from 'sentry/views/detectors/components/forms';
+import {
+  canEditDetector,
+  DETECTOR_FORM_CONFIG,
+  type EditableDetectorType,
+} from 'sentry/views/detectors/components/forms/config';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorActions} from 'sentry/views/detectors/components/forms/editDetectorActions';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {
-  getMetricDetectorFormData,
-  getNewMetricDetectorData,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {useMetricDetectorFormField} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useDetectorQuery, useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
@@ -52,19 +53,17 @@ function DetectorDocumentTitle() {
   return <SentryDocumentTitle title={t('Edit Monitor: %s', title)} />;
 }
 
-export default function DetectorEdit() {
+function DetectorEditContent({
+  detector,
+  detectorType,
+}: {
+  detector: Detector;
+  detectorType: EditableDetectorType;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const params = useParams<{detectorId: string}>();
-
-  useWorkflowEngineFeatureGate({redirect: true});
-
-  const {
-    data: detector,
-    isPending,
-    isError,
-    refetch,
-  } = useDetectorQuery(params.detectorId);
+  const config = DETECTOR_FORM_CONFIG[detectorType];
 
   const {mutateAsync: updateDetector} = useUpdateDetector();
 
@@ -79,32 +78,22 @@ export default function DetectorEdit() {
         return;
       }
 
+      const formData = config.formDataToEndpointPayload(data as any);
+
       const updatedData = {
         detectorId: detector.id,
-        ...getNewMetricDetectorData(data as MetricDetectorFormData),
+        ...formData,
       };
 
       const updatedDetector = await updateDetector(updatedData);
       navigate(makeMonitorDetailsPathname(organization.slug, updatedDetector.id));
     },
-    [updateDetector, navigate, organization.slug, detector]
+    [detector, config, updateDetector, navigate, organization.slug]
   );
 
-  const initialData = useMemo((): MetricDetectorFormData | null => {
-    if (!detector) {
-      return null;
-    }
-
-    return getMetricDetectorFormData(detector);
-  }, [detector]);
-
-  if (isPending && !initialData) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError || !detector || !initialData) {
-    return <LoadingError onRetry={refetch} />;
-  }
+  const initialData = useMemo(() => {
+    return config.savedDetectorToFormData(detector);
+  }, [detector, config]);
 
   return (
     <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
@@ -138,6 +127,41 @@ export default function DetectorEdit() {
       </StickyFooter>
     </FullHeightForm>
   );
+}
+
+export default function DetectorEdit() {
+  const params = useParams<{detectorId: string}>();
+  useWorkflowEngineFeatureGate({redirect: true});
+
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetectorQuery(params.detectorId);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const detectorType = detector.type;
+  if (!canEditDetector(detectorType)) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingError message={t('This monitor type is not editable')} />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  return <DetectorEditContent detector={detector} detectorType={detectorType} />;
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`

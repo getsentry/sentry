@@ -1,5 +1,11 @@
-import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
-import type {AlertRuleSensitivity} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  DataCondition,
+  DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * See SnubaQuerySerializer
@@ -41,6 +47,8 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
+    body: string | null;
+    headers: Array<[string, string]>;
     hostProviderId: string;
     hostProviderName: string;
     intervalSeconds: number;
@@ -65,21 +73,21 @@ export type DetectorType =
   | 'uptime_subscription'
   | 'uptime_domain_failure';
 
-interface BaseDetectorConfig {
+interface BaseMetricDetectorConfig {
   threshold_period: number;
 }
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface StaticDetectorConfig extends BaseDetectorConfig {
+interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
   detection_type: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface PercentDetectorConfig extends BaseDetectorConfig {
+interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
   comparison_delta: number;
   detection_type: 'percent';
 }
@@ -87,16 +95,23 @@ interface PercentDetectorConfig extends BaseDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface DynamicDetectorConfig extends BaseDetectorConfig {
+interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
   detection_type: 'dynamic';
   seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
   sensitivity?: AlertRuleSensitivity;
+  threshold_type?: AlertRuleThresholdType;
 }
 
-export type DetectorConfig =
-  | StaticDetectorConfig
-  | PercentDetectorConfig
-  | DynamicDetectorConfig;
+type MetricDetectorConfig =
+  | MetricDetectorConfigStatic
+  | MetricDetectorConfigPercent
+  | MetricDetectorConfigDynamic;
+
+interface UptimeDetectorConfig {
+  environment: string;
+}
+
+export type DetectorConfig = MetricDetectorConfig | UptimeDetectorConfig;
 
 interface NewDetector {
   conditionGroup: DataConditionGroup | null;
@@ -116,4 +131,45 @@ export interface Detector extends Readonly<NewDetector> {
   readonly id: string;
   readonly lastTriggered: string;
   readonly owner: string | null;
+}
+
+interface UpdateConditionGroupPayload {
+  conditions: Array<Omit<DataCondition, 'id'>>;
+  logicType: DataConditionGroup['logicType'];
+}
+
+interface UpdateSnubaDataSourcePayload {
+  aggregate: string;
+  dataset: string;
+  environment: string | null;
+  eventTypes: string[];
+  query: string;
+  queryType: number;
+  timeWindow: number;
+}
+
+interface UpdateUptimeDataSourcePayload {
+  intervalSeconds: number;
+  method: string;
+  timeoutMs: number;
+  traceSampling: boolean;
+  url: string;
+}
+
+export interface BaseDetectorUpdatePayload {
+  name: string;
+  owner: Detector['owner'];
+  projectId: Detector['projectId'];
+}
+
+export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  dataSource: UpdateUptimeDataSourcePayload;
+  type: 'uptime_domain_failure';
+}
+
+export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  conditionGroup: UpdateConditionGroupPayload;
+  config: DetectorConfig;
+  dataSource: UpdateSnubaDataSourcePayload;
+  type: 'metric_issue';
 }
