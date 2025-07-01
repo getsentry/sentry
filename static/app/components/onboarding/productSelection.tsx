@@ -298,7 +298,10 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: (products: ProductSolution[]) => void;
+  onChange?: (params: {
+    previousProducts: ProductSolution[];
+    products: ProductSolution[];
+  }) => void;
   /**
    * Triggered when the component is loaded
    */
@@ -365,7 +368,10 @@ export function ProductSelection({
 
       const selectedProducts = Array.from(newProduct);
 
-      onChange?.(selectedProducts);
+      onChange?.({
+        previousProducts: urlProducts as ProductSolution[],
+        products: selectedProducts,
+      });
       setParams({product: selectedProducts});
     },
     [products, setParams, urlProducts, onChange]
