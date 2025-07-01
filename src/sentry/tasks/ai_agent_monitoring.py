@@ -20,8 +20,9 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
-# OpenRouter API endpoint
+# API endpoints
 OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
+MODELS_DEV_API_URL = "https://models.dev/api.json"
 
 
 @instrumented_task(
@@ -40,36 +41,72 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 )
 def fetch_ai_model_costs() -> None:
     """
-    Fetch AI model costs from OpenRouter API and store them in cache.
+    Fetch AI model costs from OpenRouter and models.dev APIs and store them in cache.
 
-    This task fetches model pricing data from OpenRouter and converts it to
+    This task fetches model pricing data from both sources and converts it to
     the AIModelCostV2 format for use by Sentry's LLM cost tracking.
+    OpenRouter prices take precedence over models.dev prices.
     """
 
-    logger.info("fetch_ai_model_costs.start")
-    # Fetch data from OpenRouter API
-    response = safe_urlopen(
-        OPENROUTER_MODELS_API_URL,
-    )
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
+    # Fetch from OpenRouter API (takes precedence)
+    try:
+        openrouter_models = _fetch_openrouter_models()
+        models_dict.update(openrouter_models)
+    except Exception as e:
+        sentry_sdk.capture_message(str(e), level="warning")
+        # re-raise to fail the task
+        raise
+
+    # Fetch from models.dev API (only add models not already present)
+    try:
+        models_dev_models = _fetch_models_dev_models()
+        # Only add models that don't already exist (OpenRouter takes precedence)
+        for model_id, model_cost in models_dev_models.items():
+            if model_id not in models_dict:
+                models_dict[model_id] = model_cost
+
+    except Exception as e:
+        sentry_sdk.capture_message(str(e), level="warning")
+        # re-raise to fail the task
+        raise
+
+    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
+    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
+
+
+def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
+    """Fetch model costs from OpenRouter API
+    Example response:
+    {
+        "data": [
+            {
+                "id": "openai/gpt-4o-mini",
+                "name": "OpenAI: GPT-4o Mini",
+                "context_length": 1000000,
+                "pricing": {
+                    "prompt": "0.0000003",
+                    "completion": "0.00000165",
+                    "internal_reasoning": "0.0000003",
+                    "input_cache_read": "0.0000003",
+                },
+            },
+        ]
+    }
+    """
+    response = safe_urlopen(OPENROUTER_MODELS_API_URL)
     response.raise_for_status()
 
     # Parse the response
     data = response.json()
 
     if not isinstance(data, dict) or "data" not in data:
-        logger.error(
-            "fetch_ai_model_costs.invalid_response_format",
-            extra={"response_keys": list(data.keys()) if isinstance(data, dict) else "not_dict"},
-        )
-        return
+        raise ValueError("Invalid OpenRouter response format: missing 'data' field")
 
     models_data = data["data"]
     if not isinstance(models_data, list):
-        logger.error(
-            "fetch_ai_model_costs.invalid_models_data_format",
-            extra={"type": type(models_data).__name__},
-        )
-        return
+        raise ValueError("Invalid OpenRouter response format: 'data' field is not a list")
 
     # Convert to AIModelCostV2 format
     models_dict: dict[ModelId, AIModelCostV2] = {}
@@ -103,11 +140,81 @@ def fetch_ai_model_costs() -> None:
             models_dict[model_id] = ai_model_cost
 
         except (ValueError, TypeError) as e:
-            sentry_sdk.capture_exception(e)
+            logger.warning(
+                "fetch_ai_model_costs.openrouter_model_parse_error",
+                extra={"model_id": model_id, "error": str(e)},
+            )
             continue
 
-    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
-    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
+    return models_dict
+
+
+def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
+    """Fetch model costs from models.dev API
+    Example response:
+    {
+        "openai": {
+            "models": {
+                "gpt-4": {
+                    "cost": {
+                        "input": 0.0000003,
+                        "output": 0.00000165,
+                        "cache_read": 0.0000003,
+                    }
+                }
+            }
+        }
+    }
+
+    """
+    response = safe_urlopen(MODELS_DEV_API_URL)
+    response.raise_for_status()
+
+    # Parse the response
+    data = response.json()
+
+    if not isinstance(data, dict):
+        raise ValueError("Invalid models.dev response format: expected dict")
+
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
+    for provider_name, provider_data in data.items():
+        if not isinstance(provider_data, dict):
+            continue
+
+        models = provider_data.get("models", {})
+        if not isinstance(models, dict):
+            continue
+
+        for model_id, model_data in models.items():
+            if not isinstance(model_data, dict):
+                continue
+
+            cost_data = model_data.get("cost", {})
+            if not isinstance(cost_data, dict) or not cost_data:
+                # Skip models with no cost data or empty cost data
+                continue
+
+            # Convert pricing data to AIModelCostV2 format
+            # models.dev provides costs as numbers, but for extra safety convert to our format
+            try:
+                ai_model_cost = AIModelCostV2(
+                    inputPerToken=safe_float_conversion(cost_data.get("input")),
+                    outputPerToken=safe_float_conversion(cost_data.get("output")),
+                    outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
+                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read")),
+                )
+
+                models_dict[model_id] = ai_model_cost
+
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    "fetch_ai_model_costs.models_dev_model_parse_error",
+                    extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
+                )
+                continue
+
+    return models_dict
 
 
 def safe_float_conversion(value: Any) -> float:
