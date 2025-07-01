@@ -15,6 +15,7 @@ from sentry.tasks.assemble import AssembleTask, ChunkFileState, assemble_file, s
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    retry=Retry(times=3),
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
         processing_deadline_duration=30,
@@ -73,7 +75,7 @@ def assemble_preprod_artifact(
 
             if existing_artifact:
                 logger.info(
-                    "PreprodArtifact already exists for this checksum, skipping assembly",
+                    "PreprodArtifact already exists for this checksum, using existing artifact",
                     extra={
                         "preprod_artifact_id": existing_artifact.id,
                         "project_id": project_id,
@@ -81,50 +83,58 @@ def assemble_preprod_artifact(
                         "checksum": checksum,
                     },
                 )
+                preprod_artifact = existing_artifact
+            else:
                 set_assemble_status(
-                    AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK
+                    AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
                 )
-                return
 
-            set_assemble_status(
-                AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-            )
+                assemble_result = assemble_file(
+                    task=AssembleTask.PREPROD_ARTIFACT,
+                    org_or_project=project,
+                    name=f"preprod-artifact-{uuid.uuid4().hex}",
+                    checksum=checksum,
+                    chunks=chunks,
+                    file_type="preprod.artifact",
+                )
 
-            assemble_result = assemble_file(
-                task=AssembleTask.PREPROD_ARTIFACT,
-                org_or_project=project,
-                name=f"preprod-artifact-{uuid.uuid4().hex}",
-                checksum=checksum,
-                chunks=chunks,
-                file_type="preprod.artifact",
-            )
+                if assemble_result is None:
+                    return
 
-            if assemble_result is None:
-                return
+                build_config = None
+                if build_configuration:
+                    build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                        project=project,
+                        name=build_configuration,
+                    )
 
-            build_config = None
-            if build_configuration:
-                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                # Create PreprodArtifact record
+                preprod_artifact = PreprodArtifact.objects.create(
                     project=project,
-                    name=build_configuration,
+                    file_id=assemble_result.bundle.id,
+                    build_configuration=build_config,
+                    state=PreprodArtifact.ArtifactState.UPLOADED,
                 )
 
-            # Create PreprodArtifact record
-            preprod_artifact = PreprodArtifact.objects.create(
-                project=project,
-                file_id=assemble_result.bundle.id,
-                build_configuration=build_config,
-                state=PreprodArtifact.ArtifactState.UPLOADED,
-            )
+                logger.info(
+                    "Created preprod artifact",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "checksum": checksum,
+                    },
+                )
 
-        logger.info(
-            "Created preprod artifact",
-            extra={
-                "preprod_artifact_id": preprod_artifact.id,
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
+        # Produce message to Kafka BEFORE setting success status
+        # This ensures that if Kafka fails, the task will be retried
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=preprod_artifact.id,
+            checksum=checksum,
+            git_sha=git_sha,
+            build_configuration=build_configuration,
         )
 
         # where next set of changes will happen
