@@ -3,9 +3,11 @@ import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 
@@ -343,9 +345,13 @@ class ResultGrid extends Component<Props, State> {
                     value={this.state.query}
                     onChange={this.onQueryChange}
                   />
-                  <button type="submit" className="btn btn-sm btn-primary">
-                    <IconSearch size="xs" />
-                  </button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    priority="primary"
+                    icon={<IconSearch size="xs" />}
+                    aria-label={t('Search')}
+                  />
                 </div>
               </form>
             </div>

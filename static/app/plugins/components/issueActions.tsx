@@ -467,7 +467,9 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <Button onClick={this.unlinkIssue}>{t('Unlink Issue')}</Button>
+            <Button onClick={this.unlinkIssue} priority="danger">
+              {t('Unlink Issue')}
+            </Button>
           </div>
         );
       default:
@@ -504,9 +506,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
                 ' before you can create issues with this service.'}
             </Alert>
           </Alert.Container>
-          <LinkButton priority="primary" href={authUrl!}>
-            Associate Identity
-          </LinkButton>
+          <LinkButton href={authUrl ?? '#'}>{t('Associate Identity')}</LinkButton>
         </Fragment>
       );
     }
