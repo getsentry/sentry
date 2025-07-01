@@ -44,10 +44,7 @@ jest.mock('sentry/utils/demoMode');
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
-  const userMock = UserFixture();
-  const user = UserFixture({
-    options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
-  });
+  const user = UserFixture();
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),

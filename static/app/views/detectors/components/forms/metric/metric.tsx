@@ -37,8 +37,8 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
+import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -119,7 +119,10 @@ function ResolveSection() {
   const conditionComparisonAgo = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
   );
-  const thresholdSuffix = useDetectorThresholdSuffix();
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const description = getResolutionDescription(
     kind === 'percent'
@@ -235,6 +238,9 @@ function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
 
   return (
     <Container>
@@ -320,7 +326,7 @@ function DetectSection() {
                   hideLabel
                   placeholder="0"
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
-                  suffix="s"
+                  suffix={getStaticDetectorThresholdSuffix(aggregate)}
                   required
                   preserveOnUnmount
                 />
