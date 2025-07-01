@@ -26,7 +26,10 @@ class Migration(CheckedMigration):
 
     initial = True
 
-    dependencies = []
+    dependencies = [
+        ("sentry", "0940_auditlog_json_field"),
+        ("workflow_engine", "0075_add_index_to_dcg_action"),
+    ]
 
     operations = [
         migrations.CreateModel(
