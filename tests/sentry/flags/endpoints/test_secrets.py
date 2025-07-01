@@ -110,7 +110,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
 
     def test_post_invalid_secret(self):
         with self.feature(self.features):
-            for provider in ["launchdarkly", "generic", "unleash"]:
+            for provider in ["launchdarkly", "unleash"]:
                 response = self.client.post(
                     self.url, data={"secret": "a" * 31, "provider": provider}
                 )
@@ -126,6 +126,19 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                 assert response.json()["secret"] == [
                     "Ensure this field has no more than 32 characters."
                 ], provider
+
+            # Generic
+            response = self.client.post(self.url, data={"secret": "a" * 9, "provider": "generic"})
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has at least 10 characters."
+            ], "generic"
+
+            response = self.client.post(self.url, data={"secret": "a" * 65, "provider": "generic"})
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has no more than 64 characters."
+            ], "generic"
 
             # Statsig
             response = self.client.post(self.url, data={"secret": "a" * 32, "provider": "statsig"})
