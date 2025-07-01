@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 

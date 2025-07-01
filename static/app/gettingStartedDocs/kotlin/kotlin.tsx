@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,

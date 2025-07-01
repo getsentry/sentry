@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/core/layout';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,

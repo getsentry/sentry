@@ -5,6 +5,7 @@ import {Observer} from 'mobx-react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -14,7 +15,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';

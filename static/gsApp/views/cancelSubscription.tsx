@@ -6,10 +6,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

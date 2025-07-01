@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
 import {DataConsentSettingsHeader} from 'getsentry/views/legalAndCompliance/utils';
