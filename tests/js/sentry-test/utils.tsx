@@ -53,6 +53,7 @@ export function setWindowLocation(url: string) {
   // (global as any).jsdom.reconfigure({url});
   // Temporary workaround for Jest 29
   const location = new URL(url);
+  window.location.host = location.host;
   window.location.href = location.href;
   window.location.pathname = location.pathname;
   window.location.search = location.search;
