@@ -43,7 +43,6 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       prefersNextjsInsightsOverview: false,
       prefersAgentsInsightsModule: false,
       prefersChonkUI: false,
-      quickStartDisplay: {},
     },
     permissions: new Set(),
     canReset2fa: false,
