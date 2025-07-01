@@ -384,7 +384,8 @@ const Workflow = styled('div')`
 `;
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto min-content;
   align-items: center;
   gap: ${space(0.5)};
 `;
