@@ -374,10 +374,7 @@ class SubscriptionProcessor:
         aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
         if aggregation_value is not None:
-            if (
-                has_metric_alert_processing
-                # and not self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-            ):
+            if has_metric_alert_processing:
                 if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
                     packet = QuerySubscriptionUpdate(
                         entity=subscription_update.get("entity", ""),
