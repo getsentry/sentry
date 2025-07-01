@@ -13,10 +13,14 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationData, IntegrationProvider
+from sentry.integrations.base import IntegrationData, IntegrationDomain, IntegrationProvider
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
@@ -124,63 +128,66 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
         )
 
     def finish_pipeline(self) -> HttpResponseBase:
-        org_context = organization_service.get_organization_by_id(
-            id=self.organization.id, user_id=self.request.user.id
-        )
-
-        if (
-            org_context
-            and (not org_context.member or "org:integrations" not in org_context.member.scopes)
-            and not superuser_has_permission(self.request, ["org:integrations"])
-        ):
-            error_message = (
-                "You must be an organization owner, manager or admin to install this integration."
+        with IntegrationPipelineViewEvent(
+            interaction_type=IntegrationPipelineViewType.FINISH_PIPELINE,
+            domain=IntegrationDomain.GENERAL,
+            provider_key=self.provider.key,
+        ).capture() as lifecycle:
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization.id, user_id=self.request.user.id
             )
-            logger.info(
-                "build-integration.permission_error",
-                extra={
-                    "error_message": error_message,
-                    "organization_id": self.organization.id if self.organization else None,
-                    "user_id": self.request.user.id,
-                    "provider_key": self.provider.key,
-                },
+
+            if (
+                org_context
+                and (not org_context.member or "org:integrations" not in org_context.member.scopes)
+                and not superuser_has_permission(self.request, ["org:integrations"])
+            ):
+                error_message = "You must be an organization owner, manager or admin to install this integration."
+                logger.info(
+                    "build-integration.permission_error",
+                    extra={
+                        "error_message": error_message,
+                        "organization_id": self.organization.id if self.organization else None,
+                        "user_id": self.request.user.id,
+                        "provider_key": self.provider.key,
+                    },
+                )
+                return self.error(error_message)
+
+            try:
+                data = self.provider.build_integration(self.state.data)
+            except IntegrationError as e:
+                lifecycle.add_extras(
+                    {
+                        "error_message": str(e),
+                        "error_status": getattr(e, "code", None),
+                        "organization_id": self.organization.id if self.organization else None,
+                        "provider_key": self.provider.key,
+                    }
+                )
+                lifecycle.record_failure(e)
+                return self.error(str(e))
+            except IntegrationProviderError as e:
+                self.get_logger().info(
+                    "build-integration.provider-error",
+                    extra={
+                        "error_message": str(e),
+                        "error_status": getattr(e, "code", None),
+                        "organization_id": self.organization.id if self.organization else None,
+                        "provider_key": self.provider.key,
+                    },
+                )
+                return self.render_warning(str(e))
+
+            response = self._finish_pipeline(data)
+
+            extra = data.get("post_install_data", {})
+
+            self.provider.create_audit_log_entry(
+                self.integration, self.organization, self.request, "install", extra=extra
             )
-            return self.error(error_message)
-
-        try:
-            data = self.provider.build_integration(self.state.data)
-        except IntegrationError as e:
-            self.get_logger().info(
-                "build-integration.failure",
-                extra={
-                    "error_message": str(e),
-                    "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id if self.organization else None,
-                    "provider_key": self.provider.key,
-                },
-            )
-            return self.error(str(e))
-        except IntegrationProviderError as e:
-            self.get_logger().info(
-                "build-integration.provider-error",
-                extra={
-                    "error_message": str(e),
-                    "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id if self.organization else None,
-                    "provider_key": self.provider.key,
-                },
-            )
-            return self.render_warning(str(e))
-
-        response = self._finish_pipeline(data)
-
-        extra = data.get("post_install_data", {})
-
-        self.provider.create_audit_log_entry(
-            self.integration, self.organization, self.request, "install", extra=extra
-        )
-        self.provider.post_install(self.integration, self.organization, extra=extra)
-        self.clear_session()
+            self.provider.post_install(self.integration, self.organization, extra=extra)
+            self.clear_session()
 
         metrics.incr(
             "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
