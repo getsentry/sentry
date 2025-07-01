@@ -9,8 +9,9 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
-from sentry.taskworker import config, namespaces, retry
+from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker import config, namespaces
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -35,7 +36,7 @@ logger = log_context.get_logger(__name__)
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
@@ -122,12 +123,13 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
     ),
 )
+@retry
 def process_workflows_event(
     project_id: int,
     event_id: str,
