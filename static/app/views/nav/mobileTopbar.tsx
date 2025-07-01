@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -46,11 +46,6 @@ function MobileTopbar() {
   const showSuperuserWarning =
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
-  const [navRef, setNavRef] = useState<HTMLDivElement | null>(null);
-  useOnClickOutside(navRef, () => {
-    setView('closed');
-  });
-
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
       <Left>
@@ -68,8 +63,8 @@ function MobileTopbar() {
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
-          ref={r => setNavRef(r)}
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
+          setView={setView}
         >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
           {view === 'secondary' ? (
@@ -104,12 +99,14 @@ function updateNavStyleAttributes(view: ActiveView) {
 function NavigationOverlayPortal({
   children,
   label,
-  ref,
+  setView,
 }: {
   children: React.ReactNode;
   label: string;
-  ref: React.RefCallback<HTMLDivElement | null>;
+  setView: (view: ActiveView) => void;
 }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useOnClickOutside(ref, () => setView('closed'));
   return createPortal(
     <NavigationOverlay ref={ref} aria-label={label}>
       {children}
