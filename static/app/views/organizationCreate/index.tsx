@@ -112,6 +112,7 @@ function OrganizationCreate() {
             id="organization-name"
             name="name"
             label={t('Organization Name')}
+            autoComplete="organization"
             placeholder={t('e.g. My Company')}
             inline={false}
             flexibleControlStateSize

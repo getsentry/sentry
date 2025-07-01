@@ -1,4 +1,7 @@
+import {Fragment} from 'react';
+
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -155,7 +158,12 @@ export function PrimaryNavigationHelp() {
                     }
                   : {
                       key: 'new-chonk-ui',
-                      label: t('Try our new look'),
+                      label: (
+                        <Fragment>
+                          {t('Try our new look')} <FeatureBadge type="beta" />
+                        </Fragment>
+                      ),
+                      textValue: 'Try our new look',
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
