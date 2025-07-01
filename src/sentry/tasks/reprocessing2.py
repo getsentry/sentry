@@ -105,7 +105,7 @@ def reprocess_group(
                         start_time=start_time,
                     )
                 except CannotReprocess as e:
-                    logger.error("reprocessing2.%s", str(e))
+                    logger.warning("reprocessing2.%s", str(e))
                 except Exception:
                     sentry_sdk.capture_exception()
                 else:
