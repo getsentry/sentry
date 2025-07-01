@@ -54,45 +54,29 @@ function AiContent() {
 
   const openForm = useFeedbackForm();
 
-  const feedbackPositiveButton = openForm ? (
-    <Button
-      aria-label={t('Give feedback on the AI summary section')}
-      icon={<IconThumb direction="up" />}
-      title={t('I like this')}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('What did you like about the AI summary and chapters?'),
-          tags: {
-            ['feedback.source']: 'replay_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: 'positive',
-          },
-        })
-      }
-    />
-  ) : null;
-
-  const feedbackNegativeButton = openForm ? (
-    <Button
-      aria-label={t('Give feedback on the AI summary section')}
-      icon={<IconThumb direction="down" />}
-      title={t(`I don't like this`)}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t(
-            'How can we make the AI summary and chapters work better for you?'
-          ),
-          tags: {
-            ['feedback.source']: 'replay_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: 'negative',
-          },
-        })
-      }
-    />
-  ) : null;
+  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
+    return openForm ? (
+      <Button
+        aria-label={t('Give feedback on the AI summary section')}
+        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+        size={'xs'}
+        onClick={() =>
+          openForm({
+            messagePlaceholder:
+              type === 'positive'
+                ? t('What did you like about the AI summary and chapters?')
+                : t('How can we make the AI summary and chapters work better for you?'),
+            tags: {
+              ['feedback.source']: 'replay_ai_summary',
+              ['feedback.owner']: 'replay',
+              ['feedback.type']: type,
+            },
+          })
+        }
+      />
+    ) : null;
+  };
 
   if (!organization.features.includes('replay-ai-summaries')) {
     return (
@@ -149,8 +133,8 @@ function AiContent() {
           </SummaryLeft>
           <SummaryRight>
             <Flex gap={space(0.5)}>
-              {feedbackPositiveButton}
-              {feedbackNegativeButton}
+              {feedbackButton({type: 'positive'})}
+              {feedbackButton({type: 'negative'})}
             </Flex>
             <Button
               priority="default"

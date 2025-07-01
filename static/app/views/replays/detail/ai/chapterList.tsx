@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Alert} from 'sentry/components/core/alert';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron} from 'sentry/icons';
@@ -48,6 +49,14 @@ export function ChapterList({summaryData}: Props) {
         .sort((a, b) => a.start - b.start),
     [summaryData, replay]
   );
+
+  if (!chapterData.length) {
+    return (
+      <EmptyContainer>
+        <Alert type="info">{t('No chapters available for this replay.')}</Alert>
+      </EmptyContainer>
+    );
+  }
 
   return (
     <ChaptersList>
@@ -247,4 +256,8 @@ const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const EmptyContainer = styled('div')`
+  padding: ${space(2)};
 `;
