@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconRefresh} from 'sentry/icons';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
@@ -49,6 +51,48 @@ function AiContent() {
     ),
     retry: false,
   });
+
+  const openForm = useFeedbackForm();
+
+  const feedbackPositiveButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the AI summary section')}
+      icon={<IconThumb direction="up" />}
+      title={t('I like this')}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('What did you like about the AI summary and chapters?'),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: 'positive',
+          },
+        })
+      }
+    />
+  ) : null;
+
+  const feedbackNegativeButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the AI summary section')}
+      icon={<IconThumb direction="down" />}
+      title={t(`I don't like this`)}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t(
+            'How can we make the AI summary and chapters work better for you?'
+          ),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: 'negative',
+          },
+        })
+      }
+    />
+  ) : null;
 
   if (!organization.features.includes('replay-ai-summaries')) {
     return (
@@ -96,22 +140,28 @@ function AiContent() {
     <ErrorBoundary mini>
       <SplitContainer>
         <Summary>
-          <SummaryHeader>
-            <SummaryHeaderTitle>
-              <span>{t('Replay Summary')}</span>
+          <SummaryLeft>
+            <SummaryLeftTitle>
+              {t('Replay Summary')}
               <Badge type="internal">{t('Internal')}</Badge>
-            </SummaryHeaderTitle>
+            </SummaryLeftTitle>
+            <SummaryText>{summaryData.data.summary}</SummaryText>
+          </SummaryLeft>
+          <SummaryRight>
+            <Flex gap={space(0.5)}>
+              {feedbackPositiveButton}
+              {feedbackNegativeButton}
+            </Flex>
             <Button
               priority="default"
               type="button"
               size="xs"
               onClick={() => refetch()}
-              icon={<IconRefresh size="xs" />}
+              icon={<IconSync size="xs" />}
             >
               {t('Regenerate')}
             </Button>
-          </SummaryHeader>
-          <SummaryText>{summaryData.data.summary}</SummaryText>
+          </SummaryRight>
         </Summary>
         <ChapterList summaryData={summaryData} />
       </SplitContainer>
@@ -152,21 +202,32 @@ const SummaryContainer = styled('div')`
   padding: ${space(2)};
   overflow: auto;
 `;
-const Summary = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
 
-const SummaryHeader = styled('h3')`
+const Summary = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  padding: ${space(1)} ${space(1.5)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  gap: ${space(4)};
 `;
 
-const SummaryHeaderTitle = styled('div')`
+const SummaryLeft = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const SummaryRight = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  align-items: flex-end;
+`;
+
+const SummaryLeftTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -176,5 +237,7 @@ const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

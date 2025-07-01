@@ -90,7 +90,7 @@ function ChapterRow({
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
   return (
-    <Chapter
+    <ChapterWrapper
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -99,10 +99,10 @@ function ChapterRow({
         afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
     >
-      <Summary>
-        <SummaryIconArrowWrapper>
-          <SummaryIconArrow direction="right" size="xs" />
-        </SummaryIconArrowWrapper>
+      <Chapter>
+        <ChapterIconArrowWrapper>
+          <ChapterIconArrow direction="right" size="xs" />
+        </ChapterIconArrowWrapper>
         <ChapterTitle>
           <span>{title}</span>
 
@@ -116,7 +116,7 @@ function ChapterRow({
             />
           </ReplayTimestamp>
         </ChapterTitle>
-      </Summary>
+      </Chapter>
       <div>
         {!breadcrumbs.length && (
           <EmptyMessage>{t('No breadcrumbs for this chapter')}</EmptyMessage>
@@ -136,20 +136,20 @@ function ChapterRow({
           />
         ))}
       </div>
-    </Chapter>
+    </ChapterWrapper>
   );
 }
 
-const SummaryIconArrowWrapper = styled('div')`
+const ChapterIconArrowWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(0.5)};
   background-color: ${p => p.theme.background};
-  z-index: 2; /* needs to be above "Chapter summary::after" */
+  z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
 `;
 
-const SummaryIconArrow = styled(IconChevron)`
+const ChapterIconArrow = styled(IconChevron)`
   details[open] & {
     transform: rotate(180deg);
   }
@@ -160,7 +160,7 @@ const ChaptersList = styled('div')`
   overflow: auto;
 `;
 
-const Chapter = styled('details')`
+const ChapterWrapper = styled('details')`
   width: 100%;
   position: relative;
   margin: 0;
@@ -203,7 +203,7 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 `;
 
-const Summary = styled('summary')`
+const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
