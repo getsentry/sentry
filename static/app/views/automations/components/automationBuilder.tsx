@@ -103,9 +103,6 @@ export default function AutomationBuilder() {
           {t('If/Then Block')}
         </PurpleTextButton>
       </span>
-      <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-      </span>
     </Flex>
   );
 }
@@ -172,11 +169,8 @@ function ActionFilterBlock({
             conditions={actionFilter?.conditions || []}
             onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
             onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
-            updateCondition={(id, comparison) =>
-              actions.updateIfCondition(actionFilter.id, id, comparison)
-            }
-            updateConditionType={(id, type) =>
-              actions.updateIfConditionType(actionFilter.id, id, type)
+            updateCondition={(id, params) =>
+              actions.updateIfCondition(actionFilter.id, id, params)
             }
             conflictingConditionIds={conflictingConditions}
           />
@@ -198,6 +192,9 @@ function ActionFilterBlock({
           updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />
       </Step>
+      <span>
+        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+      </span>
     </IfThenWrapper>
   );
 }

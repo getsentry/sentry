@@ -48,14 +48,14 @@ export function SubfiltersList() {
         match: MatchType.EQUAL,
       },
     ];
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   function removeSubfilter(id: string) {
     const newSubfilters = subfilters.filter(
       (subfilter: Record<string, any>) => subfilter.id !== id
     );
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   function updateSubfilter(id: string, comparison: Record<string, any>) {
@@ -68,7 +68,7 @@ export function SubfiltersList() {
       }
       return subfilter;
     });
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   return (

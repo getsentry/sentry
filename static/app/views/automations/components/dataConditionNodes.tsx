@@ -69,8 +69,7 @@ import {
 interface DataConditionNodeProps {
   condition: DataCondition;
   condition_id: string;
-  onUpdate: (comparison: Record<string, any>) => void;
-  onUpdateType: (type: DataConditionType) => void;
+  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
 }
 
 export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
@@ -90,7 +89,7 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 type DataConditionNode = {
   label: string;
   dataCondition?: React.ComponentType<any>;
-  defaultComparison?: Record<string, any>;
+  defaultComparison?: any;
   details?: React.ComponentType<any>;
 };
 
@@ -155,12 +154,12 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
-    DataConditionType.ISSUE_PRIORITY_EQUALS,
+    DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
     {
       label: t('Issue priority'),
       dataCondition: IssuePriorityNode,
       details: IssuePriorityDetails,
-      defaultComparison: {match: Priority.HIGH},
+      defaultComparison: Priority.HIGH,
     },
   ],
   [

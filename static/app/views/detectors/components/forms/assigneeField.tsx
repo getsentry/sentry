@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
-import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metricFormData';
+import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
 type AssigneeFieldProps = {
   projectId: string;

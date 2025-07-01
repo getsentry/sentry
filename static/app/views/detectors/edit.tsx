@@ -20,12 +20,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metricFormData';
+import {EditDetectorActions} from 'sentry/views/detectors/components/forms/editDetectorActions';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   getMetricDetectorFormData,
   getNewMetricDetectorData,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useDetectorQuery, useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
@@ -114,6 +115,7 @@ export default function DetectorEdit() {
             <DetectorBreadcrumbs detectorId={params.detectorId} />
             <DetectorBaseFields />
           </Layout.HeaderContent>
+          <EditDetectorActions detectorId={detector.id} />
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
