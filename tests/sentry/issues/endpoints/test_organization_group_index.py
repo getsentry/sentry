@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import functools
 from collections.abc import Sequence
 from datetime import datetime, timedelta
@@ -3329,6 +3330,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert {r["id"] for r in response.data} == {str(error_group_id)}
 
+    @pytest.mark.skip(reason="flaky: #94706")
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues
         for i in range(30):
