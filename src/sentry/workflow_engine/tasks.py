@@ -1,3 +1,5 @@
+from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
+
 from sentry import nodestore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
@@ -7,9 +9,9 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
-from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker import config, namespaces, retry
+from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker import config, namespaces
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -34,7 +36,7 @@ logger = log_context.get_logger(__name__)
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
@@ -82,12 +84,23 @@ def workflow_status_update_handler(
     )
 
 
+def _should_retry_nodestore_fetch(attempt: int, e: Exception) -> bool:
+    return not attempt > 3 and (
+        # ServiceUnavailable and DeadlineExceeded are generally retriable;
+        # we also include RetryError because the nodestore interface doesn't let
+        # us specify a timeout to BigTable and the default is 5s; see c5e2b40.
+        isinstance(e, (ServiceUnavailable, RetryError, DeadlineExceeded))
+    )
+
+
 def fetch_event(event_id: str, project_id: int) -> Event | None:
     """
     Fetch a single Event, with retries.
     """
     node_id = Event.generate_node_id(project_id, event_id)
-    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+    fetch_retry_policy = ConditionalRetryPolicy(
+        _should_retry_nodestore_fetch, exponential_delay(1.00)
+    )
     data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
@@ -110,12 +123,13 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
     ),
 )
+@retry
 def process_workflows_event(
     project_id: int,
     event_id: str,
@@ -140,6 +154,7 @@ def process_workflows_event(
         has_escalated=has_escalated,
         group_state=group_state,
         event=group_event,
+        group=group,
     )
     process_workflows(event_data)
 

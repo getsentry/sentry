@@ -18,7 +18,10 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     find_roots,
     get_sorted_code_mapping_configs,
 )
-from sentry.issues.auto_source_code_config.errors import UnexpectedPathException
+from sentry.issues.auto_source_code_config.errors import (
+    UnexpectedPathException,
+    UnsupportedFrameInfo,
+)
 from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -295,11 +298,8 @@ class TestDerivedCodeMappings(TestCase):
         assert source_path == ""
 
     def test_find_roots_bad_stack_path(self) -> None:
-        with pytest.raises(UnexpectedPathException):
-            find_roots(
-                FrameInfo({"filename": "https://yrurlsinyourstackpath.com/"}),
-                "sentry/something.py",
-            )
+        with pytest.raises(UnsupportedFrameInfo):
+            FrameInfo({"filename": "https://yrurlsinyourstackpath.com/"})
 
     def test_find_roots_bad_source_path(self) -> None:
         with pytest.raises(UnexpectedPathException):
@@ -307,6 +307,29 @@ class TestDerivedCodeMappings(TestCase):
                 FrameInfo({"filename": "sentry/random.py"}),
                 "nothing/something.js",
             )
+
+    def test_find_roots_windows_path_with_spaces(self) -> None:
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "C:\\Program Files\\MyApp\\src\\file.py"}), "src/file.py"
+        )
+        assert stacktrace_root == "C:\\Program Files\\MyApp\\"
+        assert source_path == ""
+
+    def test_find_roots_windows_path_with_spaces_nested(self) -> None:
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "C:\\Program Files\\My Company\\My App\\src\\main\\file.py"}),
+            "src/main/file.py",
+        )
+        assert stacktrace_root == "C:\\Program Files\\My Company\\My App\\"
+        assert source_path == ""
+
+    def test_find_roots_windows_path_with_spaces_source_match(self) -> None:
+        stacktrace_root, source_path = find_roots(
+            FrameInfo({"filename": "C:\\Program Files\\MyApp\\src\\components\\file.py"}),
+            "frontend/src/components/file.py",
+        )
+        assert stacktrace_root == "C:\\Program Files\\MyApp\\"
+        assert source_path == "frontend/"
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

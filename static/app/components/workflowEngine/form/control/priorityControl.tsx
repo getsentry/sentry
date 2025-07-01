@@ -20,7 +20,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
+import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 const priorities = [
   DetectorPriorityLevel.LOW,
@@ -49,7 +49,11 @@ function ThresholdPriority() {
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
-  const thresholdSuffix = useDetectorThresholdSuffix();
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+
   return (
     <div>
       {conditionKindAndTypeToLabel.static[conditionType!]}{' '}
@@ -66,7 +70,11 @@ function ChangePriority() {
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
-  const thresholdSuffix = useDetectorThresholdSuffix();
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+
   return (
     <div>
       {conditionValue === '' ? '0' : conditionValue}
@@ -84,10 +92,13 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
-  const thresholdSuffix = useDetectorThresholdSuffix();
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   if (detectorKind === 'dynamic') {
     return null;

@@ -39,9 +39,7 @@ function AttributeField() {
         label: attribute,
       }))}
       onChange={(value: Attributes) => {
-        onUpdate({
-          attribute: value,
-        });
+        onUpdate({comparison: {...condition.comparison, attribute: value}});
       }}
     />
   );
@@ -55,9 +53,7 @@ function MatchField() {
       value={condition.comparison.match}
       options={MATCH_CHOICES}
       onChange={(value: MatchType) => {
-        onUpdate({
-          match: value,
-        });
+        onUpdate({comparison: {...condition.comparison, match: value}});
       }}
     />
   );
@@ -71,9 +67,7 @@ function ValueField() {
       placeholder={t('value')}
       value={condition.comparison.value}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          value: e.target.value,
-        });
+        onUpdate({comparison: {...condition.comparison, value: e.target.value}});
       }}
     />
   );

@@ -1,4 +1,7 @@
-from django.db.models import Count
+from functools import partial
+
+from django.db.models import Count, Q
+from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -10,6 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
+from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -20,17 +25,25 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
-from sentry.db.models.query import in_icontains, in_iexact
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.utils import tokenize_query
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
+
+detector_search_config = SearchConfig.create_from(
+    default_config,
+    text_operator_keys={"name", "type"},
+    allowed_keys={"name", "type"},
+    allow_boolean=False,
+    free_text_key="query",
+)
+parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -102,7 +115,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         Return a list of detectors for a given organization.
         """
         projects = self.get_projects(request, organization)
-        queryset = Detector.objects.filter(
+        queryset: QuerySet[Detector] = Detector.objects.filter(
             project_id__in=projects,
         )
 
@@ -114,18 +127,20 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
-            tokenized_query = tokenize_query(raw_query)
-            for key, values in tokenized_query.items():
-                match key:
-                    case "name":
-                        queryset = queryset.filter(in_iexact("name", values))
-                    case "type":
-                        queryset = queryset.filter(in_iexact("type", values))
-                    case "query":
+            for filter in parse_detector_query(raw_query):
+                assert isinstance(filter, SearchFilter)
+                match filter:
+                    case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(queryset, filter, "name")
+                    case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(queryset, filter, "type")
+                    case SearchFilter(key=SearchKey("query"), operator="="):
+                        # 'query' is our free text key; all free text gets returned here
+                        # as '=', and we search any relevant fields for it.
                         queryset = queryset.filter(
-                            in_icontains("description", values)
-                            | in_icontains("name", values)
-                            | in_icontains("type", values)
+                            Q(description__icontains=filter.value.value)
+                            | Q(name__icontains=filter.value.value)
+                            | Q(type__icontains=filter.value.value)
                         ).distinct()
 
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
