@@ -58,9 +58,11 @@ export function StorySearch() {
         <InputGroup.Input
           ref={el => {
             searchInput.current = el;
-            const cb = () => setShowSearch(true);
-            el?.addEventListener('focus', cb);
-            return () => el?.removeEventListener('focus', cb);
+            const handleFocus = () => setShowSearch(true);
+            el?.addEventListener('focus', handleFocus);
+            return () => {
+              el?.removeEventListener('focus', handleFocus);
+            };
           }}
           placeholder="Search stories"
           defaultValue={location.query.query ?? ''}
@@ -73,6 +75,7 @@ export function StorySearch() {
       </InputGroup>
       {showSearch && (
         <Overlay
+          style={{position: 'absolute', top: 0, left: 0}}
           onClick={dismiss}
           onKeyDown={e => {
             if (e.key === 'Enter') {
