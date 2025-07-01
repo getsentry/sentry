@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
-
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
 import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
@@ -38,19 +37,17 @@ export default function BulkDeleteAlert({projectId}: Props) {
       <Alert
         type="info"
         showIcon
-        expand={
-          <Fragment>
-            Visit the{' '}
+        expand={tct('Visit the [link: Job log] to see more details and track progress.', {
+          link: (
             <Link
               to={`/organizations/${organization.slug}/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`}
-            >
-              Job Log
-            </Link>{' '}
-            to see more details and track progress.
-          </Fragment>
-        }
+            />
+          ),
+        })}
       >
-        Replays are being deleted in the background. Items shown below may be stale.
+        {t(
+          'Replays are being deleted in the background. Items shown below may be stale.'
+        )}
       </Alert>
     );
   }
