@@ -19,14 +19,27 @@ const config: TransformOptions = {
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
     ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+  overrides: [],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
+  env: {
+    production: {},
+    development: {
+      plugins: ['@emotion/babel-plugin'],
+    },
+    test: {
+      sourceMaps: process.env.CI ? false : true,
+      plugins: [
+        // Disable emotion sourcemaps in tests
+        // Since emotion spends lots of time parsing and inserting sourcemaps
+        [
+          '@emotion/babel-plugin',
+          {
+            sourceMap: false,
+          },
+        ],
+      ],
+    },
+  },
 };
 
 export default config;

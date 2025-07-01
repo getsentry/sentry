@@ -48,6 +48,11 @@ export function resetMockDate() {
  * see {@link https://github.com/jsdom/jsdom#reconfiguring-the-jsdom-with-reconfiguresettings}
  */
 export function setWindowLocation(url: string) {
+  // TODO: Start using reconfigure in Jest 30
   // global jsdom is coming from `@sentry/jest-environment`
-  (global as any).jsdom.reconfigure({url});
+  // (global as any).jsdom.reconfigure({url});
+  // Temporary workaround for Jest 29
+  const location = new URL(url);
+  window.location.href = location.href;
+  window.location.search = location.search;
 }
