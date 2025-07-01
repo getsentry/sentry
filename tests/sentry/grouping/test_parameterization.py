@@ -19,10 +19,11 @@ def parameterizer() -> Parameterizer:
         ("hostname - subdomain", "www.example.net", "<hostname>"),
         ("ip", "0.0.0.0", "<ip>"),
         (
-            "traceparent",
+            "traceparent - header",
             "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
             "traceparent: <traceparent>",
         ),
+        ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
         ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
         (
             "uuid - multiple",
