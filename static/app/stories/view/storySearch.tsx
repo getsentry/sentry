@@ -60,7 +60,7 @@ export function StorySearch() {
             searchInput.current = el;
             const cb = () => setShowSearch(true);
             el?.addEventListener('focus', cb);
-            return el?.removeEventListener('focus', cb);
+            return () => el?.removeEventListener('focus', cb);
           }}
           placeholder="Search stories"
           defaultValue={location.query.query ?? ''}
