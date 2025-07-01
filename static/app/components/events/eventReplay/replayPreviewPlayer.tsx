@@ -13,6 +13,7 @@ import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreen
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,7 +30,6 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
@@ -93,10 +93,11 @@ export default function ReplayPreviewPlayer({
         </StyledAlert>
       )}
       <HeaderWrapper>
-        <StyledReplayCell
-          key="session"
+        <ReplaySessionColumn.Component
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
+          columnIndex={0}
+          showDropdownFilters={false}
         />
         <LinkButton
           size="sm"
@@ -240,10 +241,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledReplayCell = styled(ReplayCell)`
-  padding: 0 0 ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
