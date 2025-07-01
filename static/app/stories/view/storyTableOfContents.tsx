@@ -149,8 +149,13 @@ function StoryContentsList({entry}: {entry: NestedEntry}) {
 }
 
 const StoryIndexContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
+  display: none;
+  position: sticky;
+  top: 52px;
+  margin-inline: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: block;
   }
 `;
 
@@ -171,14 +176,17 @@ const StoryIndexListContainer = styled('div')`
 `;
 
 const StoryIndexTitle = styled('div')`
+  line-height: 1.25;
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.5)} 0 ${space(1)} 0;
-  margin-bottom: ${space(1)};
+  margin: ${space(4)} 0 ${space(1)} 0;
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
-  padding-left: ${space(0.75)};
+  padding-left: ${space(1)};
   margin: 0;
   width: 160px;
 
