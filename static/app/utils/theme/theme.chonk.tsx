@@ -1034,6 +1034,20 @@ const generateAliases = (
   bannerBackground: colors.gray500,
 });
 
+const fontSize = {
+  '2xs': '11px' as const,
+  xs: '12px' as const,
+  sm: '14px' as const,
+  md: '16px' as const,
+  lg: '20px' as const,
+  xl: '24px' as const,
+} satisfies Record<'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl', string>;
+
+const chonkCommonTheme = {
+  ...commonTheme,
+  fontSize,
+};
+
 // Mapping of chonk theme to sentry theme
 const chonkLightColorMapping: ColorMapping = {
   black: lightColors.black,
@@ -1183,7 +1197,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkLightColorMapping,
   ...lightAliases,
@@ -1261,7 +1275,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkDarkColorMapping,
   ...darkAliases,

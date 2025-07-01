@@ -973,7 +973,7 @@ const breakpoints = {
   '2xl': '2560px',
 } as const satisfies Breakpoints;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
 type IconDirection = 'up' | 'right' | 'down' | 'left';
@@ -1087,7 +1087,7 @@ const formTheme: FormTheme = {
   },
 };
 
-const iconSizes: Record<Size, string> = {
+const iconSizes: Record<Exclude<Size, '2xs'>, string> = {
   xs: '12px',
   sm: '14px',
   md: '18px',
@@ -1178,14 +1178,14 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
-
   fontSize: {
-    xs: '11px' as const,
-    sm: '12px' as const,
-    md: '14px' as const,
-    lg: '16px' as const,
-    xl: '18px' as const,
-  },
+    '2xs': '11px',
+    xs: '11px',
+    sm: '12px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+  } satisfies Record<'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl', string>,
 
   fontWeight: {
     normal: 400 as const,
@@ -1325,7 +1325,7 @@ export const darkTheme: typeof lightTheme = {
 
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
-export type IconSize = Size;
+export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;

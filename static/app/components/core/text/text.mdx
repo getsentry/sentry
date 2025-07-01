@@ -1,0 +1,80 @@
+import {Text} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+export const titleText =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'.slice(
+    0,
+    24
+  );
+export const bodyText =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
+
+## Text
+
+### Title
+
+<Storybook.SideBySide>
+  <Text.Title>H1 Heading is the Default</Text.Title>
+  <Text.Title as="h2">H2 Heading</Text.Title>
+  <Text.Title as="h3">H3 Heading</Text.Title>
+  <Text.Title as="h4">H4 Heading</Text.Title>
+  <Text.Title as="h5">H5 Heading</Text.Title>
+  <Text.Title as="h6">H6 Heading</Text.Title>
+</Storybook.SideBySide>
+
+### Text
+
+<Storybook.SideBySide>
+  <Text size="xl">Extra large text</Text>
+  <Text size="lg">Large text</Text>
+  <Text size="md">Default</Text>
+  <Text size="sm">Small text</Text>
+  <Text size="2xs">Extra small text</Text>
+</Storybook.SideBySide>
+
+### Variants
+
+<Storybook.SideBySide>
+  <Text variant="primary">{titleText}</Text>
+  <Text variant="muted">{titleText}</Text>
+  <Text variant="accent">{titleText}</Text>
+  <Text variant="success">{titleText}</Text>
+  <Text variant="warning">{titleText}</Text>
+  <Text variant="danger">{titleText}</Text>
+  <Text variant="promotion">{titleText}</Text>
+</Storybook.SideBySide>
+
+### Density
+
+<Storybook.SideBySide>
+  <div>
+    <label>Compressed</label>
+    <Text density="compressed">{bodyText}</Text>
+  </div>
+  <div>
+    <label>Default</label>
+    <Text>{bodyText}</Text>
+  </div>
+  <div>
+    <label>Comfortable</label>
+    <Text density="comfortable">{bodyText}</Text>
+  </div>
+</Storybook.SideBySide>
+
+### Overflow
+
+<Storybook.SideBySide>
+  <div style={{width: '218px', overflow: 'hidden'}}>
+    <Text ellipsis>This is a long text that will overflow</Text>
+  </div>
+</Storybook.SideBySide>
+
+### Text Decoration
+
+<Storybook.SideBySide>
+  <Text strikethrough>Strikethrough</Text>
+  <Text underline>Underline</Text>
+  <Text strikethrough underline>
+    Strikethrough 🤝 Underline
+  </Text>
+</Storybook.SideBySide>
