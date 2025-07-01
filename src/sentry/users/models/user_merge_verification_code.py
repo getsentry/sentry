@@ -6,7 +6,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -22,7 +23,7 @@ def generate_expires_at() -> datetime:
 
 
 @control_silo_model
-class UserMergeVerificationCode(Model):
+class UserMergeVerificationCode(DefaultFieldsModel):
     """
     A temporary model used to store verification codes for users who are manually
     merging their accounts with the same primary email address. We will remove this
