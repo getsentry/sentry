@@ -30,7 +30,7 @@
   border: 1px solid #fff;
   padding: 40px;
   padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(40px + env(safe-area-inset-top));
   max-width: 700px;
   overflow: auto;
   border-radius: 3px;
@@ -208,7 +208,7 @@
   .sentry-error-embed {
     padding: 10px;
     padding-top: constant(safe-area-inset-top);
-    padding-top: env(safe-area-inset-top);
+    padding-top: calc(10px + env(safe-area-inset-top));
     max-width: none;
   }
   .sentry-error-embed h2 {
@@ -222,7 +222,7 @@
   .sentry-error-embed {
     padding: 10px;
     padding-top: constant(safe-area-inset-top);
-    padding-top: env(safe-area-inset-top);
+    padding-top: calc(10px + env(safe-area-inset-top));
     margin-top: 0;
     position: absolute;
     top: 0;
