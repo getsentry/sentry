@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
 function useDashboardWidgetSource(): DashboardWidgetSource | '' {
