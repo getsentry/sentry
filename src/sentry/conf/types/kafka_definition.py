@@ -55,6 +55,7 @@ class Topic(Enum):
     INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
     INGEST_OCCURRENCES = "ingest-occurrences"
     INGEST_MONITORS = "ingest-monitors"
+    PREPROD_ARTIFACT_EVENTS = "preprod-artifact-events"
     MONITORS_CLOCK_TICK = "monitors-clock-tick"
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
