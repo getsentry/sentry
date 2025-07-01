@@ -2,6 +2,8 @@ import * as Amplitude from '@amplitude/analytics-browser';
 import * as qs from 'query-string';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {setWindowLocation} from 'sentry-test/utils';
+
 import ConfigStore from 'sentry/stores/configStore';
 import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 
@@ -18,9 +20,9 @@ describe('analyticsInitUser', function () {
     sessionStorageWrapper.clear();
     ConfigStore.set('enableAnalytics', true);
     ConfigStore.set('getsentry.amplitudeApiKey', 'foo');
+    setWindowLocation('http:/localhost/');
   });
   afterEach(function () {
-    window.location.search = '';
     sessionStorageWrapper.removeItem('marketing_event_recorded');
     (trackMarketingEvent as jest.Mock).mockClear();
     (Amplitude.setUserId as jest.Mock).mockClear();
@@ -64,7 +66,7 @@ describe('analyticsInitUser', function () {
       {event_name: 'Start Trial'},
     ];
     const jsonEvents = JSON.stringify(events);
-    window.location.search = qs.stringify({frontend_events: jsonEvents});
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).toHaveBeenCalledWith('Sign Up', {event_label: 'Google'});
     expect(trackMarketingEvent).toHaveBeenCalledWith('Start Trial', {
@@ -75,7 +77,7 @@ describe('analyticsInitUser', function () {
   it('handles frontend_events as single event', function () {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    window.location.search = qs.stringify({frontend_events: jsonEvents});
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).toHaveBeenCalledWith('Sign Up', {event_label: 'Google'});
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
@@ -83,7 +85,7 @@ describe('analyticsInitUser', function () {
   it('skip sending event if in session storage', function () {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    window.location.search = qs.stringify({frontend_events: jsonEvents});
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     sessionStorageWrapper.setItem('marketing_event_recorded', jsonEvents);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
@@ -91,12 +93,12 @@ describe('analyticsInitUser', function () {
   it('handles malformed event_name', function () {
     const events = {event_name: undefined, event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    window.location.search = qs.stringify({frontend_events: jsonEvents});
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
   it('store previous_referrer in local storage', function () {
-    window.location.search = qs.stringify({referrer: 'something'});
+    setWindowLocation('http:/localhost/?referrer=something');
     // We need to spy on the prototype since this may not be a mocked class
     // https://stackoverflow.com/questions/32911630/how-do-i-deal-with-localstorage-in-jest-tests
     const spy = jest.spyOn(Storage.prototype, 'setItem');
