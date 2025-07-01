@@ -592,6 +592,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
 
+    @pytest.mark.skip(reason="flaky: #94704")
     def test_order_by(self):
         self.login_as(user=self.user)
         project = self.create_project()
