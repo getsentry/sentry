@@ -36,7 +36,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-const NetworkTableCell = ({
+export default function NetworkTableCell({
   columnIndex,
   currentHoverTime,
   currentTime,
@@ -50,7 +50,7 @@ const NetworkTableCell = ({
   startTimestampMs,
   style,
   ref,
-}: Props) => {
+}: Props) {
   // Rows include the sortable header, the dataIndex does not
   const dataIndex = rowIndex - 1;
 
@@ -117,9 +117,10 @@ const NetworkTableCell = ({
       <Cell {...columnProps}>
         <Tooltip
           title={frame.description}
+          delay={750}
           isHoverable
+          maxWidth={10_000}
           showOnlyOnOverflow
-          overlayStyle={{maxWidth: '500px !important'}}
         >
           <Text>{frame.description || EMPTY_CELL}</Text>
         </Tooltip>
@@ -162,6 +163,4 @@ const NetworkTableCell = ({
   ];
 
   return renderFns[columnIndex]!();
-};
-
-export default NetworkTableCell;
+}
