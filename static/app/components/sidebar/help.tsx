@@ -135,7 +135,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Try Our New Look')} <Badge type="internal">{t('Internal')}</Badge>
+                    {t('Try Our New Look')} <Badge type="beta">{t('Beta')}</Badge>
                   </SidebarMenuItem>
                 )
               ) : null}
