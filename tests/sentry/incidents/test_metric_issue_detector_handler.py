@@ -93,6 +93,22 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
             )
         return evidence_data
 
+    def verify_issue_occurrence(
+        self, occurrence: IssueOccurrence, evidence_data: dict, detector_trigger: DataCondition
+    ) -> None:
+        assert occurrence is not None
+        assert occurrence.issue_title == self.detector.name
+        assert occurrence.subtitle == self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=detector_trigger,
+            priority=detector_trigger.condition_result,
+        )
+        assert occurrence.evidence_data == evidence_data
+        assert occurrence.level == "error"
+        assert occurrence.priority == detector_trigger.condition_result
+        assert occurrence.assignee
+        assert occurrence.assignee.id == self.detector.created_by_id
+
     def create_data_packet(self, value: int) -> DataPacket:
         packet = QuerySubscriptionUpdate(
             entity="entity",
@@ -118,18 +134,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         assert isinstance(evaluation_result.result, IssueOccurrence)
         occurrence: IssueOccurrence = evaluation_result.result
 
-        assert occurrence is not None
-        assert occurrence.issue_title == self.detector.name
-        assert occurrence.subtitle == self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.critical_detector_trigger,
-            priority=self.critical_detector_trigger.condition_result,
-        )
-        assert occurrence.evidence_data == evidence_data
-        assert occurrence.level == "error"
-        assert occurrence.priority == self.critical_detector_trigger.condition_result
-        assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
 
     def test_warning_level(self):
         value = self.warning_detector_trigger.comparison + 1
@@ -143,16 +148,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         assert isinstance(evaluation_result.result, IssueOccurrence)
         occurrence: IssueOccurrence = evaluation_result.result
 
-        assert occurrence is not None
-        assert occurrence.issue_title == self.detector.name
-        assert occurrence.subtitle == self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.warning_detector_trigger,
-            priority=self.warning_detector_trigger.condition_result,
-        )
-        assert occurrence.evidence_data == evidence_data
-        assert occurrence.level == "error"
-        assert occurrence.priority == self.warning_detector_trigger.condition_result
+        self.verify_issue_occurrence(occurrence, evidence_data, self.warning_detector_trigger)
 
     def test_does_not_trigger(self):
         value = self.warning_detector_trigger.comparison - 1
@@ -181,18 +177,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         assert isinstance(evaluation_result.result, IssueOccurrence)
         occurrence: IssueOccurrence = evaluation_result.result
 
-        assert occurrence is not None
-        assert occurrence.issue_title == self.detector.name
-        assert occurrence.subtitle == self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.critical_detector_trigger,
-            priority=self.critical_detector_trigger.condition_result,
-        )
-        assert occurrence.evidence_data == evidence_data
-        assert occurrence.level == "error"
-        assert occurrence.priority == self.critical_detector_trigger.condition_result
-        assert occurrence.assignee
-        assert occurrence.assignee.id == self.detector.created_by_id
+        self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
