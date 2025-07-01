@@ -37,7 +37,7 @@ class QueryInjectionDetectorTest(TestCase):
         assert problem.op == "db"
         assert (
             problem.desc
-            == 'Untrusted Inputs [username] in {"batchSize":"?","filter":{"username":{"$ne":"?"}},"find":"users-test","limit":"?","singleBatch":"?"}'
+            == 'Untrusted Inputs [username] in `{"batchSize":"?","filter":{"username":{"$ne":"?"}},"find":"users-test","limit":"?","singleBatch":"?"}`'
         )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", {"$ne": None})]

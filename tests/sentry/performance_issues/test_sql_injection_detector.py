@@ -37,7 +37,7 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.op == "db"
         assert (
             problem.desc
-            == "Untrusted Inputs [username] in SELECT * FROM users WHERE username = %s ORDER BY username ASC"
+            == "Untrusted Inputs [username] in `SELECT * FROM users WHERE username = %s ORDER BY username ASC`"
         )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]
@@ -53,7 +53,8 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.fingerprint == "1-1020-da364c9819759827b8401d54783b2462683d461a"
         assert problem.op == "db"
         assert (
-            problem.desc == "Untrusted Inputs [username] in SELECT * FROM users WHERE username = %s"
+            problem.desc
+            == "Untrusted Inputs [username] in `SELECT * FROM users WHERE username = %s`"
         )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", "hello")]

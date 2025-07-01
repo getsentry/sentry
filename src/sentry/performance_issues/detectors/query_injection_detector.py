@@ -77,7 +77,7 @@ class QueryInjectionDetector(PerformanceDetector):
         fingerprint = self._fingerprint(fingerprint_description)
 
         issue_description = (
-            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in {parameterized_description}"
+            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
         )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
