@@ -48,6 +48,11 @@ Gemfile.lock
 .pytest_cache/
 .vscode/tags
 .vscode/bookmarks.json
+
+# Codeowners analysis outputs
+codeowners_output*.txt
+codeowners_output*.csv
+codeowners_summary*.txt
 coverage.xml
 junit.xml
 *.codestyle.xml

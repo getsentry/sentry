@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+# flake8: noqa: S002
+"""
+Script to generate a CSV file of codeowners using the hmarr/codeowners tool.
+This script respects .gitignore patterns by using git ls-files.
+"""
+
+import argparse
+import csv
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+def log(message: str) -> None:
+    """Print colored info message."""
+    print(f"\033[0;32m[INFO]\033[0m {message}")
+
+
+def warn(message: str) -> None:
+    """Print colored warning message."""
+    print(f"\033[1;33m[WARN]\033[0m {message}")
+
+
+def error(message: str) -> None:
+    """Print colored error message."""
+    print(f"\033[0;31m[ERROR]\033[0m {message}")
+
+
+def get_repo_root() -> Path:
+    """Get the repository root directory."""
+    script_dir = Path(__file__).parent.absolute()
+    return script_dir.parent
+
+
+def parse_codeowners_line(line: str) -> tuple[str, str]:
+    """
+    Parse a line from codeowners tool output.
+
+    Format examples:
+    - "file_path                                                    (unowned)"
+    - "file_path                                                    @team/name"
+    - "file_path                                                    @user1 @user2"
+
+    Returns:
+        Tuple of (file_path, owner)
+    """
+    # Remove any trailing whitespace
+    line = line.rstrip()
+
+    # Pattern to match: filename followed by spaces, then owner info starting with @ or (
+    pattern = r"^(.+?)\s+([@(].*)$"
+    match = re.match(pattern, line)
+
+    if match:
+        file_path = match.group(1).rstrip()
+        owner = match.group(2)
+        return file_path, owner
+
+    # If the regex didn't match, try a simpler approach
+    # Split on whitespace and take the last part as owner if it starts with @ or (
+    parts = line.split()
+    if len(parts) >= 2:
+        last_part = parts[-1]
+        if last_part.startswith("@") or last_part.startswith("("):
+            # Join all parts except the last as the file path
+            file_path = " ".join(parts[:-1])
+            owner = last_part
+            return file_path, owner
+
+    # If still no match, return the whole line as file_path with unknown owner
+    return line, "(unknown)"
+
+
+def get_git_files() -> list[str]:
+    """Get all git-tracked files."""
+    try:
+        result = subprocess.run(["git", "ls-files"], capture_output=True, text=True, check=True)
+        return result.stdout.strip().split("\n")
+    except subprocess.CalledProcessError as e:
+        error(f"Failed to get git files: {e}")
+        sys.exit(1)
+
+
+def run_codeowners_tool(
+    files: list[str], codeowners_tool: Path, codeowners_file: Path
+) -> list[str]:
+    """Run the codeowners tool on the given files in batches."""
+    all_output = []
+    batch_size = 1000  # Process files in batches to avoid "Argument list too long" error
+
+    for i in range(0, len(files), batch_size):
+        batch = files[i : i + batch_size]
+        try:
+            cmd = [str(codeowners_tool), "-f", str(codeowners_file)] + batch
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            batch_output = result.stdout.strip().split("\n")
+            all_output.extend(batch_output)
+
+            # Show progress
+            if i % (batch_size * 5) == 0:  # Show progress every 5 batches
+                log(f"Processed {min(i + batch_size, len(files))}/{len(files)} files...")
+
+        except subprocess.CalledProcessError as e:
+            error(f"Failed to run codeowners tool on batch {i//batch_size + 1}: {e}")
+            sys.exit(1)
+
+    return all_output
+
+
+def generate_csv(output_file: Path) -> None:
+    """Generate the codeowners CSV file."""
+    repo_root = get_repo_root()
+    codeowners_tool = repo_root / "codeowners"
+    codeowners_file = repo_root / ".github" / "CODEOWNERS"
+
+    # Check if tools exist
+    if not codeowners_tool.exists():
+        error(f"Codeowners tool not found at {codeowners_tool}")
+        print("Please install it first by running:")
+        print(
+            "  curl -L https://github.com/hmarr/codeowners/releases/latest/download/codeowners_linux_amd64 -o codeowners"
+        )
+        print("  chmod +x codeowners")
+        sys.exit(1)
+
+    if not codeowners_file.exists():
+        error(f"CODEOWNERS file not found at {codeowners_file}")
+        sys.exit(1)
+
+    log("Generating codeowners CSV output...")
+    log(f"Using codeowners tool: {codeowners_tool}")
+    log(f"Using CODEOWNERS file: {codeowners_file}")
+    log(f"Output file: {output_file}")
+
+    # Get git-tracked files
+    git_files = get_git_files()
+    log(f"Processing {len(git_files)} git-tracked files...")
+
+    # Run codeowners tool
+    codeowners_output = run_codeowners_tool(git_files, codeowners_tool, codeowners_file)
+
+    # Parse output and write CSV
+    owned_count = 0
+    unowned_count = 0
+    parse_errors = 0
+
+    with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["file_path", "owner"])
+
+        for line in codeowners_output:
+            if not line.strip():
+                continue
+
+            try:
+                file_path, owner = parse_codeowners_line(line)
+                writer.writerow([file_path, owner])
+
+                if owner == "(unowned)":
+                    unowned_count += 1
+                else:
+                    owned_count += 1
+
+            except Exception as e:
+                warn(f"Could not parse line: {line} - Error: {e}")
+                parse_errors += 1
+
+    total_files = owned_count + unowned_count
+
+    log("CSV generation complete!")
+    log(f"Total files: {total_files}")
+    log(f"Owned files: {owned_count}")
+    log(f"Unowned files: {unowned_count}")
+    if parse_errors > 0:
+        warn(f"Parse errors: {parse_errors}")
+    log(f"Output saved to: {output_file}")
+
+    # Show top 10 owners
+    show_top_owners(output_file)
+
+
+def show_top_owners(csv_file: Path) -> None:
+    """Show the top 10 code owners from the CSV file."""
+    owner_counts = {}
+
+    with open(csv_file, encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            owner = row["owner"]
+            if owner != "(unowned)":
+                owner_counts[owner] = owner_counts.get(owner, 0) + 1
+
+    log("")
+    log("Top 10 code owners:")
+
+    # Sort by count in descending order
+    sorted_owners = sorted(owner_counts.items(), key=lambda x: x[1], reverse=True)
+
+    for i, (owner, count) in enumerate(sorted_owners[:10], 1):
+        print(f"  {i:2d}. {owner}: {count} files")
+
+
+def main():
+    """Main function."""
+    parser = argparse.ArgumentParser(
+        description="Generate CSV file of codeowners using hmarr/codeowners tool"
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=get_repo_root() / "codeowners_output.csv",
+        help="Output CSV file path (default: codeowners_output.csv)",
+    )
+
+    args = parser.parse_args()
+
+    try:
+        generate_csv(args.output)
+    except KeyboardInterrupt:
+        print("\nAborted by user")
+        sys.exit(1)
+    except Exception as e:
+        error(f"Unexpected error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
