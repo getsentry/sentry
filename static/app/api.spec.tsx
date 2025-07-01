@@ -1,5 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {setWindowLocation} from 'sentry-test/utils';
+
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
@@ -14,6 +16,7 @@ describe('api', function () {
 
   beforeEach(function () {
     api = new MockApiClient();
+    setWindowLocation('https://sentry.io/');
   });
 
   describe('Client', function () {
@@ -143,11 +146,7 @@ describe('resolveHostname', function () {
   });
 
   it('does not override region in _admin', function () {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      enumerable: true,
-      value: new URL('https://sentry.io/_admin/'),
-    });
+    setWindowLocation('https://sentry.io/_admin/');
 
     // Adds domain to control paths
     let result = resolveHostname(controlPath);
@@ -166,6 +165,7 @@ describe('resolveHostname', function () {
   });
 
   it('adds domains when feature enabled', function () {
+    setWindowLocation('https://us.sentry.io/');
     let result = resolveHostname(regionPath);
     expect(result).toBe('https://us.sentry.io/api/0/organizations/slug/issues/');
 
