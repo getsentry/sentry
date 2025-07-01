@@ -257,7 +257,7 @@ def evaluate_workflows_action_filters(
         else event_data.event.id
     )
 
-    logger.info(
+    logger.debug(
         "workflow_engine.evaluate_workflows_action_filters",
         extra={
             "group_id": event_data.group.id,

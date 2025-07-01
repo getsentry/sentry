@@ -103,7 +103,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
-        mock_logger.info.assert_any_call(
+        mock_logger.debug.assert_any_call(
             "workflow_engine.evaluate_workflows_action_filters",
             extra={
                 "group_id": self.group.id,
