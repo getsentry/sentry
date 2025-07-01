@@ -22,7 +22,7 @@ const getInstallConfig = (params: Params) => [
     type: StepType.INSTALL,
     configurations: [
       {
-        description: t('Add this script tag to the top of the pageA:'),
+        description: t('Add this script tag to the top of the page:'),
         language: 'html',
         code: beautify.html(
           `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
@@ -65,7 +65,7 @@ const feedbackOnboardingJsLoader: OnboardingConfig = {
       type: StepType.INSTALL,
       configurations: [
         {
-          description: t('Add this script tag to the top of the pageB:'),
+          description: t('Add this script tag to the top of the page:'),
           language: 'html',
           code: beautify.html(
             `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
