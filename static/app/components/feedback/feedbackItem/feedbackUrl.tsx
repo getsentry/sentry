@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
@@ -42,8 +43,8 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
       sectionKey="url"
       title={t('URL')}
     >
-      <TextCopyInput
-        style={urlIsLink ? {color: theme.blue400} : undefined}
+      <StyledTextCopyInput
+        style={urlIsLink ? {cursor: 'pointer', color: theme.blue400} : undefined}
         onClick={
           urlIsLink
             ? e => {
@@ -54,7 +55,13 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
         }
       >
         {displayUrl ?? ''}
-      </TextCopyInput>
+      </StyledTextCopyInput>
     </FeedbackItemSection>
   );
 }
+
+const StyledTextCopyInput = styled(TextCopyInput)`
+  & > input:hover {
+    text-decoration: underline;
+  }
+`;
