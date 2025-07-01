@@ -128,6 +128,8 @@ test-js-ci:
 COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 
 test-python-ci:
+	@echo "--> Running Snuba bootstrap"
+	docker exec snuba-snuba-1 "snuba bootstrap --force"
 	@echo "--> Running CI Python tests"
 	python3 -b -m pytest \
 		tests \
