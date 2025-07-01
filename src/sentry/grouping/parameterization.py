@@ -90,13 +90,11 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="traceparent",
         raw_pattern=r"""
-            \b
             # https://www.w3.org/TR/trace-context/#traceparent-header
-            (00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]) |
+            (\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b) |
 
             # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html#request-tracing-syntax
-            (1-[0-9a-f]{8}-[0-9a-f]{24})
-            \b
+            (\b1-[0-9a-f]{8}-[0-9a-f]{24}\b)
         """,
     ),
     ParameterizationRegex(

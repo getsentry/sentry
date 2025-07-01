@@ -74,6 +74,11 @@ def parameterizer() -> Parameterizer:
         ("int", "23", "<int>"),
         ("int - separator", "0:17502", "<int>:<int>"),
         ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
+        (
+            "int - traceparent word boundary",
+            "abcd1-67891233-abcdef012345678912345678",
+            "abcd1<int>-abcdef012345678912345678",
+        ),
         ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
         ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
         ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
