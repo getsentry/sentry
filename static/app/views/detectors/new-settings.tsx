@@ -1,12 +1,14 @@
-import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
@@ -23,49 +25,35 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorForm} from 'sentry/views/detectors/components/forms';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {
+  DetectorFormData,
+  EditableDetectorType,
+} from 'sentry/views/detectors/components/forms/config';
 import {
-  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-  getNewMetricDetectorData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+  canEditDetector,
+  DETECTOR_FORM_CONFIG,
+} from 'sentry/views/detectors/components/forms/config';
+import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
 
-const friendlyDetectorTypeMap: Record<DetectorType, string> = {
-  error: t('Error'),
+const friendlyDetectorTypeMap: Record<EditableDetectorType, string> = {
   metric_issue: t('Metric'),
-  uptime_subscription: t('Crons'),
   uptime_domain_failure: t('Uptime'),
 };
 
-export default function DetectorNewSettings() {
+function NewDetectorContent({detectorType}: {detectorType: EditableDetectorType}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {projects, fetching: isFetchingProjects} = useProjects();
-  // We'll likely use more query params on this page to open drawers, validate once
-  const validatedRequiredQueryParams = useRef(false);
-
+  const {projects} = useProjects();
   useWorkflowEngineFeatureGate({redirect: true});
-
-  // Kick user back to the previous step if they don't have a detectorType
-  useLayoutEffect(() => {
-    const {detectorType} = location.query;
-    if (validatedRequiredQueryParams.current) {
-      return;
-    }
-
-    if (!detectorType) {
-      navigate(`${makeMonitorBasePathname(organization.slug)}new/`);
-    }
-    validatedRequiredQueryParams.current = true;
-  }, [location.query, navigate, organization.slug]);
-
   const {mutateAsync: createDetector} = useCreateDetector();
+
+  const config = DETECTOR_FORM_CONFIG[detectorType];
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, formModel) => {
@@ -74,37 +62,42 @@ export default function DetectorNewSettings() {
         return;
       }
 
-      const detector = await createDetector(
-        getNewMetricDetectorData(data as MetricDetectorFormData)
-      );
-      navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
+      try {
+        const detector = await createDetector(
+          config.formDataToEndpointPayload(data as any)
+        );
+        navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
+      } catch (error) {
+        addErrorMessage(t('Unable to create monitor'));
+      }
     },
-    [createDetector, navigate, organization.slug]
+    [config, createDetector, navigate, organization.slug]
   );
 
   // Defaults and data from the previous step passed in as query params
-  const initialData = useMemo((): MetricDetectorFormData => {
+  const initialData = useMemo((): Partial<DetectorFormData> => {
     const defaultProjectId = projects.find(p => p.isMember)?.id ?? projects[0]?.id;
 
     return {
-      ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
       projectId: (location.query.project as string) ?? defaultProjectId ?? '',
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
+      owner: (location.query.owner as string | undefined) || '',
+      ...config.getInitialFormData(),
     };
-  }, [location.query, projects]);
-
-  if (isFetchingProjects) {
-    return <LoadingIndicator />;
-  }
+  }, [
+    config,
+    location.query.environment,
+    location.query.name,
+    location.query.owner,
+    location.query.project,
+    projects,
+  ]);
 
   return (
     <FullHeightForm hideFooter initialData={initialData} onSubmit={handleSubmit}>
       <SentryDocumentTitle
-        title={t(
-          'New %s Monitor',
-          friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
-        )}
+        title={t('New %s Monitor', friendlyDetectorTypeMap[detectorType])}
       />
       <Layout.Page>
         <StyledLayoutHeader>
@@ -113,10 +106,7 @@ export default function DetectorNewSettings() {
               crumbs={[
                 {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
                 {
-                  label: t(
-                    'New %s Monitor',
-                    friendlyDetectorTypeMap[location.query.detectorType as DetectorType]
-                  ),
+                  label: t('New %s Monitor', friendlyDetectorTypeMap[detectorType]),
                 },
               ]}
             />
@@ -145,6 +135,38 @@ export default function DetectorNewSettings() {
       </StickyFooter>
     </FullHeightForm>
   );
+}
+
+export default function DetectorNewSettings() {
+  const location = useLocation();
+  const {fetching: isFetchingProjects} = useProjects();
+  const detectorType = location.query.detectorType as DetectorType;
+
+  if (!canEditDetector(detectorType)) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingError message={t('This monitor type is not editable')} />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  if (isFetchingProjects) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingIndicator />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  return <NewDetectorContent detectorType={detectorType} />;
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
