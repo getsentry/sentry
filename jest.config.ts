@@ -211,9 +211,8 @@ if (
 ) {
   let balance: null | Record<string, number> = null;
 
-  const __dirname = new URL('.', import.meta.url).pathname;
   const BALANCE_RESULTS_PATH = path.resolve(
-    __dirname,
+    import.meta.dirname,
     'tests',
     'js',
     'test-balancer',
@@ -225,7 +224,9 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
+  const envTestList: string[] = JEST_TESTS.map(file =>
+    file.replace(import.meta.dirname, '')
+  );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
