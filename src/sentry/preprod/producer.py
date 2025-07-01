@@ -53,3 +53,4 @@ def produce_preprod_artifact_to_kafka(
             "Failed to send preprod artifact message to Kafka",
             extra={"artifact_id": artifact_id, "project_id": project_id},
         )
+        raise  # Re-raise to trigger task retry
