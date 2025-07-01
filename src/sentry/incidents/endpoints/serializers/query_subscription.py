@@ -26,6 +26,7 @@ class SnubaQuerySerializer(Serializer):
             "aggregate": obj.aggregate,
             "timeWindow": obj.time_window,
             "environment": obj.environment.name if obj.environment else None,
+            "eventTypes": [event_type.name.lower() for event_type in obj.event_types],
         }
 
 
