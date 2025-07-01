@@ -15,6 +15,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
+  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
 
 /**
@@ -225,7 +226,10 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 /**
  * Convert backend dataset to our form dataset
  */
-const getDetectorDataset = (backendDataset: Dataset): DetectorDataset => {
+const getDetectorDataset = (
+  backendDataset: Dataset,
+  eventTypes: EventTypes[]
+): DetectorDataset => {
   switch (backendDataset) {
     case Dataset.REPLAYS:
       throw new Error('Unsupported dataset');
@@ -236,8 +240,14 @@ const getDetectorDataset = (backendDataset: Dataset): DetectorDataset => {
     case Dataset.GENERIC_METRICS:
       return DetectorDataset.TRANSACTIONS;
     case Dataset.EVENTS_ANALYTICS_PLATFORM:
-      // TODO: Determine if this is spans or logs somehow
-      return DetectorDataset.SPANS;
+      // Spans and logs use the same dataset
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_SPAN)) {
+        return DetectorDataset.SPANS;
+      }
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
+        return DetectorDataset.LOGS;
+      }
+      throw new Error('Unsupported event types');
     case Dataset.METRICS:
     case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
@@ -438,7 +448,7 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
   const conditionData = processDetectorConditions(detector);
 
   const dataset = snubaQuery?.dataset
-    ? getDetectorDataset(snubaQuery.dataset)
+    ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
 
   return {
