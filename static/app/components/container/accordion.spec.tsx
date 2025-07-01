@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Accordion from './accordion';
+import Accordion from 'sentry/components/container/accordion';
 
 const items = [
   {header: <p>header</p>, content: <p>first content</p>},

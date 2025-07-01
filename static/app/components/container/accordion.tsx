@@ -30,7 +30,7 @@ export default function Accordion({
 
         return (
           <AccordionItem key={index}>
-            <ItemContainer>
+            <AccordionHeader>
               <Button
                 icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
@@ -44,8 +44,8 @@ export default function Accordion({
               >
                 {item.header}
               </LineItemWrapper>
-            </ItemContainer>
-            <ContentContainer>{isExpanded && item.content}</ContentContainer>
+            </AccordionHeader>
+            <AccordionContent>{isExpanded && item.content}</AccordionContent>
           </AccordionItem>
         );
       })}
@@ -63,7 +63,7 @@ const AccordionContainer = styled('ul')`
   list-style-type: none;
 `;
 
-const ItemContainer = styled('div')`
+const AccordionHeader = styled('div')`
   display: flex;
   align-items: center;
   border-top: 1px solid ${p => p.theme.border};
@@ -72,7 +72,7 @@ const ItemContainer = styled('div')`
   column-gap: ${space(1.5)};
 `;
 
-const ContentContainer = styled('div')`
+const AccordionContent = styled('div')`
   padding: 0 ${space(0.25)};
 `;
 
