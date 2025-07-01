@@ -31,11 +31,6 @@ failOnConsole({
       return true;
     }
 
-    // TODO: Remove this after updating jsdom, currently it cannot handle @container queries
-    if (/Error: Could not parse CSS stylesheet/.test(errorMessage)) {
-      return true;
-    }
-
     // Full text:
     // Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.
     // This is a warning from CellMeasurer in react-virtualized. It safely falls back to something compatible with React 19.
