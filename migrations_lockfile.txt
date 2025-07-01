@@ -27,7 +27,7 @@ replays: 0006_add_bulk_delete_job
 
 sentry: 0939_rm_eventattachment_fileid_part2
 
-social_auth: 0001_squashed_0002_default_auto_field
+social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 
