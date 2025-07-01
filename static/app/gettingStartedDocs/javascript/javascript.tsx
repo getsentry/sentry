@@ -472,9 +472,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: (
-        <Fragment>{t('Add this script tag to the top of the page:')}</Fragment>
-      ),
+      description: t('Add this script tag to the top of the page:'),
       configurations: [
         {
           language: 'html',
