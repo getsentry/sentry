@@ -127,7 +127,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Switch back to old UI')}
+                    {t('Switch back to old Sentry')}
                   </SidebarMenuItem>
                 ) : (
                   <SidebarMenuItem
@@ -141,7 +141,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Try the new UI')} <FeatureBadge type="beta" />
+                    {t('Try the new Sentry')} <FeatureBadge type="beta" />
                   </SidebarMenuItem>
                 )
               ) : null}

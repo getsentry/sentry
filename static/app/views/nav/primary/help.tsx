@@ -150,10 +150,10 @@ export function PrimaryNavigationHelp() {
                       key: 'new-chonk-ui',
                       label: (
                         <Fragment>
-                          {t('Try the new UI')} <FeatureBadge type="beta" />
+                          {t('Try the new Sentry')} <FeatureBadge type="beta" />
                         </Fragment>
                       ),
-                      textValue: t('Try the new UI'),
+                      textValue: t('Try the new Sentry'),
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
