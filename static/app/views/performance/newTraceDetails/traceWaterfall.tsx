@@ -15,10 +15,12 @@ import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Flex} from 'sentry/components/core/layout';
+import {getRelativeDate} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -42,6 +44,7 @@ import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
@@ -136,6 +139,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
+
+  const {timestamp} = useTraceQueryParams();
 
   const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
@@ -419,13 +424,20 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
+    const traceNode = props.tree.root.children[0];
+    const traceTimestamp = traceNode?.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
+    const traceAge = defined(traceTimestamp)
+      ? getRelativeDate(traceTimestamp, 'ago')
+      : 'unknown';
+
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
         props.tree,
         projectsRef.current,
         props.organization,
         hasExceededPerformanceUsageLimit,
-        source
+        source,
+        traceAge
       );
     }
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -524,6 +536,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
     source,
+    timestamp,
   ]);
 
   // Setup the middleware for the trace reducer
