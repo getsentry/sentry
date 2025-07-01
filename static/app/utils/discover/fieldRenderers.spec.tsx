@@ -353,7 +353,7 @@ describe('getFieldRenderer', function () {
         renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
 
-      expect(getWidths()).toEqual(['13.333%', '40%', '20%', '26.667%', '0%']);
+      expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
     });
 
     it('renders operation breakdowns in sorted order when a sort field is provided', function () {
@@ -385,7 +385,7 @@ describe('getFieldRenderer', function () {
         }) as React.ReactElement<any, any>
       );
 
-      expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
+      expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);
     });
   });
 });
