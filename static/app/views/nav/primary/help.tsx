@@ -131,26 +131,16 @@ export function PrimaryNavigationHelp() {
                   startTour();
                 },
               },
-              {
-                key: 'new-ui',
-                label: t('Switch to old navigation'),
-                onAction() {
-                  mutateUserOptions({prefersStackedNavigation: false});
-                  trackAnalytics(
-                    'navigation.help_menu_opt_out_stacked_navigation_clicked',
-                    {
-                      organization,
-                    }
-                  );
-                },
-              },
               organization?.features?.includes('chonk-ui')
                 ? user.options.prefersChonkUI
                   ? {
                       key: 'new-chonk-ui',
-                      label: t('Switch back to our old look'),
+                      label: t('Switch back to old UI'),
                       onAction() {
-                        mutateUserOptions({prefersChonkUI: false});
+                        mutateUserOptions({
+                          prefersChonkUI: false,
+                          prefersStackedNavigation: false,
+                        });
                         trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
                           organization,
                         });
@@ -160,10 +150,10 @@ export function PrimaryNavigationHelp() {
                       key: 'new-chonk-ui',
                       label: (
                         <Fragment>
-                          {t('Try our new look')} <FeatureBadge type="beta" />
+                          {t('Try the new UI')} <FeatureBadge type="beta" />
                         </Fragment>
                       ),
-                      textValue: 'Try our new look',
+                      textValue: t('Try the new UI'),
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
