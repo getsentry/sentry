@@ -898,3 +898,92 @@ class OrganizationExamples:
             ],
         )
     ]
+    EVENT_EXAMPLES = [
+        OpenApiExample(
+            "Event example",
+            value={
+                "event": {
+                    "_meta": {
+                        "context": None,
+                        "contexts": None,
+                        "entries": {},
+                        "message": None,
+                        "packages": None,
+                        "sdk": None,
+                        "tags": {},
+                        "user": None,
+                    },
+                    "context": {
+                        "length": 10837790,
+                        "results": [1, 2, 3, 4, 5],
+                        "session": {"foo": "bar"},
+                        "unauthorized": False,
+                        "url": "http://example.org/foo/bar/",
+                    },
+                    "contexts": {},
+                    "dateCreated": "2018-11-06T21:19:55Z",
+                    "dateReceived": "2018-11-06T21:19:55Z",
+                    "dist": None,
+                    "entries": [
+                        {
+                            "type": "request",
+                            "data": {
+                                "fragment": None,
+                                "cookies": [],
+                                "inferredContentType": None,
+                                "env": None,
+                                "headers": [
+                                    [
+                                        "User-Agent",
+                                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36",
+                                    ]
+                                ],
+                                "url": "http://example.com/foo",
+                                "query": [],
+                                "data": None,
+                                "method": None,
+                            },
+                        }
+                    ],
+                    "errors": [],
+                    "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+                    "fingerprints": ["c4a4d06bc314205bb3b6bdb612dde7f1"],
+                    "groupID": "1",
+                    "id": "1",
+                    "message": "",
+                    "title": "This is an example Python exception",
+                    "metadata": {"title": "This is an example Python exception"},
+                    "packages": {"my.package": "1.0.0"},
+                    "platform": "python",
+                    "sdk": None,
+                    "size": 7055,
+                    "tags": [
+                        {"_meta": None, "key": "browser", "value": "Chrome 28.0"},
+                        {"_meta": None, "key": "device", "value": "Other"},
+                        {"_meta": None, "key": "level", "value": "error"},
+                        {"_meta": None, "key": "os", "value": "Windows 8"},
+                        {
+                            "_meta": None,
+                            "key": "release",
+                            "value": "17642328ead24b51867165985996d04b29310337",
+                        },
+                        {"_meta": None, "key": "url", "value": "http://example.com/foo"},
+                        {"_meta": None, "key": "user", "value": "id:1"},
+                    ],
+                    "type": "default",
+                    "user": {
+                        "data": {},
+                        "email": "sentry@example.com",
+                        "id": "1",
+                        "ip_address": "127.0.0.1",
+                        "name": "Sentry",
+                        "username": "sentry",
+                    },
+                },
+                "eventId": "1",
+                "groupId": "1",
+                "organizationSlug": "the-interstellar-jurisdiction",
+                "projectSlug": "pump-station",
+            },
+        )
+    ]
