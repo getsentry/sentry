@@ -663,7 +663,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # DataAccessGrant
         DataAccessGrant.objects.create(
-            organization=org,
+            organization_id=org.id,
             grant_type=DataAccessGrant.GrantType.MANUAL,
             ticket_id="1234567890",
         )
