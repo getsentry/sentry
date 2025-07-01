@@ -14,6 +14,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import DeadRageSelectorCards from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
@@ -64,6 +65,9 @@ export default function ListContent() {
 
   return (
     <Fragment>
+      {projects.length === 1 ? (
+        <BulkDeleteAlert projectId={String(projects[0] ?? '')} />
+      ) : null}
       <FiltersContainer>
         <ReplaysFilters />
         <SearchWrapper>
