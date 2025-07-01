@@ -2,8 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';

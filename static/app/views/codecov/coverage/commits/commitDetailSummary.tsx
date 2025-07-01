@@ -62,13 +62,13 @@ export function CommitDetailSummary() {
               >
                 {t('Uncovered lines')}
               </SummaryEntryLabel>
-              <SummaryEntryValueLink filterBy="uncovered_lines">5</SummaryEntryValueLink>
+              <SummaryEntryValueLink filterBy="uncoveredLines">5</SummaryEntryValueLink>
             </SummaryEntry>
             <SummaryEntry>
               <SummaryEntryLabel showUnderline body={<p>{t('Files changed tooltip')}</p>}>
                 {t('Files changed')}
               </SummaryEntryLabel>
-              <SummaryEntryValueLink filterBy="files_changed">4</SummaryEntryValueLink>
+              <SummaryEntryValueLink filterBy="filesChanged">4</SummaryEntryValueLink>
             </SummaryEntry>
             <SummaryEntry>
               <SummaryEntryLabel
@@ -77,7 +77,7 @@ export function CommitDetailSummary() {
               >
                 {t('Indirect changes')}
               </SummaryEntryLabel>
-              <SummaryEntryValueLink filterBy="indirect_changes">1</SummaryEntryValueLink>
+              <SummaryEntryValueLink filterBy="indirectChanges">1</SummaryEntryValueLink>
             </SummaryEntry>
             <SourceEntry>
               <SummaryEntryLabel showUnderline body={<p>{t('Source tooltip')}</p>}>
@@ -101,7 +101,7 @@ export function CommitDetailSummary() {
               <SummaryEntryLabel showUnderline body={<p>{t('Uploads count tooltip')}</p>}>
                 {t('Uploads count')}
               </SummaryEntryLabel>
-              <SummaryEntryValueLink filterBy="uploads_count">65</SummaryEntryValueLink>
+              <SummaryEntryValueLink filterBy="uploadsCount">65</SummaryEntryValueLink>
               <StyledSubText>{t('(%s processed, %s pending)', 65, 15)}</StyledSubText>
             </SummaryEntry>
           </SummaryEntries>
@@ -112,12 +112,12 @@ export function CommitDetailSummary() {
 }
 
 const StyledSubText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray300};
 `;
 
 const SourceText = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SourceEntry = styled(SummaryEntry)`
@@ -129,7 +129,7 @@ const SourceEntry = styled(SummaryEntry)`
 const SelectedCommitPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 9;
   }
 `;
@@ -137,7 +137,7 @@ const SelectedCommitPanel = styled(Panel)`
 const UploadsPanel = styled(Panel)`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 3;
   }
 `;

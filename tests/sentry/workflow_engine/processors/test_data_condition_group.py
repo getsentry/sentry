@@ -1,5 +1,3 @@
-from unittest import mock
-
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -25,17 +23,6 @@ class TestGetDataConditionsForGroup(TestCase):
 
 
 class TestProcessDataConditionGroup(TestCase):
-    def test_process_data_condition_group(self):
-        with mock.patch(
-            "sentry.workflow_engine.processors.data_condition_group.logger"
-        ) as mock_logger:
-            expected_result = ProcessedDataConditionGroup(logic_result=False, condition_results=[])
-            expected_remaining_conditions: list[DataCondition] = []
-            assert process_data_condition_group(1, 1) == (
-                expected_result,
-                expected_remaining_conditions,
-            )
-            assert mock_logger.exception.call_args[0][0] == "DataConditionGroup does not exist"
 
     def test_process_data_condition_group__exists__fails(self):
         data_condition_group = self.create_data_condition_group()
@@ -48,7 +35,7 @@ class TestProcessDataConditionGroup(TestCase):
             condition_results=[],
         )
         expected_remaining_conditions: list[DataCondition] = []
-        assert process_data_condition_group(data_condition_group.id, 1) == (
+        assert process_data_condition_group(data_condition_group, 1) == (
             expected_result,
             expected_remaining_conditions,
         )
@@ -71,7 +58,7 @@ class TestProcessDataConditionGroup(TestCase):
                 )
             ],
         )
-        assert process_data_condition_group(data_condition_group.id, 10) == (expected_result, [])
+        assert process_data_condition_group(data_condition_group, 10) == (expected_result, [])
 
 
 class TestEvaluationConditionCase(TestCase):
@@ -345,7 +332,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         )
 
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group.id,
+            self.data_condition_group,
             10,
             True,
         )
@@ -360,7 +347,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
     def test_basic_only_slow_conditions(self):
         self.data_condition.delete()
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group.id,
+            self.data_condition_group,
             10,
             True,
         )
@@ -384,7 +371,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
 
     def test_short_circuit_with_all(self):
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group.id,
+            self.data_condition_group,
             1,
             True,
         )
@@ -396,7 +383,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
     def test_short_circuit_with_any(self):
         self.data_condition_group.update(logic_type=DataConditionGroup.Type.ANY)
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group.id,
+            self.data_condition_group,
             10,
             True,
         )

@@ -101,7 +101,7 @@ function TestPerformanceBody({
           {t('Flaky Tests')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="flaky_tests">
+          <SummaryEntryValueLink filterBy="flakyTests">
             {flakyTests}
           </SummaryEntryValueLink>
           {flakyTestsChange ? (
@@ -129,7 +129,7 @@ function TestPerformanceBody({
           {t('Cumulative Failures')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="cumulative_failures">
+          <SummaryEntryValueLink filterBy="failedTests">
             {cumulativeFailures}
           </SummaryEntryValueLink>
           {cumulativeFailuresChange ? (
@@ -144,7 +144,7 @@ function TestPerformanceBody({
           {t('Skipped Tests')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="skipped_tests">
+          <SummaryEntryValueLink filterBy="skippedTests">
             {skippedTests}
           </SummaryEntryValueLink>
           {skippedTestsChange ? (
@@ -176,7 +176,7 @@ export function TestPerformance({isLoading, ...bodyProps}: TestPerformanceProps)
 const TestPerformancePanel = styled(Panel)`
   grid-column: span 24;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 16;
   }
 `;

@@ -24,6 +24,23 @@ export const getFeedbackConfigureDescription = ({
     }
   );
 
+export const getFeedbackConfigureMobileDescription = ({
+  linkConfig,
+  linkButton,
+}: {
+  linkButton: string;
+  linkConfig: string;
+}) =>
+  tct(
+    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:customize your button] style. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
+    {
+      code: <code />,
+      break: <br />,
+      linkConfig: <ExternalLink href={linkConfig} />,
+      linkButton: <ExternalLink href={linkButton} />,
+    }
+  );
+
 export const getFeedbackSDKSetupSnippet = ({
   importStatement,
   dsn,

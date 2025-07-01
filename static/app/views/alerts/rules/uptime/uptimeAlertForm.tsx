@@ -231,9 +231,9 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="timeoutMs"
               label={t('Timeout')}
               min={1000}
-              max={30_000}
+              max={60_000}
               step={250}
-              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
+              tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
               defaultValue={5_000}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
@@ -350,8 +350,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
@@ -17,6 +18,12 @@ logger = logging.getLogger(__name__)
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     evt = event_data.event
+
+    if not isinstance(evt, GroupEvent):
+        raise TypeError(
+            "Can only use `get_detector_by_event` for a new event, Activity updates are not supported"
+        )
+
     issue_occurrence = evt.occurrence
 
     try:
@@ -48,7 +55,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult):
+def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -69,9 +76,11 @@ def create_issue_platform_payload(result: DetectorEvaluationResult):
     )
 
 
-def process_detectors(
-    data_packet: DataPacket, detectors: list[Detector]
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+def process_detectors[
+    T
+](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
+    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+]:
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:

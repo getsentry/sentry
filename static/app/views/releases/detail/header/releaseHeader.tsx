@@ -170,7 +170,7 @@ const IconWrapper = styled('span')`
 `;
 
 const NavTabsBadge = styled(Badge)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

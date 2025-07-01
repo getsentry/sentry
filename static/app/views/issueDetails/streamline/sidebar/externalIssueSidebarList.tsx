@@ -30,7 +30,7 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
 }
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Separator = styled('div')`

@@ -92,7 +92,7 @@ const ApplicationName = styled(Link)`
 
 const ClientId = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export default Row;

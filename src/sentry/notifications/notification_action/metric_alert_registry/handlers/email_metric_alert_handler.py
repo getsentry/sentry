@@ -1,3 +1,5 @@
+import logging
+
 from sentry.incidents.action_handlers import email_users
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -8,11 +10,11 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.types import ExternalProviders
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.notificationaction import ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
     get_detailed_incident_serializer,
@@ -24,6 +26,8 @@ from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.types.actor import Actor, ActorType
 from sentry.utils.email import get_email_addresses
 from sentry.workflow_engine.models import Action, Detector
+
+logger = logging.getLogger(__name__)
 
 
 @metric_alert_handler_registry.register(Action.Type.EMAIL)
@@ -60,6 +64,12 @@ class EmailMetricAlertHandler(BaseMetricAlertHandler):
 
         targets = [(user_id, email) for user_id, email in recipients]
 
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler.email",
+            extra={
+                "action_id": alert_context.action_identifier_id,
+            },
+        )
         # TODO(iamrajjoshi): Add analytics
         email_users(
             metric_issue_context=metric_issue_context,

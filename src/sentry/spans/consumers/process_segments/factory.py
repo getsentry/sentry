@@ -3,15 +3,15 @@ from collections.abc import Mapping
 from datetime import datetime
 
 import orjson
-import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
+from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -106,15 +106,16 @@ def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]
     if not options.get("spans.process-segments.consumer.enable"):
         return []
 
+    assert isinstance(message.value, BrokerValue)
+
     try:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
         return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
-        # TODO: revise error handling
-        sentry_sdk.capture_exception()
-        return []
+        logger.exception("segments.invalid-message")
+        raise InvalidMessage(message.value.partition, message.value.offset)
 
 
 def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:

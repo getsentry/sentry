@@ -21,6 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
@@ -99,6 +100,8 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
+from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -1016,6 +1019,26 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
+
+
+def enable_disable_subscriptions(
+    query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
+) -> None:
+    if enabled:
+        bulk_enable_snuba_subscriptions(query_subscriptions)
+    else:
+        bulk_disable_snuba_subscriptions(query_subscriptions)
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    with transaction.atomic(router.db_for_write(Detector)):
+        toggle_detector(detector, enabled)
+
+        query_subscriptions = QuerySubscription.objects.filter(
+            id__in=[data_source.source_id for data_source in detector.data_sources.all()]
+        )
+        if query_subscriptions:
+            enable_disable_subscriptions(query_subscriptions, enabled)
 
 
 def delete_alert_rule(

@@ -379,18 +379,6 @@ type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
 
 type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -401,16 +389,14 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(
-  length: Length | number
-) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
     length: Length | number
-  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+  ): T[Length] {
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
-    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
-    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
   };
 }
 
@@ -563,12 +549,6 @@ const space = {
   xl: '16px',
   '2xl': '24px',
   '3xl': '32px',
-  '4xl': '48px',
-  '5xl': '64px',
-  '6xl': '80px',
-  '7xl': '96px',
-  '8xl': '112px',
-  '9xl': '128px',
 } as const;
 
 const radius = {

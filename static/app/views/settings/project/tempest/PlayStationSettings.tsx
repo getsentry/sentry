@@ -27,6 +27,7 @@ import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/ut
 
 import {CredentialRow} from './CredentialRow';
 import EmptyState from './EmptyState';
+import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -167,6 +168,7 @@ export const getPlayStationHeaderAction = (
   <Fragment>
     <ButtonBar gap={1.5}>
       <FeedbackWidgetButton />
+      <RequestSdkAccessButton organization={organization} project={project} />
       <Tooltip
         title={t('You must be an organization admin to add new credentials.')}
         disabled={hasWriteAccess}

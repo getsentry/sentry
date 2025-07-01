@@ -178,7 +178,7 @@ const IntroSection = styled('div')`
   padding: 44px;
   max-width: 800px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: column;
     align-items: center;
     gap: ${space(3)};

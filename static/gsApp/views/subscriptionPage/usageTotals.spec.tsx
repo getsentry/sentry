@@ -181,7 +181,9 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 10 40%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
@@ -248,7 +250,9 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 5 25%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
@@ -1124,6 +1128,54 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('row', {name: 'Accepted 1 9%'})).toBeInTheDocument();
   });
 
+  it('shows table with dropped totals breakdown for reserved budgets', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    seerSubscription.planTier = 'am3';
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
+    expect(acceptedRows).toHaveLength(2);
+
+    const totalDroppedRows = screen.getAllByRole('row', {name: 'Total Dropped 10 100%'});
+    expect(totalDroppedRows).toHaveLength(2);
+
+    const overQuotaRows = screen.getAllByRole('row', {name: 'Over Quota 7 70%'});
+    expect(overQuotaRows).toHaveLength(2);
+
+    const spikeProtectionRows = screen.queryAllByRole('row', {
+      name: 'Spike Protection 1 10%',
+    });
+    expect(spikeProtectionRows).toHaveLength(0); // not spike protected
+
+    const otherRows = screen.getAllByRole('row', {name: 'Other 2 20%'});
+    expect(otherRows).toHaveLength(2);
+
+    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
+
+    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
+    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
+
+    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(5);
+    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(5);
+  });
+
   it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
@@ -1131,7 +1183,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1171,7 +1225,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1202,10 +1258,16 @@ describe('Subscription > CombinedUsageTotals', function () {
       organization,
       hadCustomDynamicSampling: true,
     });
-    dsSubscription.reservedBudgets![0]!.freeBudget = 10_000_00;
+    dsSubscription.reservedBudgets?.forEach(b => {
+      if (b.apiName === 'dynamicSampling') {
+        b.freeBudget = 10_000_00;
+      }
+    });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1233,7 +1295,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1264,17 +1328,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'years').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1305,17 +1362,9 @@ describe('Subscription > CombinedUsageTotals', function () {
   });
 
   it('renders enable upsell for customer when product is not enabled and trial not available', function () {
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
-
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1362,17 +1411,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'days').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1391,17 +1433,10 @@ describe('Subscription > CombinedUsageTotals', function () {
 
   it('renders contact sales upsell for managed accounts', function () {
     subscription.canSelfServe = false;
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1948,7 +1983,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       plan: 'am3_business',
     });
 
-    // Add SEER category but don't include it in reservedBudgetCategories
+    // Add SEER category but don't include it in reservedBudgets
     subscription.categories.seerAutofix = MetricHistoryFixture({
       category: DataCategory.SEER_AUTOFIX,
       usage: 10,

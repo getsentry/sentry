@@ -36,7 +36,7 @@ const StyledImg = styled('img')`
 
 const StyledTitle = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

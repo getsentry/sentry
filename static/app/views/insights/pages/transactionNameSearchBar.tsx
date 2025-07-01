@@ -16,7 +16,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
+import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -51,10 +51,8 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   } = usePageFilters();
   useOnClickOutside(containerRef, useCallback(closeDropdown, []));
 
-  const getTraceItemAttributeValues = useTraceItemAttributeValues({
+  const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: TraceItemDataset.SPANS,
-    attributeKey: 'transaction',
-    enabled: true,
     type: 'string',
   });
 

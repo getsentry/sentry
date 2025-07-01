@@ -19,13 +19,15 @@ from sentry.codecov.enums import MeasurementInterval
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class TestResultsAggregatesEndpoint(CodecovEndpoint):
+    __test__ = False
+
     owner = ApiOwner.CODECOV
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieves aggregated test result metrics for a given repository and owner",
+        operation_id="Retrieve aggregated test result metrics for repository and owner",
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,

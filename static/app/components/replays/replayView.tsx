@@ -18,6 +18,10 @@ import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/views/replays/jetpackComposePiiNotice';
 
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
@@ -31,6 +35,9 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays: replay ? [replay.getReplay()] : [],
+  });
 
   return (
     <Fragment>
@@ -82,6 +89,9 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <FluidHeight>
+              {isVideoReplay && needsJetpackComposePiiWarning ? (
+                <JetpackComposePiiNotice />
+              ) : null}
               <CanvasSupportNotice />
               <Panel>
                 <ReplayPlayer inspectable />

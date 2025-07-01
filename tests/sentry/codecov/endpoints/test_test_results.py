@@ -103,6 +103,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": 20,
             "last": None,
+            "before": None,
+            "after": None,
         }
 
         mock_codecov_client_instance.query.assert_called_once()
@@ -174,6 +176,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": 10,
             "last": None,
+            "before": None,
+            "after": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args
@@ -226,6 +230,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": None,
             "last": 5,
+            "before": None,
+            "after": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args

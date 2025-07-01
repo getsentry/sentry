@@ -80,7 +80,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -155,6 +155,7 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
+    router,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -261,6 +262,8 @@ function WidgetCard(props: Props) {
         Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
+        location,
+        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit

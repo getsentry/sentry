@@ -191,7 +191,7 @@ function WebVitalsWidgetVisualization({
   projectData?: ProjectData[];
 }) {
   const theme = useTheme();
-  const ringSegmentColors = theme.chart.getColorPalette(3).slice() as unknown as string[];
+  const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (

@@ -12,10 +12,10 @@ class TestBaseDataConditionGroupValidator(TestCase):
             "organizationId": self.organization.id,
             "conditions": [],
         }
+        self.validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
 
     def test_conditions__empty(self):
-        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
-        assert validator.is_valid() is True
+        assert self.validator.is_valid() is True
 
     def test_conditions__valid_conditions(self):
         condition_group = self.create_data_condition_group()
@@ -34,7 +34,6 @@ class TestBaseDataConditionGroupValidator(TestCase):
             },
         ]
         validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
-
         assert validator.is_valid() is True
 
     def test_conditions__invalid_condition(self):
@@ -94,25 +93,11 @@ class TestBaseDataConditionGroupValidator(TestCase):
         assert validator.is_valid() is True
 
 
-class TestBaseDataConditionGroupValidatorCreate(TestCase):
-    def setUp(self):
-        self.valid_data = {
-            "logicType": DataConditionGroup.Type.ANY,
-            "organizationId": self.organization.id,
-            "conditions": [],
-        }
-
-        self.context = {
-            "organization": self.organization,
-            "request": self.make_request(),
-        }
-
+class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValidator):
     def test_create(self):
-        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
-
         # Validate the data and raise any exceptions if invalid to halt test
-        validator.is_valid(raise_exception=True)
-        result = validator.create(validator.validated_data)
+        self.validator.is_valid(raise_exception=True)
+        result = self.validator.create(self.validator.validated_data)
 
         # Validate the condition group is created correctly
         assert result.logic_type == DataConditionGroup.Type.ANY
@@ -140,3 +125,67 @@ class TestBaseDataConditionGroupValidatorCreate(TestCase):
         assert condition.type == Condition.EQUAL
         assert condition.comparison == 1
         assert condition.condition_group == result
+
+
+class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValidator):
+    def test_update(self):
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.EQUAL,
+                "comparison": 1,
+                "conditionResult": True,
+            }
+        ]
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.create(validator.validated_data)
+        assert dcg.conditions.count() == 1
+        condition = dcg.conditions.first()
+        assert condition
+
+        # update condition
+        self.valid_data["conditions"] = [
+            {
+                "id": condition.id,
+                "type": Condition.EQUAL,
+                "comparison": 2,  # update to 2 from 1
+                "conditionResult": True,
+            }
+        ]
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.update(dcg, validator.validated_data)
+
+        assert dcg.conditions.count() == 1
+        condition = dcg.conditions.first()
+        assert condition is not None
+
+        assert condition.type == Condition.EQUAL
+        assert condition.comparison == 2
+        assert condition.condition_group == dcg
+
+        # add another condition
+        self.valid_data["conditions"].append(
+            {
+                "conditionGroupId": dcg.id,
+                "type": Condition.NOT_EQUAL,
+                "comparison": 5,
+                "conditionResult": True,
+            }
+        )
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.update(dcg, validator.validated_data)
+        assert dcg.conditions.count() == 2
+
+        conditions = dcg.conditions.all()
+        condition1 = conditions[0]
+        condition2 = conditions[1]
+
+        assert condition1.type == Condition.EQUAL
+        assert condition1.comparison == 2
+        assert condition1.condition_group == dcg
+
+        assert condition2.type == Condition.NOT_EQUAL
+        assert condition2.comparison == 5
+        assert condition2.condition_group == dcg

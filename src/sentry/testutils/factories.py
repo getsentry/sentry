@@ -8,7 +8,7 @@ import random
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
 from hashlib import sha1
@@ -87,7 +87,6 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
-from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -160,7 +159,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -340,6 +339,22 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
     return orjson.dumps(manifest).decode()
+
+
+def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, Any]) -> None:
+    """Set 'sample_rate' on normalized_data if contexts.error_sampling.client_sample_rate is present and valid."""
+    client_sample_rate = None
+    try:
+        client_sample_rate = (
+            normalized_data.get("contexts", {}).get("error_sampling", {}).get("client_sample_rate")
+        )
+    except Exception:
+        pass
+    if client_sample_rate:
+        try:
+            normalized_data["sample_rate"] = float(client_sample_rate)
+        except Exception:
+            pass
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -970,6 +985,8 @@ class Factories:
             provider = "asana"
         if not uid:
             uid = "abc-123"
+        if extra_data is None:
+            extra_data = {}
         usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
         usa.save()
         return usa
@@ -1030,6 +1047,9 @@ class Factories:
             assert not errors, errors
 
         normalized_data = manager.get_data()
+
+        _set_sample_rate_from_error_sampling(normalized_data)
+
         event = None
 
         # When fingerprint is present on transaction, inject performance problems
@@ -1105,25 +1125,6 @@ class Factories:
         with open(path) as f:
             file.putfile(f)
         return file
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_event_attachment(event, file=None, **kwargs):
-        if file is None:
-            file = Factories.create_file(
-                name="log.txt",
-                size=32,
-                headers={"Content-Type": "text/plain"},
-                checksum="dc1e3f3e411979d336c3057cce64294f3420f93a",
-            )
-
-        return EventAttachment.objects.create(
-            project_id=event.project_id,
-            event_id=event.event_id,
-            file_id=file.id,
-            type=file.type,
-            **kwargs,
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2043,7 +2044,7 @@ class Factories:
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
         status: int,
-        mode: ProjectUptimeSubscriptionMode,
+        mode: UptimeMonitorMode,
         name: str | None,
         owner: Actor | None,
         id: int | None,

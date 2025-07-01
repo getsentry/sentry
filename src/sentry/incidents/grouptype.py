@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
@@ -17,9 +17,11 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
@@ -30,7 +32,7 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 
 @dataclass
-class MetricIssueEvidenceData(EvidenceData):
+class MetricIssueEvidenceData(EvidenceData[float]):
     alert_id: int
 
 
@@ -41,6 +43,12 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         data_packet: DataPacket[QuerySubscriptionUpdate],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
+        try:
+            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
+            alert_id = alert_rule_detector.alert_rule_id
+        except AlertRuleDetector.DoesNotExist:
+            alert_id = None
+
         try:
             detector_trigger = DataCondition.objects.get(
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
@@ -63,20 +71,40 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             raise DetectorException(
                 f"Failed to find snuba query for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
-        occurrence = DetectorOccurrence(
-            issue_title=self.construct_title(snuba_query, detector_trigger, priority),
-            subtitle="An Issue Subtitle",
-            type=MetricIssue,
-            level="error",
-            culprit="Some culprit",
+
+        try:
+            assignee = parse_and_validate_actor(
+                str(self.detector.created_by_id), self.detector.project.organization_id
+            )
+        except Exception:
+            assignee = None
+
+        return (
+            DetectorOccurrence(
+                issue_title=self.detector.name,
+                subtitle=self.construct_title(snuba_query, detector_trigger, priority),
+                evidence_data={
+                    "alert_id": alert_id,
+                },
+                evidence_display=[],  # XXX: may need to pass more info here for the front end
+                type=MetricIssue,
+                level="error",
+                culprit="",
+                assignee=assignee,
+                priority=priority,
+            ),
+            {},
         )
-        return occurrence, {}
 
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
-        return data_packet.packet["values"]["value"]
+        # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
+        values = data_packet.packet["values"]
+        if values.get("value") is not None:
+            return values.get("value")
+        return values
 
     def construct_title(
         self,
@@ -144,7 +172,7 @@ class MetricIssue(GroupType):
     enable_escalation_detection = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
-        validator=MetricAlertsDetectorValidator,
+        validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a metric alert firing",

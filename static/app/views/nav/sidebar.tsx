@@ -11,6 +11,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {PRIMARY_SIDEBAR_WIDTH, SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
@@ -36,6 +37,11 @@ export function Sidebar() {
   const forceExpanded = tourIsActive;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
   const {isOpen} = useCollapsedNav();
+
+  const [secondarySidebarWidth] = useSyncedLocalStorageState(
+    'secondary-sidebar-width',
+    SECONDARY_SIDEBAR_WIDTH
+  );
 
   useTourModal();
 
@@ -63,9 +69,15 @@ export function Sidebar() {
           animate={isOpen ? 'visible' : 'hidden'}
           variants={{
             visible: {x: 0},
-            hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
+            hidden: {x: -secondarySidebarWidth - 10},
           }}
-          transition={{duration: 0.15, ease: 'easeOut'}}
+          transition={{
+            type: 'spring',
+            damping: 50,
+            stiffness: 700,
+            bounce: 0,
+            visualDuration: 0.1,
+          }}
           data-test-id="collapsed-secondary-sidebar"
           data-visible={isOpen}
         >
@@ -133,8 +145,9 @@ const SuperuserBadgeContainer = styled('div')`
 `;
 
 const ChonkSuperuserBadgeContainer = chonkStyled('div')`
-  position: fixed;
-  top: -1px;
+  position: absolute;
+  top: -${p => p.theme.space.lg};
+  z-index: ${p => p.theme.zIndex.initial};
   left: 0;
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   background: ${p => p.theme.colors.chonk.red400};

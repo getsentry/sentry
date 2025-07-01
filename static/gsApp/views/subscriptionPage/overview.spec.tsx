@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
@@ -21,8 +20,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
-
-import {DataCategory} from 'sentry/types/core';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -116,10 +113,12 @@ describe('Subscription > Overview', () => {
         screen.queryByText('Cron monitors usage this period')
       ).not.toBeInTheDocument();
       expect(screen.queryByText('Attachments usage this period')).not.toBeInTheDocument();
+      expect(screen.queryByText('Seer')).not.toBeInTheDocument();
     } else {
       expect(screen.getByText('Replays usage this period')).toBeInTheDocument();
       expect(screen.getByText('Cron monitors usage this period')).toBeInTheDocument();
       expect(screen.getByText('Attachments usage this period')).toBeInTheDocument();
+      expect(screen.getByText('Seer')).toBeInTheDocument();
     }
 
     if ([PlanTier.MM1, PlanTier.MM2, PlanTier.AM1, PlanTier.AM2].includes(planTier)) {
@@ -211,35 +210,16 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
     assertUsageCards(seerSubscription);
-
-    // TODO(isabella): need to update fixtures so this can be added to assertUsageCards
-    expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
     expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
   });
 
-  it('does not render Seer on developer plan', async function () {
+  it('renders Seer upsell on developer plan', async function () {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
       planTier: PlanTier.AM3,
     });
-
-    subscription.categories = {
-      ...subscription.categories,
-      seerAutofix: MetricHistoryFixture({
-        category: DataCategory.SEER_AUTOFIX,
-        reserved: 0,
-        prepaid: 0,
-        order: 27,
-      }),
-      seerScanner: MetricHistoryFixture({
-        category: DataCategory.SEER_SCANNER,
-        reserved: 0,
-        prepaid: 0,
-        order: 28,
-      }),
-    };
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<Overview location={mockLocation} />, {organization});
@@ -251,6 +231,12 @@ describe('Subscription > Overview', () => {
 
     expect(screen.queryByTestId('usage-card-seerAutofix')).not.toBeInTheDocument();
     expect(screen.queryByTestId('usage-card-seerScanner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Fixes Included in Subscription')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Scans Included in Subscription')
+    ).not.toBeInTheDocument();
   });
 
   it('renders for am3', async function () {
@@ -473,7 +459,6 @@ describe('Subscription > Overview', () => {
       plan: 'mm2_b_100k',
       pendingChanges: PendingChangesFixture({
         plan: 'mm2_a_100k',
-        reservedEvents: 100000,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',

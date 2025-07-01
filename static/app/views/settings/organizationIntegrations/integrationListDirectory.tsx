@@ -554,5 +554,5 @@ const EmptyResultsBody = styled('div')`
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

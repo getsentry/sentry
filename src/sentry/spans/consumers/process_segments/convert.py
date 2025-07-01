@@ -70,8 +70,9 @@ def convert_span_to_item(span: Span) -> TraceItem:
             attributes[k] = AnyValue(string_value=str(v))
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        if value := span.get(field_name):
-            attributes[attribute_name] = _anyvalue(value)
+        v = span.get(field_name)
+        if v is not None:
+            attributes[attribute_name] = _anyvalue(v)
 
     return TraceItem(
         organization_id=span["organization_id"],

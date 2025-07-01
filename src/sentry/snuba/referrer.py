@@ -112,11 +112,15 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_APP_STARTS_DEVICE_CLASS_BREAKDOWN_BAR_CHART = (
+        "api.insights.appstarts.device-class-breakdown-bar-chart"
+    )
     API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
         "api.insights.app-starts.mobile-startup-bar-chart"
     )
     API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
     API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
+    API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -169,6 +173,8 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
     API_PERFORMANCE_EVENTS_FACETS_STATS = (
         "api.organization-events-facets-stats-performance.top-tags"
     )
@@ -665,6 +671,7 @@ class Referrer(StrEnum):
     )
 
     # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_OVERVIEW_API_TABLE = "api.performance.backend.overview.api-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART = (
         "api.performance.backend.overview.requests-chart"
     )
@@ -677,6 +684,7 @@ class Referrer(StrEnum):
         "api.performance.backend.overview.queries-chart"
     )
     API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_CLIENT_TABLE = "api.performance.backend.overview.client-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
     API_PERFORMNACE_BACKEND_OVERVIEW_SLOW_SSR_CHART = (
         "api.performance.backend.overview.slow-ssr-chart"
@@ -793,6 +801,7 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
 
+    INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
@@ -883,6 +892,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
+    REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -1053,16 +1063,23 @@ VALUES = {referrer.value for referrer in Referrer}
 VALID_SUFFIXES = ["primary", "secondary"]
 
 
-def validate_referrer(referrer: str | None) -> None:
+def is_valid_referrer(referrer: str | None) -> bool:
     if not referrer:
-        return
+        return True
 
     if referrer in VALUES:
-        return
+        return True
 
     for suffix in VALID_SUFFIXES:
         if referrer.removesuffix(f".{suffix}") in VALUES:
-            return
+            return True
+
+    return False
+
+
+def validate_referrer(referrer: str | None) -> bool:
+    if is_valid_referrer(referrer):
+        return True
 
     error_message = f"referrer {referrer} is not part of Referrer Enum"
 
@@ -1071,3 +1088,5 @@ def validate_referrer(referrer: str | None) -> None:
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
+
+    return False

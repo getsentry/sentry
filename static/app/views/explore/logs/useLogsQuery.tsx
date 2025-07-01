@@ -19,6 +19,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useLogsAggregate,
+  useLogsAggregateCursor,
+  useLogsAggregateSortBys,
   useLogsAutoRefresh,
   useLogsBaseSearch,
   useLogsCursor,
@@ -108,10 +110,8 @@ function useLogsAggregatesQueryKey({
   const projectIds = useLogsProjectIds();
   const groupBy = useLogsGroupBy();
   const aggregate = useLogsAggregate();
-  const aggregateSort: Sort = {
-    field: aggregate,
-    kind: 'desc',
-  };
+  const aggregateSortBys = useLogsAggregateSortBys();
+  const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
   if (groupBy) {
     fields.push(groupBy);
@@ -128,7 +128,7 @@ function useLogsAggregatesQueryKey({
   const eventView = getEventView(
     search,
     fields,
-    [aggregateSort],
+    aggregateSortBys,
     pageFilters,
     dataset,
     projectIds
@@ -137,6 +137,7 @@ function useLogsAggregatesQueryKey({
     query: {
       ...eventView.getEventsAPIPayload(location),
       per_page: limit ? limit : undefined,
+      cursor: aggregateCursor,
       referrer,
     },
     pageFiltersReady,

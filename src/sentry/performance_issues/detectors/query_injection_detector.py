@@ -57,6 +57,7 @@ class QueryInjectionDetector(PerformanceDetector):
 
         unsafe_inputs = []
         for input_key, input_value in self.potential_unsafe_inputs:
+            original_input_value = input_value.copy()
             # Replace all operands in filter with "?" since the query description is sanitized
             if input_value and isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
@@ -65,8 +66,8 @@ class QueryInjectionDetector(PerformanceDetector):
 
             input_dict = {input_key: input_value}
             if json.dumps(input_dict) in description:
-                description = description.replace(json.dumps(input_value), "?")
-                unsafe_inputs.append(input_key)
+                description = description.replace(json.dumps(input_value), "[UNTRUSTED_INPUT]")
+                unsafe_inputs.append((input_key, original_input_value))
 
         if len(unsafe_inputs) == 0:
             return
@@ -87,7 +88,7 @@ class QueryInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "unsafe_inputs": unsafe_inputs,
+                "vulnerable_parameters": unsafe_inputs,
                 "request_url": self.request_url,
             },
             evidence_display=[

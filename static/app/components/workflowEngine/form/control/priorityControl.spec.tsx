@@ -3,39 +3,41 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {PriorityLevel} from 'sentry/types/group';
+import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+  METRIC_DETECTOR_FORM_FIELDS,
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
 
-    expect(await screen.findByText('Above 0s')).toBeInTheDocument();
-    expect(await screen.findByTestId('priority-control-medium')).toBeInTheDocument();
-    expect(await screen.findByTestId('priority-control-high')).toBeInTheDocument();
+    expect(await screen.findByText('Above 0ms')).toBeInTheDocument();
+    expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
+    expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
 
   it('allows configuring priority', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
     expect(await screen.findByRole('button', {name: 'Low'})).toBeInTheDocument();
@@ -44,46 +46,55 @@ describe('PriorityControl', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Low'}));
     await userEvent.click(await screen.findByRole('option', {name: 'High'}));
-    expect(formModel.getValue('conditionGroup.conditions.0.conditionResult')).toBe(
-      PriorityLevel.HIGH
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel)).toBe(
+      DetectorPriorityLevel.HIGH
     );
     // Check that the medium threshold is not visible
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows configuring medium threshold', async function () {
+  it('allows configuring medium and high thresholds', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
       </Form>
     );
-    const medium = await screen.findByTestId('priority-control-medium');
-    await userEvent.type(medium, '12');
-    expect(formModel.getValue('conditionGroup.conditions.1.comparison')).toBe('12');
+    const medium = screen.getByLabelText('Medium threshold');
+    await userEvent.type(medium, '4');
+
+    const high = screen.getByLabelText('High threshold');
+    await userEvent.type(high, '5');
+
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold)).toBe('4');
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe('5');
   });
 
-  it('allows configuring high value', async function () {
+  it('filters priority options based on minimumPriority prop', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
       },
     });
+
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
-    const high = await screen.findByTestId('priority-control-high');
-    await userEvent.type(high, '12');
-    expect(formModel.getValue('conditionGroup.conditions.2.comparison')).toBe('12');
+
+    // Open the priority dropdown
+    await userEvent.click(screen.getByRole('button', {name: 'Med'}));
+
+    // Should only show Medium and High options (not Low)
+    expect(screen.getByRole('option', {name: 'Med'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'High'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Low'})).not.toBeInTheDocument();
   });
 });

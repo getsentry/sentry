@@ -146,6 +146,18 @@ describe('hasCategoryFeature', function () {
         prepaid: 1,
         order: 9,
       }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        prepaid: 0,
+        order: 14,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        prepaid: 0,
+        order: 15,
+      }),
     ]);
   });
 
@@ -204,6 +216,24 @@ describe('hasCategoryFeature', function () {
           reserved: 1,
           prepaid: 1,
           order: 9,
+        }),
+      ],
+      [
+        'seerAutofix',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_AUTOFIX,
+          reserved: 0,
+          prepaid: 0,
+          order: 14,
+        }),
+      ],
+      [
+        'seerScanner',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_SCANNER,
+          reserved: 0,
+          prepaid: 0,
+          order: 15,
         }),
       ],
     ]);

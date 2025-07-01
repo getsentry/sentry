@@ -1,26 +1,27 @@
 import {useCallback, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-const SAMPLE_BRANCH_ITEMS = [
-  'main',
-  'branch-1',
-  'branch-2',
-  'this-is-a-really-long-branch-name-that-keeps-going-on-and-on-and-on',
-];
+const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
-  const {branch} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {branch, changeContextValue} = useCodecovContext();
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({branch: selectedOption.value});
+    },
+    [changeContextValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
@@ -39,18 +40,6 @@ export function BranchSelector() {
     return [...optionSet].map(makeOption);
   }, [branch]);
 
-  const handleChange = useCallback(
-    (newBranch: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        branch: newBranch.value,
-      };
-      setSearchParams(updatedParams);
-    },
-    [searchParams, setSearchParams]
-  );
-
   return (
     <CompactSelect
       options={options}
@@ -65,12 +54,12 @@ export function BranchSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <FlexContainer>
+              <Flex align="center" gap={space(0.75)}>
                 <IconContainer>
                   <IconBranch />
                 </IconContainer>
                 <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
-              </FlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -98,12 +87,6 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 const IconContainer = styled('div')`

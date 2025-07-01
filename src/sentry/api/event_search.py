@@ -140,15 +140,9 @@ quoted_key  = '"' escaped_key '"'
 
 # the quoted variant is here to for backwards compatibility,
 # and can be removed once we're sure it's no longer in use
-explicit_flag_key_unquoted         = "flags" open_bracket escaped_key closed_bracket
-explicit_flag_key_quoted           = "flags" open_bracket quoted_key closed_bracket
-explicit_flag_key                  = explicit_flag_key_unquoted / explicit_flag_key_quoted
-explicit_string_flag_key_unquoted  = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
-explicit_string_flag_key_quoted    = "flags" open_bracket quoted_key spaces comma spaces "string" closed_bracket
-explicit_string_flag_key           = explicit_string_flag_key_unquoted / explicit_string_flag_key_quoted
-explicit_number_flag_key_unquoted  = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
-explicit_number_flag_key_quoted    = "flags" open_bracket quoted_key spaces comma spaces "number" closed_bracket
-explicit_number_flag_key           = explicit_number_flag_key_unquoted  / explicit_number_flag_key_quoted
+explicit_flag_key         = "flags" open_bracket escaped_key closed_bracket
+explicit_string_flag_key  = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key  = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 
 explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
@@ -1408,79 +1402,21 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},number]")
 
-    def visit_explicit_flag_key_unquoted(
-        self,
-        node: Node,
-        children: tuple[
-            Node,  # "flags"
-            str,  # [
-            str,  # escaped_key
-            str,  # ]
-        ],
-    ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]}]")
-
-    def visit_explicit_flag_key_quoted(
-        self,
-        node: Node,
-        children: tuple[
-            Node,  # "flags"
-            str,  # [
-            str,  # escaped_key
-            str,  # ]
-        ],
-    ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]}]")
-
     def visit_explicit_flag_key(
         self,
         node: Node,
-        children: tuple[SearchKey],
-    ) -> SearchKey:
-        return children[0]
-
-    def visit_explicit_string_flag_key_unquoted(
-        self,
-        node: Node,
         children: tuple[
             Node,  # "flags"
-            str,  # '['
+            str,  # [
             str,  # escaped_key
-            str,  # ' '
-            Node,  # ','
-            str,  # ' '
-            Node,  # "string"
-            str,  # ']'
+            str,  # ]
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]},string]")
-
-    def visit_explicit_string_flag_key_quoted(
-        self,
-        node: Node,
-        children: tuple[
-            Node,  # "flags"
-            str,  # '['
-            str,  # escaped_key
-            str,  # ' '
-            Node,  # ','
-            str,  # ' '
-            Node,  # "string"
-            str,  # ']'
-        ],
-    ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]},string]")
+        return SearchKey(f"flags[{children[2]}]")
 
     def visit_explicit_string_flag_key(
         self,
         node: Node,
-        children: tuple[SearchKey],
-    ) -> SearchKey:
-        return children[0]
-
-    def visit_explicit_number_flag_key_unquoted(
-        self,
-        node: Node,
         children: tuple[
             Node,  # "flags"
             str,  # '['
@@ -1488,34 +1424,27 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ' '
             Node,  # ','
             str,  # ' '
-            Node,  # "number"
+            Node,  # "string"
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]},number]")
-
-    def visit_explicit_number_flag_key_quoted(
-        self,
-        node: Node,
-        children: tuple[
-            Node,  # "flags"
-            str,  # '['
-            str,  # escaped_key
-            str,  # ' '
-            Node,  # ','
-            str,  # ' '
-            Node,  # "number"
-            str,  # ']'
-        ],
-    ) -> SearchKey:
-        return SearchKey(f"flags[{children[2]},number]")
+        return SearchKey(f"flags[{children[2]},string]")
 
     def visit_explicit_number_flag_key(
         self,
         node: Node,
-        children: tuple[SearchKey],
+        children: tuple[
+            Node,  # "flags"
+            str,  # '['
+            str,  # escaped_key
+            str,  # ' '
+            Node,  # ','
+            str,  # ' '
+            Node,  # "number"
+            str,  # ']'
+        ],
     ) -> SearchKey:
-        return children[0]
+        return SearchKey(f"flags[{children[2]},number]")
 
     def visit_aggregate_key(
         self,

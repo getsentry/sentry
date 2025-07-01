@@ -98,7 +98,11 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
       }
 
       // Must query the right field
-      if (!view.query.includes('issue.seer_actionability:')) {
+      if (
+        !view.query.includes('issue.seer_actionability:[high,super_high]') &&
+        !view.query.includes('issue.seer_actionability:[super_high,high]') &&
+        !view.query.includes('issue.seer_actionability:super_high')
+      ) {
         return false;
       }
 

@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {EntryType} from 'sentry/types/event';
 import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
   isEAPSpanNode,
@@ -384,10 +384,10 @@ describe('TraceTree', () => {
         }),
         {
           meta: null,
-          replay: {
+          replay: ReplayRecordFixture({
             started_at: new Date(replayStart),
             finished_at: new Date(replayEnd),
-          } as ReplayRecord,
+          }),
         }
       );
 

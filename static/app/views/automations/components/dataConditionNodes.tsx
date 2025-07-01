@@ -15,6 +15,17 @@ import {
   AssignedToNode,
 } from 'sentry/views/automations/components/actionFilters/assignedTo';
 import {
+  AgeComparison,
+  Attributes,
+  Interval,
+  Level,
+  MatchType,
+  ModelAge,
+  Priority,
+  TargetType,
+  TimeUnit,
+} from 'sentry/views/automations/components/actionFilters/constants';
+import {
   EventAttributeDetails,
   EventAttributeNode,
 } from 'sentry/views/automations/components/actionFilters/eventAttribute';
@@ -28,6 +39,10 @@ import {
   EventUniqueUserFrequencyNode,
   EventUniqueUserFrequencyPercentDetails,
 } from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+import {
+  IssueCategoryDetails,
+  IssueCategoryNode,
+} from 'sentry/views/automations/components/actionFilters/issueCategory';
 import {
   IssueOccurrencesDetails,
   IssueOccurrencesNode,
@@ -58,8 +73,7 @@ import {
 interface DataConditionNodeProps {
   condition: DataCondition;
   condition_id: string;
-  onUpdate: (comparison: Record<string, any>) => void;
-  onUpdateType: (type: DataConditionType) => void;
+  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
 }
 
 export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
@@ -79,6 +93,7 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 type DataConditionNode = {
   label: string;
   dataCondition?: React.ComponentType<any>;
+  defaultComparison?: any;
   details?: React.ComponentType<any>;
 };
 
@@ -119,6 +134,10 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Issue age'),
       dataCondition: AgeComparisonNode,
       details: AgeComparisonDetails,
+      defaultComparison: {
+        comparison_type: AgeComparison.OLDER,
+        time: TimeUnit.MINUTES,
+      },
     },
   ],
   [
@@ -127,6 +146,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Issue assignment'),
       dataCondition: AssignedToNode,
       details: AssignedToDetails,
+      defaultComparison: {targetType: TargetType.UNASSIGNED},
     },
   ],
   [
@@ -138,11 +158,20 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
-    DataConditionType.ISSUE_PRIORITY_EQUALS,
+    DataConditionType.ISSUE_CATEGORY,
+    {
+      label: t('Issue category'),
+      dataCondition: IssueCategoryNode,
+      details: IssueCategoryDetails,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
     {
       label: t('Issue priority'),
       dataCondition: IssuePriorityNode,
       details: IssuePriorityDetails,
+      defaultComparison: Priority.HIGH,
     },
   ],
   [
@@ -151,6 +180,11 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Release age'),
       dataCondition: LatestAdoptedReleaseNode,
       details: LatestAdoptedReleaseDetails,
+      defaultComparison: {
+        release_age_type: ModelAge.OLDEST,
+        age_comparison: AgeComparison.OLDER,
+        environment: '',
+      },
     },
   ],
   [
@@ -167,6 +201,10 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Event attribute'),
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
+      defaultComparison: {
+        attribute: Attributes.MESSAGE,
+        match: MatchType.CONTAINS,
+      },
     },
   ],
   [
@@ -175,6 +213,9 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Tagged event'),
       dataCondition: TaggedEventNode,
       details: TaggedEventDetails,
+      defaultComparison: {
+        match: MatchType.CONTAINS,
+      },
     },
   ],
   [
@@ -183,6 +224,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Event level'),
       dataCondition: LevelNode,
       details: LevelDetails,
+      defaultComparison: {match: MatchType.EQUAL, level: Level.FATAL},
     },
   ],
   [
@@ -198,6 +240,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyCountDetails,
+      defaultComparison: {interval: Interval.ONE_HOUR},
     },
   ],
   [
@@ -206,6 +249,10 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyPercentDetails,
+      defaultComparison: {
+        interval: Interval.ONE_HOUR,
+        comparison_interval: Interval.ONE_WEEK,
+      },
     },
   ],
   [
@@ -221,6 +268,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyCountDetails,
+      defaultComparison: {interval: Interval.ONE_HOUR},
     },
   ],
   [
@@ -229,6 +277,10 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyPercentDetails,
+      defaultComparison: {
+        interval: Interval.ONE_HOUR,
+        comparison_interval: Interval.ONE_WEEK,
+      },
     },
   ],
   [
@@ -244,6 +296,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsCountDetails,
+      defaultComparison: {interval: Interval.ONE_HOUR},
     },
   ],
   [
@@ -252,6 +305,10 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsPercentDetails,
+      defaultComparison: {
+        interval: Interval.ONE_HOUR,
+        comparison_interval: Interval.ONE_WEEK,
+      },
     },
   ],
 ]);

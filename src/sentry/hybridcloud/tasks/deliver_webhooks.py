@@ -12,7 +12,12 @@ from rest_framework import status
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.hybridcloud.models.webhookpayload import BACKOFF_INTERVAL, MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import (
+    BACKOFF_INTERVAL,
+    MAX_ATTEMPTS,
+    DestinationType,
+    WebhookPayload,
+)
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiConnectionResetError,
@@ -25,7 +30,7 @@ from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import get_region_by_name
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -82,6 +87,7 @@ class DeliveryFailed(Exception):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def schedule_webhook_delivery() -> None:
@@ -157,6 +163,7 @@ def schedule_webhook_delivery() -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=300,
     ),
 )
 def drain_mailbox(payload_id: int) -> None:
@@ -234,6 +241,7 @@ def drain_mailbox(payload_id: int) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
+        processing_deadline_duration=120,
     ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
@@ -408,12 +416,21 @@ def deliver_message(payload: WebhookPayload) -> None:
 
 
 def perform_request(payload: WebhookPayload) -> None:
+    match payload.destination_type:
+        case DestinationType.SENTRY_REGION:
+            assert payload.region_name is not None  # guaranteed by database constraint
+            region = get_region_by_name(name=payload.region_name)
+            perform_region_request(payload, region)
+        case DestinationType.CODECOV:
+            pass
+
+
+def perform_region_request(payload: WebhookPayload, region: Region) -> None:
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
     }
-    region = get_region_by_name(name=payload.region_name)
 
     try:
         client = RegionSiloClient(region=region)

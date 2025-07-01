@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, options
-from sentry.autofix.utils import SeerAutomationSource
+from sentry.autofix.utils import SeerAutomationSource, is_seer_scanner_rate_limited
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
@@ -25,10 +25,22 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
         return None
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
-        return None
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
+        return None
+    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        return None
+
+    if is_seer_scanner_rate_limited(project, group.organization):
+        return None
+
+    from sentry import quotas
+    from sentry.constants import DataCategory
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
         return None
 
     timeout = options.get("alerts.issue_summary_timeout") or 5
