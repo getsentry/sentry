@@ -6,9 +6,9 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -110,7 +110,7 @@ export function getHighlightedSpanAttributes({
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatLLMCosts(totalCosts),
+      value: <LLMCosts cost={totalCosts} />,
     });
   }
 

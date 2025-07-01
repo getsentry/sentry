@@ -12,7 +12,7 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
@@ -399,7 +399,7 @@ function getNodeInfo(
     if (cost) {
       nodeInfo.subtitle = (
         <Fragment>
-          {nodeInfo.subtitle} ({formatLLMCosts(cost)})
+          {nodeInfo.subtitle} ({<LLMCosts cost={cost} />})
         </Fragment>
       );
     }
