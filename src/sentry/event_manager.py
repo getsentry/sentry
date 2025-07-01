@@ -1760,7 +1760,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 }
             )
 
-        Activity.objects.create_group_activity(
+        activity = Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
@@ -1771,7 +1771,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
         if has_initial_open_period(group):
-            create_open_period(group, date)
+            create_open_period(group, activity.datetime)
 
     return is_regression
 
