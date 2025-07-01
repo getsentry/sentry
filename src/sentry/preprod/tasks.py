@@ -48,6 +48,7 @@ def assemble_preprod_artifact(
             "timestamp": datetime.datetime.now().isoformat(),
             "project_id": project_id,
             "organization_id": org_id,
+            "checksum": checksum,
         },
     )
 
@@ -120,6 +121,7 @@ def assemble_preprod_artifact(
                 "preprod_artifact_id": preprod_artifact.id,
                 "project_id": project_id,
                 "organization_id": org_id,
+                "checksum": checksum,
             },
         )
 
@@ -129,6 +131,7 @@ def assemble_preprod_artifact(
                 "timestamp": datetime.datetime.now().isoformat(),
                 "project_id": project_id,
                 "organization_id": org_id,
+                "checksum": checksum,
             },
         )
 
