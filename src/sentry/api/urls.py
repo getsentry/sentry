@@ -3,9 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.auth_user_merge_verification_code import (
-    AuthUserMergeVerificationCodeEndpoint,
-)
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -77,6 +74,9 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.auth_v2.endpoints.auth_user_merge_verification_code import (
+    AuthUserMergeVerificationCodeEndpoint,
+)
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
