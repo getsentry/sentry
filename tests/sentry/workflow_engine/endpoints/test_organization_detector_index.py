@@ -236,9 +236,15 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # Query for multiple types.
         response2 = self.get_success_response(
             self.organization.slug,
-            qs_params={"project": self.project.id, "query": "type:error type:metric_issue"},
+            qs_params={"project": self.project.id, "query": "type:[error, metric_issue]"},
         )
         assert {d["name"] for d in response2.data} == {detector.name, detector2.name}
+
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!type:metric_issue"},
+        )
+        assert {d["name"] for d in response3.data} == {detector2.name}
 
     def test_general_query(self):
         detector = self.create_detector(
