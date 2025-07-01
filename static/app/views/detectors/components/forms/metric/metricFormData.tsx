@@ -10,10 +10,12 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, DetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {unreachable} from 'sentry/utils/unreachable';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
+  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
 
 /**
@@ -24,6 +26,7 @@ export const enum DetectorDataset {
   TRANSACTIONS = 'transactions',
   SPANS = 'spans',
   RELEASES = 'releases',
+  LOGS = 'logs',
 }
 
 /**
@@ -223,18 +226,33 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 /**
  * Convert backend dataset to our form dataset
  */
-const getDetectorDataset = (backendDataset: string): DetectorDataset => {
+const getDetectorDataset = (
+  backendDataset: Dataset,
+  eventTypes: EventTypes[]
+): DetectorDataset => {
   switch (backendDataset) {
+    case Dataset.REPLAYS:
+      throw new Error('Unsupported dataset');
     case Dataset.ERRORS:
+    case Dataset.ISSUE_PLATFORM:
       return DetectorDataset.ERRORS;
     case Dataset.TRANSACTIONS:
     case Dataset.GENERIC_METRICS:
       return DetectorDataset.TRANSACTIONS;
     case Dataset.EVENTS_ANALYTICS_PLATFORM:
-      return DetectorDataset.SPANS;
+      // Spans and logs use the same dataset
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_SPAN)) {
+        return DetectorDataset.SPANS;
+      }
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
+        return DetectorDataset.LOGS;
+      }
+      throw new Error('Unsupported event types');
     case Dataset.METRICS:
+    case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
     default:
+      unreachable(backendDataset);
       return DetectorDataset.ERRORS;
   }
 };
@@ -252,7 +270,10 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
       return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+    case DetectorDataset.LOGS:
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
+      unreachable(dataset);
       return Dataset.ERRORS;
   }
 };
@@ -271,7 +292,10 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return ['trace_item_span'];
       case DetectorDataset.RELEASES:
         return []; // Crash rate queries don't have event types
+      case DetectorDataset.LOGS:
+        return ['trace_item_log'];
       default:
+        unreachable(dataset);
         return ['error'];
     }
   };
@@ -285,10 +309,12 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
         return SnubaQueryType.ERROR;
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
+      case DetectorDataset.LOGS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset
       default:
+        unreachable(dataset);
         return SnubaQueryType.ERROR;
     }
   };
@@ -422,7 +448,7 @@ export function getMetricDetectorFormData(detector: Detector): MetricDetectorFor
   const conditionData = processDetectorConditions(detector);
 
   const dataset = snubaQuery?.dataset
-    ? getDetectorDataset(snubaQuery.dataset)
+    ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
 
   return {
