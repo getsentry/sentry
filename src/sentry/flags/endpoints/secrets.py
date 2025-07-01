@@ -54,6 +54,10 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
                 )
             return serializers.CharField(min_length=32, max_length=64).run_validation(value)
 
+        if self.initial_data.get("provider") == "generic":
+            # Flagsmith uses the generic webhook and secrets of 10-60 characters.
+            return serializers.CharField(min_length=10, max_length=64).run_validation(value)
+
         return serializers.CharField(min_length=32, max_length=32).run_validation(value)
 
 
