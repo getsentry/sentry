@@ -33,11 +33,11 @@ class QueryInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-cc646b5cb412d3878c638d3168fd6202ba2c28e0"
+        assert problem.fingerprint == "1-1020-1c333b3c472df81fde8a61cdfae24c86676bd582"
         assert problem.op == "db"
         assert (
             problem.desc
-            == '{"find":"?","filter":{"username":[UNTRUSTED_INPUT]},"limit":"?","singleBatch":"?","batchSize":"?"}'
+            == 'Untrusted Inputs [username] in {"batchSize":"?","filter":{"username":{"$ne":"?"}},"find":"users-test","limit":"?","singleBatch":"?"}'
         )
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", {"$ne": None})]
