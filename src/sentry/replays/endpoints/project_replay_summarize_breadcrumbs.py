@@ -206,7 +206,7 @@ def gen_request_data(
             # Yield the current event's log message
             event_type = which(event)
             if event_type == EventType.FEEDBACK:
-                feedback_id = event["data"]["payload"].get("data", {}).get("feedback_id", None)
+                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId", None)
                 feedback = fetch_feedback_details(feedback_id, project_id)
                 if feedback:
                     yield generate_feedback_log_message(feedback)
