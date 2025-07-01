@@ -25,27 +25,29 @@ type Props = {
   toggleConnected?: (id: string) => void;
 };
 
-function Skeletons({canEdit}: {canEdit: boolean}) {
+function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
   return (
     <Fragment>
-      {Array.from({length: AUTOMATIONS_PER_PAGE}).map((_, index) => (
-        <SimpleTable.Row key={index}>
-          <SimpleTable.RowCell>
-            <Placeholder height="20px" />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="last-triggered">
-            <Placeholder height="20px" />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="action-filters">
-            <Placeholder height="20px" />
-          </SimpleTable.RowCell>
-          {canEdit && (
-            <SimpleTable.RowCell data-column-name="connected">
+      {Array.from({length: Math.min(numberOfRows, AUTOMATIONS_PER_PAGE)}).map(
+        (_, index) => (
+          <SimpleTable.Row key={index}>
+            <SimpleTable.RowCell>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
-          )}
-        </SimpleTable.Row>
-      ))}
+            <SimpleTable.RowCell data-column-name="last-triggered">
+              <Placeholder height="20px" />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell data-column-name="action-filters">
+              <Placeholder height="20px" />
+            </SimpleTable.RowCell>
+            {canEdit && (
+              <SimpleTable.RowCell data-column-name="connected">
+                <Placeholder height="20px" />
+              </SimpleTable.RowCell>
+            )}
+          </SimpleTable.Row>
+        )
+      )}
     </Fragment>
   );
 }
@@ -90,7 +92,7 @@ export function ConnectedAutomationsList({
           </SimpleTable.HeaderCell>
           {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
-        {isLoading && <Skeletons canEdit={canEdit} />}
+        {isLoading && <Skeletons canEdit={canEdit} numberOfRows={automationIds.length} />}
         {isError && <LoadingError />}
         {automationIds.length === 0 && (
           <SimpleTable.Empty>{t('No automations connected')}</SimpleTable.Empty>
