@@ -128,8 +128,9 @@ export default function ProjectReplaySettings({
           </TabPanels.Item>
           <TabPanels.Item key="bulk-delete">
             <p>
-              {t('Deleting replays requires us to remove data from multiple storage locations
-              which can take some time. You can monitor progress and audit requests here.')}
+              {t(
+                'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+              )}
             </p>
             <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
           </TabPanels.Item>
