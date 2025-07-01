@@ -1,7 +1,8 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,17 +41,17 @@ function StepHeader({
   organization,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
-
   const toggleTier = getToggleTier(checkoutTier);
+  const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
-      onClick={() => canEdit && onEdit(stepNumber)}
+      onClick={onEditClick}
       data-test-id={`header-${kebabCase(title)}`}
     >
-      <StepTitleWrapper>
+      <Flex justify="space-between">
         <StepTitle>
           {isCompleted ? (
             <IconCheckmark isCircled color="green300" />
@@ -60,7 +61,7 @@ function StepHeader({
           {title}
         </StepTitle>
         {trailingItems && <div>{trailingItems}</div>}
-      </StepTitleWrapper>
+      </Flex>
       <div>
         {isActive && toggleTier ? (
           typeof onToggleLegacy === 'function' && (
@@ -73,13 +74,15 @@ function StepHeader({
           )
         ) : (
           <EditStep>
-            {isCompleted && <a onClick={() => onEdit(stepNumber)}>{t('Edit')}</a>}
             {canEdit && (
-              <StyledIconChevron
-                direction="down"
-                aria-label={t('Expand section')}
+              <Button
                 size="sm"
-              />
+                aria-label={t('Expand section')}
+                icon={<IconChevron direction="down" />}
+                onClick={onEditClick}
+              >
+                {t('Edit')}
+              </Button>
             )}
           </EditStep>
         )}
@@ -96,18 +99,8 @@ const Header = styled('div')<{canEdit?: boolean; isActive?: boolean}>`
   gap: ${space(1)};
   align-items: center;
   padding: ${space(3)} ${space(2)};
-
-  ${p =>
-    p.isActive &&
-    css`
-      border-bottom: 1px solid ${p.theme.border};
-    `};
-
-  ${p =>
-    p.canEdit &&
-    css`
-      cursor: pointer;
-    `};
+  cursor: ${p => (p.canEdit ? 'pointer' : undefined)};
+  border-bottom: 1px solid ${p => (p.isActive ? p.theme.border : 'transparent')};
 `;
 
 const StepTitle = styled('div')`
@@ -125,14 +118,4 @@ const EditStep = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.border};
-  justify-self: end;
-`;
-
-const StepTitleWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;

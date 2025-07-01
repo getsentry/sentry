@@ -43,6 +43,7 @@ import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
   isContinuousProfiling,
+  isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
@@ -200,14 +201,14 @@ export function calculateCategoryPrepaidUsage(
     subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
-  // If reservedCpe or reservedSpend aren't provided but category is in reservedBudgetCategories,
+  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
   // try to extract them from subscription.reservedBudgets
   let effectiveReservedCpe = reservedCpe ?? undefined;
   let effectiveReservedSpend = reservedSpend ?? undefined;
 
   if (
     (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
-    subscription.reservedBudgetCategories?.includes(category)
+    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
   ) {
     // Look for the category in reservedBudgets
     for (const budget of subscription.reservedBudgets || []) {
@@ -1295,7 +1296,7 @@ const UsageSummaryTitle = styled('h4')`
   margin-bottom: 0px;
   font-weight: 400;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.xl};
   }
 `;

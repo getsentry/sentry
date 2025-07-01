@@ -1616,7 +1616,7 @@ const StyledListItem = styled(ListItem)`
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;
@@ -1682,7 +1682,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.5;
 `;
 
@@ -1692,7 +1692,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 
@@ -1719,7 +1719,7 @@ const StyledField = styled(FieldGroup)`
 `;
 
 const StyledFieldWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
@@ -1727,7 +1727,7 @@ const StyledFieldWrapper = styled('div')`
 `;
 
 const ContentIndent = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: ${space(4)};
   }
 `;
@@ -1737,7 +1737,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

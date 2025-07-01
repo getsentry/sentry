@@ -1,3 +1,35 @@
+25.6.2
+------
+
+### Various fixes & improvements
+
+- feat(feedback): enable feedback category option for org stats page (#94649) by @aliu39
+- fix(anomaly detection): turn processing back on for dynamic rules (#94652) by @mifu67
+- chore(sentry apps): Add SLO for updating servicehooks (#94489) by @Christinarlong
+- feat(prevent): Initial RepoTokenTable (#94381) by @ajay-sentry
+- feat(aci): automation edit scaffolding (#94595) by @ameliahsu
+- feat(replay): add feedback to LLM context (#94315) by @michellewzhang
+- chore(opsgenie): instrument opsgenie installation slos (#94587) by @Christinarlong
+- chore(detectors): Add google API filtering for Consecutive HTTP detector  (#94634) by @roggenkemper
+- chore(launchpad): add dev check to skip ff logic on artifact upload path (#94638) by @NicoHinderling
+- profiling: allow session expanding (#94633) by @JonasBa
+- feat(aci): Add uptime detector form (#94617) by @malwilley
+- feat(preprod) Add file id for install file (#94642) by @noahsmartin
+- fix(ui): Silence additional AbortErrors (#94644) by @scttcper
+- fix(reports): Significantly increase the schedule_organizations deadline (#94596) by @kcons
+- feat(aci): add subfilters list to remaining frequency conditions (#94621) by @ameliahsu
+- :wrench: chore: add ecosystem to codeowners for sentry apps utils (#94620) by @iamrajjoshi
+- fix(ui): Throw error if response is undefined in api client (#94631) by @scttcper
+- :wrench: chore: fix and add a couple open pr comment logs (#94614) by @iamrajjoshi
+- :wrench: chore: sample sentry app client error slo logs (#94618) by @iamrajjoshi
+- feat(launchpad): Create size analysis upload (assemble) endpoint (#94353) by @NicoHinderling
+- fix(billing): update conditions for orgStatsBanner to appear (#94493) by @brendanhsentry
+- docs(replay): Iterate on bulk delete blueprint (#94494) by @ryan953
+- ref(issues): add rate limits to tagkey details (#94626) by @JoshFerge
+- feat(simpleTable): Allow `<SimpleTable>` to accept any Div props (#94619) by @ryan953
+
+_Plus 519 more_
+
 25.6.1
 ------
 

@@ -21,12 +21,11 @@ export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
-  return [new Visualize(DEFAULT_VISUALIZATION, {label: 'A'})];
+  return [new Visualize(DEFAULT_VISUALIZATION)];
 }
 
 type VisualizeOptions = {
   chartType?: ChartType;
-  label?: string;
 };
 
 export interface BaseVisualize {
@@ -37,30 +36,34 @@ export interface BaseVisualize {
 export class Visualize {
   isEquation: boolean;
   chartType: ChartType;
-  label: string;
   yAxis: string;
   stack?: string;
   private selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
-    this.label = options?.label || '';
     this.selectedChartType = options?.chartType;
     this.isEquation = isEquation(yAxis);
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
     this.stack = 'all';
   }
 
+  isValid(): boolean {
+    if (this.isEquation) {
+      const expression = new Expression(this.yAxis);
+      return expression.isValid;
+    }
+    return defined(parseFunction(this.yAxis));
+  }
+
   clone(): Visualize {
     return new Visualize(this.yAxis, {
-      label: this.label,
       chartType: this.selectedChartType,
     });
   }
 
   replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
     return new Visualize(yAxis ?? this.yAxis, {
-      label: this.label,
       chartType: chartType ?? this.selectedChartType,
     });
   }
@@ -78,9 +81,7 @@ export class Visualize {
   }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
-    return json.yAxes.map(
-      yAxis => new Visualize(yAxis, {label: '', chartType: json.chartType})
-    );
+    return json.yAxes.map(yAxis => new Visualize(yAxis, {chartType: json.chartType}));
   }
 }
 
@@ -96,16 +97,13 @@ export function getVisualizesFromLocation(
     .map(raw => parseBaseVisualize(raw, organization))
     .filter(defined);
 
-  let i = 0;
   for (const visualize of baseVisualizes) {
     for (const yAxis of visualize.yAxes) {
       visualizes.push(
         new Visualize(yAxis, {
-          label: String.fromCharCode(65 + i), // starts from 'A',
           chartType: visualize.chartType,
         })
       );
-      i++;
     }
   }
 
@@ -122,12 +120,13 @@ export function parseBaseVisualize(
       return null;
     }
 
-    const yAxes = organization.features.includes('visibility-explore-equations')
-      ? parsed.yAxes.filter((yAxis: string) => {
-          const expression = new Expression(yAxis);
-          return expression.isValid;
-        })
-      : parsed.yAxes.filter(parseFunction);
+    const allowEquations = organization.features.includes('visibility-explore-equations');
+    const yAxes = parsed.yAxes.filter((yAxis: string) => {
+      if (isEquation(yAxis)) {
+        return allowEquations;
+      }
+      return defined(parseFunction(yAxis));
+    });
     if (yAxes.length <= 0) {
       return null;
     }

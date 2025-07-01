@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
@@ -20,13 +21,13 @@ import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
+  conflictingConditionIds: string[];
   group: string;
   handlerGroup: DataConditionHandlerGroupType;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateCondition: (id: string, condition: Record<string, any>) => void;
-  updateConditionType?: (id: string, type: DataConditionType) => void;
+  updateCondition: (id: string, params: {comparison?: any; type?: any}) => void;
 }
 
 interface Option {
@@ -42,7 +43,7 @@ export default function DataConditionNodeList({
   onAddRow,
   onDeleteRow,
   updateCondition,
-  updateConditionType,
+  conflictingConditionIds,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
 
@@ -112,20 +113,29 @@ export default function DataConditionNodeList({
         <AutomationBuilderRow
           key={`${group}.conditions.${condition.id}`}
           onDelete={() => onDeleteRow(condition.id)}
+          isConflicting={conflictingConditionIds.includes(condition.id)}
         >
           <DataConditionNodeContext.Provider
             value={{
               condition,
               condition_id: `${group}.conditions.${condition.id}`,
-              onUpdate: newCondition => updateCondition(condition.id, newCondition),
-              onUpdateType: type =>
-                updateConditionType && updateConditionType(condition.id, type),
+              onUpdate: params => updateCondition(condition.id, params),
             }}
           >
             <Node />
           </DataConditionNodeContext.Provider>
         </AutomationBuilderRow>
       ))}
+      {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
+      {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
+        conflictingConditionIds.length > 0) ||
+        conflictingConditionIds.length > 1) && (
+        <Alert type="error" showIcon>
+          {t(
+            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
+          )}
+        </Alert>
+      )}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {

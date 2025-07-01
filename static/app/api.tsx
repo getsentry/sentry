@@ -533,6 +533,11 @@ export class Client {
     fetchRequest
       .then(
         async response => {
+          if (response === undefined) {
+            // For some reason, response is undefined? Throw to the error path.
+            throw new Error('Response is undefined');
+          }
+
           // The Response's body can only be resolved/used at most once.
           // So we clone the response so we can resolve the body content as text content.
           // Response objects need to be cloned before its body can be used.
@@ -648,7 +653,10 @@ export class Client {
       .catch(error => {
         // eslint-disable-next-line no-console
         console.error(error);
-        Sentry.captureException(error);
+
+        if (error?.name !== 'AbortError' && error?.message !== 'Response is undefined') {
+          Sentry.captureException(error);
+        }
       });
 
     const request = new Request(fetchRequest, aborter);

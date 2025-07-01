@@ -330,6 +330,46 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         # Verify serialized response shows no owner
         assert response.data["owner"] is None
 
+    def test_disable_detector(self):
+        assert self.detector.enabled is True
+        assert self.detector.status == ObjectStatus.ACTIVE
+
+        data = {
+            **self.valid_data,
+            "enabled": False,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is False
+        assert detector.status == ObjectStatus.DISABLED
+
+    def test_enable_detector(self):
+        self.detector.update(enabled=False)
+        self.detector.update(status=ObjectStatus.DISABLED)
+
+        data = {
+            **self.valid_data,
+            "enabled": True,
+        }
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.enabled is True
+        assert detector.status == ObjectStatus.ACTIVE
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):

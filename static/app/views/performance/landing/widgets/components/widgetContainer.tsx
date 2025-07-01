@@ -271,6 +271,7 @@ function WidgetInteractiveTitle({
         typeof eventView.yAxis === 'string' ? [eventView.yAxis] : (eventView.yAxis ?? []);
       navigate(
         getExploreUrl({
+          selection: eventView.getPageFilters(),
           organization,
           visualize: yAxis?.map(y => ({
             chartType: ChartType.LINE,
@@ -304,7 +305,7 @@ function WidgetInteractiveTitle({
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 

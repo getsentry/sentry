@@ -214,7 +214,7 @@ const HeadingInfo = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 1.4em;
 `;
 
@@ -263,7 +263,7 @@ const Footer = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`

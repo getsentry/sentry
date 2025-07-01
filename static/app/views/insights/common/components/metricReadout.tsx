@@ -191,6 +191,6 @@ const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
 
 const ReadoutContentWrapper = styled('h4')<{alignment: 'left' | 'right'}>`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-align: ${p => p.alignment};
 `;

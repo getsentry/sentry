@@ -101,9 +101,7 @@ function GroupList({
   );
   const topIssue = groupIds[0];
   const canSelect = !useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const columns: GroupListColumn[] = [

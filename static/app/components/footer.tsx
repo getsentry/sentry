@@ -117,7 +117,7 @@ const SentryLogoLink = styled(ExternalLink)`
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-left: ${space(1)};
 `;
 
@@ -131,11 +131,11 @@ const Footer = styled(BaseFooter)`
   padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

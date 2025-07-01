@@ -125,7 +125,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
-  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.lg})`);
   const defaultIssueEvent = useDefaultIssueEvent();
   const navigate = useNavigate();
 
@@ -242,7 +242,7 @@ type GroupEventActionsProps = {
 
 function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
-  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const organization = useOrganization();
 
   const hasReplay = Boolean(getReplayIdFromEvent(event));
@@ -552,7 +552,7 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.lg};
   &:hover {
     > span {

@@ -1,20 +1,23 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import Count from 'sentry/components/count';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconCode} from 'sentry/icons';
+import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
 import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
+  AI_COST_ATTRIBUTE,
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
   AI_HANDOFF_OPS,
@@ -81,7 +84,7 @@ export function AISpanList({
   selectedNodeKey: string | null;
 }) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(5);
+  const colors = [...theme.chart.getColorPalette(5), theme.red300];
 
   const spanAttributesRequest = useEAPSpanAttributes(nodes);
   let currentTransaction: TraceTreeNode<
@@ -111,12 +114,16 @@ export function AISpanList({
           }
         }
 
+        // Only indent if the node is a child of the last ai run node
+        const shouldIndent =
+          aiRunNode && !!TraceTree.ParentNode(node, n => n === aiRunNode);
+
         const uniqueKey = getNodeId(node);
         return (
           <Fragment key={uniqueKey}>
             {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
             <TraceListItem
-              indent={aiRunNode === node ? 0 : 1}
+              indent={shouldIndent ? 1 : 0}
               traceBounds={getTimeBounds(currentAiRunNode)}
               key={uniqueKey}
               node={node}
@@ -139,7 +146,7 @@ export function AISpanList({
   );
 }
 
-function TraceListItem({
+const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
@@ -164,8 +171,13 @@ function TraceListItem({
   const duration = getTimeBounds(node).duration;
 
   return (
-    <ListItemContainer isSelected={isSelected} onClick={onClick} indent={indent}>
-      <ListItemIcon color={safeColor}>{icon}</ListItemIcon>
+    <ListItemContainer
+      hasErrors={node.errors.size > 0}
+      isSelected={isSelected}
+      onClick={onClick}
+      indent={indent}
+    >
+      <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
         <ListItemHeader align="center" gap={space(0.5)}>
           <ListItemTitle>{title}</ListItemTitle>
@@ -181,7 +193,7 @@ function TraceListItem({
       </ListItemContent>
     </ListItemContainer>
   );
-}
+});
 
 const keyToTag = (key: string, type: 'string' | 'number') => {
   return `tags[${key},${type}]`;
@@ -226,6 +238,7 @@ function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) 
         AI_MODEL_ID_ATTRIBUTE,
         AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
         keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
+        keyToTag(AI_COST_ATTRIBUTE, 'number'),
         AI_TOOL_NAME_ATTRIBUTE,
       ] as EAPSpanProperty[],
       limit: 100,
@@ -300,13 +313,21 @@ function calculateRelativeTiming(
   return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
 }
 
+interface NodeInfo {
+  color: string | undefined;
+  icon: React.ReactNode;
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}
+
+// TODO: consider splitting this up
 function getNodeInfo(
   node: AITraceSpanNode,
   colors: readonly string[],
   spanAttributes: Record<string, string>
 ) {
   // Default return value
-  const nodeInfo = {
+  const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
     title: 'Unknown',
     subtitle: '',
@@ -351,7 +372,13 @@ function getNodeInfo(
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.subtitle = agentName;
     if (model) {
-      nodeInfo.subtitle = nodeInfo.subtitle ? nodeInfo.subtitle + ` (${model})` : model;
+      nodeInfo.subtitle = nodeInfo.subtitle ? (
+        <Fragment>
+          {nodeInfo.subtitle} ({model})
+        </Fragment>
+      ) : (
+        model
+      );
     }
     nodeInfo.color = colors[0];
   } else if (
@@ -359,8 +386,23 @@ function getNodeInfo(
     AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
   ) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
+    const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
-    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
+    nodeInfo.subtitle = tokens ? (
+      <Fragment>
+        <Count value={tokens} />
+        {' Tokens'}
+      </Fragment>
+    ) : (
+      ''
+    );
+    if (cost) {
+      nodeInfo.subtitle = (
+        <Fragment>
+          {nodeInfo.subtitle} ({<LLMCosts cost={cost} />})
+        </Fragment>
+      );
+    }
     nodeInfo.color = colors[2];
   } else if (
     AI_TOOL_CALL_OPS.includes(op) ||
@@ -376,6 +418,13 @@ function getNodeInfo(
   } else {
     nodeInfo.subtitle = node.value.description || '';
   }
+
+  // Override the color and icon if the node has errors
+  if (node.errors.size > 0) {
+    nodeInfo.icon = <IconFire size="md" color="red300" />;
+    nodeInfo.color = colors[6];
+  }
+
   return nodeInfo;
 }
 
@@ -387,7 +436,11 @@ const TraceListContainer = styled('div')`
   overflow: hidden;
 `;
 
-const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
+const ListItemContainer = styled('div')<{
+  hasErrors: boolean;
+  indent: number;
+  isSelected: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(0.5)};
@@ -396,7 +449,12 @@ const ListItemContainer = styled('div')<{indent: number; isSelected: boolean}>`
   cursor: pointer;
   background-color: ${p =>
     p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple200}` : 'none')};
+  outline: ${p =>
+    p.isSelected
+      ? p.hasErrors
+        ? `2px solid ${p.theme.red200}`
+        : `2px solid ${p.theme.purple200}`
+      : 'none'};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -431,7 +489,6 @@ const ListItemTitle = styled('div')`
 const ListItemSubtitle = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';

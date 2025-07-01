@@ -75,7 +75,7 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const Subheading = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SeerSelectLabel = styled('div')`

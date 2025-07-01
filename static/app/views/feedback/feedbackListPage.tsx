@@ -136,15 +136,15 @@ const LayoutGrid = styled('div')`
   gap: ${space(2)};
   place-items: stretch;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(2)} ${space(4)};
   }
 
@@ -153,7 +153,7 @@ const LayoutGrid = styled('div')`
     'filters search'
     'list details';
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     grid-template-areas:
       'filters'
@@ -162,15 +162,15 @@ const LayoutGrid = styled('div')`
       'details';
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(195px, 1fr) 1.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 390px 1fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;

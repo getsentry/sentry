@@ -4,6 +4,7 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 export function getUploadSourceMapsStep({
@@ -14,11 +15,11 @@ export function getUploadSourceMapsStep({
   newOrg,
   isSelfHosted,
   description,
+  projectSlug,
 }: DocsParams & {
   description?: React.ReactNode;
   guideLink?: string;
 }) {
-  const urlParam = isSelfHosted ? '' : '--saas';
   return {
     collapsible: true,
     title: t('Upload Source Maps (Optional)'),
@@ -35,7 +36,11 @@ export function getUploadSourceMapsStep({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard@latest -i sourcemaps ${urlParam}`,
+        code: getSourceMapsWizardSnippet({
+          isSelfHosted,
+          organization,
+          projectSlug,
+        }),
         onCopy: () => {
           if (!organization || !projectId || !platformKey) {
             return;
