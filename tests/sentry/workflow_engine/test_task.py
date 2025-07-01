@@ -89,37 +89,38 @@ class TestProcessWorkflowActivity(TestCase):
             # Short-circuit evaluation, no workflows associated
             assert mock_evaluate.call_count == 0
 
-    def test_process_workflow_activity__workflows__no_actions(self):
+    @mock.patch(
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers", return_value=set()
+    )
+    @mock.patch(
+        "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
+        return_value=set(),
+    )
+    def test_process_workflow_activity__workflows__no_actions(
+        self, mock_eval_actions, mock_evaluate
+    ):
         self.workflow = self.create_workflow(organization=self.organization)
         self.create_detector_workflow(
             detector=self.detector,
             workflow=self.workflow,
         )
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
-            return_value=set(),
-        ) as mock_evaluate:
-            with mock.patch(
-                "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
-                return_value=set(),
-            ) as mock_eval_actions:
-                process_workflow_activity.run(
-                    activity_id=self.activity.id,
-                    group_id=self.group.id,
-                    detector_id=self.detector.id,
-                )
+        process_workflow_activity.run(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
 
-                event_data = WorkflowEventData(
-                    event=self.activity,
-                    group=self.group,
-                )
-                mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        event_data = WorkflowEventData(
+            event=self.activity,
+            group=self.group,
+        )
 
-                # No actions to evaluate, so processing exist early.
-                assert mock_eval_actions.call_count == 0
+        mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        assert mock_eval_actions.call_count == 0
 
-    def test_process_workflow_activity(self):
+    @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    def test_process_workflow_activity(self, mock_filter_actions):
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -140,14 +141,10 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions"
-        ) as mock_filter_actions:
-            process_workflow_activity.run(
-                activity_id=self.activity.id,
-                group_id=self.group.id,
-                detector_id=self.detector.id,
-            )
+        process_workflow_activity.run(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
 
-            # No actions to evaluate, so processing exist early.
-            mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
+        mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
