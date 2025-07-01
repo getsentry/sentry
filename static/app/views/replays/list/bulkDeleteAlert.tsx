@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import Link from 'sentry/components/links/link';
-import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useFetchBulkDeleteLogs';
+import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
