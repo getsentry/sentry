@@ -39,7 +39,7 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.data_secrecy.models import DataSecrecyWaiver
+from sentry.data_secrecy.models import DataAccessGrant, DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
@@ -659,6 +659,13 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             access_start=timezone.now(),
             access_end=timezone.now() + timedelta(days=1),
+        )
+
+        # DataAccessGrant
+        DataAccessGrant.objects.create(
+            organization=org,
+            grant_type=DataAccessGrant.GrantType.MANUAL,
+            ticket_id="1234567890",
         )
 
         # Setup a test 'Issue Rule' and 'Automation'
