@@ -371,7 +371,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     "tag": "breadcrumb",
                     "payload": {
                         "category": "sentry.feedback",
-                        "data": {"feedback_id": "56b08cf7852c42cbb95e4a6998c66ad6"},
+                        "data": {"feedbackId": "56b08cf7852c42cbb95e4a6998c66ad6"},
                     },
                 },
             },
