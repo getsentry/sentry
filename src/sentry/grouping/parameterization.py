@@ -88,7 +88,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
-        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+        name="traceparent",
+        raw_pattern=r"""
+            # https://www.w3.org/TR/trace-context/#traceparent-header
+            (\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b) |
+
+            # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html#request-tracing-syntax
+            (\b1-[0-9a-f]{8}-[0-9a-f]{24}\b)
+        """,
     ),
     ParameterizationRegex(
         name="uuid",
