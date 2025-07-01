@@ -12,7 +12,7 @@ interface StoryResources {
   js?: string;
 }
 
-type FrontmatterPagination = boolean | string | {label: string; link: string};
+type FrontmatterPagination = boolean | {label: string; link: string};
 
 interface MDXStoryDescriptor {
   exports: {
