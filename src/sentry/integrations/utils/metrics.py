@@ -355,6 +355,12 @@ class IntegrationPipelineViewType(StrEnum):
     # Jira Server
     WEBHOOK_CREATION = "webhook_creation"
 
+    # All Integrations
+    FINISH_PIPELINE = "finish_pipeline"
+
+    # Opsgenie
+    INSTALLATION_CONFIGURATION = "installation_configuration"
+
 
 class IntegrationPipelineErrorReason(StrEnum):
     # OAuth identity

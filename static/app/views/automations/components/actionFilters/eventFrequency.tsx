@@ -81,7 +81,7 @@ export function EventFrequencyNode() {
 }
 
 function ComparisonTypeField() {
-  const {condition, condition_id, onUpdateType} = useDataConditionNodeContext();
+  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
 
   if (condition.type === DataConditionType.EVENT_FREQUENCY_COUNT) {
     return <CountBranch />;
@@ -105,7 +105,7 @@ function ComparisonTypeField() {
         },
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
-        onUpdateType(option.value);
+        onUpdate({type: option.value});
       }}
     />
   );

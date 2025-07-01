@@ -134,6 +134,7 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
+    GENERAL = "general"  # for processes that span multiple integration domains
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
