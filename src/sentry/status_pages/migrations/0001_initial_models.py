@@ -26,10 +26,7 @@ class Migration(CheckedMigration):
 
     initial = True
 
-    dependencies = [
-        ("sentry", "0896_org_level_access_not_null"),
-        ("workflow_engine", "0060_rename_azure_devops_action_to_vsts"),
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
