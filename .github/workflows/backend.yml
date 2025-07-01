@@ -112,9 +112,7 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+          docker logs -f snuba-snuba-1
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
