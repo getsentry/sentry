@@ -25,11 +25,11 @@ export function StoryResources() {
         {Object.entries(resources).map(([type, data]) => {
           switch (type) {
             case 'figma':
-              return <FigmaResource href={data} />;
+              return <FigmaResource key={type} href={data} />;
             case 'js':
-              return <JsResource href={data} />;
+              return <JsResource key={type} href={data} />;
             case 'a11y':
-              return <A11yResource items={data} />;
+              return <A11yResource key={type} items={data} />;
             default:
               return null;
           }
