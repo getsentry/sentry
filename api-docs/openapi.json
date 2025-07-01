@@ -94,9 +94,6 @@
     }
   ],
   "paths": {
-    "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/stats/": {
-      "$ref": "paths/teams/stats.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
       "$ref": "paths/organizations/event-id-lookup.json"
     },
