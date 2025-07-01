@@ -41,7 +41,6 @@ function PlanMigrationTable({subscription, migration}: Props) {
   // Setting default to monthly to handle nextPlan if the endpoint update is not updated yet
   // Prior plan migrations are all monthly contracts
   const nextPlanTerm = nextPlan.contractPeriod ?? MONTHLY;
-  const hasErrorCredits = !!(nextPlan.errorCredits && nextPlan.errorCreditsMonths);
   // The nextPlan.discountAmount is handled differently for monthly & annual billing intervals. Using these checks to display correct info
   const hasMonthlyDiscount = !!(
     nextPlan.discountAmount &&
@@ -109,7 +108,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
               DataCategoryExact.ERROR,
               subscription
             )}
-            hasCredits={hasErrorCredits}
+            hasCredits={!!nextPlan.categoryCredits?.[DataCategory.ERRORS]?.credits}
           />
           {/* TODO(data categories): BIL-955 */}
           {isAM3Migration
@@ -185,23 +184,21 @@ function PlanMigrationTable({subscription, migration}: Props) {
           )}
         </tbody>
       </AlertStripedTable>
-      {hasErrorCredits && (
-        <Credits data-test-id="error-credits">
-          *
-          {tct(
-            'We will provide an extra [errorCredits] errors for [errorCreditsMonths] months at no additional charge.',
-            {
-              errorCredits: formatReservedWithUnits(
-                nextPlan.errorCredits || 0,
-                DataCategory.ERRORS,
-                {
+      {Object.entries(nextPlan.categoryCredits ?? {}).map(
+        ([category, {credits, months}]) => (
+          <Credits data-test-id={`${category}-credits`} key={category}>
+            *
+            {tct(
+              'We will provide an extra [credits] [category] for [months] months at no additional charge.',
+              {
+                credits: formatReservedWithUnits(credits, category as DataCategory, {
                   isAbbreviated: true,
-                }
-              ),
-              errorCreditsMonths: nextPlan.errorCreditsMonths,
-            }
-          )}
-        </Credits>
+                }),
+                months,
+              }
+            )}
+          </Credits>
+        )
       )}
       {hasMonthlyDiscount && (
         <Credits data-test-id="dollar-credits">
