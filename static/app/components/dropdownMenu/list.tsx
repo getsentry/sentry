@@ -184,9 +184,7 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        isDismissable={false}
         shouldCloseOnBlur={false}
-        shouldCloseOnInteractOutside={() => false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
         position="right-start"
