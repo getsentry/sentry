@@ -281,5 +281,4 @@ class C:
         with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
             ...
 """
-        expected = []
-        assert _run(okay) == expected
+        assert _run(okay) == []
