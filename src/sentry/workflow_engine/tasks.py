@@ -65,6 +65,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
                     "detector_id": detector_id,
                 },
             )
+            return  # Exit execution that we cannot recover from
 
     event_data = WorkflowEventData(
         event=activity,
