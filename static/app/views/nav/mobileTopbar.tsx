@@ -13,6 +13,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
@@ -45,10 +46,15 @@ function MobileTopbar() {
   const showSuperuserWarning =
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
+  const [navRef, setNavRef] = useState<HTMLDivElement | null>(null);
+  useOnClickOutside(navRef, () => {
+    setView('closed');
+  });
+
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
       <Left>
-        <OrgDropdown />
+        <OrgDropdown onClick={() => setView('closed')} />
         {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
@@ -62,6 +68,7 @@ function MobileTopbar() {
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
+          ref={r => setNavRef(r)}
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
         >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
@@ -97,12 +104,16 @@ function updateNavStyleAttributes(view: ActiveView) {
 function NavigationOverlayPortal({
   children,
   label,
+  ref,
 }: {
   children: React.ReactNode;
   label: string;
+  ref: React.RefCallback<HTMLDivElement | null>;
 }) {
   return createPortal(
-    <NavigationOverlay aria-label={label}>{children}</NavigationOverlay>,
+    <NavigationOverlay ref={ref} aria-label={label}>
+      {children}
+    </NavigationOverlay>,
     document.body
   );
 }
