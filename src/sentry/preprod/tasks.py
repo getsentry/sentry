@@ -39,6 +39,7 @@ def assemble_preprod_artifact(
     """
     Creates a preprod artifact from uploaded chunks.
     """
+    from sentry.models.files.file import File
     from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
 
     logger.info(
@@ -55,23 +56,49 @@ def assemble_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-        )
-
-        assemble_result = assemble_file(
-            task=AssembleTask.PREPROD_ARTIFACT,
-            org_or_project=project,
-            name=f"preprod-artifact-{uuid.uuid4().hex}",
-            checksum=checksum,
-            chunks=chunks,
-            file_type="preprod.artifact",
-        )
-
-        if assemble_result is None:
-            return
-
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # First check if there's already a file with this checksum and type
+            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
+
+            existing_artifact = None
+            if existing_file:
+                existing_artifact = (
+                    PreprodArtifact.objects.select_for_update()
+                    .filter(project=project, file_id=existing_file.id)
+                    .first()
+                )
+
+            if existing_artifact:
+                logger.info(
+                    "PreprodArtifact already exists for this checksum, skipping assembly",
+                    extra={
+                        "preprod_artifact_id": existing_artifact.id,
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "checksum": checksum,
+                    },
+                )
+                set_assemble_status(
+                    AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK
+                )
+                return
+
+            set_assemble_status(
+                AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
+            )
+
+            assemble_result = assemble_file(
+                task=AssembleTask.PREPROD_ARTIFACT,
+                org_or_project=project,
+                name=f"preprod-artifact-{uuid.uuid4().hex}",
+                checksum=checksum,
+                chunks=chunks,
+                file_type="preprod.artifact",
+            )
+
+            if assemble_result is None:
+                return
+
             build_config = None
             if build_configuration:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
