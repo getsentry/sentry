@@ -38,6 +38,8 @@ S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` 
 
 S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
+S014_msg = "S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -149,6 +151,13 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+        elif (
+            # ThreadPoolExecutor(...)
+            isinstance(node.func, ast.Name)
+            and node.func.id == "ThreadPoolExecutor"
+        ):
+            if "thread_name_prefix" not in (kw.arg for kw in node.keywords):
+                self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
 
