@@ -1,5 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
@@ -49,10 +50,12 @@ class Settings extends DefaultSettings<Props, State> {
 
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
-        <div className="alert alert-error m-b-1">
-          An unknown error occurred. Need help with this?{' '}
-          <a href="https://sentry.io/support/">Contact support</a>
-        </div>
+        <Alert.Container>
+          <Alert type="error">
+            An unknown error occurred. Need help with this?{' '}
+            <a href="https://sentry.io/support/">Contact support</a>
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -68,11 +71,11 @@ class Settings extends DefaultSettings<Props, State> {
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
         {this.state.errors.__all__ && (
-          <div className="alert alert-block alert-error">
+          <Alert type="error">
             <ul>
               <li>{this.state.errors.__all__}</li>
             </ul>
-          </div>
+          </Alert>
         )}
         {this.renderFields(requiredFields)}
         {onPremisesFields.length > 0 ? (
