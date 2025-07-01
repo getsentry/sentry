@@ -24,17 +24,17 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
     return null;
   }
 
+  const mightHaveUrl = eventData?.contexts?.feedback || eventData?.tags;
   const url =
     eventData?.contexts?.feedback?.url ??
     eventData?.tags?.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
-  const displayUrl =
-    eventData?.contexts?.feedback || eventData?.tags ? (url ?? URL_NOT_FOUND) : '';
-  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
-
   if (crashReportId && !url) {
     return null;
   }
+
+  const displayUrl = mightHaveUrl ? (url ?? URL_NOT_FOUND) : '';
+  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
   return (
     <FeedbackItemSection
       collapsible
