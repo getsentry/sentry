@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -8,11 +9,13 @@ import useUrlParams from './useUrlParams';
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    window.location.search = qs.stringify({
-      page: '3',
-      limit: '50',
-      array: ['first', 'second'],
-    });
+    setWindowLocation(
+      `http://localhost/?${qs.stringify({
+        page: '3',
+        limit: '50',
+        array: ['first', 'second'],
+      })}`
+    );
   });
 
   it('should read query values from the url', () => {
