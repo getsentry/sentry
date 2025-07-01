@@ -2,10 +2,12 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {
+  UrlParamBatchProvider,
+  useUrlBatchContext,
+} from 'sentry/utils/url/urlParamBatchContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {UrlParamBatchProvider, useUrlBatchContext} from './urlParamBatchContext';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

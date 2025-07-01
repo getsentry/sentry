@@ -4,10 +4,10 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {UrlParamBatchProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/urlParamBatchContext';
-import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 jest.mock('sentry/utils/useLocation');
