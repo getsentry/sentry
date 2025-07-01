@@ -2,6 +2,7 @@ import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {UserFixture} from 'sentry-fixture/user';
 
 import type {Detector, SnubaQueryDataSource} from 'sentry/types/workflowEngine/detectors';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 export function DetectorFixture(params: Partial<Detector> = {}): Detector {
   return {
@@ -40,10 +41,11 @@ export function SnubaQueryDataSourceFixture(
       subscription: '1',
       snubaQuery: {
         aggregate: '',
-        dataset: '',
+        dataset: Dataset.ERRORS,
         id: '',
         query: '',
         timeWindow: 60,
+        eventTypes: [EventTypes.ERROR],
       },
     },
     ...params,

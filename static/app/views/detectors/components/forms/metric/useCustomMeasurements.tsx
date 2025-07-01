@@ -4,16 +4,14 @@ import type {Query} from 'history';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type MeasurementsMetaResponse = Record<string, {functions: string[]; unit: string}>;
 
-export function useCustomMeasurements(
-  organization: Organization,
-  selection?: PageFilters
-) {
+export function useCustomMeasurements(selection?: PageFilters) {
+  const organization = useOrganization();
   const query: Query = selection?.datetime
     ? normalizeDateTimeParams(selection.datetime)
     : {};

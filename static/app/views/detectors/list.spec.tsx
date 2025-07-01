@@ -18,6 +18,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', function () {
@@ -71,10 +72,11 @@ describe('DetectorsList', function () {
                 snubaQuery: {
                   environment: 'production',
                   aggregate: 'count()',
-                  dataset: 'events',
+                  dataset: Dataset.ERRORS,
                   id: '1',
                   query: 'event.type:error',
                   timeWindow: 3600,
+                  eventTypes: [EventTypes.ERROR],
                 },
                 id: '1',
                 status: 200,

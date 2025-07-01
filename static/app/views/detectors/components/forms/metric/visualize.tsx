@@ -17,7 +17,6 @@ import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, prettifyTagKey} from 'sentry/utils
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
-import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/metric/customMeasurements';
 import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
 import {
   DetectorDataset,
@@ -25,6 +24,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
+import {useCustomMeasurements} from 'sentry/views/detectors/components/forms/metric/useCustomMeasurements';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -84,7 +84,7 @@ function getAggregateOptions(
   tableFieldOptions: Record<string, SelectValue<FieldValue>>
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
-  if (dataset === DetectorDataset.SPANS) {
+  if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
   }
 
@@ -169,12 +169,14 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 
 export function Visualize() {
   const organization = useOrganization();
-  const {customMeasurements} = useCustomMeasurements(organization);
+  const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   const tags = useTags();
+
+  // See TraceItemAttributeProvider for how these contexts are populated
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
   const formContext = useContext(FormContext);
@@ -193,7 +195,7 @@ export function Visualize() {
 
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
-    if (dataset === DetectorDataset.SPANS) {
+    if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
       const spanColumnOptions: Array<[string, string]> = [
         ...Object.values(stringSpanTags).map((tag): [string, string] => [
           tag.key,
@@ -278,7 +280,9 @@ export function Visualize() {
   };
 
   const hasVisibleParameters =
-    Boolean(aggregateMetadata?.parameters?.length) && dataset !== DetectorDataset.SPANS;
+    Boolean(aggregateMetadata?.parameters?.length) &&
+    dataset !== DetectorDataset.SPANS &&
+    dataset !== DetectorDataset.LOGS;
 
   return (
     <CustomMeasurementsContext value={{customMeasurements}}>

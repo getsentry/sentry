@@ -1,4 +1,6 @@
+import {unreachable} from 'sentry/utils/unreachable';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
@@ -17,7 +19,10 @@ export function getDatasetConfig(dataset: DetectorDataset) {
       return ReleasesConfig;
     case DetectorDataset.SPANS:
       return SpansConfig;
+    case DetectorDataset.LOGS:
+      return LogsConfig;
     default:
+      unreachable(dataset);
       return ErrorsConfig;
   }
 }
