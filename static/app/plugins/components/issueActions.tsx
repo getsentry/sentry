@@ -514,11 +514,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return (
         <Alert type="info">
           {error.has_auth_configured ? (
-            <Alert type="info">
+            <Fragment>
               You still need to{' '}
               <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
               can use it.
-            </Alert>
+            </Fragment>
           ) : (
             <div>
               <p>
