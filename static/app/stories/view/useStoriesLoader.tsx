@@ -12,12 +12,16 @@ interface StoryResources {
   js?: string;
 }
 
+type FrontmatterPagination = boolean | string | {label: string; link: string};
+
 interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
     frontmatter?: {
       description: string;
       title: string;
+      next?: FrontmatterPagination;
+      prev?: FrontmatterPagination;
       resources?: StoryResources;
       source?: string;
       types?: string;

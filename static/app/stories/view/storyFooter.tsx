@@ -9,16 +9,21 @@ import {space} from 'sentry/styles/space';
 export function StoryFooter() {
   const {story} = useStory();
   if (!story.filename.endsWith('.mdx')) return null;
+  const {prev, next} = story.exports.frontmatter ?? {};
   return (
     <Flex align="center" justify="space-between" gap={space(2)}>
-      <Card href="#" icon={<IconArrow direction="left" />}>
-        <CardLabel>Previous</CardLabel>
-        <CardTitle>Banner</CardTitle>
-      </Card>
-      <Card data-flip href="#" icon={<IconArrow direction="right" />}>
-        <CardLabel>Next</CardLabel>
-        <CardTitle>Card</CardTitle>
-      </Card>
+      {prev && (
+        <Card to={prev.link} icon={<IconArrow direction="left" />}>
+          <CardLabel>Previous</CardLabel>
+          <CardTitle>{prev.label}</CardTitle>
+        </Card>
+      )}
+      {next && (
+        <Card data-flip to={next.link} icon={<IconArrow direction="right" />}>
+          <CardLabel>Next</CardLabel>
+          <CardTitle>{next.label}</CardTitle>
+        </Card>
+      )}
     </Flex>
   );
 }
@@ -37,7 +42,7 @@ const Card = styled(LinkButton)`
       'icon text';
     grid-template-columns: auto 1fr;
     place-content: center;
-    column-gap: ${space(1)};
+    gap: ${space(1)} ${space(2)};
   }
   &[data-flip] span:last-child {
     grid-template-areas:
