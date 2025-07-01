@@ -225,18 +225,24 @@ function createConditions(data: MetricDetectorFormData): NewConditionGroup['cond
 /**
  * Convert backend dataset to our form dataset
  */
-const getDetectorDataset = (backendDataset: string): DetectorDataset => {
+const getDetectorDataset = (backendDataset: Dataset): DetectorDataset => {
   switch (backendDataset) {
+    case Dataset.REPLAYS:
+      throw new Error('Unsupported dataset');
     case Dataset.ERRORS:
+    case Dataset.ISSUE_PLATFORM:
       return DetectorDataset.ERRORS;
     case Dataset.TRANSACTIONS:
     case Dataset.GENERIC_METRICS:
       return DetectorDataset.TRANSACTIONS;
     case Dataset.EVENTS_ANALYTICS_PLATFORM:
+      // TODO: Determine if this is spans or logs somehow
       return DetectorDataset.SPANS;
     case Dataset.METRICS:
+    case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
     default:
+      unreachable(backendDataset);
       return DetectorDataset.ERRORS;
   }
 };

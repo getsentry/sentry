@@ -218,7 +218,7 @@ function useDatasetChoices() {
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
-      ...(organization.features.includes('ourlogs-dashboards')
+      ...(organization.features.includes('ourlogs-alerts')
         ? [
             {
               value: DetectorDataset.LOGS,

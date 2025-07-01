@@ -1,12 +1,12 @@
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
-import type {AlertRuleSensitivity} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertRuleSensitivity, Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * See SnubaQuerySerializer
  */
 interface SnubaQuery {
   aggregate: string;
-  dataset: string;
+  dataset: Dataset;
   id: string;
   query: string;
   /**
