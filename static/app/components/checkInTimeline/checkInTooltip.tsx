@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {TooltipProps} from 'sentry/components/core/tooltip';
@@ -7,7 +8,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
 
@@ -27,7 +27,7 @@ interface CheckInTooltipProps<Status extends string> extends Omit<TooltipProps, 
   /**
    * Configures the styling of the tooltip labels
    */
-  statusStyle: Record<Status, TickStyle>;
+  statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
 }
 
@@ -44,6 +44,9 @@ export function CheckInTooltip<Status extends string>({
   const {dateLabelFormat} = timeWindowConfig;
   const representsSingleJob =
     Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
+
+  const theme = useTheme();
+  const labelColors = statusStyle(theme);
 
   const tooltipTitle = (
     <Fragment>
@@ -69,7 +72,9 @@ export function CheckInTooltip<Status extends string>({
             ([status, count]) =>
               count > 0 && (
                 <tr key={status}>
-                  <StatusLabel labelColor={statusStyle[status]?.labelColor ?? 'disabled'}>
+                  <StatusLabel
+                    labelColor={labelColors[status]?.labelColor ?? theme.disabled}
+                  >
                     {statusLabel[status]}
                   </StatusLabel>
                   <StatusCount>{count}</StatusCount>
@@ -124,8 +129,8 @@ const TooltipTimeLabel = styled('div')`
   justify-content: center;
 `;
 
-const StatusLabel = styled('td')<{labelColor: ColorOrAlias}>`
-  color: ${p => p.theme[p.labelColor]};
+const StatusLabel = styled('td')<{labelColor: string}>`
+  color: ${p => p.labelColor};
 `;
 
 const StatusCount = styled('td')`

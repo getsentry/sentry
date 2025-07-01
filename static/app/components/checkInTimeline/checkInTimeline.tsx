@@ -24,7 +24,7 @@ interface CheckInTimelineConfig<Status extends string> {
   /**
    * Configures the styling of the tooltip labels
    */
-  statusStyle: Record<Status, TickStyle>;
+  statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
   className?: string;
   style?: React.CSSProperties;

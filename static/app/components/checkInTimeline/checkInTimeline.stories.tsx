@@ -21,21 +21,21 @@ enum ExampleStatus {
   TIMEOUT = 'timeout',
 }
 
-const statusStyle: Record<ExampleStatus, TickStyle> = {
+const statusStyle: TickStyle<ExampleStatus> = theme => ({
   [ExampleStatus.ERROR]: {
-    labelColor: 'red400',
-    tickColor: 'red300',
+    labelColor: theme.red400,
+    tickColor: theme.red300,
   },
   [ExampleStatus.TIMEOUT]: {
-    labelColor: 'yellow400',
-    tickColor: 'yellow300',
-    hatchTick: 'yellow200',
+    labelColor: theme.yellow400,
+    tickColor: theme.yellow300,
+    hatchTick: theme.yellow200,
   },
   [ExampleStatus.OK]: {
-    labelColor: 'green400',
-    tickColor: 'green300',
+    labelColor: theme.green400,
+    tickColor: theme.green300,
   },
-};
+});
 
 const statusLabel: Record<ExampleStatus, string> = {
   [ExampleStatus.OK]: 'Okay',
