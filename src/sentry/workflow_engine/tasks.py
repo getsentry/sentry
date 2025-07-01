@@ -46,15 +46,11 @@ logger = log_context.get_logger(__name__)
 )
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
-    Process a workflow task identified by the given Activity ID and Detector ID.
+    Process a workflow task identified by the given activity, group, and detector.
 
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    # TODO - @saponifi3d - implement this in a follow-up PR. This update will require WorkflowEventData
-    # to allow for an activity in the `event` attribute. That refactor is a bit noisy
-    # and will be done in a subsequent pr.
-
     with transaction.atomic(router.db_for_write(Detector)):
         try:
             activity = Activity.objects.get(id=activity_id)
