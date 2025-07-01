@@ -18,7 +18,7 @@ export default function BulkDeleteAlert({projectId}: Props) {
 
   const {data} = useReplayBulkDeleteAuditLog({
     projectSlug: project?.slug ?? '',
-    query: {per_page: 10, offset: 0, referrer: 'replay-settings'},
+    query: {per_page: 10, offset: 0, referrer: 'replay-list'},
     enabled: project && hasWriteAccess,
   });
 
