@@ -173,8 +173,6 @@ class UserOption(Model):
         - Whether the user prefers the new Agents insights module experience (boolean)
      - prefers_chonk_ui
         - Whether the user prefers the new Chonk UI experience (boolean)
-     - quick_start_display
-        - Tracks whether the quick start guide was already automatically shown to the user during their second visit
      - language
         - which language to display the app in
      - mail:email
