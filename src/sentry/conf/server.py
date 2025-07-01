@@ -650,7 +650,7 @@ SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 
 # Protect login/registration endpoints during development phase
-AUTH_V2_SECRET = ""
+AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
