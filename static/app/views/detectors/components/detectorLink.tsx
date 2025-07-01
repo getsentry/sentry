@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {DataSource, Detector} from 'sentry/types/workflowEngine/detectors';
@@ -18,22 +19,12 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
 };
-
-function formatConditionPriority(condition: DataCondition) {
-  switch (condition.conditionResult) {
-    case DetectorPriorityLevel.HIGH:
-      return 'high';
-    case DetectorPriorityLevel.MEDIUM:
-      return 'medium';
-    default:
-      return 'low';
-  }
-}
 
 function formatConditionType(condition: DataCondition) {
   switch (condition.type) {
@@ -64,7 +55,10 @@ function formatCondition({condition, unit}: {condition: DataCondition; unit: str
 
   const comparison = formatConditionType(condition);
   const threshold = `${condition.comparison}${unit}`;
-  const priority = formatConditionPriority(condition);
+  const priority =
+    DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
+      condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
+    ];
 
   return `${comparison}${threshold} ${priority}`;
 }
@@ -89,10 +83,11 @@ function ConfigDetails({detector}: {detector: Detector}) {
     return null;
   }
 
+  const unit = getMetricDetectorSuffix(detector);
   switch (type) {
     case 'static': {
       const text = conditions
-        .map(condition => formatCondition({condition, unit: 's'}))
+        .map(condition => formatCondition({condition, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {
@@ -102,7 +97,7 @@ function ConfigDetails({detector}: {detector: Detector}) {
     }
     case 'percent': {
       const text = conditions
-        .map(condition => formatCondition({condition, unit: '%'}))
+        .map(condition => formatCondition({condition, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {
