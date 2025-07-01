@@ -1120,7 +1120,9 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "batched-parallel":
             self.batched_parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ThreadPoolExecutor(
+                thread_name_prefix="StoreMonitorCheckInStrategyFactory", max_workers=max_workers
+            )
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size

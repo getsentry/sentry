@@ -107,7 +107,9 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
         if mode == "batched-parallel":
             self.batched_parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ThreadPoolExecutor(
+                thread_name_prefix="ResultsStrategyFactory", max_workers=max_workers
+            )
             if max_workers is None:
                 metric_tags["workers"] = "default"
             else:

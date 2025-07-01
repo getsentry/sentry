@@ -232,3 +232,54 @@ from sentry.db.models.fields.array import ArrayField
 """
     expected = ["t.py:1:0: S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"]
     assert _run(src) == expected
+
+
+class TestDescribeS014:
+    def test_it_catches_global_assignment(self):
+        bad = """\
+from concurrent.futures import ThreadPoolExecutor
+
+# 1 worker each for spans, errors, performance issues
+_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+"""
+        expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
+        assert _run(bad) == expected
+
+        good = """\
+from concurrent.futures import ThreadPoolExecutor
+
+# 1 worker each for spans, errors, performance issues
+_query_thread_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix='xyz')
+"""
+        assert _run(good) == []
+
+    def test_it_catches_module_import(self):
+        bad = """\
+import concurrent.futures
+
+# 1 worker each for spans, errors, performance issues
+_query_thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+"""
+        expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
+        assert _run(bad) == expected
+
+        good = """\
+import concurrent.futures
+
+# 1 worker each for spans, errors, performance issues
+_query_thread_pool = concurrent.futures.ThreadPoolExecutor(thread_name_prefix='abc', max_workers=3)
+"""
+        assert _run(good) == []
+
+    def test_it_dont_catches_immediate_with(self):
+        okay = """\
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+class C:
+    def f():
+        # Use a threadpool to send requests concurrently
+        with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
+            ...
+"""
+        expected = []
+        assert _run(okay) == expected

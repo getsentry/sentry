@@ -40,7 +40,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.batched = mode == "batched-parallel"
         # either use multi-process pool or a thread pool
         if self.batched:
-            self.worker: ThreadPoolExecutor | None = ThreadPoolExecutor()
+            self.worker: ThreadPoolExecutor | None = ThreadPoolExecutor(
+                thread_name_prefix="OccurrenceStrategyFactory"
+            )
             self.pool: MultiprocessingPool | None = None
         else:
             # make sure num_processes is not None

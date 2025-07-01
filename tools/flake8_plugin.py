@@ -135,18 +135,24 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    _in_with_item = False
+
+    def visit_withitem(self, node: ast.withitem) -> None:
+        orig, self._in_with_item = self._in_with_item, True
+        self.generic_visit(node)
+        self._in_with_item = orig
+
     def visit_Call(self, node: ast.Call) -> None:
         if (
             # override_settings(...)
-            (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
-            or
+            isinstance(node.func, ast.Name)
+            and node.func.id == "override_settings"
+        ) or (
             # self.settings(...)
-            (
-                isinstance(node.func, ast.Attribute)
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "self"
-                and node.func.attr == "settings"
-            )
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "self"
+            and node.func.attr == "settings"
         ):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
@@ -155,8 +161,14 @@ class SentryVisitor(ast.NodeVisitor):
             # ThreadPoolExecutor(...)
             isinstance(node.func, ast.Name)
             and node.func.id == "ThreadPoolExecutor"
+        ) or (
+            # concurrent.futures.ThreadPoolExecutor(...)
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "ThreadPoolExecutor"
         ):
-            if "thread_name_prefix" not in (kw.arg for kw in node.keywords):
+            if self._in_with_item:
+                pass  # it's okay to not name "immediate" threadpools
+            elif "thread_name_prefix" not in (kw.arg for kw in node.keywords):
                 self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
