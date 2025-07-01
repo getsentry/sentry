@@ -19,19 +19,25 @@ export function StorySearch() {
   const [showSearch, setShowSearch] = useState(false);
   const files = useStoryBookFiles();
   const query = location.query.query ?? '';
+  const navigate = useNavigate();
+
   useEffect(() => {
     setShowSearch(query.length !== 0);
   }, [query]);
   const dismiss = useCallback(() => {
     setShowSearch(false);
-    location.query.query = undefined;
-  }, [setShowSearch, location]);
+    navigate(
+      {
+        query: {...location.query, query: undefined},
+      },
+      {replace: true}
+    );
+  }, [setShowSearch, location, navigate]);
   const searchTree = useStoryTree(files, {
     query,
     representation: 'category',
     type: 'flat',
   });
-  const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       navigate(
