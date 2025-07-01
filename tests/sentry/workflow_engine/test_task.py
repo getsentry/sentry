@@ -7,7 +7,12 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.tasks import fetch_event, workflow_status_update_handler
+from sentry.workflow_engine.tasks import (
+    fetch_event,
+    process_workflow_activity,
+    workflow_status_update_handler,
+)
+from sentry.workflow_engine.types import WorkflowEventData
 
 
 class FetchEventTests(TestCase):
@@ -57,3 +62,92 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
         with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
+
+
+class TestProcessWorkflowActivity(TestCase):
+    def setUp(self):
+        self.group = self.create_group(project=self.project)
+        self.activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        self.activity.save()
+        self.detector = self.create_detector()
+
+    def test_process_workflow_activity__no_workflows(self):
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+            return_value=set(),
+        ) as mock_evaluate:
+            process_workflow_activity.run(
+                activity_id=self.activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+            )
+            # Short-circuit evaluation, no workflows associated
+            assert mock_evaluate.call_count == 0
+
+    def test_process_workflow_activity__workflows__no_actions(self):
+        self.workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(
+            detector=self.detector,
+            workflow=self.workflow,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+            return_value=set(),
+        ) as mock_evaluate:
+            with mock.patch(
+                "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
+                return_value=set(),
+            ) as mock_eval_actions:
+                process_workflow_activity.run(
+                    activity_id=self.activity.id,
+                    group_id=self.group.id,
+                    detector_id=self.detector.id,
+                )
+
+                event_data = WorkflowEventData(
+                    event=self.activity,
+                    group=self.group,
+                )
+                mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+
+                # No actions to evaluate, so processing exist early.
+                assert mock_eval_actions.call_count == 0
+
+    def test_process_workflow_activity(self):
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        self.action_group = self.create_data_condition_group(logic_type="any-short")
+        self.action = self.create_action()
+        self.create_data_condition_group_action(
+            condition_group=self.action_group,
+            action=self.action,
+        )
+        self.create_workflow_data_condition_group(self.workflow, self.action_group)
+
+        self.create_detector_workflow(
+            detector=self.detector,
+            workflow=self.workflow,
+        )
+
+        expected_event_data = WorkflowEventData(
+            event=self.activity,
+            group=self.group,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions"
+        ) as mock_filter_actions:
+            process_workflow_activity.run(
+                activity_id=self.activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+            )
+
+            # No actions to evaluate, so processing exist early.
+            mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)

@@ -183,7 +183,7 @@ def evaluate_workflow_triggers(
             "group_id": event_data.group.id,
             "event_id": event_id,
             "event_data": asdict(event_data),
-            "event_environment_id": environment.id,
+            "event_environment_id": environment.id if environment else None,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
         },
     )
@@ -401,9 +401,11 @@ def process_workflows(
 
     actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
+
     create_workflow_fire_histories(detector, actions, event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
