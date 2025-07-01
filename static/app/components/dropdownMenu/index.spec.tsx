@@ -204,6 +204,16 @@ describe('DropdownMenu', function () {
       'aria-expanded',
       'false'
     );
+
+    // Clicking outside closes the entire menu system
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.click(document.body);
+    expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 
   it('renders disabled', async function () {

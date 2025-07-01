@@ -44,6 +44,12 @@ describe('AutofixInsightCards', () => {
     expect(screen.getByText('User message')).toBeInTheDocument();
   });
 
+  it('renders user messages differently', () => {
+    renderComponent();
+    const userMessage = screen.getByText('User message');
+    expect(userMessage.closest('div')).toHaveStyle('color: inherit');
+  });
+
   it('toggles context expansion correctly', async () => {
     renderComponent();
     const contextButton = screen.getByText('Sample insight 1');
