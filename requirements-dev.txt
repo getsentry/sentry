@@ -17,7 +17,7 @@ pytest-django>=4.9.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=15
-pytest-sentry>=0.5.0
+pytest-sentry>=0.5.1
 pytest-workaround-12888
 pytest-xdist>=3
 responses>=0.23.1
