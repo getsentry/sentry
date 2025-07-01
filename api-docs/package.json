@@ -2,6 +2,7 @@
   "name": "@sentry-internal/api-docs",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Sentry API docs",
   "main": "index.js",
   "scripts": {
