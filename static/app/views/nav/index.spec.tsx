@@ -486,7 +486,7 @@ describe('Nav', function () {
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.getByText('Try our new look')).toBeInTheDocument();
+          expect(screen.getByText('Try the new UI')).toBeInTheDocument();
 
           // Once for banner, once for dot indicator
           expect(dismissRequest).toHaveBeenCalledTimes(2);
@@ -505,7 +505,7 @@ describe('Nav', function () {
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.getByText('Switch back to our old look')).toBeInTheDocument();
+          expect(screen.getByText('Switch back to old UI')).toBeInTheDocument();
         });
       });
 
@@ -520,7 +520,7 @@ describe('Nav', function () {
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.queryByText('Try our new look')).not.toBeInTheDocument();
+          expect(screen.queryByText('Try the new UI')).not.toBeInTheDocument();
         });
       });
     });
