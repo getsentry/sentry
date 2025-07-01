@@ -15,6 +15,7 @@ from sentry.tasks.assemble import AssembleTask, ChunkFileState, assemble_file, s
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    retry=Retry(times=3),
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
         processing_deadline_duration=30,
