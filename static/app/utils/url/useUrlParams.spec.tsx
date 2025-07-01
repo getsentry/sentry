@@ -4,8 +4,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
-
-import useUrlParams from './useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 describe('useUrlParams', () => {
   beforeEach(() => {
