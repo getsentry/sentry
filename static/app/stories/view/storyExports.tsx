@@ -147,21 +147,13 @@ function StoryUsage() {
 function StoryResources() {
   const {story} = useStory();
   if (!story.exports.frontmatter?.resources) return null;
-  return (
-    <TabPanels.Item key="resources">
-      <Storybook.Section>{/* TODO */}</Storybook.Section>
-    </TabPanels.Item>
-  );
+  return <Storybook.Section>{/* TODO */}</Storybook.Section>;
 }
 
 function StoryAPI() {
   const {story} = useStory();
   if (!story.exports.types) return null;
-  return (
-    <TabPanels.Item key="api">
-      <Storybook.APIReference types={story.exports.types} />
-    </TabPanels.Item>
-  );
+  return <Storybook.APIReference types={story.exports.types} />;
 }
 
 const StoryHeader = styled('header')`
