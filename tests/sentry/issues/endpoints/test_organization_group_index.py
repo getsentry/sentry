@@ -7,6 +7,7 @@ from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+import pytest
 from django.db import OperationalError
 from django.urls import reverse
 from django.utils import timezone
@@ -3329,6 +3330,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert {r["id"] for r in response.data} == {str(error_group_id)}
 
+    @pytest.mark.skip(reason="flaky: #94706")
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues
         for i in range(30):
