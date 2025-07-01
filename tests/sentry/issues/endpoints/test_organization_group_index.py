@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 import functools
 from collections.abc import Sequence
 from datetime import datetime, timedelta
@@ -8,6 +7,7 @@ from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+import pytest
 from django.db import OperationalError
 from django.urls import reverse
 from django.utils import timezone
