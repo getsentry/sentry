@@ -145,6 +145,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.status_pages.models.status_page import StatusPage
+from sentry.status_pages.models.status_update import StatusUpdate
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -2399,5 +2400,42 @@ class Factories:
             is_public=is_public,
             is_accepting_subscribers=is_accepting_subscribers,
             cname=cname,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_status_update(
+        status_page: StatusPage | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        type: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        parent_update: StatusUpdate | None = None,
+        should_notify_subscribers_now: bool = False,
+        should_notify_subscribers_at_end: bool = False,
+        should_notify_subscribers_24h_before: bool = False,
+        **kwargs,
+    ):
+        if status_page is None:
+            status_page = Factories.create_status_page()
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+        if type is None:
+            type = StatusUpdate.STATUS_UPDATE_TYPE_OPERATIONAL
+        if start_time is None:
+            start_time = timezone.now()
+        return StatusUpdate.objects.create(
+            status_page=status_page,
+            title=title,
+            description=description,
+            type=type,
+            start_time=start_time,
+            end_time=end_time,
+            parent_update=parent_update,
+            should_notify_subscribers_now=should_notify_subscribers_now,
+            should_notify_subscribers_at_end=should_notify_subscribers_at_end,
+            should_notify_subscribers_24h_before=should_notify_subscribers_24h_before,
             **kwargs,
         )

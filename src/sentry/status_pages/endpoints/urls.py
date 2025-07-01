@@ -6,6 +6,9 @@ from sentry.status_pages.endpoints.organization_status_page_details import (
 from sentry.status_pages.endpoints.organization_status_page_index import (
     OrganizationStatusPagesEndpoint,
 )
+from sentry.status_pages.endpoints.organization_status_update_index import (
+    OrganizationStatusUpdateIndexEndpoint,
+)
 
 # Define your URL patterns here
 organization_urlpatterns = [
@@ -18,6 +21,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/status-pages/(?P<status_page_id>[^/]+)/$",
         OrganizationStatusPageDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-status-page-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/status-pages/(?P<status_page_id>[^/]+)/status-updates/$",
+        OrganizationStatusUpdateIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-status-page-status-updates",
     ),
 ]
 
