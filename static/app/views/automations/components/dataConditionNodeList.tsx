@@ -165,6 +165,7 @@ export default function DataConditionNodeList({
                     <Checkbox
                       checked={!!issuePriorityDeescalatingConditionId}
                       onChange={() => onIssuePriorityDeescalatingChange()}
+                      aria-label={t('Notify on deescalation')}
                     />
                     {t('Notify on deescalation')}
                   </Fragment>
@@ -190,6 +191,7 @@ export default function DataConditionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        aria-label={t('Add condition')}
       />
     </Fragment>
   );
