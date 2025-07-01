@@ -121,7 +121,6 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     onClick={() => {
                       mutateUserOptions({
                         prefersChonkUI: false,
-                        prefersStackedNavigation: false,
                       });
                       trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
                         organization,
