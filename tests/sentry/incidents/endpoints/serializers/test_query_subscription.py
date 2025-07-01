@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 
 
@@ -14,6 +14,9 @@ class TestSnubaQuerySerializer(TestCase):
             resolution=60,
             environment=self.environment,
         )
+        SnubaQueryEventType.objects.create(
+            snuba_query=snuba_query, type=SnubaQueryEventType.EventType.ERROR.value
+        )
 
         result = serialize(snuba_query)
 
@@ -24,6 +27,7 @@ class TestSnubaQuerySerializer(TestCase):
             "aggregate": "count()",
             "timeWindow": 60,
             "environment": self.environment.name,
+            "eventTypes": ["error"],
         }
 
     def test_serialize_no_environment(self):
@@ -35,6 +39,9 @@ class TestSnubaQuerySerializer(TestCase):
             time_window=60,
             resolution=60,
         )
+        SnubaQueryEventType.objects.create(
+            snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
+        )
 
         result = serialize(snuba_query)
 
@@ -45,6 +52,7 @@ class TestSnubaQuerySerializer(TestCase):
             "aggregate": "count()",
             "timeWindow": 60,
             "environment": None,
+            "eventTypes": ["transaction"],
         }
 
 
@@ -58,6 +66,10 @@ class TestQuerySubscriptionSerializer(TestCase):
             time_window=60,
             resolution=60,
         )
+        SnubaQueryEventType.objects.create(
+            snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
+        )
+
         subscription = QuerySubscription.objects.create(
             project=self.project,
             status=QuerySubscription.Status.ACTIVE.value,
@@ -78,5 +90,6 @@ class TestQuerySubscriptionSerializer(TestCase):
                 "aggregate": "count()",
                 "timeWindow": 60,
                 "environment": None,
+                "eventTypes": ["transaction"],
             },
         }
