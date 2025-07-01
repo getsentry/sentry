@@ -28,7 +28,7 @@ from sentry.rules.processing.buffer_processing import (
     delayed_processing_registry,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -571,6 +571,7 @@ def fire_actions_for_groups(
         },
     )
 
+    total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
         logger,
@@ -629,7 +630,7 @@ def fire_actions_for_groups(
                     if isinstance(workflow_event_data.event, GroupEvent)
                     else workflow_event_data.event.id
                 )
-                logger.info(
+                logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
@@ -638,6 +639,7 @@ def fire_actions_for_groups(
                         "event_id": event_id,
                     },
                 )
+                total_actions += len(filtered_actions)
 
                 if features.has(
                     "organizations:workflow-engine-trigger-actions",
@@ -645,6 +647,11 @@ def fire_actions_for_groups(
                 ):
                     for action in filtered_actions:
                         action.trigger(workflow_event_data, detector)
+
+    logger.info(
+        "workflow_engine.delayed_workflow.triggered_actions_summary",
+        extra={"total_actions": total_actions},
+    )
 
 
 @sentry_sdk.trace
@@ -680,7 +687,6 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
-@retry
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
