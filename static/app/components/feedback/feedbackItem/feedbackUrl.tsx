@@ -24,7 +24,6 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
     return null;
   }
 
-  const mightHaveUrl = eventData?.contexts?.feedback || eventData?.tags;
   const url =
     eventData?.contexts?.feedback?.url ??
     eventData?.tags?.find(tag => tag.key === 'url')?.value;
@@ -33,8 +32,9 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
     return null;
   }
 
-  const displayUrl = mightHaveUrl ? (url ?? URL_NOT_FOUND) : '';
-  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
+  const urlIsExpected = eventData?.contexts?.feedback || eventData?.tags;
+  const displayUrl = urlIsExpected ? String(url ?? URL_NOT_FOUND) : undefined;
+  const urlIsLink = displayUrl && displayUrl !== URL_NOT_FOUND;
   return (
     <FeedbackItemSection
       collapsible
@@ -53,7 +53,7 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
             : () => {}
         }
       >
-        {displayUrl}
+        {displayUrl ?? ''}
       </TextCopyInput>
     </FeedbackItemSection>
   );
