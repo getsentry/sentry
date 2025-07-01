@@ -4,15 +4,18 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -63,6 +66,48 @@ function AiContent() {
     },
     [replay, setCurrentTime]
   );
+
+  const openForm = useFeedbackForm();
+
+  const feedbackPositiveButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the AI summary section')}
+      icon={<IconThumb direction="up" />}
+      title={t('I like this')}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('What did you like about the AI summary and chapters?'),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: 'positive',
+          },
+        })
+      }
+    />
+  ) : null;
+
+  const feedbackNegativeButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the AI summary section')}
+      icon={<IconThumb direction="down" />}
+      title={t(`I don't like this`)}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t(
+            'How can we make the AI summary and chapters work better for you?'
+          ),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: 'negative',
+          },
+        })
+      }
+    />
+  ) : null;
 
   const {
     data: summaryData,
@@ -149,9 +194,15 @@ function AiContent() {
             <span>{t('Replay Summary')}</span>
             <Badge type="internal">{t('Internal')}</Badge>
           </SummaryHeaderTitle>
-          <Button priority="primary" size="xs" onClick={() => refetch()}>
-            {t('Regenerate')}
-          </Button>
+          <Flex gap={space(2)}>
+            <Flex gap={space(0.5)}>
+              {feedbackPositiveButton}
+              {feedbackNegativeButton}
+            </Flex>
+            <Button priority="primary" size="xs" onClick={() => refetch()}>
+              {t('Regenerate')}
+            </Button>
+          </Flex>
         </SummaryHeader>
         <SummaryText>{summaryData.data.summary}</SummaryText>
         <div>
