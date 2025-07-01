@@ -93,17 +93,20 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
             )
         return evidence_data
 
-    def test_metric_issue_occurrence(self):
-        value = self.critical_detector_trigger.comparison + 1
+    def create_data_packet(self, value: int) -> DataPacket:
         packet = QuerySubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
             values={"value": value},
             timestamp=datetime.now(UTC),
         )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
+        return DataPacket[QuerySubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
+
+    def test_metric_issue_occurrence(self):
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value)
         evidence_data = self.generate_evidence_data(
             value, self.critical_detector_trigger, self.warning_detector_trigger
         )
@@ -130,15 +133,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
 
     def test_warning_level(self):
         value = self.warning_detector_trigger.comparison + 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_data_packet(value)
         evidence_data = self.generate_evidence_data(value, self.warning_detector_trigger)
 
         result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
@@ -161,32 +156,43 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
 
     def test_does_not_trigger(self):
         value = self.warning_detector_trigger.comparison - 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_data_packet(value)
         result = self.handler.evaluate(data_packet)
         assert result == {}
 
     def test_missing_detector_trigger(self):
         value = self.critical_detector_trigger.comparison + 1
-        packet = QuerySubscriptionUpdate(
-            entity="entity",
-            subscription_id=str(self.query_subscription.id),
-            values={"value": value},
-            timestamp=datetime.now(UTC),
-        )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(self.query_subscription.id), packet=packet
-        )
+        data_packet = self.create_data_packet(value)
         DataCondition.objects.all().delete()
         result = self.handler.evaluate(data_packet)
         assert result == {}
+
+    def test_flipped_detector_trigger(self):
+        self.warning_detector_trigger.delete()
+        self.critical_detector_trigger.update(type=Condition.LESS)
+        value = self.critical_detector_trigger.comparison - 1
+        data_packet = self.create_data_packet(value)
+        evidence_data = self.generate_evidence_data(value, self.critical_detector_trigger)
+
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+        assert occurrence.issue_title == self.detector.name
+        assert occurrence.subtitle == self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert occurrence.evidence_data == evidence_data
+        assert occurrence.level == "error"
+        assert occurrence.priority == self.critical_detector_trigger.condition_result
+        assert occurrence.assignee
+        assert occurrence.assignee.id == self.detector.created_by_id
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):

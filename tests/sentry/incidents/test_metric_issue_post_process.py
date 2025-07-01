@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from sentry import eventstore
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
@@ -12,7 +14,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import Feature
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
@@ -66,10 +68,18 @@ class TestMetricDetectorPostProcess(BaseWorkflowTest):
 
         self.handler = MetricIssueDetectorHandler(self.detector)
 
-    @with_feature("organizations:issue-metric-issue-ingest")
-    @with_feature("organizations:issue-metric-issue-post-process-group")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
+    @pytest.fixture(autouse=True)
+    def with_feature_flags(self):
+        with Feature(
+            {
+                "organizations:issue-metric-issue-ingest": True,
+                "organizations:issue-metric-issue-post-process-group": True,
+                "organizations:workflow-engine-metric-alert-processing": True,
+                "organizations:workflow-engine-process-metric-issue-workflows": True,
+            }
+        ):
+            yield
+
     @patch("sentry.workflow_engine.processors.workflow.process_workflows")
     def test_occurrence_post_process(self, mock_process_workflows):
         value = self.critical_detector_trigger.comparison + 1
