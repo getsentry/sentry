@@ -2,7 +2,10 @@
 # flake8: noqa: S002
 """
 Script to generate a CSV file of codeowners using the hmarr/codeowners tool.
-This script respects .gitignore patterns by using git ls-files.
+The Output will be generated in the root of the repository at codeowners_output.csv.
+You must have the hmarr/codeowners tool installed. You can get it via brew:
+
+brew tap hmarr/tap && brew install codeowners
 """
 
 import argparse
@@ -83,17 +86,15 @@ def get_git_files() -> list[str]:
         sys.exit(1)
 
 
-def run_codeowners_tool(
-    files: list[str], codeowners_tool: Path, codeowners_file: Path
-) -> list[str]:
+def run_codeowners_tool(files: list[str], codeowners_tool: str, codeowners_file: Path) -> list[str]:
     """Run the codeowners tool on the given files in batches."""
     all_output = []
-    batch_size = 1000  # Process files in batches to avoid "Argument list too long" error
+    batch_size = 100  # Process files in batches to avoid "Argument list too long" error
 
     for i in range(0, len(files), batch_size):
         batch = files[i : i + batch_size]
         try:
-            cmd = [str(codeowners_tool), "-f", str(codeowners_file)] + batch
+            cmd = [codeowners_tool, "-f", str(codeowners_file)] + batch
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             batch_output = result.stdout.strip().split("\n")
             all_output.extend(batch_output)
@@ -112,17 +113,15 @@ def run_codeowners_tool(
 def generate_csv(output_file: Path) -> None:
     """Generate the codeowners CSV file."""
     repo_root = get_repo_root()
-    codeowners_tool = repo_root / "codeowners"
     codeowners_file = repo_root / ".github" / "CODEOWNERS"
 
-    # Check if tools exist
-    if not codeowners_tool.exists():
-        error(f"Codeowners tool not found at {codeowners_tool}")
+    # Check if codeowners tool is available
+    try:
+        subprocess.run(["codeowners", "--help"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        error("Codeowners tool not found in PATH")
         print("Please install it first by running:")
-        print(
-            "  curl -L https://github.com/hmarr/codeowners/releases/latest/download/codeowners_linux_amd64 -o codeowners"
-        )
-        print("  chmod +x codeowners")
+        print("  brew tap hmarr/tap && brew install codeowners")
         sys.exit(1)
 
     if not codeowners_file.exists():
@@ -130,7 +129,7 @@ def generate_csv(output_file: Path) -> None:
         sys.exit(1)
 
     log("Generating codeowners CSV output...")
-    log(f"Using codeowners tool: {codeowners_tool}")
+    log("Using codeowners tool from PATH")
     log(f"Using CODEOWNERS file: {codeowners_file}")
     log(f"Output file: {output_file}")
 
@@ -139,7 +138,7 @@ def generate_csv(output_file: Path) -> None:
     log(f"Processing {len(git_files)} git-tracked files...")
 
     # Run codeowners tool
-    codeowners_output = run_codeowners_tool(git_files, codeowners_tool, codeowners_file)
+    codeowners_output = run_codeowners_tool(git_files, "codeowners", codeowners_file)
 
     # Parse output and write CSV
     owned_count = 0
@@ -183,7 +182,7 @@ def generate_csv(output_file: Path) -> None:
 
 def show_top_owners(csv_file: Path) -> None:
     """Show the top 10 code owners from the CSV file."""
-    owner_counts = {}
+    owner_counts: dict[str, int] = {}
 
     with open(csv_file, encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
