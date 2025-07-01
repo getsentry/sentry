@@ -1,4 +1,6 @@
+import {DataConditionFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,30 +14,17 @@ import {MatchType} from 'sentry/views/automations/components/actionFilters/const
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 
 const dataConditionHandlers: DataConditionHandler[] = [
-  {
-    type: DataConditionType.AGE_COMPARISON,
-    handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
-    handlerSubgroup: DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES,
-    comparisonJsonSchema: {},
-  },
-  {
+  DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),
+  DataConditionHandlerFixture({
     type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-    handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
-    handlerSubgroup: DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES,
-    comparisonJsonSchema: {},
-  },
-  {
+  }),
+  DataConditionHandlerFixture({
     type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-    handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
-    handlerSubgroup: DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES,
-    comparisonJsonSchema: {},
-  },
-  {
+  }),
+  DataConditionHandlerFixture({
     type: DataConditionType.TAGGED_EVENT,
-    handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
     handlerSubgroup: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
-    comparisonJsonSchema: {},
-  },
+  }),
 ];
 
 describe('DataConditionNodeList', function () {
@@ -45,6 +34,17 @@ describe('DataConditionNodeList', function () {
   const mockOnDeleteRow = jest.fn();
   const mockUpdateCondition = jest.fn();
 
+  const defaultProps = {
+    conditions: [],
+    conflictingConditionIds: [],
+    group: '0',
+    handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
+    onAddRow: mockOnAddRow,
+    onDeleteRow: mockOnDeleteRow,
+    placeholder: 'Any event',
+    updateCondition: mockUpdateCondition,
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -53,25 +53,10 @@ describe('DataConditionNodeList', function () {
     });
   });
 
-  function renderComponent(props = {}) {
-    return render(
-      <DataConditionNodeList
-        conditions={[]}
-        conflictingConditionIds={[]}
-        group={'0'}
-        handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
-        onAddRow={mockOnAddRow}
-        onDeleteRow={mockOnDeleteRow}
-        placeholder={'Any event'}
-        updateCondition={mockUpdateCondition}
-        {...props}
-      />,
-      {organization}
-    );
-  }
-
   it('renders correct condition options', async function () {
-    renderComponent();
+    render(<DataConditionNodeList {...defaultProps} />, {
+      organization,
+    });
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
 
     // Deescalating condition should not be shown in the dropdown
@@ -83,8 +68,10 @@ describe('DataConditionNodeList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Tagged event'})).toBeInTheDocument();
   });
 
-  it('renders empty conditions list', async function () {
-    renderComponent();
+  it('adds conditions', async function () {
+    render(<DataConditionNodeList {...defaultProps} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Issue age'}));
@@ -92,20 +79,11 @@ describe('DataConditionNodeList', function () {
     expect(mockOnAddRow).toHaveBeenCalledWith(DataConditionType.AGE_COMPARISON);
   });
 
-  it('renders existing conditions', async function () {
-    renderComponent({
-      conditions: [
-        {
-          id: '1',
-          type: DataConditionType.TAGGED_EVENT,
-          comparison: {
-            key: 'name',
-            match: MatchType.CONTAINS,
-            value: 'moo deng',
-          },
-        },
-      ],
-    });
+  it('updates existing conditions', async function () {
+    render(
+      <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />,
+      {organization}
+    );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Tag'}), 's');
     expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
@@ -114,30 +92,27 @@ describe('DataConditionNodeList', function () {
   });
 
   it('deletes existing condition', async function () {
-    renderComponent({
-      conditions: [
-        {
-          id: '1',
-          type: DataConditionType.TAGGED_EVENT,
-          comparison: {},
-        },
-      ],
-    });
+    render(
+      <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
   it('handles adding issue priority deescalating condition', async function () {
-    renderComponent({
-      conditions: [
-        {
-          id: 'issue-priority',
-          type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-          comparison: {},
-        },
-      ],
-    });
+    render(
+      <DataConditionNodeList
+        {...defaultProps}
+        conditions={[
+          DataConditionFixture({type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL}),
+        ]}
+      />,
+      {
+        organization,
+      }
+    );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
     expect(mockOnAddRow).toHaveBeenCalledWith(
@@ -146,20 +121,24 @@ describe('DataConditionNodeList', function () {
   });
 
   it('handles deleting issue priority deescalating condition', async function () {
-    renderComponent({
-      conditions: [
-        {
-          id: 'issue-priority',
-          type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-          comparison: {},
-        },
-        {
-          id: 'deescalating',
-          type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-          comparison: {},
-        },
-      ],
-    });
+    render(
+      <DataConditionNodeList
+        {...defaultProps}
+        conditions={[
+          DataConditionFixture({
+            id: 'issue-priority',
+            type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+          }),
+          DataConditionFixture({
+            id: 'deescalating',
+            type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+          }),
+        ]}
+      />,
+      {
+        organization,
+      }
+    );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('deescalating');
@@ -173,15 +152,8 @@ describe('DataConditionNodeList', function () {
   });
 
   it('shows conflicting condition warning for action filters', function () {
-    renderComponent({
-      conditions: [
-        {
-          id: '1',
-          type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-          comparison: {},
-        },
-      ],
-      conflictingConditionIds: ['1'],
+    render(<DataConditionNodeList {...defaultProps} conflictingConditionIds={['1']} />, {
+      organization,
     });
 
     expect(
@@ -193,10 +165,14 @@ describe('DataConditionNodeList', function () {
 
   it('only shows conflicting condition warning for two or more workflow triggers', function () {
     // Only one conflicting condition should not show the warning
-    renderComponent({
-      conflictingConditionIds: ['1'],
-      handlerGroup: DataConditionHandlerGroupType.WORKFLOW_TRIGGER,
-    });
+    render(
+      <DataConditionNodeList
+        {...defaultProps}
+        conflictingConditionIds={['1']}
+        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+      />,
+      {organization}
+    );
 
     expect(
       screen.queryByText(
@@ -205,10 +181,14 @@ describe('DataConditionNodeList', function () {
     ).not.toBeInTheDocument();
 
     // Two or more conflicting conditions should show the warning
-    renderComponent({
-      conflictingConditionIds: ['1', '2'],
-      handlerGroup: DataConditionHandlerGroupType.WORKFLOW_TRIGGER,
-    });
+    render(
+      <DataConditionNodeList
+        {...defaultProps}
+        conflictingConditionIds={['1', '2']}
+        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+      />,
+      {organization}
+    );
 
     expect(
       screen.getByText(
