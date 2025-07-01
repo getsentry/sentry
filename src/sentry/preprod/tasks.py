@@ -8,6 +8,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, assemble_file, set_assemble_status
 from sentry.tasks.base import instrumented_task
@@ -143,12 +144,22 @@ def assemble_preprod_artifact(
         # 3. Queue processing tasks
         # 4. Update state to PROCESSED when done (also update the date_built value to reflect when the artifact was built, among other fields)
 
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=preprod_artifact.id,
+            checksum=checksum,
+            git_sha=git_sha,
+            build_configuration=build_configuration,
+        )
+
     except Exception as e:
         logger.exception(
             "Failed to assemble preprod artifact",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
+                "checksum": checksum,
             },
         )
         set_assemble_status(
