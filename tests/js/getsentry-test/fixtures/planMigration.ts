@@ -164,8 +164,8 @@ const TenthCohort: Cohort = {
   secondDiscount: 0,
 };
 
-const EleventhCohort: Cohort = {
-  cohortId: CohortId.ELEVENTH,
+const testOneCohort: Cohort = {
+  cohortId: CohortId.TEST_ONE,
   nextPlan: {
     id: 'am3_business',
     name: 'Business',
@@ -208,7 +208,7 @@ const CohortLookup: Record<CohortId, Cohort> = {
   [CohortId.EIGHTH]: EighthCohort,
   [CohortId.NINTH]: NinthCohort,
   [CohortId.TENTH]: TenthCohort,
-  [CohortId.ELEVENTH]: EleventhCohort,
+  [CohortId.TEST_ONE]: testOneCohort,
 };
 
 export function PlanMigrationFixture({

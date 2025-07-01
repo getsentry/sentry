@@ -870,7 +870,7 @@ describe('PlanMigrationActive cohort 10', function () {
   });
 });
 
-describe('PlanMigrationActive cohort 11 -- TEST ONLY', function () {
+describe('PlanMigrationActive cohort 111 -- TEST ONLY', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     plan: 'am3_business_auf',
@@ -879,7 +879,7 @@ describe('PlanMigrationActive cohort 11 -- TEST ONLY', function () {
 
   const migrationDate = moment().add(1, 'days').format('ll');
   const migration = PlanMigrationFixture({
-    cohortId: CohortId.ELEVENTH,
+    cohortId: CohortId.TEST_ONE,
     effectiveAt: migrationDate,
   });
 
