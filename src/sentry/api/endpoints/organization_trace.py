@@ -29,7 +29,9 @@ from sentry.snuba.spans_rpc import run_trace_query
 from sentry.utils.numbers import base32_encode
 
 # 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+_query_thread_pool = ThreadPoolExecutor(
+    thread_name_prefix="OrganizationTraceEndpoint", max_workers=3
+)
 
 
 class SerializedEvent(TypedDict):

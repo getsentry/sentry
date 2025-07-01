@@ -555,7 +555,10 @@ _snuba_pool = connection_from_url(
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
 )
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
+_query_thread_pool = ThreadPoolExecutor(
+    thread_name_prefix="_bulk_snuba_query",
+    max_workers=10,
+)
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)

@@ -22,7 +22,10 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
 
 # 1 worker for each query
-_query_thread_pool = ThreadPoolExecutor(max_workers=3)
+_query_thread_pool = ThreadPoolExecutor(
+    thread_name_prefix="OrganizationTraceMetaEndpoint",
+    max_workers=3,
+)
 
 
 class SerializedResponse(TypedDict):

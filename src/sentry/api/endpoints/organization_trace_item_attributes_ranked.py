@@ -25,7 +25,10 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_table_query
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
-_query_thread_pool = ThreadPoolExecutor(max_workers=4)
+_query_thread_pool = ThreadPoolExecutor(
+    thread_name_prefix="OrganizationTraceItemsAttributesRankedEndpoint",
+    max_workers=4,
+)
 
 
 @region_silo_endpoint

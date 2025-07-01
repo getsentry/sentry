@@ -286,7 +286,9 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
     return query
 
 
-_side_query_pool = ThreadPoolExecutor(max_workers=10)
+_side_query_pool = ThreadPoolExecutor(
+    thread_name_prefix="_group_attributes_side_query", max_workers=10
+)
 
 atexit.register(_side_query_pool.shutdown, False)
 
