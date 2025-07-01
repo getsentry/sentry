@@ -155,13 +155,14 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=1,
         )
-        spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
-        perf_issues_future = _query_thread_pool.submit(
-            count_performance_issues, trace_id, snuba_params
-        )
-        errors_future = _query_thread_pool.submit(
-            errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
-        )
+        with _query_thread_pool:
+            spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
+            perf_issues_future = _query_thread_pool.submit(
+                count_performance_issues, trace_id, snuba_params
+            )
+            errors_future = _query_thread_pool.submit(
+                errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
+            )
 
         results = spans_future.result()
         perf_issues = perf_issues_future.result()
