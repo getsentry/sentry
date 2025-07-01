@@ -54,5 +54,7 @@ export function setWindowLocation(url: string) {
   // Temporary workaround for Jest 29
   const location = new URL(url);
   window.location.href = location.href;
+  window.location.pathname = location.pathname;
   window.location.search = location.search;
+  window.location.hash = location.hash;
 }
