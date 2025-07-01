@@ -20,6 +20,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -28,6 +29,7 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
+import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -36,6 +38,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
+import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -71,7 +74,7 @@ function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
   );
 }
 
-export function MetricDetectorForm() {
+function MetricDetectorForm() {
   return (
     <MetricDetectorFormContext>
       <FormStack>
@@ -82,6 +85,22 @@ export function MetricDetectorForm() {
         <AutomateSection />
       </FormStack>
     </MetricDetectorFormContext>
+  );
+}
+
+export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
+  return (
+    <EditDetectorLayout detector={detector} detectorType="metric_issue">
+      <MetricDetectorForm />
+    </EditDetectorLayout>
+  );
+}
+
+export function NewMetricDetectorForm() {
+  return (
+    <NewDetectorLayout detectorType="metric_issue">
+      <MetricDetectorForm />
+    </NewDetectorLayout>
   );
 }
 

@@ -178,16 +178,6 @@ interface NewDataSource {
   timeWindow: number;
 }
 
-export interface NewMetricDetectorPayload {
-  conditionGroup: NewConditionGroup;
-  config: DetectorConfig;
-  dataSource: NewDataSource; // Single data source object (not array)
-  name: string;
-  owner: Detector['owner'];
-  projectId: Detector['projectId'];
-  type: Detector['type'];
-}
-
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */

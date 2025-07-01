@@ -20,20 +20,6 @@ export interface UptimeDetectorFormData {
 
 type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
 
-export interface NewUptimeDetectorPayload
-  extends Pick<Detector, 'name' | 'owner' | 'projectId'> {
-  dataSource: {
-    intervalSeconds: number;
-    method: string;
-    name: string;
-    owner: string;
-    timeoutMs: number;
-    traceSampling: boolean;
-    url: string;
-  };
-  type: 'uptime_domain_failure';
-}
-
 /**
  * Small helper to automatically get the type of the form field.
  */

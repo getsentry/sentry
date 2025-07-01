@@ -105,7 +105,7 @@ interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
   threshold_type?: AlertRuleThresholdType;
 }
 
-type MetricDetectorConfig =
+export type MetricDetectorConfig =
   | MetricDetectorConfigStatic
   | MetricDetectorConfigPercent
   | MetricDetectorConfigDynamic;
