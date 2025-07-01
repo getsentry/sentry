@@ -2,6 +2,7 @@ import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Pagination from 'sentry/components/pagination';
@@ -305,7 +306,7 @@ class ResultGrid extends Component<Props, State> {
     return (
       <tr>
         <td colSpan={this.props.columns!.length}>
-          <div className="alert-block alert-error">Something bad happened :(</div>
+          <Alert type="error">Something bad happened :(</Alert>
         </td>
       </tr>
     );
