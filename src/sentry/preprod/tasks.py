@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 
 from sentry.models.organization import Organization
@@ -134,16 +135,6 @@ def assemble_preprod_artifact(
             },
         )
 
-        logger.info(
-            "Finished preprod artifact assembly",
-            extra={
-                "timestamp": datetime.datetime.now().isoformat(),
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
-        )
-
         # where next set of changes will happen
         # TODO: Trigger artifact processing (size analysis, etc.)
         # This is where you'd add logic to:
@@ -152,16 +143,8 @@ def assemble_preprod_artifact(
         # 3. Queue processing tasks
         # 4. Update state to PROCESSED when done (also update the date_built value to reflect when the artifact was built, among other fields)
 
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=preprod_artifact.id,
-            checksum=checksum,
-            git_sha=git_sha,
-            build_configuration=build_configuration,
-        )
-
     except Exception as e:
+        sentry_sdk.capture_exception(e)
         logger.exception(
             "Failed to assemble preprod artifact",
             extra={
@@ -177,8 +160,29 @@ def assemble_preprod_artifact(
             ChunkFileState.ERROR,
             detail=str(e),
         )
-    else:
-        set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+        return
+
+    # Mark assembly as successful since the artifact was created successfully
+    set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+
+    produce_preprod_artifact_to_kafka(
+        project_id=project_id,
+        organization_id=org_id,
+        artifact_id=preprod_artifact.id,
+        checksum=checksum,
+        git_sha=git_sha,
+        build_configuration=build_configuration,
+    )
+
+    logger.info(
+        "Finished preprod artifact assembly and Kafka dispatch",
+        extra={
+            "preprod_artifact_id": preprod_artifact.id,
+            "project_id": project_id,
+            "organization_id": org_id,
+            "checksum": checksum,
+        },
+    )
 
 
 def _assemble_preprod_artifact(
