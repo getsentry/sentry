@@ -12,6 +12,7 @@ interface Props {
 export default function ReplayBulkDeleteAuditLog({projectSlug}: Props) {
   const {data, getResponseHeader, error, isPending} = useReplayBulkDeleteAuditLog({
     projectSlug,
+    query: {referrer: 'replay-settings'},
   });
 
   return (

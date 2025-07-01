@@ -4,16 +4,26 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   projectSlug: string;
-  query?: Record<string, string>;
+  query: {
+    referrer: string;
+    offset?: number;
+    per_page?: number;
+  };
+  enabled?: boolean;
 }
 
-export default function useReplayBulkDeleteAuditLog({projectSlug, query}: Props) {
+export default function useReplayBulkDeleteAuditLog({
+  projectSlug,
+  enabled,
+  query,
+}: Props) {
   const organization = useOrganization();
   const {data, error, getResponseHeader, isPending} = useApiQuery<{
     data: ReplayBulkDeleteAuditLog[];
   }>([`/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`, {query}], {
-    staleTime: 0,
+    enabled,
     retry: false,
+    staleTime: 0,
   });
 
   return {data, error, getResponseHeader, isPending};
