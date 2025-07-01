@@ -223,11 +223,11 @@ class PluginSettings<
       >
         <Flex>
           {this.state.errors.__all__ && (
-            <div className="alert alert-block alert-error">
+            <Alert type="error">
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>
-            </div>
+            </Alert>
           )}
           {this.state.fieldList?.map(f =>
             this.renderField({
