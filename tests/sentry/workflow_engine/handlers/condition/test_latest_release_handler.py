@@ -23,7 +23,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -139,7 +139,9 @@ class TestLatestReleaseCondition(ConditionTestCase):
             date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group_event.group
+        )
 
         self.event.data["tags"] = (("release", new_release.version),)
         self.assert_passes(self.dc, self.event_data)

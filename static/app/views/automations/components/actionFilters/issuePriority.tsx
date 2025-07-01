@@ -11,8 +11,8 @@ import {useDataConditionNodeContext} from 'sentry/views/automations/components/d
 export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
   return tct('Current issue priority is [level]', {
     level:
-      PRIORITY_CHOICES.find(choice => choice.value === condition.comparison.level)
-        ?.label || condition.comparison.level,
+      PRIORITY_CHOICES.find(choice => choice.value === condition.comparison)?.label ||
+      condition.comparison,
   });
 }
 
@@ -22,12 +22,10 @@ export function IssuePriorityNode() {
     level: (
       <AutomationBuilderSelect
         name={`${condition_id}.comparison`}
-        value={condition.comparison.match}
+        value={condition.comparison}
         options={PRIORITY_CHOICES}
         onChange={(option: SelectValue<Priority>) => {
-          onUpdate({
-            match: option.value,
-          });
+          onUpdate({comparison: option.value});
         }}
       />
     ),
