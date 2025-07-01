@@ -281,7 +281,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
 
 def get_attribute_values(
     *,
-    fields: dict[str, list[str]],
+    fields: dict[list[str]],
     org_id: int,
     project_ids: list[int],
     stats_period: str,
