@@ -26,6 +26,11 @@ import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetector
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function getDetectorEnvironment(detector: Detector) {
+  // TODO: Add support for other detector types
+  if (detector.type !== 'metric_issue') {
+    return '<placeholder>';
+  }
+
   return (
     detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')?.queryObj
       ?.snubaQuery.environment ?? t('All environments')
@@ -67,6 +72,10 @@ function AssignToUser({userId}: {userId: string}) {
 }
 
 function DetectorPriorities({detector}: {detector: Detector}) {
+  if (detector.type !== 'metric_issue') {
+    return null;
+  }
+
   // TODO: Add support for other detector types
   if (!('detectionType' in detector.config)) {
     return null;
@@ -126,7 +135,7 @@ function DetectorPriorities({detector}: {detector: Detector}) {
 
 function DetectorResolve({detector}: {detector: Detector}) {
   // TODO: Add support for other detector types
-  if (!('detectionType' in detector.config)) {
+  if (detector.type !== 'metric_issue') {
     return null;
   }
 
