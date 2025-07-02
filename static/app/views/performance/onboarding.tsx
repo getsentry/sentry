@@ -62,6 +62,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -758,7 +759,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
                     params.set('table', Tab.TRACE);
                     params.set('query', `trace:${traceId}`);
                     params.delete('guidedStep');
-                    window.location.href = `${window.location.pathname}?${params.toString()}`;
+                    testableWindowLocation.assign(
+                      `${window.location.pathname}?${params.toString()}`
+                    );
                   }}
                 >
                   {t('Take me to my trace')}

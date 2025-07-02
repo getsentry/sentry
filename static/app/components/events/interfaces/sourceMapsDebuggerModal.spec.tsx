@@ -63,7 +63,6 @@ const renderModal = async (props?: Partial<SourceMapsDebuggerModalProps>) => {
             analyticsParams={defaultAnalyticsParams}
             sourceResolutionResults={defaultSourceResolutionResults}
             projectId="1"
-            orgSlug="org-slug"
             {...props}
             {...modalProps}
           />

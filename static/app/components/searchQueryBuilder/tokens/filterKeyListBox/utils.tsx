@@ -4,6 +4,7 @@ import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -194,6 +195,17 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerItem(): AskSeerItem {
+  return {
+    key: getEscapedKey('ask_seer'),
+    value: 'ask_seer',
+    textValue: 'Ask Seer',
+    type: 'ask-seer' as const,
+    label: t('Ask Seer'),
     hideCheck: true,
   };
 }

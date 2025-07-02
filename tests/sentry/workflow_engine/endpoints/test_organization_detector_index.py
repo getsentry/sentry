@@ -1,5 +1,7 @@
 from unittest import mock
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.api.serializers import serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -13,6 +15,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -233,9 +236,15 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # Query for multiple types.
         response2 = self.get_success_response(
             self.organization.slug,
-            qs_params={"project": self.project.id, "query": "type:error type:metric_issue"},
+            qs_params={"project": self.project.id, "query": "type:[error, metric_issue]"},
         )
         assert {d["name"] for d in response2.data} == {detector.name, detector2.name}
+
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!type:metric_issue"},
+        )
+        assert {d["name"] for d in response3.data} == {detector2.name}
 
     def test_general_query(self):
         detector = self.create_detector(
@@ -267,6 +276,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
@@ -365,6 +375,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"projectId": ["Project not found"]}
+
+    def test_without_feature_flag(self):
+        with self.feature({"organizations:incidents": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=404,
+            )
+        assert response.data == {
+            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+        }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):

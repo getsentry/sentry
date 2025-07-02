@@ -68,10 +68,10 @@ class DetectorStateData:
 
 # TODO - we might want to extract this into another file to reduce noise in this file.
 class DetectorStateManager:
-    dedupe_updates: dict[DetectorGroupKey, int] = {}
-    counter_updates: dict[DetectorGroupKey, DetectorCounters] = {}
-    state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
-    counter_names: list[DetectorCounter] = []
+    dedupe_updates: dict[DetectorGroupKey, int]
+    counter_updates: dict[DetectorGroupKey, DetectorCounters]
+    state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]]
+    counter_names: list[DetectorCounter]
     detector: Detector
 
     def __init__(
@@ -79,8 +79,11 @@ class DetectorStateManager:
         detector: Detector,
         counter_names: list[DetectorCounter] | None = None,
     ):
-        self.counter_names = counter_names or []
         self.detector = detector
+        self.counter_names = counter_names or []
+        self.dedupe_updates = {}
+        self.counter_updates = {}
+        self.state_updates = {}
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value

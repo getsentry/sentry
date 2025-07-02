@@ -141,6 +141,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        # TODO: remove once span buffer is live in all regions
+        scope = sentry_sdk.get_isolation_scope()
+        scope.level = "warning"
+
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)

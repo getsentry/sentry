@@ -37,7 +37,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     def test(self):
         status_1 = WorkflowActionGroupStatus.objects.create(
