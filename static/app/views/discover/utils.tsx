@@ -82,14 +82,13 @@ export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<s
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field, f.alias);
-    const columnName = f.field;
     if (isEquation(f.field)) {
       column.key = f.field;
-      column.name = getEquation(columnName);
+      column.name = getEquation(f.field);
       column.type = 'number';
     } else {
-      column.key = columnName;
-      column.name = columnName;
+      column.key = f.field;
+      column.name = f.field;
     }
     column.width = f.width || COL_WIDTH_UNDEFINED;
 

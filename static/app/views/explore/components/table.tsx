@@ -59,7 +59,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
 export function useTableStyles(
-  fields: string[],
+  fields: any[],
   tableRef: React.RefObject<HTMLDivElement | null>,
   options?: {
     minimumColumnWidth?: number;
