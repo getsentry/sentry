@@ -154,7 +154,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       />
                     )}
                   </TableHeadCellContent>
-                  {i !== aggregateFields.length - 1 && (
+                  {i !== columns.length - 1 && (
                     <GridResizer
                       dataRows={
                         !result.isError && !result.isPending && result.data
