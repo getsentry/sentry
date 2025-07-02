@@ -63,7 +63,9 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         def data_fn(offset: int, limit: int) -> Any:
             try:
                 if features.has(
-                    "organizations:uptime-eap-uptime-results-query", project.organization
+                    "organizations:uptime-eap-uptime-results-query",
+                    project.organization,
+                    actor=request.user,
                 ):
                     return self._make_eap_request(
                         project,
