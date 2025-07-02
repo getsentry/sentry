@@ -386,8 +386,8 @@ def do_process_event(
     # Default event processors.
     for plugin in plugins.all(version=2):
         with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_data("plugin", plugin.slug)
-            span.set_data("from_symbolicate", from_symbolicate)
+            span.set_attribute("plugin", plugin.slug)
+            span.set_attribute("from_symbolicate", from_symbolicate)
             processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {t, tct} from 'sentry/locale';
 import {
   type Column,
   type Row,
@@ -18,14 +20,24 @@ export function renderTableBody({column, row}: TableBodyProps) {
   if (key === 'regenerateToken') {
     return (
       <AlignmentContainer alignment={alignment}>
-        <StyledButton
-          size="sm"
-          priority="default"
-          onClick={() => {}}
-          aria-label="regenerate token"
+        <Confirm
+          onConfirm={() => {}}
+          header={<h5>{t('Generate new token')}</h5>}
+          cancelText={t('Return')}
+          confirmText={t('Generate new token')}
+          isDangerous
+          message={tct(
+            `Are you sure you want to generate a new token for [repoName]? [break][break] If you create a new token, make sure to update the repository secret in GitHub. [break] [break]`,
+            {
+              repoName: <strong>{row.name}</strong>,
+              break: <br />,
+            }
+          )}
         >
-          Regenerate token
-        </StyledButton>
+          <StyledButton priority="default" size="sm" aria-label="regenerate token">
+            {t('Regenerate token')}
+          </StyledButton>
+        </Confirm>
       </AlignmentContainer>
     );
   }

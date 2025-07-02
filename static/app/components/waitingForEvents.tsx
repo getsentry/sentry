@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

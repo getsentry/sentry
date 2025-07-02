@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Link from 'sentry/components/links/link';
 import ReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -16,7 +16,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
