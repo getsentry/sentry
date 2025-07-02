@@ -2583,7 +2583,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2677,7 +2677,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2718,7 +2718,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self) -> None:
         """Test that you can't associate a performance event with an error issue"""
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2739,7 +2739,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self) -> None:
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2759,7 +2759,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
                 noise_limit=2,
@@ -2770,7 +2770,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.root_span"):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
             )

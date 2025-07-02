@@ -126,7 +126,7 @@ def _process_incident_occurrence(
 
 
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]):
-    with sentry_sdk.start_span(
+    with sentry_sdk.start_transaction(
         op="_process_incident_occurrence",
         name="monitors.incident_occurrence_consumer",
     ) as txn:

@@ -238,7 +238,7 @@ def format_top_events_timeseries_results(
     with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
         result = query_builder.strip_alias_prefix(result)
 
-        span.set_attribute("result_count", len(result.get("data", [])))
+        span.set_data("result_count", len(result.get("data", [])))
         processed_result = query_builder.process_results(result)
 
         if result_key_order is None:
