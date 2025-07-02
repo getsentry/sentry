@@ -75,7 +75,6 @@ interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
-  hiddenAttributes?: string[];
 }
 
 interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
@@ -212,7 +211,6 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
 function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
-  hiddenAttributes = [],
   renderers = {},
   rendererExtra: renderExtra,
   config = {},
@@ -226,7 +224,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
 
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
-      .map(key => getAttribute(key, hiddenAttributes, getAdjustedAttributeKey))
+      .map(key => getAttribute(key, getAdjustedAttributeKey))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -289,7 +287,6 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   }, [
     attributes,
     columnCount,
-    hiddenAttributes,
     renderers,
     renderExtra,
     config,
@@ -490,18 +487,12 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
 }
 
 /**
- * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
+ * Replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
-  hiddenAttributes: string[],
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
-  // Filter out hidden attributes
-  if (hiddenAttributes.includes(attribute.name)) {
-    return undefined;
-  }
-
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
 
