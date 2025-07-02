@@ -985,6 +985,8 @@ class Factories:
             provider = "asana"
         if not uid:
             uid = "abc-123"
+        if extra_data is None:
+            extra_data = {}
         usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
         usa.save()
         return usa
