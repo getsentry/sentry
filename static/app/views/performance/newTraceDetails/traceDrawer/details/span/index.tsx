@@ -16,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, type EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -45,10 +45,10 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
-import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
@@ -408,10 +408,6 @@ function EAPSpanNodeDetails({
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
-  const eventHasRequestEntry = eventTransaction?.entries.some(
-    entry => entry.type === EntryType.REQUEST
-  );
-
   return (
     <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
@@ -468,22 +464,7 @@ function EAPSpanNodeDetails({
                       project={project}
                     />
 
-                    {isTransaction && eventHasRequestEntry ? (
-                      <FoldSection
-                        sectionKey={SectionKey.CONTEXTS}
-                        title={
-                          <SectionTitleWithQuestionTooltip
-                            title={t('Contexts')}
-                            tooltipText={t(
-                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
-                            )}
-                          />
-                        }
-                        disableCollapsePersistence
-                      >
-                        <Request event={eventTransaction} />
-                      </FoldSection>
-                    ) : null}
+                    {isTransaction ? <Contexts event={eventTransaction} /> : null}
 
                     <LogDetails />
 
