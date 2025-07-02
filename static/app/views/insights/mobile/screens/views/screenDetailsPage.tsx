@@ -15,6 +15,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -119,7 +121,7 @@ function ScreenDetailsPage() {
               module={moduleName}
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              headerActions={undefined}
               headerTitle={transactionName}
               breadcrumbs={[
                 {
@@ -133,6 +135,11 @@ function ScreenDetailsPage() {
             />
             <Layout.Body>
               <Layout.Main fullWidth>
+                <HeaderContainer>
+                  <ToolRibbon>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ToolRibbon>
+                </HeaderContainer>
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>

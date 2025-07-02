@@ -266,18 +266,21 @@ function ScreensLandingPage() {
                 />
               </Fragment>
             }
-            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+            headerActions={undefined}
             module={moduleName}
           />
           <ModuleBodyUpsellHook moduleName={moduleName}>
             <Layout.Body>
               <Layout.Main fullWidth>
                 <Container>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector onChange={handleProjectChange} />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
+                  <FilterContainer>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector onChange={handleProjectChange} />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </FilterContainer>
                 </Container>
                 <PageAlert />
                 <ErrorBoundary mini>
@@ -326,6 +329,14 @@ function ScreensLandingPage() {
 
 const Container = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const FilterContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
+  width: 100%;
 `;
 
 const Flex = styled('div')<{gap?: number}>`
