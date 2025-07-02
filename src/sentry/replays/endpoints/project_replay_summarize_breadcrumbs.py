@@ -146,9 +146,10 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp_to_milliseconds(timestamp_value: Any, unit: str) -> float:
-    """Parse a timestamp value to milliseconds.
+def parse_timestamp(timestamp_value: Any, unit: str) -> float:
+    """Parse a timestamp input to a float value.
     The argument timestamp value can be string, float, or None.
+    The returned unit will be the same as the input unit.
     """
     if timestamp_value is not None:
         if isinstance(timestamp_value, str):
@@ -214,8 +215,8 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp_to_milliseconds(event.get("timestamp_ms"), "ms")
-                timestamp_s = parse_timestamp_to_milliseconds(event.get("timestamp"), "s")
+                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
+                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
                 timestamp = timestamp_ms or timestamp_s * 1000
 
                 if timestamp:
@@ -252,8 +253,7 @@ def fetch_feedback_details(feedback_id: str | None, project_id):
                 category="feedback",
                 id=feedback_id,
                 title="User Feedback",
-                timestamp=parse_timestamp_to_milliseconds(event.get("timestamp"))
-                * 1000,  # convert to milliseconds
+                timestamp=event.get("timestamp") * 1000,  # convert to milliseconds
                 message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
             )
             if event and event.get("timestamp") is not None
