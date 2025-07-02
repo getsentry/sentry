@@ -102,6 +102,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-use-widget-table-visualization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Data Secrecy v2 (with Break the Glass feature)
+    manager.add("organizations:data-secrecy-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables synthesis of device.class in ingest
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable device.class as a selectable column
