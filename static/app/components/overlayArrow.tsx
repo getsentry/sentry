@@ -28,7 +28,7 @@ function ChonkOverlayArrow({
   const theme = useTheme();
 
   const offset = placement?.startsWith('top') ? 3 : 1.5;
-  const topOffset = placement?.startsWith('top') ? 3 : 1.5;
+  const topOffset = placement?.startsWith('top') ? 3 : 1;
   const sizeRatio = 0.5;
   const heightRatio = 0.3;
 
@@ -40,8 +40,19 @@ function ChonkOverlayArrow({
         viewBox={`0 0 ${size} ${size}`}
         fill="none"
       >
+        {placement?.startsWith('left') || placement?.startsWith('right') ? (
+          <polygon
+            transform={`translate(${placement?.startsWith('right') ? 2 : 0}, 0)`}
+            points={`
+              -2,0
+              ${size},0
+              ${size / 2},${size * heightRatio + topOffset}
+              ${size / 2 - 2},${size * heightRatio + topOffset}`}
+            fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+          />
+        ) : null}
         <polygon
-          points={`0,0 ${size}, 0 ${size / 2},${size * heightRatio + topOffset}`}
+          points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
           fill={border ? (theme[border] as string) : theme.tokens.border.primary}
         />
         <polygon
