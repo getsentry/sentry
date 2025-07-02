@@ -938,6 +938,20 @@ describe('SearchQueryBuilder', function () {
       expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
+    it('displays ask seer button when searching free text', async function () {
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />, {
+        organization: {
+          features: ['gen-ai-features', 'gen-ai-explore-traces'],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
+    });
+
     it('can add parens by typing', async function () {
       const mockOnChange = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
