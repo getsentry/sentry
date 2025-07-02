@@ -17,7 +17,7 @@ export default function FlowsTabs({selected}: Props) {
           key="flow-definitions"
           to={{
             ...location,
-            pathname: '/replay-assertions/flow-definitions/',
+            pathname: '/flows/definitions/',
             query: {...location.query, sort: undefined},
           }}
         >
