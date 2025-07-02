@@ -176,7 +176,7 @@ describe('DataConditionNodeList', function () {
 
     expect(
       screen.queryByText(
-        'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
+        'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
       )
     ).not.toBeInTheDocument();
 
