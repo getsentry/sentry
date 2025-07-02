@@ -445,9 +445,7 @@ class Endpoint(APIView):
                     op="base.dispatch.sleep",
                     name=type(self).__name__,
                 ) as span:
-                    span.set_attribute(
-                        "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
-                    )
+                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment

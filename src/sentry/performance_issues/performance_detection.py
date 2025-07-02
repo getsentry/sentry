@@ -513,8 +513,8 @@ def report_metrics_for_detectors(
     sdk_name = get_sdk_name(event)
 
     try:
-        # Setting a tag isn't critical, the root span doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.root_span.set_tag
+        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
+        set_tag = sdk_span.containing_transaction.set_tag
     except AttributeError:
         set_tag = lambda *args: None
 
