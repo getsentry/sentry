@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {tct} from 'sentry/locale';

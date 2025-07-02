@@ -11,26 +11,6 @@ import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
-  /* @TODO(jonasbadalic) This was defined on theme and only used here */
-  border-radius: 2px;
-
-  &:focus-visible {
-    box-shadow: ${theme.linkFocus} 0 0 0 2px;
-    text-decoration: none;
-    outline: none;
-  }
-
-  ${disabled &&
-  css`
-    color: ${theme.disabled};
-    pointer-events: none;
-    :hover {
-      color: ${theme.disabled};
-    }
-  `}
-`;
-
 export interface LinkProps
   extends Omit<
     React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
@@ -59,11 +39,31 @@ export interface LinkProps
   state?: ReactRouterLinkProps['state'];
 }
 
+const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
+  /* @TODO(jonasbadalic) This was defined on theme and only used here */
+  border-radius: 2px;
+
+  &:focus-visible {
+    box-shadow: ${theme.linkFocus} 0 0 0 2px;
+    text-decoration: none;
+    outline: none;
+  }
+
+  ${disabled &&
+  css`
+    color: ${theme.disabled};
+    pointer-events: none;
+    :hover {
+      color: ${theme.disabled};
+    }
+  `}
+`;
+
 /**
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-const Link = styled(({disabled, to, ...props}: LinkProps) => {
+export const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
   to = normalizeUrl(to, location);
 
@@ -82,5 +82,3 @@ export const Anchor = styled('a', {
 })<{disabled?: boolean}>`
   ${linkStyles}
 `;
-
-export default Link;
