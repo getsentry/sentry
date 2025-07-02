@@ -1,11 +1,16 @@
-import {MockApiClient} from 'sentry-test/api';
+import * as qs from 'query-string';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderHook} from 'sentry-test/reactTestingLibrary';
-import {TestStubs} from 'sentry-test/testStubs';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {OrganizationContext} from 'sentry/contexts/organizationContext';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+
+function mockLocation(query = '') {
+  window.location.search = qs.stringify({query});
+}
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
@@ -16,7 +21,7 @@ describe('useActiveReplayTab', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: TestStubs.Organization({
+        body: OrganizationFixture({
           features: [], // No replay-ai-summaries feature
         }),
       });
@@ -26,9 +31,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: []})}>
+          <OrganizationContext value={OrganizationFixture({features: []})}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
 
@@ -41,9 +46,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: []})}>
+          <OrganizationContext value={OrganizationFixture({features: []})}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
 
@@ -54,9 +59,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={TestStubs.Organization({features: []})}>
+          <OrganizationContext value={OrganizationFixture({features: []})}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
       expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
@@ -64,7 +69,7 @@ describe('useActiveReplayTab', () => {
       result.current.setActiveTab('foo bar');
       expect(browserHistory.push).toHaveBeenLastCalledWith({
         pathname: '/',
-        query: {query: '', t_main: TabKey.BREADCRUMBS},
+        query: {t_main: TabKey.BREADCRUMBS},
       });
     });
   });
@@ -73,7 +78,7 @@ describe('useActiveReplayTab', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: TestStubs.Organization({
+        body: OrganizationFixture({
           features: ['replay-ai-summaries'],
         }),
       });
@@ -83,11 +88,11 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider
-            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          <OrganizationContext
+            value={OrganizationFixture({features: ['replay-ai-summaries']})}
           >
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
 
@@ -100,11 +105,11 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider
-            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          <OrganizationContext
+            value={OrganizationFixture({features: ['replay-ai-summaries']})}
           >
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
 
@@ -115,11 +120,11 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider
-            value={TestStubs.Organization({features: ['replay-ai-summaries']})}
+          <OrganizationContext
+            value={OrganizationFixture({features: ['replay-ai-summaries']})}
           >
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
       expect(result.current.getActiveTab()).toBe(TabKey.AI);
@@ -127,7 +132,7 @@ describe('useActiveReplayTab', () => {
       result.current.setActiveTab('foo bar');
       expect(browserHistory.push).toHaveBeenLastCalledWith({
         pathname: '/',
-        query: {query: '', t_main: TabKey.AI},
+        query: {t_main: TabKey.AI},
       });
     });
   });
@@ -136,7 +141,7 @@ describe('useActiveReplayTab', () => {
     const {result} = renderHook(useActiveReplayTab, {
       initialProps: {},
       wrapper: ({children}) => (
-        <OrganizationContext.Provider value={TestStubs.Organization({features: []})}>
+        <OrganizationContext.Provider value={OrganizationFixture({features: []})}>
           {children}
         </OrganizationContext.Provider>
       ),
@@ -154,6 +159,11 @@ describe('useActiveReplayTab', () => {
   it('should set the default tab if the name is invalid', () => {
     const {result} = renderHook(useActiveReplayTab, {
       initialProps: {},
+      wrapper: ({children}) => (
+        <OrganizationContext value={OrganizationFixture({features: []})}>
+          {children}
+        </OrganizationContext>
+      ),
     });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
