@@ -453,6 +453,32 @@ Prefix with `-` to sort in descending order.
     )
 
 
+class StatusPageParams:
+    STATUS_PAGE_ID = OpenApiParameter(
+        name="status_page_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the status page you'd like to query.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by id.
+
+Available fields are:
+- `title`
+- `id`
+- `dateCreated`
+
+Prefix with `-` to sort in descending order.
+        """,
+    )
+
+
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
         name="workflow_id",
