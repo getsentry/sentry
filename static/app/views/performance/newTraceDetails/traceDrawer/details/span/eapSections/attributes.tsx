@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -20,7 +20,7 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {extendWithLegacyAttributeKeys} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SectionTitleWithQuestionTooltip} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
@@ -171,7 +171,7 @@ export function Attributes({
     <FoldSection
       sectionKey={SectionKey.SPAN_ATTRIBUTES}
       title={
-        <SectionTitleWithQuestionTooltip
+        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
           title={t('Attributes')}
           tooltipText={t(
             'These attributes are indexed and can be queried in the Trace Explorer.'

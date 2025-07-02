@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
@@ -24,7 +25,6 @@ import {
   ValueSection,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -1345,6 +1345,21 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex style={{gap: space(0.5)}}>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
 export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1359,6 +1374,7 @@ export const TraceDrawerComponents = {
   NodeActions,
   KeyValueAction,
   Table,
+  SectionTitleWithQuestionTooltip,
   IconTitleWrapper,
   IconBorder,
   TitleText,

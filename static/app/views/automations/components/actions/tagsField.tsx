@@ -11,7 +11,7 @@ export function TagsField() {
       value={action.data.tags}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          data: {tags: e.target.value},
+          data: {...action.data, tags: e.target.value},
         });
       }}
     />

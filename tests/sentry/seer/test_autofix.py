@@ -1308,6 +1308,44 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
         mock_get_serialized_event.assert_not_called()
 
 
+@requires_snuba
+@pytest.mark.django_db
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
+class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+    @patch("sentry.models.Group.get_recommended_event_for_environments")
+    @patch("sentry.models.Group.get_latest_event")
+    @patch("sentry.seer.autofix._get_serialized_event")
+    def test_trigger_autofix_with_hide_ai_features_enabled(
+        self,
+        mock_get_serialized_event,
+        mock_get_latest_event,
+        mock_get_recommended_event,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Tests that autofix is blocked when organization has hideAiFeatures set to True"""
+        mock_get_recommended_event.return_value = None
+        mock_get_latest_event.return_value = None
+        # We should never reach _get_serialized_event since hideAiFeatures should block the request
+        mock_get_serialized_event.return_value = (None, None)
+
+        group = self.create_group()
+        user = self.create_user()
+
+        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+
+        assert response.status_code == 403
+        assert "AI features are disabled for this organization" in response.data["detail"]
+        # Verify _get_serialized_event was not called since AI features are disabled
+        mock_get_serialized_event.assert_not_called()
+
+
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.requests.post")
     @patch("sentry.seer.autofix.sign_with_seer_secret")
