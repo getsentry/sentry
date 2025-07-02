@@ -6,9 +6,27 @@ import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
 const mdxContext = require.context('sentry', true, /\.mdx$/, 'lazy');
 
+interface StoryResources {
+  a11y?: Record<string, string>;
+  figma?: string;
+  js?: string;
+}
+
+type FrontmatterPagination = boolean | {label: string; link: string};
+
 interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
+    frontmatter?: {
+      description: string;
+      title: string;
+      next?: FrontmatterPagination;
+      prev?: FrontmatterPagination;
+      resources?: StoryResources;
+      source?: string;
+      types?: string;
+    };
+    types?: TypeLoader.ComponentDocWithFilename;
   };
   filename: string;
 }
