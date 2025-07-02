@@ -9,11 +9,11 @@ from sentry.api.base import Endpoint
 logger = logging.getLogger("sentry.auth_v2.secret_bug")
 
 
-def match_chars(str1: str, str2: str) -> str:
+def match_chars(str1: str = "", str2: str = "") -> str:
     return "".join("-" if c1 == c2 else "X" for c1, c2 in zip(str1, str2))
 
 
-def mask_string(s: str) -> str:
+def mask_string(s: str = "") -> str:
     if len(s) <= 4:
         return s
     return s[:2] + "-" * (len(s) - 4) + s[-2:]
