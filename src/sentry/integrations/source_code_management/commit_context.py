@@ -56,6 +56,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -195,8 +196,9 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
-            except ApiRetryError as e:
+            except (ApiRetryError, ApiHostError) as e:
                 # Ignore retry errors for GitLab
+                # Ignore host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
