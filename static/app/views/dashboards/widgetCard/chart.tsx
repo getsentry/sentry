@@ -186,7 +186,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         width: minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
         sortable:
-          widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.name) : true,
+          widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
