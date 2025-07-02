@@ -99,6 +99,9 @@ function FlamegraphOptionsMenu({
           icon={<IconChevron direction="right" />}
           aria-label={t('View Next 30 Minutes')}
           title={t('View Next 30 Minutes')}
+          tooltipProps={{
+            forceVisible: true,
+          }}
         />
       ) : null}
     </Fragment>

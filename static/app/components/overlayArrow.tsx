@@ -24,6 +24,7 @@ function ChonkOverlayArrow({
   size = 16,
   background,
   border,
+  ...props
 }: OverlayArrowProps) {
   const theme = useTheme();
 
@@ -33,7 +34,7 @@ function ChonkOverlayArrow({
   const heightRatio = 0.3;
 
   return (
-    <ChonkWrap size={size} ref={ref} placement={placement}>
+    <ChonkWrap size={size} ref={ref} placement={placement} {...props}>
       <svg
         width={size * sizeRatio}
         height={size * sizeRatio}
@@ -76,13 +77,12 @@ const ChonkWrap = chonkStyled('div')<{
   transform-origin: center;
 
   ${p =>
-    p.placement?.startsWith('top') &&
-    `top: 100%; left: 50%; transform: translateX(-50%) rotate(0deg);`}
-  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: translateX(-50%) rotate(180deg);`}
-  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: translateY(-50%) rotate(-90deg);`}
+    p.placement?.startsWith('top') && `top: 100%; left: 50%; transform: rotate(0deg);`}
+  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: rotate(180deg);`}
+  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
   ${p =>
     p.placement?.startsWith('right') &&
-    `right: 100%; top: 50%; transform: translateY(-50%) rotate(90deg);`}
+    `right: 100%; top: 50%; transform: rotate(90deg);`}
 
   > svg {
     width: ${p => p.size}px;
