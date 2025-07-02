@@ -1092,8 +1092,8 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.root_span and scope.root_span.name:
-        parent_api = scope.root_span.name
+    if scope.transaction:
+        parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1208,7 +1208,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
             if bytes_scanned is not None:
-                span.set_attribute(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
+                span.set_data(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1285,8 +1285,8 @@ def _snuba_query(
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
     thread_isolation_scope, thread_current_scope, snuba_request = params
-    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.use_scope(thread_current_scope):
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.scope.use_scope(thread_current_scope):
             headers = snuba_request.headers
             request = snuba_request.request
             try:

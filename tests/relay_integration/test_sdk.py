@@ -46,8 +46,8 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
         assert event_id is not None
         sentry_sdk.flush()
 
-        with sentry_sdk.use_scope(current_scope):
-            with sentry_sdk.use_isolation_scope(isolation_scope):
+        with sentry_sdk.scope.use_scope(current_scope):
+            with sentry_sdk.scope.use_isolation_scope(isolation_scope):
                 return wait_for_ingest_consumer(
                     lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
                 )
