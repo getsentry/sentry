@@ -19,7 +19,9 @@ export function IntegrationField() {
         const defaultService = integration?.services?.[0]?.id;
         onUpdate({
           integrationId: option.value,
-          ...(defaultService && {config: {target_identifier: defaultService}}),
+          ...(defaultService && {
+            config: {...action.config, target_identifier: defaultService},
+          }),
         });
       }}
     />
