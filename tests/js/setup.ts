@@ -205,14 +205,6 @@ window.scrollTo = jest.fn();
 
 window.ra = {event: jest.fn()};
 
-// We need to re-define `window.location`, otherwise we can't spyOn certain
-// methods as `window.location` is read-only
-Object.defineProperty(window, 'location', {
-  value: {...window.location, assign: jest.fn(), reload: jest.fn(), replace: jest.fn()},
-  configurable: true,
-  writable: true,
-});
-
 // The JSDOM implementation is too slow
 // Especially for dropdowns that try to position themselves
 // perf issue - https://github.com/jsdom/jsdom/issues/3234
@@ -265,24 +257,3 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
-
-// Using `:focus-visible` in `querySelector` or `matches` will throw an error in JSDOM.
-// See https://github.com/jsdom/jsdom/issues/3055
-// eslint-disable-next-line testing-library/no-node-access
-const originalQuerySelector = HTMLElement.prototype.querySelector;
-const originalMatches = HTMLElement.prototype.matches;
-// eslint-disable-next-line testing-library/no-node-access
-HTMLElement.prototype.querySelector = function (selectors: string) {
-  if (selectors === ':focus-visible') {
-    return null;
-  }
-
-  return originalQuerySelector.call(this, selectors);
-};
-HTMLElement.prototype.matches = function (selectors: string) {
-  if (selectors === ':focus-visible') {
-    return false;
-  }
-
-  return originalMatches.call(this, selectors);
-};
