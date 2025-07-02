@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -6,7 +6,6 @@ import snakeCase from 'lodash/snakeCase';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
@@ -21,8 +20,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {DataType} from 'admin/components/customers/customerStatsFilters';
@@ -342,10 +340,6 @@ export function CustomerStats({
   onDemandPeriodStart,
   onDemandPeriodEnd,
 }: Props) {
-  const api = useApi();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
   const router = useRouter();
 
   const dataDatetime = useMemo((): DateTimeObject => {
@@ -388,40 +382,33 @@ export function CustomerStats({
     };
   }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-  const fetchStatsRequest = useCallback(() => {
-    return api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
-      query: {
-        start: dataDatetime.start,
-        end: dataDatetime.end,
-        utc: dataDatetime.utc,
-        statsPeriod: dataDatetime.period,
-        interval: getInterval(dataDatetime),
-        groupBy: ['outcome', 'reason'],
-        field: 'sum(quantity)',
-        category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
-        ...(projectId ? {project: projectId} : {}),
+  const {
+    isPending: loading,
+    error,
+    data: stats,
+    refetch,
+  } = useApiQuery<Stats>(
+    [
+      `/organizations/${orgSlug}/stats_v2/`,
+      {
+        query: {
+          start: dataDatetime.start,
+          end: dataDatetime.end,
+          utc: dataDatetime.utc,
+          statsPeriod: dataDatetime.period,
+          interval: getInterval(dataDatetime),
+          groupBy: ['outcome', 'reason'],
+          field: 'sum(quantity)',
+          category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
+          ...(projectId ? {project: projectId} : {}),
+        },
       },
-    });
-  }, [api, dataType, dataDatetime, orgSlug, projectId]);
-
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetchStatsRequest();
-      setStats(response);
-    } catch (err) {
-      const message = 'Unable to load stats data';
-      handleXhrErrorResponse(message, err);
-      addErrorMessage(message);
-      setError(err);
-    } finally {
-      setLoading(false);
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
     }
-  }, [fetchStatsRequest]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [dataType, dataDatetime, fetchStats]);
+  );
 
   const theme = useTheme();
   const series = useSeries();
@@ -431,10 +418,10 @@ export function CustomerStats({
   }
 
   if (error) {
-    return <LoadingError onRetry={() => fetchStats()} />;
+    return <LoadingError onRetry={refetch} />;
   }
 
-  if (stats === null) {
+  if (!stats) {
     return null;
   }
 
