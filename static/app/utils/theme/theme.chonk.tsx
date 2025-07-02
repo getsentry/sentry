@@ -1035,13 +1035,13 @@ const generateAliases = (
 });
 
 const fontSize = {
-  '2xs': '11px' as const,
-  xs: '12px' as const,
-  sm: '14px' as const,
-  md: '16px' as const,
-  lg: '20px' as const,
-  xl: '24px' as const,
-} satisfies Record<'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl', string>;
+  xs: '11px' as const,
+  sm: '12px' as const,
+  md: '14px' as const,
+  lg: '16px' as const,
+  xl: '20px' as const,
+  '2xl': '24px' as const,
+} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
 
 const chonkCommonTheme = {
   ...commonTheme,
