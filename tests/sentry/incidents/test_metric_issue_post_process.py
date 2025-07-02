@@ -216,12 +216,10 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
 
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_data_packet(value, 30)
-        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
-            data_packet
-        )
-        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        result = self.handler.evaluate(data_packet)
+        evaluation_result = result[self.detector_group_key]
         assert isinstance(evaluation_result.result, IssueOccurrence)
-        occurrence: IssueOccurrence = evaluation_result.result
+        occurrence = evaluation_result.result
 
         assert occurrence is not None
 
@@ -260,12 +258,10 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
 
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_data_packet(value, 30)
-        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
-            data_packet
-        )
-        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        result = self.handler.evaluate(data_packet)
+        evaluation_result = result[self.detector_group_key]
         assert isinstance(evaluation_result.result, IssueOccurrence)
-        occurrence: IssueOccurrence = evaluation_result.result
+        occurrence = evaluation_result.result
 
         assert occurrence is not None
 
