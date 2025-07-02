@@ -15,7 +15,6 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
@@ -40,7 +39,6 @@ const MenuContentContainer = styled('div')`
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -99,7 +97,7 @@ function MenuItemButton({ref, ...props}: MenuItemButtonProps) {
       <Tooltip title={tooltip}>
         <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
           {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-          {children}
+          <Text>{children}</Text>
         </MenuButton>
       </Tooltip>
     </MenuContentOuterContainer>
@@ -121,7 +119,6 @@ const MenuButton = styled('button')`
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -197,7 +194,6 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   );
 })`
   cursor: pointer;
-  color: ${p => p.theme.textColor};
   background: transparent;
   padding: 0 ${space(0.5)};
 
@@ -247,7 +243,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   const {children, ...rest} = props;
   return (
     <div {...rest}>
-      <Text variant="muted" bold size="2xs" density="compressed" uppercase>
+      <Text variant="muted" bold size="xs" density="compressed" uppercase>
         {children}
       </Text>
     </div>

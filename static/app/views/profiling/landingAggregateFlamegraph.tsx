@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
@@ -284,7 +285,9 @@ export function LandingAggregateFlamegraph({
                   </RequestStateMessageContainer>
                 ) : status === 'error' ? (
                   <RequestStateMessageContainer>
-                    {t('There was an error loading the flamegraph.')}
+                    <Text variant="muted" size="sm">
+                      {t('There was an error loading the flamegraph.')}
+                    </Text>
                   </RequestStateMessageContainer>
                 ) : null}
                 {visualization === 'flamegraph' ? (
@@ -358,7 +361,6 @@ const RequestStateMessageContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
 `;
 
 const AggregateFlamegraphContainer = styled('div')`

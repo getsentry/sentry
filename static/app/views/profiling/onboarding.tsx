@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Text} from 'sentry/components/core/text';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -355,7 +356,9 @@ export function Onboarding() {
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
-    {t("Waiting for this project's first profile")}
+    <Text variant="promotion" size="md">
+      {t("Waiting for this project's first profile")}
+    </Text>
     <PulsingIndicator />
   </div>
 ))`
@@ -366,8 +369,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${space(1)};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
   padding-right: ${space(4)};
 `;
 
@@ -479,7 +480,7 @@ const ConfigurationWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.tokens.content.promotion};
   }
 
   :not(:last-child) {

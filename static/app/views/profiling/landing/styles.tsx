@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -25,11 +26,13 @@ export const HeaderTitleLegend = styled(_HeaderTitleLegend)`
   position: relative;
 `;
 
-export const Subtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  display: inline-block;
-`;
+export function Subtitle({children}: {children: React.ReactNode}) {
+  return (
+    <Text variant="muted" size="md">
+      {children}
+    </Text>
+  );
+}
 
 export const ContentContainer = styled('div')`
   flex: 1 1 auto;

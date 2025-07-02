@@ -9,6 +9,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Heading, Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -91,15 +92,17 @@ function UpsellModal(props: Props) {
           ) : (
             <ActionButtons {...props} hasPriceChange={previewData.billedAmount !== 0} />
           )}
-          <Note>
+          <Text as="p" variant="muted" size="xs">
             {t(
               '* Dynamic sampling kicks in for customers reserving 1M or more performance units a month'
             )}
-          </Note>
+          </Text>
         </UpsellContent>
 
         <div>
-          <Subheader>{t('Plan Volume')}</Subheader>
+          <Heading as="h2" size="sm">
+            {t('Plan Volume')}
+          </Heading>
           <ErrorBoundary mini>
             {loading || error ? (
               <Placeholder height="100%" />
@@ -118,21 +121,23 @@ function UpsellModal(props: Props) {
   );
 }
 
-const Subheader = styled('h2')`
-  text-transform: uppercase;
-  font-weight: bold;
-
-  font-size: ${p => p.theme.fontSize.sm};
+const SubheaderPrimary = styled(({children, ...props}: {children: React.ReactNode}) => (
+  <div {...props}>
+    <Heading as="h2" size="sm" bold uppercase variant="accent">
+      {children}
+    </Heading>
+  </div>
+))`
   margin-bottom: ${space(1)};
 `;
 
-const SubheaderPrimary = styled(Subheader)`
-  color: ${p => p.theme.purple300};
-`;
-
-const Header = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
+const Header = styled(({children, ...props}: {children: React.ReactNode}) => (
+  <div {...props}>
+    <Heading as="h1" size="2xl" bold>
+      {children}
+    </Heading>
+  </div>
+))`
   margin: ${space(1)} 0;
 `;
 
@@ -151,11 +156,6 @@ const UpsellContent = styled('div')`
   grid-column: 1;
   grid-row: 1;
   font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const Note = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 export const modalCss = css`

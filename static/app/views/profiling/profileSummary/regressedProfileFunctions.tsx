@@ -190,7 +190,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         </RegressedFunctionsQueryState>
       ) : trendsQuery.isError ? (
         <RegressedFunctionsQueryState>
-          {t('Failed to fetch regressed functions')}
+          <Text align="center" variant="muted">
+            {t('Failed to fetch regressed functions')}
+          </Text>
         </RegressedFunctionsQueryState>
       ) : trends.length ? (
         trends.map((fn, i) => {
@@ -215,19 +217,23 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
               )}
               <RegressedFunctionMetricsRow>
                 <div>
-                  <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
+                  <Text size="sm" variant="muted" ellipsis>
+                    {fn.package}
+                  </Text>
                 </div>
                 <div>
-                  {/* We dont handle improvements as formatPercentage and relativeChange
+                  <Text size="sm" variant="muted" ellipsis>
+                    {/* We dont handle improvements as formatPercentage and relativeChange
                   on lines below dont return absolute values, else we end up with a double sign */}
-                  {trendType === 'regression'
-                    ? fn.aggregate_range_1 < fn.aggregate_range_2
-                      ? '+'
-                      : '-'
-                    : null}
-                  {formatPercentage(
-                    relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
-                  )}
+                    {trendType === 'regression'
+                      ? fn.aggregate_range_1 < fn.aggregate_range_2
+                        ? '+'
+                        : '-'
+                      : null}
+                    {formatPercentage(
+                      relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
+                    )}
+                  </Text>
                 </div>
               </RegressedFunctionMetricsRow>
               <RegressedFunctionSparklineContainer>
@@ -433,8 +439,6 @@ const RegressedFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;
 
@@ -469,9 +473,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
-  text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};

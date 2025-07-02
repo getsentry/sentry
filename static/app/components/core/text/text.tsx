@@ -101,21 +101,27 @@ export const Text = styled((props: TextProps) => {
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
-interface TitleProps extends TextProps {
+interface HeadingProps extends TextProps {
   /**
    * The HTML element to render the title as.
    * @default h1
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+  /**
+   * Bold the text.
+   * @default true
+   */
+  bold?: boolean;
 }
 
-export const Heading = styled((props: TitleProps) => {
+export const Heading = styled((props: HeadingProps) => {
   const {children, as, ...rest} = props;
-  const TitleComponent = as || 'h1';
+  const HeadingComponent = as || 'h1';
 
-  return <TitleComponent {...rest}>{children}</TitleComponent>;
+  return <HeadingComponent {...rest}>{children}</HeadingComponent>;
 })`
-  font-size: ${p => getFontSize(p.size ?? getDefaultTitleFontSize(p.as), p.theme)};
+  font-size: ${p => getFontSize(p.size ?? getDefaultHeadingFontSize(p.as), p.theme)};
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 
   line-height: ${p => getLineHeight(p.density)};
@@ -129,12 +135,12 @@ export const Heading = styled((props: TitleProps) => {
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
   font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
-function getDefaultTitleFontSize(as: TitleProps['as']): TextProps['size'] {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
   switch (as) {
     case 'h1':
       return '2xl';
