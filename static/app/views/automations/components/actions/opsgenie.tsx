@@ -1,6 +1,6 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
@@ -39,7 +39,7 @@ export function OpsgenieNode() {
     {
       logo: ActionMetadata[ActionType.OPSGENIE]?.icon,
       account: <IntegrationField />,
-      team: <ServiceField />,
+      team: <ServiceField aria-label={t('Team')} />,
       priority: <PriorityField />,
     }
   );
@@ -50,6 +50,7 @@ function PriorityField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.data.priority`}
+      aria-label={t('Priority')}
       value={action.data.priority}
       options={OPSGENIE_PRIORITIES.map(priority => ({
         label: priority,

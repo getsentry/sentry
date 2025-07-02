@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {uuid4} from '@sentry/core';
 
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
@@ -22,7 +21,7 @@ import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 interface ActionNodeListProps {
   actions: Action[];
   group: string;
-  onAddRow: (actionId: string, actionHandler: ActionHandler) => void;
+  onAddRow: (actionHandler: ActionHandler) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
   updateAction: (id: string, params: Record<string, any>) => void;
@@ -136,10 +135,10 @@ export default function ActionNodeList({
         );
       })}
       <StyledSelectControl
+        aria-label={t('Add action')}
         options={options}
         onChange={(obj: any) => {
-          const actionId = uuid4();
-          onAddRow(actionId, obj.value);
+          onAddRow(obj.value);
         }}
         placeholder={placeholder}
         value={null}
