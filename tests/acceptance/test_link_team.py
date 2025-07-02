@@ -1,6 +1,6 @@
-import pytest
 from urllib.parse import urlparse
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from sentry.integrations.models.external_actor import ExternalActor
