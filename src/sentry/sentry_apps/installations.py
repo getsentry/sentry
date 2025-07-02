@@ -119,7 +119,7 @@ class SentryAppInstallationCreator:
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.INSTALLATION_CREATE,
         ).capture() as lifecycle:
-            with transaction.atomic(router.db_for_write(SentryAppInstallation)):
+            with transaction.atomic(router.db_for_write(ApiGrant)):
                 api_grant = self._create_api_grant()
                 install = self._create_install(api_grant=api_grant)
                 lifecycle.add_extra("installation_id", install.id)
