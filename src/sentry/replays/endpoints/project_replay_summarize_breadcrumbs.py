@@ -135,15 +135,32 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp", 0.0) * 1000,  # error timestamp is in seconds
+                timestamp=data.get("timestamp") * 1000,  # convert to milliseconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
-            if data is not None
+            if data is not None and data.get("timestamp") is not None
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []
+
+
+def parse_timestamp_to_milliseconds(timestamp_value: Any) -> float | None:
+    """Parse a timestamp value to milliseconds.
+    The argument timestamp value can be string, float, or None.
+    Returns None if the timestamp cannot be parsed.
+    """
+    if timestamp_value is not None:
+        if isinstance(timestamp_value, str):
+            try:
+                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                return dt.timestamp() * 1000  # Convert to milliseconds
+            except (ValueError, AttributeError):
+                return None
+        else:
+            return float(timestamp_value)
+    return None
 
 
 def fetch_trace_connected_errors(
@@ -172,6 +189,7 @@ def fetch_trace_connected_errors(
                 selected_columns=[
                     "id",
                     "timestamp_ms",
+                    "timestamp",
                     "title",
                     "message",
                 ],
@@ -198,26 +216,26 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_raw = event.get("timestamp_ms", 0)
-                if isinstance(timestamp_raw, str):
-                    # The raw timestamp might be returned as a string.
-                    try:
-                        dt = datetime.fromisoformat(timestamp_raw.replace("Z", "+00:00"))
-                        timestamp = dt.timestamp() * 1000  # Convert to milliseconds
-                    except (ValueError, AttributeError):
-                        timestamp = 0.0
-                else:
-                    timestamp = float(timestamp_raw)  # Keep in milliseconds
+                timestamp_ms = parse_timestamp_to_milliseconds(event.get("timestamp_ms"))
+                timestamp_s = parse_timestamp_to_milliseconds(event.get("timestamp"))
 
-                error_events.append(
-                    GroupEvent(
-                        category="error",
-                        id=event["id"],
-                        title=event.get("title", ""),
-                        timestamp=timestamp,
-                        message=event.get("message", ""),
+                if timestamp_ms is not None:
+                    timestamp = timestamp_ms
+                elif timestamp_s is not None:
+                    timestamp = timestamp_s * 1000
+                else:
+                    timestamp = None
+
+                if timestamp is not None:
+                    error_events.append(
+                        GroupEvent(
+                            category="error",
+                            id=event["id"],
+                            title=event.get("title", ""),
+                            timestamp=timestamp,
+                            message=event.get("message", ""),
+                        )
                     )
-                )
 
         return error_events
 
@@ -242,10 +260,11 @@ def fetch_feedback_details(feedback_id: str | None, project_id):
                 category="feedback",
                 id=feedback_id,
                 title="User Feedback",
-                timestamp=event.get("timestamp", 0.0) * 1000,  # feedback timestamp is in seconds
+                timestamp=parse_timestamp_to_milliseconds(event.get("timestamp"))
+                * 1000,  # convert to milliseconds
                 message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
             )
-            if event
+            if event and event.get("timestamp") is not None
             else None
         )
 
