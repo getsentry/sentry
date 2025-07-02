@@ -190,7 +190,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
-      const sort = decodeSorts(widget.queries[0]?.orderby);
+      const sort = decodeSorts(widget.queries[0]?.orderby)[0];
 
       return (
         <TableWrapper key={`table:${result.title}`}>
@@ -203,7 +203,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               fit="max-content"
               aliases={aliases}
               onColumnSortChange={onTableColumnSort}
-              sort={sort.length > 0 ? sort[0] : undefined}
+              sort={sort}
               getRenderer={(field, _dataRow, meta) => {
                 const customRenderer = datasetConfig.getCustomFieldRenderer?.(
                   field,
