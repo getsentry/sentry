@@ -190,7 +190,6 @@ export function Attributes({
         {sortedAndFilteredAttributes.length > 0 ? (
           <AttributesTreeWrapper>
             <AttributesTree
-              hiddenAttributes={HIDDEN_ATTRIBUTES}
               columnCount={columnCount}
               attributes={sortedAndFilteredAttributes}
               renderers={customRenderers}
