@@ -64,7 +64,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self,
         instance: str,
         table_name: str,
-        project: str | None = None,
+        project: str,
         client_options: Mapping[Any, Any] | None = None,
         default_ttl: timedelta | None = None,
         compression: str | None = None,
