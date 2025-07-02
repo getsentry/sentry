@@ -248,4 +248,29 @@ describe('OrganizationSettingsForm', function () {
     const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     expect(toggle).toBeEnabled();
   });
+
+  it('renders PR Review and Test Generation field', function () {
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture()}
+        onSave={onSave}
+      />
+    );
+
+    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+
+    expect(screen.getByText('beta')).toBeInTheDocument();
+
+    expect(
+      screen.getByText('Use AI to generate feedback and tests in pull requests')
+    ).toBeInTheDocument();
+
+    const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
+    expect(learnMoreLink).toBeInTheDocument();
+    expect(learnMoreLink).toHaveAttribute(
+      'href',
+      'https://github.com/apps/seer-by-sentry/'
+    );
+  });
 });
