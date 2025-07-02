@@ -72,6 +72,25 @@ describe('useActiveReplayTab', () => {
         query: {t_main: TabKey.BREADCRUMBS},
       });
     });
+
+    it('should allow case-insensitive tab names', () => {
+      const {result} = renderHook(useActiveReplayTab, {
+        initialProps: {},
+        wrapper: ({children}) => (
+          <OrganizationContext.Provider value={OrganizationFixture({features: []})}>
+            {children}
+          </OrganizationContext.Provider>
+        ),
+      });
+      expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
+
+      result.current.setActiveTab('nEtWoRk');
+      expect(browserHistory.push).toHaveBeenLastCalledWith({
+        pathname: '/',
+        state: undefined,
+        query: {t_main: TabKey.NETWORK},
+      });
+    });
   });
 
   describe('with replay-ai-summaries feature flag', () => {
@@ -134,43 +153,6 @@ describe('useActiveReplayTab', () => {
         pathname: '/',
         query: {t_main: TabKey.AI},
       });
-    });
-  });
-
-  it('should allow case-insensitive tab names', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {},
-      wrapper: ({children}) => (
-        <OrganizationContext.Provider value={OrganizationFixture({features: []})}>
-          {children}
-        </OrganizationContext.Provider>
-      ),
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab('nEtWoRk');
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
-      pathname: '/',
-      state: undefined,
-      query: {t_main: TabKey.NETWORK},
-    });
-  });
-
-  it('should set the default tab if the name is invalid', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {},
-      wrapper: ({children}) => (
-        <OrganizationContext value={OrganizationFixture({features: []})}>
-          {children}
-        </OrganizationContext>
-      ),
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab('foo bar');
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {t_main: TabKey.BREADCRUMBS},
     });
   });
 });
