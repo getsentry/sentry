@@ -395,9 +395,8 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality
         assert rule.threshold_type is not None
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"].get("source_id") is not None
-        assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == value
+        assert deserialized_body["context"]["source_id"] == self.sub.id
 
     def create_workflow_engine_models(self, rule: AlertRule) -> None:
         data_condition_group = self.create_data_condition_group()

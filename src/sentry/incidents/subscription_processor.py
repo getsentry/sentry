@@ -419,6 +419,7 @@ class SubscriptionProcessor:
         if (
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            and not has_metric_alert_processing
         ):
             with metrics.timer(
                 "incidents.subscription_processor.process_update.get_anomaly_data_from_seer_legacy"
