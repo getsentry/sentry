@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import os
-from collections.abc import Callable
 from unittest import mock
 
 import pytest
@@ -10,9 +9,7 @@ import pytest
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
-def create_store(
-    request: pytest.FixtureRequest, compression: str | None = None
-) -> BigtableKVStorage:
+def create_store(request, compression: str | None = None) -> BigtableKVStorage:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
@@ -29,7 +26,7 @@ def create_store(
 
 
 @pytest.fixture
-def store_factory(request: pytest.FixtureRequest) -> Callable[[str | None], BigtableKVStorage]:
+def store_factory(request):
     return functools.partial(create_store, request)
 
 
@@ -45,9 +42,9 @@ def store_factory(request: pytest.FixtureRequest) -> Callable[[str | None], Bigt
 def test_compression_raw_values(
     compression: str | None,
     flag: BigtableKVStorage.Flags | None,
-    expected_prefix: bytes | tuple[bytes, ...],
-    request: pytest.FixtureRequest,
-    store_factory: Callable[[str | None], BigtableKVStorage],
+    expected_prefix: bytes,
+    request,
+    store_factory,
 ) -> None:
     store = store_factory(compression)
 
@@ -70,9 +67,7 @@ def test_compression_raw_values(
         assert store.flags_column not in columns
 
 
-def test_compression_compatibility(
-    request: pytest.FixtureRequest, store_factory: Callable[[str | None], BigtableKVStorage]
-) -> None:
+def test_compression_compatibility(request, store_factory) -> None:
     stores = {
         compression: store_factory(compression)
         for compression in BigtableKVStorage.compression_strategies.keys() | {None}
@@ -88,7 +83,7 @@ def test_compression_compatibility(
             assert reader.get(key) == value
 
 
-def test_get_uses_5s_timeout_for_retry() -> None:
+def test_get_uses_5s_timeout_for_retry():
     store = BigtableKVStorage("test", "test", "test")
     mock_table = mock.Mock()
     with (
