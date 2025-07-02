@@ -87,13 +87,13 @@ export default function SeerSection({
   }
 
   const showCtaButton =
-    aiConfig.needsGenAiAcknowledgement ||
+    aiConfig.orgNeedsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
   const onlyHasResources =
     issueTypeDoesntHaveSeer ||
-    (!aiConfig.needsGenAiAcknowledgement &&
+    (!aiConfig.orgNeedsGenAiAcknowledgement &&
       !aiConfig.hasSummary &&
       !aiConfig.hasAutofix &&
       aiConfig.hasResources);

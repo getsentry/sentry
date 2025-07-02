@@ -48,9 +48,6 @@ export function useOrganizationSeerSetup(
       orgHasAcknowledged: Boolean(
         queryData.data?.setupAcknowledgement?.orgHasAcknowledged
       ),
-      userHasAcknowledged: Boolean(
-        queryData.data?.setupAcknowledgement?.userHasAcknowledged
-      ),
     },
   };
 }
