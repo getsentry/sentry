@@ -87,7 +87,7 @@ family:native function:"__*[[]Sentry*"                            -app -group
 family:native function:"?[[]Sentry*"                              -app -group
 
 # Mark Dart Flutter Android stacktraces in-app by default, further not in-app rules are applied afterwards below
-family:native stack.package:/data/app/** stack.abs_path:**.dart +app
+family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
 # Dart/Flutter stacktraces that are not in-app
 family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
 family:javascript module:**/packages/flutter/** -app
