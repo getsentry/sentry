@@ -61,7 +61,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables the cron job to auto-enable codecov integrations.
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable greater query details in issues api for seer
-    manager.add("organiztaions:detailed-data-for-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:detailed-data-for-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:autofix-seer-preferences", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Chonk UI
