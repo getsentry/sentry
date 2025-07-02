@@ -359,7 +359,7 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
             source_id=str(uptime_subscription.id),
         )
         return Detector.objects.select_related("project", "project__organization").get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
         )
     except Detector.DoesNotExist:
         return None
