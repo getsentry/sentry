@@ -7,7 +7,7 @@ import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconSync, IconThumb} from 'sentry/icons';
+import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -126,7 +126,10 @@ function AiContent() {
         <Summary>
           <SummaryLeft>
             <SummaryLeftTitle>
-              {t('Replay Summary')}
+              <Flex align="center" gap={space(0.5)}>
+                {t('Replay Summary')}
+                <IconSeer />
+              </Flex>
               <Badge type="internal">{t('Internal')}</Badge>
             </SummaryLeftTitle>
             <SummaryText>{summaryData.data.summary}</SummaryText>
