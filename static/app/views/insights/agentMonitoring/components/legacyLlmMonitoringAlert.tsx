@@ -25,36 +25,34 @@ export function LegacyLLMMonitoringInfoAlert() {
 
   return (
     <StyledAlert type="info">
-      <Message>
-        {t('Looking for old LLM Monitoring Experience?')}
-        <Button size="xs" priority="primary" onClick={handleSwitchUI}>
-          {t('Switch UI')}
-        </Button>
-      </Message>
-      <DismissButton
-        priority="link"
-        size="sm"
-        icon={<IconClose />}
-        onClick={dismiss}
-        aria-label={t('Close Alert')}
-      />
+      <ContentWrapper>
+        <Message>
+          {t('Looking for the old LLM Monitoring Experience?')}
+          <Button size="xs" priority="primary" onClick={handleSwitchUI}>
+            {t('Switch UI')}
+          </Button>
+        </Message>
+        <DismissButton
+          priority="link"
+          size="sm"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close Alert')}
+        />
+      </ContentWrapper>
     </StyledAlert>
   );
 }
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
+`;
+
+const ContentWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  & > span {
-    display: flex;
-    flex-grow: 1;
-    justify-content: space-between;
-
-    line-height: 1.5em;
-  }
+  width: 100%;
 `;
 
 const Message = styled('span')`
@@ -66,6 +64,8 @@ const Message = styled('span')`
 
 const DismissButton = styled(Button)`
   pointer-events: all;
+  margin-left: ${space(2)};
+  flex-shrink: 0;
   &:hover {
     opacity: 0.5;
   }
