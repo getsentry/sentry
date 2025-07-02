@@ -33,6 +33,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -160,6 +161,20 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+        },
+    }
+
     permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
