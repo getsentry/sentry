@@ -354,14 +354,14 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
     This is used during the transition period moving uptime to detector.
     """
     try:
-        data_source = DataSource.objects.get(
+        data_source = DataSource.objects.filter(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id=str(uptime_subscription.id),
         )
-        return Detector.objects.get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
+        return Detector.objects.select_related("project", "project__organization").get(
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
         )
-    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+    except Detector.DoesNotExist:
         return None
 
 
