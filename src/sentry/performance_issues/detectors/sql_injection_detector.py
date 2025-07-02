@@ -129,12 +129,18 @@ class SQLInjectionDetector(PerformanceDetector):
             if re.search(regex_key, description[where_index:]) and re.search(
                 regex_value, description[where_index:]
             ):
+                description = description[:where_index] + re.sub(
+                    regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
+                )
                 vulnerable_parameters.append((key, value))
 
         if len(vulnerable_parameters) == 0:
             return
 
         parameterized_description = span.get("sentry_tags", {}).get("description")
+        # If the query description is not parameterized, use the original description with replacements
+        if not parameterized_description:
+            parameterized_description = description
         vulnerable_keys = [key for key, _ in vulnerable_parameters]
         fingerprint_description = f"{'-'.join(vulnerable_keys)}-{parameterized_description}"
         fingerprint = self._fingerprint(fingerprint_description)
