@@ -10,12 +10,13 @@ import {
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
-import type {AriaListBoxOptions} from '@react-aria/listbox';
+import {type AriaListBoxOptions, useOption} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
+import Feature from 'sentry/components/acl/feature';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -27,7 +28,13 @@ import {
 } from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
+import {
+  AskSeerLabel,
+  AskSeerListItem,
+  AskSeerPane,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
@@ -35,10 +42,15 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -169,20 +181,29 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   filterValue,
   maxOptions,
   shouldFilterResults,
+  showAskSeerOption,
 }: {
   filterValue: string;
   items: T[];
+  showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
-  }, [items, shouldFilterResults, filterValue, maxOptions]);
+    const options = getHiddenOptions(
+      items,
+      shouldFilterResults ? filterValue : '',
+      maxOptions
+    );
+    return showAskSeerOption ? options.add('ask_seer') : options;
+  }, [items, shouldFilterResults, filterValue, maxOptions, showAskSeerOption]);
 
-  const disabledKeys = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions],
-    [hiddenOptions, items]
-  );
+  const disabledKeys = useMemo(() => {
+    const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
+    return showAskSeerOption
+      ? baseDisabledKeys.filter(key => key !== 'ask_seer')
+      : baseDisabledKeys;
+  }, [hiddenOptions, items, showAskSeerOption]);
 
   return {
     hiddenOptions,
@@ -238,6 +259,39 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
+function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const {setDisplaySeerResults} = useSearchQueryBuilder();
+  const organization = useOrganization();
+
+  const {optionProps, labelProps, isFocused, isPressed} = useOption(
+    {
+      key: 'ask_seer',
+      'aria-label': 'Ask Seer',
+      shouldFocusOnHover: true,
+      shouldSelectOnPressUp: true,
+    },
+    state,
+    ref
+  );
+
+  const handleClick = () => {
+    trackAnalytics('trace.explorer.ai_query_interface', {
+      organization,
+      action: 'opened',
+    });
+    setDisplaySeerResults(true);
+  };
+
+  return (
+    <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
+      <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
+      <IconSeer />
+      <AskSeerLabel {...labelProps}>{t('Ask Seer')}</AskSeerLabel>
+    </AskSeerListItem>
+  );
+}
+
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu,
   filterValue,
@@ -261,6 +315,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu?: CustomComboboxMenu<T>;
   portalTarget?: HTMLElement | null;
 }) {
+  const organization = useOrganization();
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
+  const showAskSeerOption = !!(traceExploreAiQueryContext && areAiFeaturesAllowed);
+
   if (customMenu) {
     return customMenu({
       popoverRef,
@@ -288,6 +349,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           overlayIsOpen={isOpen}
           size="sm"
         />
+        {showAskSeerOption ? (
+          <Feature features="organizations:gen-ai-explore-traces">
+            <AskSeerPane>
+              <AskSeerOption state={state} />
+            </AskSeerPane>
+          </Feature>
+        ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -335,11 +403,20 @@ export function SearchQueryBuilderCombobox<
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
+  const organization = useOrganization();
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
+  const showAskSeerOption = Boolean(traceExploreAiQueryContext && areAiFeaturesAllowed);
+
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
     filterValue,
     maxOptions,
     shouldFilterResults,
+    showAskSeerOption,
   });
 
   const onSelectionChange = useCallback(
