@@ -282,6 +282,7 @@ function VisualizeDropdown({
   return (
     <ToolbarRow>
       <AggregateCompactSelect
+        searchable
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={setChartAggregate}
