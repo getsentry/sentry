@@ -1,7 +1,7 @@
 from django.db import router, transaction
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
-from sentry import nodestore
+from sentry import features, nodestore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -87,8 +87,7 @@ def workflow_status_update_handler(
     Hook the process_workflow_task into the activity creation registry.
 
     Since this handler is called in process for the activity, we want
-    to queue a task to process workflows asynchronously.
-    """
+    to queue a task to process workflows asynchronously."""
     metrics.incr(
         "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
     )
@@ -104,11 +103,12 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.error.tasks.no_detector_id")
         return
 
-    process_workflow_activity.delay(
-        activity_id=activity.id,
-        group_id=group.id,
-        detector_id=detector_id,
-    )
+    if features.has("organizations:workflow-engine-process-activity", group.organization):
+        process_workflow_activity.delay(
+            activity_id=activity.id,
+            group_id=group.id,
+            detector_id=detector_id,
+        )
 
 
 def _should_retry_nodestore_fetch(attempt: int, e: Exception) -> bool:
