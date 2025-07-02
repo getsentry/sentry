@@ -67,9 +67,20 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
+  const visibleAggregateFields = useMemo(
+    () =>
+      aggregateFields.filter(aggregateField => {
+        if (isGroupBy(aggregateField)) {
+          return Boolean(aggregateField.groupBy);
+        }
+        return true;
+      }),
+    [aggregateFields]
+  );
+
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    aggregateFields,
+    visibleAggregateFields.length,
     tableRef,
     {
       minimumColumnWidth: 50,
@@ -100,7 +111,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
       {} as Record<string, TableColumn<string>>
     );
 
-    return aggregateFields
+    return visibleAggregateFields
       .map(aggregateField => {
         const key = isGroupBy(aggregateField)
           ? aggregateField.groupBy
@@ -108,7 +119,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
         return cols[key];
       })
       .filter(defined);
-  }, [aggregateFields, eventView]);
+  }, [visibleAggregateFields, eventView]);
 
   return (
     <Fragment>

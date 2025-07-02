@@ -59,7 +59,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
 export function useTableStyles(
-  fields: any[],
+  fieldsCount: number,
   tableRef: React.RefObject<HTMLDivElement | null>,
   options?: {
     minimumColumnWidth?: number;
@@ -74,16 +74,16 @@ export function useTableStyles(
       : options?.prefixColumnWidth;
 
   const resizingColumnIndex = useRef<number | null>(null);
-  const columnWidthsRef = useRef<Array<number | null>>(fields.map(() => null));
+  const columnWidthsRef = useRef<Array<number | null>>(new Array(fieldsCount).fill(null));
 
   useEffect(() => {
-    columnWidthsRef.current = fields.map(
-      (_, index) => columnWidthsRef.current[index] ?? null
-    );
-  }, [fields]);
+    columnWidthsRef.current = new Array(fieldsCount)
+      .fill(null)
+      .map((_, index) => columnWidthsRef.current[index] ?? null);
+  }, [fieldsCount]);
 
   const initialTableStyles = useMemo(() => {
-    const gridTemplateColumns = fields.map(field => {
+    const gridTemplateColumns = new Array(fieldsCount).fill(null).map(field => {
       const staticWidth = options?.staticColumnWidths?.[field];
       if (staticWidth) {
         return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
@@ -96,7 +96,7 @@ export function useTableStyles(
     return {
       gridTemplateColumns: gridTemplateColumns.join(' '),
     };
-  }, [fields, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
+  }, [fieldsCount, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
 
   const onResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, index: number) => {
