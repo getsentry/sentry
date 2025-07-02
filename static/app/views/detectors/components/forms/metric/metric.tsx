@@ -1,6 +1,7 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -14,10 +15,12 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -26,6 +29,7 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
+import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -34,14 +38,16 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
+import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-import {useDetectorThresholdSuffix} from 'sentry/views/detectors/components/forms/useDetectorThresholdSuffix';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
+import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const {projects} = useProjects();
 
   const traceItemProjects = useMemo(() => {
@@ -52,9 +58,14 @@ function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
     return [project];
   }, [projectId, projects]);
 
+  let traceItemType = TraceItemDataset.SPANS;
+  if (dataset === DetectorDataset.LOGS) {
+    traceItemType = TraceItemDataset.LOGS;
+  }
+
   return (
     <TraceItemAttributeProvider
-      traceItemType={TraceItemDataset.SPANS}
+      traceItemType={traceItemType}
       projects={traceItemProjects}
       enabled
     >
@@ -63,7 +74,7 @@ function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
   );
 }
 
-export function MetricDetectorForm() {
+function MetricDetectorForm() {
   return (
     <MetricDetectorFormContext>
       <FormStack>
@@ -74,6 +85,22 @@ export function MetricDetectorForm() {
         <AutomateSection />
       </FormStack>
     </MetricDetectorFormContext>
+  );
+}
+
+export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
+  return (
+    <EditDetectorLayout detector={detector} detectorType="metric_issue">
+      <MetricDetectorForm />
+    </EditDetectorLayout>
+  );
+}
+
+export function NewMetricDetectorForm() {
+  return (
+    <NewDetectorLayout detectorType="metric_issue">
+      <MetricDetectorForm />
+    </NewDetectorLayout>
   );
 }
 
@@ -111,7 +138,10 @@ function ResolveSection() {
   const conditionComparisonAgo = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
   );
-  const thresholdSuffix = useDetectorThresholdSuffix();
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const description = getResolutionDescription(
     kind === 'percent'
@@ -195,13 +225,28 @@ function useDatasetChoices() {
   const organization = useOrganization();
 
   return useMemo(() => {
-    const datasetChoices: Array<[DetectorDataset, string]> = [
-      [DetectorDataset.ERRORS, t('Errors')],
-      [DetectorDataset.TRANSACTIONS, t('Transactions')],
+    const datasetChoices: Array<SelectValue<DetectorDataset>> = [
+      {
+        value: DetectorDataset.ERRORS,
+        label: t('Errors'),
+      },
+      {
+        value: DetectorDataset.TRANSACTIONS,
+        label: t('Transactions'),
+      },
       ...(organization.features.includes('visibility-explore-view')
-        ? ([[DetectorDataset.SPANS, t('Spans')]] as Array<[DetectorDataset, string]>)
+        ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
-      [DetectorDataset.RELEASES, t('Releases')],
+      ...(organization.features.includes('ourlogs-alerts')
+        ? [
+            {
+              value: DetectorDataset.LOGS,
+              label: t('Logs'),
+              trailingItems: <FeatureBadge type="beta" />,
+            },
+          ]
+        : []),
+      {value: DetectorDataset.RELEASES, label: t('Releases')},
     ];
 
     return datasetChoices;
@@ -212,6 +257,9 @@ function DetectSection() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
 
   return (
     <Container>
@@ -233,7 +281,7 @@ function DetectSection() {
               </Tooltip>
             }
             name={METRIC_DETECTOR_FORM_FIELDS.dataset}
-            choices={datasetChoices}
+            options={datasetChoices}
             onChange={newDataset => {
               // Reset aggregate function to dataset default when dataset changes
               const datasetConfig = getDatasetConfig(newDataset);
@@ -297,7 +345,7 @@ function DetectSection() {
                   hideLabel
                   placeholder="0"
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
-                  suffix="s"
+                  suffix={getStaticDetectorThresholdSuffix(aggregate)}
                   required
                   preserveOnUnmount
                 />

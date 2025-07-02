@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -98,7 +99,7 @@ function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = moduleURL;
+    testableWindowLocation.assign(moduleURL);
     return null;
   }
 

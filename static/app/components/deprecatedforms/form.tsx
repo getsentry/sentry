@@ -2,6 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
@@ -138,7 +139,7 @@ class Form<
           aria-label={(this.props as any)['aria-label']}
         >
           {isError && !hideErrors && (
-            <div className="alert alert-error alert-block">
+            <Alert type="error">
               {nonFieldErrors ? (
                 <div>
                   <p>
@@ -156,7 +157,7 @@ class Form<
               ) : (
                 errorMessage
               )}
-            </div>
+            </Alert>
           )}
           {this.props.children}
           <div className={this.props.footerClass} style={{marginTop: 25}}>
