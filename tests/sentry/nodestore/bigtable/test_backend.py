@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -14,60 +17,64 @@ from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 class MockedBigtableKVStorage(BigtableKVStorage):
     class Cell:
-        def __init__(self, value, timestamp):
+        def __init__(self, value: bytes, timestamp: int) -> None:
             self.value = value
             self.timestamp = timestamp
 
     class Row:
-        def __init__(self, table, row_key):
+        def __init__(self, table: MockedBigtableKVStorage.Table, row_key: str) -> None:
             self.row_key = row_key.encode("utf8")
             self.table = table
 
-        def delete(self):
+        def delete(self) -> None:
             self.table._rows.pop(self.row_key, None)
 
-        def set_cell(self, family, col, value, timestamp):
+        def set_cell(self, family: str, col: str, value: bytes, timestamp: int) -> None:
             assert family == "x"
             self.table._rows.setdefault(self.row_key, {})[col] = [
                 MockedBigtableKVStorage.Cell(value, timestamp)
             ]
 
-        def commit(self):
+        def commit(self) -> Status:
             # commits not implemented, changes are applied immediately
             return Status(code=0)
 
         @property
-        def cells(self):
+        def cells(self) -> dict[str, dict[str, list[MockedBigtableKVStorage.Cell]]]:
             return {"x": dict(self.table._rows.get(self.row_key) or ())}
 
     class Table(table.Table):
-        def __init__(self):
-            self._rows = {}
+        def __init__(self) -> None:
+            self._rows: dict[bytes, dict[str, list[MockedBigtableKVStorage.Cell]]] = {}
 
-        def direct_row(self, key):
+        def direct_row(self, key: str) -> MockedBigtableKVStorage.Row:
             return MockedBigtableKVStorage.Row(self, key)
 
-        def read_row(self, row_key, filter_=None, retry=DEFAULT_RETRY_READ_ROWS):
+        def read_row(
+            self, row_key: str, filter_: Any = None, retry: Any = DEFAULT_RETRY_READ_ROWS
+        ) -> MockedBigtableKVStorage.Row:
             return MockedBigtableKVStorage.Row(self, row_key)
 
         def read_rows(
             self,
-            start_key=None,
-            end_key=None,
-            limit=None,
-            filter_=None,
-            end_inclusive=False,
-            row_set=None,
-            retry=None,
-        ):
+            start_key: str | None = None,
+            end_key: str | None = None,
+            limit: int | None = None,
+            filter_: Any = None,
+            end_inclusive: bool = False,
+            row_set: Any = None,
+            retry: Any = None,
+        ) -> list[MockedBigtableKVStorage.Row]:
             assert not row_set.row_ranges, "unsupported"
             return [self.read_row(key) for key in row_set.row_keys]
 
-        def mutate_rows(self, rows, retry=None, timeout=None):
+        def mutate_rows(
+            self, rows: list[Any], retry: Any = None, timeout: float | None = None
+        ) -> list[Status]:
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
-    def _get_table(self, admin: bool = False):
+    def _get_table(self, admin: bool = False) -> MockedBigtableKVStorage.Table:
         try:
             table = self.__table
         except AttributeError:
@@ -100,7 +107,7 @@ def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage]:
 
 
 @pytest.fixture(params=[MockedBigtableNodeStorage, BigtableNodeStorage])
-def ns(request):
+def ns(request: pytest.FixtureRequest) -> Generator[BigtableNodeStorage]:
     if request.param is BigtableNodeStorage:
         with get_temporary_bigtable_nodestorage() as ns:
             yield ns
@@ -109,7 +116,7 @@ def ns(request):
 
 
 @pytest.mark.django_db
-def test_cache(ns):
+def test_cache(ns: BigtableNodeStorage) -> None:
     node_1 = ("a" * 32, {"foo": "a"})
     node_2 = ("b" * 32, {"foo": "b"})
     node_3 = ("c" * 32, {"foo": "c"})
@@ -169,9 +176,9 @@ def test_cache(ns):
 
 
 def test_compression() -> None:
-    ns = BigtableNodeStorage(compression="zstd")
+    ns = BigtableNodeStorage(project="test", compression="zstd")
     assert ns.store.compression == "zstd"
-    ns = BigtableNodeStorage(compression=True)
+    ns = BigtableNodeStorage(project="test", compression=True)
     assert ns.store.compression == "zlib"
-    ns = BigtableNodeStorage(compression=False)
+    ns = BigtableNodeStorage(project="test", compression=False)
     assert ns.store.compression is None
