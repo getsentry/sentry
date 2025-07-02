@@ -3,12 +3,13 @@ import multiprocessing
 import multiprocessing.context
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 
 import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
+from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
@@ -27,42 +28,50 @@ MAX_PROCESS_RESTARTS = 10
 logger = logging.getLogger(__name__)
 
 
-class MultiProducerManager:
+class MultiProducer:
     """
     Manages multiple Kafka producers for load balancing across brokers/topics.
 
-    Configure multiple producers in settings.py:
+    Configure multiple producers using SLICED_KAFKA_TOPICS in settings.py:
 
-    KAFKA_MULTI_PRODUCER_CONFIGS = {
-        "buffered-segments": [
-            {"cluster": "default", "topic": "buffered-segments-1"},
-            {"cluster": "secondary", "topic": "buffered-segments-2"}
-        ]
+    SLICED_KAFKA_TOPICS = {
+        ("buffered-segments", 0): {"cluster": "default", "topic": "buffered-segments-1"},
+        ("buffered-segments", 1): {"cluster": "secondary", "topic": "buffered-segments-2"}
     }
     """
 
-    def __init__(self, topic: Topic):
+    def __init__(
+        self,
+        topic: Topic,
+        producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None,
+    ):
         self.topic = topic
-        self.producers: list[KafkaProducer] = []
+        self.producers: list[Producer[KafkaPayload]] = []
         self.topics: list[ArroyoTopic] = []
         self.current_index = 0
+        self.producer_factory = producer_factory or self._default_producer_factory
         self._setup_producers()
 
-    def _setup_producers(self):
-        """Setup producers based on configuration."""
-        # Get multi-producer config if available, otherwise use single producer
-        multi_config = getattr(settings, "KAFKA_MULTI_PRODUCER_CONFIGS", {}).get(self.topic.value)
+    def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
+        """Default factory that creates real KafkaProducers."""
+        return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
-        if multi_config:
-            # Multiple producers configured
-            for config in multi_config:
+    def _setup_producers(self):
+        """Setup producers based on SLICED_KAFKA_TOPICS configuration."""
+        # Get sliced Kafka topics configuration
+        sliced_configs = []
+        for (topic_name, slice_id), config in settings.SLICED_KAFKA_TOPICS.items():
+            if topic_name == self.topic.value:
+                sliced_configs.append(config)
+
+        if sliced_configs:
+            # Multiple producers configured via SLICED_KAFKA_TOPICS
+            for config in sliced_configs:
                 cluster_name = config["cluster"]
-                topic_name = config.get(
-                    "topic", get_topic_definition(self.topic)["real_topic_name"]
-                )
+                topic_name = config["topic"]
 
                 producer_config = get_kafka_producer_cluster_options(cluster_name)
-                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+                producer = self.producer_factory(producer_config)
                 topic = ArroyoTopic(topic_name)
 
                 self.producers.append(producer)
@@ -71,7 +80,7 @@ class MultiProducerManager:
             # Single producer (backward compatibility)
             cluster_name = get_topic_definition(self.topic)["cluster"]
             producer_config = get_kafka_producer_cluster_options(cluster_name)
-            producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+            producer = self.producer_factory(producer_config)
             topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
 
             self.producers.append(producer)
@@ -225,7 +234,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 produce = produce_to_pipe
                 producer_manager = None
             else:
-                producer_manager = MultiProducerManager(Topic.BUFFERED_SEGMENTS)
+                producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
 
                 def produce(payload: KafkaPayload) -> None:
                     producer_futures.append(producer_manager.produce(payload))

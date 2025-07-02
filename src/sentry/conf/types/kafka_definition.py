@@ -144,16 +144,6 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         )
 
 
-class ProducerConfig(TypedDict):
-    """Configuration for a single producer within a multi-producer setup."""
-
-    cluster: str
-    topic: str
-
-
-MultiProducerConfigs = dict[str, list[ProducerConfig]]
-
-
 def get_topic_codec(topic: Topic) -> Codec:
     """
     Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum

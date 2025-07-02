@@ -22,7 +22,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
 )
 from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, MultiProducerConfigs
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -3431,19 +3431,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
 # If True, sentry.utils.arroyo.run_task_with_multiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
-
-
-# Configuration for multi-producer setups to enable load balancing across multiple
-# Kafka clusters/brokers. Each topic can have multiple producers configured.
-# Producer configs are taken from KAFKA_CLUSTERS.
-# Example:
-# KAFKA_MULTI_PRODUCER_CONFIGS = {
-#     "buffered-segments": [
-#         {"cluster": "default", "topic": "buffered-segments-1"},
-#         {"cluster": "secondary", "topic": "buffered-segments-2"}
-#     ]
-# }
-KAFKA_MULTI_PRODUCER_CONFIGS: MultiProducerConfigs = {}
 
 
 # For Jira, only approved apps can use the access_email_addresses scope
