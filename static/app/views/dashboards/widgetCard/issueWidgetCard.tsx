@@ -10,13 +10,12 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  getSortField,
-  type RenderFunctionBaggage,
-} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -76,7 +75,7 @@ export function IssueWidgetCard({
     name: column.name,
     width: column.width,
     type: column.type === 'never' ? null : column.type,
-    sortable: !!getSortField(column.key, tableResults?.[0]?.meta),
+    sortable: !!getSortField(column.key),
   }));
   const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
@@ -84,6 +83,11 @@ export function IssueWidgetCard({
 
   const getCustomFieldRenderer = (field: string, meta: MetaType, org?: Organization) => {
     return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
+  };
+  // This is to match the widget viewer modal, which always displays the arrow pointing down
+  const sort: Sort = {
+    field: decodeSorts(widget.queries[0]?.orderby)[0]?.field || '',
+    kind: 'desc',
   };
 
   return organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -96,6 +100,7 @@ export function IssueWidgetCard({
         fit="max-content"
         aliases={aliases}
         onColumnSortChange={onTableColumnSort}
+        sort={sort}
         getRenderer={(field, _dataRow, meta) => {
           const customRenderer = datasetConfig.getCustomFieldRenderer?.(
             field,

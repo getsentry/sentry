@@ -360,7 +360,8 @@ class Dashboard extends Component<Props, State> {
         ...widget,
       });
       if (widgetCopy.queries[0]) {
-        const direction = sort.kind === 'desc' ? '-' : '';
+        const direction =
+          sort.kind === 'desc' && widget.widgetType !== WidgetType.ISSUE ? '-' : '';
         widgetCopy.queries[0].orderby = `${direction}${sort.field}`;
       }
 

@@ -14,6 +14,20 @@ import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableW
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
+  const customColumns: TabularColumn[] = [
+    {
+      key: 'count(span.duration)',
+      name: 'count(span.duration)',
+      type: 'number',
+      width: 200,
+    },
+    {
+      key: 'http.request_method',
+      name: 'http.request_method',
+      type: 'string',
+      width: -1,
+    },
+  ];
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -40,20 +54,6 @@ export default Storybook.story('TableWidgetVisualization', story => {
       ...sampleHTTPRequestTableData,
       data: [],
     };
-    const customColumns: TabularColumn[] = [
-      {
-        key: 'count(span.duration)',
-        name: 'count(span.duration)',
-        type: 'number',
-        width: 200,
-      },
-      {
-        key: 'http.request_method',
-        name: 'http.request_method',
-        type: 'string',
-        width: -1,
-      },
-    ];
     const aliases = {
       'count(span.duration)': 'Count of Span Duration',
       'http.request_method': 'HTTP Request Method',
@@ -108,6 +108,74 @@ ${JSON.stringify(customColumns)}
 ${JSON.stringify(aliases)}
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Sorting by Column', () => {
+    const sortableColumns = customColumns.map(column => ({
+      ...column,
+      sortable: true,
+      width: -1,
+    }));
+    return (
+      <Fragment>
+        <p>
+          By default, column fields are assumed to be not sortable. To enable sorting,
+          pass the
+          <code>columns</code> prop with the field <code>sortable</code> set to true. Ex.
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+columns={[{
+  key: 'count(span.duration)',
+  name: 'count(span.duration)',
+  type: 'number',
+  sortable: true
+},
+{
+  key: 'http.request_method',
+  name: 'http.request_method',
+  type: 'string',
+}]}
+          `}
+        </CodeSnippet>
+        <p>
+          The default action when a sortable column header is clicked is to update the
+          <code>sort</code> location query parameter in the URL. If you wish to override
+          the URL update, you can pass <code>onColumnSortChange</code> which accepts a
+          <code>Sort</code> object that represents the newly selected sort. This is useful
+          if you need to manage internal state:
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+// The Sort type
+export type Sort = {
+  field: string;
+  kind: 'asc' | 'desc';
+};
+
+// Basic Example
+function onColumnSortChange(sort: Sort) {
+  setSort(sort)
+}
+        `}
+        </CodeSnippet>
+        <p>
+          The table will try to automatically parse out the direction from the location
+          query parameter and apply the sort direction arrow to the sorted column.
+          However, if sorting does not rely on this, or custom sort needs to be used, then
+          pass the <code>sort</code> prop to correcly display the sort arrow direction:
+        </p>
+        <CodeSnippet>
+          {`sort={{field: 'count(span.duration)', kind: 'desc'}}`}
+        </CodeSnippet>
+        <br />
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          sort={{field: 'count(span.duration)', kind: 'desc'}}
+          columns={sortableColumns}
+        />
       </Fragment>
     );
   });
