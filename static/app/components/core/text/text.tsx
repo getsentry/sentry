@@ -70,7 +70,6 @@ interface TextProps {
    * @default primary
    */
   variant?: keyof Theme['tokens']['content'];
-
   /**
    * Determines text wrapping.
    */

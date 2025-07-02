@@ -9,6 +9,7 @@ import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Text} from 'sentry/components/core/text';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
@@ -442,7 +443,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             </RequestStateMessageContainer>
                           ) : status === 'error' ? (
                             <RequestStateMessageContainer>
-                              {t('There was an error loading the flamegraph.')}
+                              <Text variant="muted">
+                                {t('There was an error loading the flamegraph.')}
+                              </Text>
                             </RequestStateMessageContainer>
                           ) : null}
                           {visualization === 'flamegraph' ? (
@@ -493,7 +496,6 @@ const RequestStateMessageContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
 `;
 
 const AggregateFlamegraphContainer = styled('div')`
