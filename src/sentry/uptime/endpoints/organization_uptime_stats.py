@@ -78,7 +78,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         try:
-            if features.has("organizations:uptime-eap-uptime-results-query", organization):
+            if features.has(
+                "organizations:uptime-eap-uptime-results-query", organization, actor=request.user
+            ):
                 eap_response = self._make_eap_request(
                     organization,
                     projects,
