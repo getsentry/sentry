@@ -4085,6 +4085,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response()
         assert response.status_code == 500
 
+    def test_seer_resolution(self):
+        response = self.get_response(gruopStatsPeriod="1h")
+        assert response.status_code == 400
+
+        with self.feature({"organizations:detailed-data-for-seer": True}):
+            self.get_success_response(groupStatsPeriod="1h")
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
