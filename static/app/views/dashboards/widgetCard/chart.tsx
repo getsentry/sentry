@@ -169,14 +169,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const columns = decodeColumnOrder(
         fields.map(field => ({
           field,
-        }))
+        })),
+        tableResults[0]?.meta
       ).map(column => ({
         key: column.key,
         name: column.name,
         width: minTableColumnWidth ?? column.width,
-        type:
-          tableResults[0]?.meta?.[column.key] ??
-          (column.type === 'never' ? null : column.type),
+        type: column.type === 'never' ? null : column.type,
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
