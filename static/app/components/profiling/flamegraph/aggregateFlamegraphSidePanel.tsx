@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -88,15 +89,19 @@ export function AggregateFlamegraphSidePanel({
   return (
     <AggregateFlamegraphSidePanelContainer>
       <div>
-        <Title>{t('Function')}</Title>
+        <TitleContainer>
+          <Text bold>{t('Function')}</Text>
+        </TitleContainer>
         <FrameInformation frame={frame} />
       </div>
       <div>
-        <Title>
-          {tct('Profiles ([count])', {
-            count: examples.length,
-          })}
-        </Title>
+        <TitleContainer>
+          <Text bold>
+            {tct('Profiles ([count])', {
+              count: examples.length,
+            })}
+          </Text>
+        </TitleContainer>
         {examples.length <= 0 ? (
           <EmptyStateWarning withIcon={false} small>
             <div>{t('No profiles detected')}</div>
@@ -125,7 +130,9 @@ function FrameInformation({frame}: FrameInformationProps) {
   if (!defined(frame)) {
     return (
       <EmptyStateWarning withIcon={false} small>
-        <div>{t('No function selected')}</div>
+        <Text size="sm" variant="muted">
+          {t('No function selected')}
+        </Text>
       </EmptyStateWarning>
     );
   }
@@ -133,28 +140,34 @@ function FrameInformation({frame}: FrameInformationProps) {
   return (
     <FunctionContainer>
       <FunctionRowContainer>
-        <div>{t('Name')}</div>
-        <DetailsContainer>
-          <Tooltip showOnlyOnOverflow title={frame.frame.name}>
-            <code>{frame.frame.name}</code>
-          </Tooltip>
-        </DetailsContainer>
+        <ColumnName>{t('Name:')}</ColumnName>
+        <ColumnValue>{frame.frame.name}</ColumnValue>
       </FunctionRowContainer>
       <FunctionRowContainer>
-        <div>{t('Source')}</div>
-        <DetailsContainer>
-          <Tooltip showOnlyOnOverflow title={frame.frame.getSourceLocation()}>
-            <code>{frame.frame.getSourceLocation()}</code>
-          </Tooltip>
-        </DetailsContainer>
+        <ColumnName>{t('Source:')}</ColumnName>
+        <ColumnValue>{frame.frame.getSourceLocation()}</ColumnValue>
       </FunctionRowContainer>
       <FunctionRowContainer>
-        <span>{t('Type')}</span>
-        <code>
+        <ColumnName>{t('Type:')}</ColumnName>
+        <ColumnValue>
           {frame.frame.is_application ? t('Application Frame') : t('System Frame')}
-        </code>
+        </ColumnValue>
       </FunctionRowContainer>
     </FunctionContainer>
+  );
+}
+
+function ColumnName({children}: {children: React.ReactNode}) {
+  return <Text size="xs">{children}</Text>;
+}
+
+function ColumnValue({children}: {children: React.ReactNode}) {
+  return (
+    <Tooltip showOnlyOnOverflow title={children} skipWrapper>
+      <Text size="xs" ellipsis monospace>
+        {children}
+      </Text>
+    </Tooltip>
   );
 }
 
@@ -232,9 +245,7 @@ const AggregateFlamegraphSidePanelContainer = styled('div')`
   padding: ${space(1)};
 `;
 
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+const TitleContainer = styled('div')`
   padding: ${space(1)};
 `;
 
@@ -259,10 +270,6 @@ const FunctionRowContainer = styled(RowContainer)`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-`;
-
-const DetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
 `;
 
 const ReferenceRowContainer = styled(RowContainer)`
