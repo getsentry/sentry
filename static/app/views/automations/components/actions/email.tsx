@@ -79,8 +79,17 @@ function TargetTypeField() {
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(option: SelectValue<string>) => {
-        onUpdate({config: {target_type: option.value, target_identifier: undefined}});
+      onChange={(option: SelectValue<ActionTarget>) => {
+        onUpdate({
+          config: {
+            ...action.config,
+            target_type: option.value,
+            target_identifier: undefined,
+          },
+          ...(option.value === ActionTarget.ISSUE_OWNERS
+            ? {data: {fallthroughType: FallthroughChoiceType.ACTIVE_MEMBERS}}
+            : {}),
+        });
       }}
     />
   );
@@ -97,7 +106,10 @@ function IdentifierField() {
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) => {
-            onUpdate({config: {target_identifier: value.actor.id}, data: {}});
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            });
           }}
           useId
           styles={selectControlStyles}
@@ -113,7 +125,10 @@ function IdentifierField() {
           key={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}, data: {}})
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            })
           }
           styles={selectControlStyles}
         />
