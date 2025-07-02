@@ -23,6 +23,7 @@ import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCost
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {
   AI_COST_ATTRIBUTE_SUM,
+  AI_GENERATION_OPS,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -72,6 +73,8 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
+const GENERATION_COUNTS = AI_GENERATION_OPS.map(op => `count_if(span.op,${op})` as const);
+
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,9 +98,7 @@ export function TracesTable() {
       search: `trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        'count_if(span.op,gen_ai.chat)',
-        'count_if(span.op,gen_ai.generate_text)',
-        'count_if(span.op,gen_ai.execute_tool)',
+        ...GENERATION_COUNTS,
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
         AI_COST_ATTRIBUTE_SUM,
       ],
@@ -115,9 +116,10 @@ export function TracesTable() {
     return spansRequest.data.reduce(
       (acc, span) => {
         acc[span.trace] = {
-          llmCalls:
-            (span['count_if(span.op,gen_ai.chat)'] ?? 0) +
-            (span['count_if(span.op,gen_ai.generate_text)'] ?? 0),
+          llmCalls: GENERATION_COUNTS.reduce<number>(
+            (sum, key) => sum + (span[key] ?? 0),
+            0
+          ),
           toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
           totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
