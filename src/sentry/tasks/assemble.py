@@ -64,6 +64,9 @@ class AssembleTask:
     PREPROD_ARTIFACT_SIZE_ANALYSIS = (
         "organization.preprod_artifact_size_analysis"  # Preprod artifact size analysis upload
     )
+    PREPROD_ARTIFACT_INSTALLABLE_APP = (
+        "organization.preprod_artifact_installable_app"  # Preprod artifact installable app upload
+    )
 
 
 class AssembleResult(NamedTuple):
