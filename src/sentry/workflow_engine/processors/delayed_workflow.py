@@ -9,6 +9,8 @@ from typing import Any, TypeAlias
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import MaxRetriesExceededError
+from celery.exceptions import Retry as CeleryRetry
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -32,11 +34,12 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.snuba import SnubaError
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     QueryFilter,
@@ -687,7 +690,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
-@retry
+@retry(exclude=(MaxRetriesExceededError, CeleryRetry))
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
@@ -746,7 +749,12 @@ def process_delayed_workflows(
         },
     )
 
-    condition_group_results = get_condition_group_results(condition_groups)
+    try:
+        condition_group_results = get_condition_group_results(condition_groups)
+    except SnubaError:
+        # We expect occasional errors, so we report as warning and retry.
+        logger.warning("delayed_workflow.snuba_error", exc_info=True)
+        retry_task()
 
     logger.info(
         "delayed_workflow.condition_group_results",
