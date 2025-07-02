@@ -135,7 +135,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp") * 1000,  # convert to milliseconds
+                timestamp=data.get("timestamp", 0.0) * 1000,  # convert to milliseconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
@@ -253,7 +253,7 @@ def fetch_feedback_details(feedback_id: str | None, project_id):
                 category="feedback",
                 id=feedback_id,
                 title="User Feedback",
-                timestamp=event.get("timestamp") * 1000,  # convert to milliseconds
+                timestamp=event.get("timestamp", 0.0) * 1000,  # convert to milliseconds
                 message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
             )
             if event and event.get("timestamp") is not None
