@@ -61,6 +61,11 @@ interface TextProps {
   underline?: boolean;
 
   /**
+   * Uppercase the text.
+   */
+  uppercase?: boolean;
+
+  /**
    * Variant determines the style of the text.
    * @default primary
    */
@@ -94,6 +99,7 @@ export const Text = styled((props: TextProps) => {
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
   font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
+  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
 interface TitleProps extends TextProps {
@@ -126,6 +132,7 @@ export const Heading = styled((props: TitleProps) => {
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
   font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
+  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
 function getDefaultTitleFontSize(as: TitleProps['as']) {
@@ -174,15 +181,16 @@ function getLineHeight(density: TextProps['density']) {
 function getFontSize(size: TextProps['size'], theme: Theme) {
   switch (size) {
     case '2xs':
-      return theme.fontSize.xs;
+      return theme.fontSize['2xs'];
     case 'xs':
-      return theme.fontSize.sm;
+      return theme.fontSize.xs;
     case 'sm':
-      return theme.fontSize.md;
+      return theme.fontSize.sm;
     case 'lg':
       return theme.fontSize.lg;
     case 'xl':
       return theme.fontSize.xl;
+    case 'md':
     default:
       return theme.fontSize.md;
   }
