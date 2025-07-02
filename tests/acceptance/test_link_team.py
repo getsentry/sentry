@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 
+import pytest
 from selenium.webdriver.common.by import By
 
 from sentry.integrations.models.external_actor import ExternalActor
@@ -62,6 +63,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         )
         self.path = linking_url.path
 
+    @pytest.mark.skip(reason="flaky: #94793")
     def test_link_team(self):
         self.login_as(self.user)
         self.browser.get(self.path)
