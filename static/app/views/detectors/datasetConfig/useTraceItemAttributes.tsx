@@ -24,14 +24,14 @@ interface UseTraceItemAttributeKeysProps {
   options?: Partial<UseApiQueryOptions<Tag[]>>;
 }
 
-export function useTraceItemAttributeKeys({
+function useTraceItemAttributeKeys({
   type,
   traceItemType,
   projectIds,
   options,
 }: UseTraceItemAttributeKeysProps) {
   const organization = useOrganization();
-  const {data, isFetching, error} = useApiQuery<Tag[]>(
+  const {data, isPending, error} = useApiQuery<Tag[]>(
     [
       `/organizations/${organization.slug}/trace-items/attributes/`,
       {
@@ -66,7 +66,7 @@ export function useTraceItemAttributeKeys({
   return {
     attributes,
     error,
-    isLoading: isFetching,
+    isPending,
   };
 }
 
@@ -79,7 +79,7 @@ export function useTraceItemNumberAttributes({
 }) {
   const {
     attributes: numberAttributes,
-    isLoading,
+    isPending,
     error,
   } = useTraceItemAttributeKeys({
     type: 'number',
@@ -99,7 +99,7 @@ export function useTraceItemNumberAttributes({
   return {
     attributes: allNumberAttributes,
     error,
-    isLoading,
+    isPending,
   };
 }
 
@@ -112,7 +112,7 @@ export function useTraceItemStringAttributes({
 }) {
   const {
     attributes: stringAttributes,
-    isLoading,
+    isPending,
     error,
   } = useTraceItemAttributeKeys({
     type: 'string',
@@ -132,7 +132,7 @@ export function useTraceItemStringAttributes({
   return {
     attributes: allStringAttributes,
     error,
-    isLoading,
+    isPending,
   };
 }
 

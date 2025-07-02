@@ -28,7 +28,7 @@ import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCus
 import {
   useTraceItemNumberAttributes,
   useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemsAttributeQuery';
+} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';

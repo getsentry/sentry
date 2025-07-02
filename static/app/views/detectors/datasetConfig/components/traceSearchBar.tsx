@@ -4,7 +4,7 @@ import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/
 import {
   useTraceItemNumberAttributes,
   useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemsAttributeQuery';
+} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
