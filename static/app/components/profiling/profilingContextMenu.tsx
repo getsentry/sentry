@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -244,15 +245,14 @@ interface MenuHeadingProps
 
 const MenuHeading = styled((props: MenuHeadingProps) => {
   const {children, ...rest} = props;
-  return <div {...rest}>{children}</div>;
+  return (
+    <div {...rest}>
+      <Text variant="muted" bold size="2xs" density="compressed" uppercase>
+        {children}
+      </Text>
+    </div>
+  );
 })`
-  text-transform: uppercase;
-  line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
-  margin-bottom: 0;
-  cursor: default;
-  font-size: 75%;
   padding: ${space(0.5)} ${space(1.5)};
 `;
 
