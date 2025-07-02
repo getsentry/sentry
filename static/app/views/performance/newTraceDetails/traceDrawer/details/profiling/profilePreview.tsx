@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -242,11 +243,15 @@ function ProfilePreviewLegend() {
     <LegendContainer>
       <LegendItem>
         <LegendMarker color={applicationFrameColor} />
-        {t('Application Function')}
+        <Text variant="muted" size="sm">
+          {t('Application Function')}
+        </Text>
       </LegendItem>
       <LegendItem>
         <LegendMarker color={systemFrameColor} />
-        {t('System Function')}
+        <Text variant="muted" size="sm">
+          {t('System Function')}
+        </Text>
       </LegendItem>
     </LegendContainer>
   );
@@ -317,8 +322,6 @@ const LegendItem = styled('span')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

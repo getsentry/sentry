@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -118,7 +119,17 @@ export const CollapsibleTimelineLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
 `;
 
-export const CollapsibleTimelineMessage = styled('p')`
+export function CollapsibleTimelineMessage({children}: {children: React.ReactNode}) {
+  return (
+    <CollapsibleTimelineMessageContainer>
+      <Text variant="muted" size="sm">
+        {children}
+      </Text>
+    </CollapsibleTimelineMessageContainer>
+  );
+}
+
+const CollapsibleTimelineMessageContainer = styled('p')`
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -126,7 +137,6 @@ export const CollapsibleTimelineMessage = styled('p')`
   height: 100%;
   width: 100%;
   position: absolute;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
 `;
+
 export {CollapsibleTimeline};

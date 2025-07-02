@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Text} from 'sentry/components/core/text';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -228,7 +229,11 @@ function SidebarContent() {
   return (
     <Fragment>
       <Content>
-        <Heading>{t('Profile Code')}</Heading>
+        <Heading>
+          <Text size="xs" bold uppercase variant="accent">
+            {t('Profile Code')}
+          </Text>
+        </Heading>
         <div
           onClick={e => {
             // we need to stop bubbling the CompactSelect click event
@@ -413,10 +418,6 @@ const Content = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
-  text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -178,7 +178,9 @@ export function ProfilesSummaryChart({
 
   return (
     <ProfilesChartContainer>
-      <ProfilesChartTitle>{t('Durations')}</ProfilesChartTitle>
+      <Text size="sm" bold>
+        {t('Durations')}
+      </Text>
       <ChartZoom {...selection?.datetime}>
         {zoomRenderProps => (
           <AreaChart
@@ -192,13 +194,6 @@ export function ProfilesSummaryChart({
     </ProfilesChartContainer>
   );
 }
-
-const ProfilesChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  padding: ${space(0.25)} ${space(1)};
-`;
 
 const ProfilesChartContainer = styled('div')`
   background-color: ${p => p.theme.background};

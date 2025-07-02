@@ -385,10 +385,9 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
+    color: ${p => p.theme.tokens.content.primary};
     font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
-
-    color: ${p => p.theme.textColor};
 
     display: inline-block;
 
@@ -404,13 +403,13 @@ export const ProfilingDetailsListItem = styled('li')<{
     }
 
     &:hover {
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 
   &.active button {
     font-weight: ${p => p.theme.fontWeight.bold};
-    border-bottom: 2px solid ${prop => prop.theme.active};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 

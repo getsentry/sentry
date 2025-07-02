@@ -432,7 +432,7 @@ function FlamegraphSearch({
       trailing={
         search.query ? (
           <Fragment>
-            <Text variant="muted" size="2xs" density="compressed">
+            <Text variant="muted" size="xs" density="compressed">
               {`${
                 search.index !== null && search.results.frames.size > 0
                   ? search.index + 1

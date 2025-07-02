@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import Count from 'sentry/components/count';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -131,7 +132,9 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           </SlowestFunctionsQueryState>
         ) : functionsQuery.isError ? (
           <SlowestFunctionsQueryState>
-            {t('Failed to fetch slowest functions')}
+            <Text variant="muted" size="sm" align="center">
+              {t('Failed to fetch slowest functions')}
+            </Text>
           </SlowestFunctionsQueryState>
         ) : functions.length ? (
           functions.map((fn, i) => {
@@ -206,13 +209,20 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
       </SlowestFunctionMainRow>
       <SlowestFunctionMetricsRow>
         <div>
-          <TextTruncateOverflow>{frame.package}</TextTruncateOverflow>
+          <Text variant="muted" size="sm" ellipsis>
+            <TextTruncateOverflow>{frame.package}</TextTruncateOverflow>
+          </Text>
         </div>
         <div>
-          <Count value={props.func['count()'] as number} />{' '}
-          {tn('time', 'times', props.func['count()'])}
-          {', '}
-          <PerformanceDuration nanoseconds={props.func['p75()'] as number} abbreviation />
+          <Text variant="muted" size="sm" ellipsis>
+            <Count value={props.func['count()'] as number} />{' '}
+            {tn('time', 'times', props.func['count()'])}
+            {', '}
+            <PerformanceDuration
+              nanoseconds={props.func['p75()'] as number}
+              abbreviation
+            />
+          </Text>
         </div>
       </SlowestFunctionMetricsRow>
     </SlowestFunctionRow>
@@ -265,9 +275,7 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
 `;
 
 const SlowestFunctionsQueryState = styled('div')`
-  text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
 `;
 
 const SlowestFunctionRow = styled('div')`
@@ -291,8 +299,6 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;
 

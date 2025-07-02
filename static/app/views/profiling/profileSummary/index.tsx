@@ -152,7 +152,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
                 avatarProps={{hasTooltip: true, tooltip: props.project.slug}}
               />
             ) : null}
-            {props.transaction}
+            <Text size="lg">{props.transaction}</Text>
           </ProfilingTitleContainer>
         </Layout.Title>
       </ProfilingHeaderContent>
@@ -196,7 +196,6 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -785,12 +784,13 @@ const ProfileDigestHeader = styled('div')`
   flex-shrink: 0;
 `;
 
-const ProfileDigestLabel = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  text-transform: uppercase;
-`;
+function ProfileDigestLabel({children}: {children: React.ReactNode}) {
+  return (
+    <Text variant="muted" size="sm" uppercase>
+      {children}
+    </Text>
+  );
+}
 
 export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {
   return (

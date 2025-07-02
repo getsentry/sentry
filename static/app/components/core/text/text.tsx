@@ -107,6 +107,12 @@ interface HeadingProps extends Omit<TextProps, 'as'> {
    * @default h1
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+  /**
+   * Bold the text.
+   * @default true
+   */
+  bold?: boolean;
 }
 
 export const Heading = styled((props: HeadingProps) => {
@@ -129,7 +135,7 @@ export const Heading = styled((props: HeadingProps) => {
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
   font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;

@@ -100,9 +100,13 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
         {action.label}
       </Button>
       {dismiss ? (
-        <StyledButton priority="link" size="sm" onClick={dismiss}>
-          <IconClose color="gray500" size="sm" />
-        </StyledButton>
+        <Button
+          size="sm"
+          priority="link"
+          onClick={dismiss}
+          icon={<IconClose color="gray500" size="sm" />}
+          aria-label={t('Close')}
+        />
       ) : null}
     </Fragment>
   );
@@ -119,10 +123,6 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
     </Alert>
   );
 }
-
-const StyledButton = styled(Button)`
-  color: inherit;
-`;
 
 interface GenericGraceAlertProps extends AlertProps {
   action: (props: any) => {
