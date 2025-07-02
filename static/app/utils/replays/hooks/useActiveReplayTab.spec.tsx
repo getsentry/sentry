@@ -77,9 +77,9 @@ describe('useActiveReplayTab', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={OrganizationFixture({features: []})}>
+          <OrganizationContext value={OrganizationFixture({features: []})}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
       expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
