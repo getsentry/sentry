@@ -272,6 +272,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
+        import pdb
+
+        pdb.set_trace()
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
 
