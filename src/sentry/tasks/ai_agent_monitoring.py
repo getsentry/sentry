@@ -1,8 +1,6 @@
 import logging
 from typing import Any
 
-import sentry_sdk
-
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
@@ -55,7 +53,9 @@ def fetch_ai_model_costs() -> None:
         openrouter_models = _fetch_openrouter_models()
         models_dict.update(openrouter_models)
     except Exception as e:
-        sentry_sdk.capture_message(str(e), level="warning")
+        logger.warning(
+            "Failed to fetch AI model costs from OpenRouter API", extra={"error": str(e)}
+        )
         # re-raise to fail the task
         raise
 
@@ -68,7 +68,9 @@ def fetch_ai_model_costs() -> None:
                 models_dict[model_id] = model_cost
 
     except Exception as e:
-        sentry_sdk.capture_message(str(e), level="warning")
+        logger.warning(
+            "Failed to fetch AI model costs from models.dev API", extra={"error": str(e)}
+        )
         # re-raise to fail the task
         raise
 
