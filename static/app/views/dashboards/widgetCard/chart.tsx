@@ -174,7 +174,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         key: column.key,
         name: column.name,
         width: minTableColumnWidth ?? column.width,
-        type: column.type === 'never' ? null : column.type,
+        type:
+          tableResults[0]?.meta?.[column.key] ??
+          (column.type === 'never' ? null : column.type),
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[0]);
