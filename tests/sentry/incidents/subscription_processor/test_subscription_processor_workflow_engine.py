@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
 )
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
@@ -38,12 +39,12 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
     ProcessUpdateAnomalyDetectionTest,
-    ProcessUpdateTest,
+    ProcessUpdateComparisonAlertTest,
 )
 
 
 @freeze_time()
-class ProcessUpdateWorkflowEngineTest(ProcessUpdateTest):
+class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
@@ -361,6 +362,70 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateTest):
 
 @freeze_time()
 class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetectionTest):
+    def get_seer_return_value(
+        self, anomaly_score: float, value: int, anomaly_type: AnomalyType, success: bool = True
+    ) -> DetectAnomaliesResponse:
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": success,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": anomaly_score,
+                        "anomaly_type": anomaly_type.value,
+                    },
+                    "timestamp": 1,
+                    "value": value,
+                }
+            ],
+        }
+        return seer_return_value
+
+    def assert_seer_results(
+        self, mock_seer_request: MagicMock, rule: AlertRule, value: int
+    ) -> None:
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
+        assert rule.sensitivity is not None
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity
+        assert rule.seasonality is not None
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality
+        assert rule.threshold_type is not None
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
+        assert deserialized_body["context"]["source_id"] == self.sub.id
+        assert deserialized_body["context"]["cur_window"]["value"] == value
+
+    def create_workflow_engine_models(self, rule: AlertRule) -> None:
+        data_condition_group = self.create_data_condition_group()
+        detector = self.create_detector(
+            name="hojicha",
+            type=MetricIssue.slug,
+            config={
+                "detection_type": AlertRuleDetectionType.DYNAMIC,
+                "sensitivity": AlertRuleSensitivity.HIGH,
+                "seasonality": AlertRuleSeasonality.AUTO,
+                "threshold_period": rule.threshold_period,
+            },
+            workflow_condition_group=data_condition_group,
+        )
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+        self.create_workflow(organization=self.organization)
+        comparison = {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        self.create_data_condition(
+            condition_group=data_condition_group,
+            type=Condition.ANOMALY_DETECTION,
+            comparison=comparison,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
     @with_feature("organizations:metric-issue-poc")
     @with_feature("projects:metric-issue-creation")
     @with_feature("organizations:anomaly-detection-alerts")
@@ -374,30 +439,18 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     ):
         rule = self.dynamic_rule
         trigger = self.trigger
-
-        seer_return_value: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=10, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = self.send_update(rule, trigger.alert_threshold + 1)
 
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
             timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
         )
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         latest_activity = self.latest_activity(incident)
         uuid = str(latest_activity.notification_uuid)
         self.assert_actions_fired_for_incident(
@@ -441,63 +494,15 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
             AlertRuleTriggerAction.TargetType.USER,
             str(self.user.id),
         )
-
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
+        self.create_workflow_engine_models(rule)
+        value = 5
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.7, value=value, anomaly_type=AnomalyType.LOW_CONFIDENCE
         )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, value, timedelta(minutes=-3))
 
-        seer_return_value_1: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.7,
-                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 5,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
-        processor = self.send_update(rule, 5, timedelta(minutes=-3))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 5
-
+        self.assert_seer_results(mock_seer_request, rule, value)
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         self.assert_no_active_incident(rule)  # there is no warning for dynamic alerts
@@ -520,63 +525,16 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
             AlertRuleTriggerAction.TargetType.USER,
             str(self.user.id),
         )
+        self.create_workflow_engine_models(rule)
+        value = 10
 
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
         )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, value, timedelta(minutes=-2))
 
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(rule, 10, timedelta(minutes=-2))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 10
-
+        self.assert_seer_results(mock_seer_request, rule, value)
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         incident = self.assert_active_incident(rule)
@@ -615,80 +573,29 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
             AlertRuleTriggerAction.TargetType.USER,
             str(self.user.id),
         )
-
-        data_condition_group = self.create_data_condition_group()
-        detector = self.create_detector(
-            name="hojicha",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": AlertRuleDetectionType.DYNAMIC,
-                "sensitivity": AlertRuleSensitivity.HIGH,
-                "seasonality": AlertRuleSeasonality.AUTO,
-                "threshold_period": rule.threshold_period,
-            },
-            workflow_condition_group=data_condition_group,
-        )
-        data_source = self.create_data_source(source_id=str(self.sub.id))
-        data_source.detectors.set([detector])
-        self.create_workflow(organization=self.organization)
-        comparison = {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        self.create_data_condition(
-            condition_group=data_condition_group,
-            type=Condition.ANOMALY_DETECTION,
-            comparison=comparison,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
+        self.create_workflow_engine_models(rule)
 
         # trigger critical first
-        seer_return_value_2: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {
-                        "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
-                    },
-                    "timestamp": 1,
-                    "value": 10,
-                }
-            ],
-        }
-
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
-        processor = self.send_update(rule, 10, timedelta(minutes=-2))
+        crit_value = 10
+        seer_return_value = self.get_seer_return_value(
+            anomaly_score=0.9, value=crit_value, anomaly_type=AnomalyType.HIGH_CONFIDENCE
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, crit_value, timedelta(minutes=-2))
         incident = self.assert_active_incident(rule)
+
         # trigger a resolution
-        seer_return_value_3: DetectAnomaliesResponse = {
-            "success": True,
-            "timeseries": [
-                {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
-                    "timestamp": 1,
-                    "value": 1,
-                }
-            ],
-        }
+        resolve_value = 1
+        seer_return_value_resolve = self.get_seer_return_value(
+            anomaly_score=0.5, value=resolve_value, anomaly_type=AnomalyType.NONE
+        )
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value_resolve), status=200
+        )
+        processor = self.send_update(rule, resolve_value, timedelta(minutes=-1))
 
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
-        processor = self.send_update(rule, 1, timedelta(minutes=-1))
-
-        assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
-        assert deserialized_body["organization_id"] == self.sub.project.organization.id
-        assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
-        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
-        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 1
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_seer_results(mock_seer_request, rule, resolve_value)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
