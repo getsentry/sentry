@@ -330,8 +330,8 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         scheduled_check_time=None,
     ):
         uptime_result = self.create_eap_uptime_result(
-            subscription_id=str(uuid.UUID(subscription_id)),
-            guid=str(uuid.UUID(subscription_id)),
+            subscription_id=uuid.UUID(subscription_id).hex,
+            guid=uuid.UUID(subscription_id).hex,
             request_url="https://santry.io",
             check_status=check_status,
             incident_status=incident_status,

@@ -125,6 +125,14 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(end)
+
+        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK:
+            subscription_id = str(
+                uuid.UUID(uptime_subscription.uptime_subscription.subscription_id)
+            )
+        else:
+            subscription_id = uuid.UUID(uptime_subscription.uptime_subscription.subscription_id).hex
+
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(
@@ -132,9 +140,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(
-                    val_str=str(uuid.UUID(uptime_subscription.uptime_subscription.subscription_id))
-                ),
+                value=AttributeValue(val_str=subscription_id),
             )
         )
 
