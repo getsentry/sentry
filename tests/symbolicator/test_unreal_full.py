@@ -115,6 +115,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
+    @pytest.mark.skip(reason="temporary because of Relay change")
     def test_unreal_crash_with_attachments(self):
         attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
         assert len(attachments) == 4
@@ -132,6 +133,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert log.name == "YetAnother.log"  # Log file is named after the project
         assert log.sha1 == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
+    @pytest.mark.skip(reason="temporary because of Relay change")
     def test_unreal_apple_crash_with_attachments(self):
         attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
 
