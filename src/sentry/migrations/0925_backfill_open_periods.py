@@ -18,7 +18,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 100
+CHUNK_SIZE = 20
 
 
 # copied constants and enums
@@ -139,15 +139,23 @@ def _backfill_group_open_periods(
     # but we don't create an entry for that.
 
     activities = defaultdict(list)
-    for activity in Activity.objects.filter(
-        group_id__in=group_ids,
-        type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
-    ).order_by("datetime"):
-        # Skip activities before the group's first_seen date
-        if activity.datetime < activity.group.first_seen:
-            continue
 
-        activities[activity.group_id].append(activity)
+    try:
+        for activity in Activity.objects.filter(
+            group_id__in=group_ids,
+            type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
+        ).order_by("datetime"):
+            # Skip activities before the group's first_seen date
+            if activity.datetime < activity.group.first_seen:
+                continue
+
+            activities[activity.group_id].append(activity)
+    except Exception as e:
+        logger.exception(
+            "Error getting activities",
+            extra={"group_ids": group_ids, "error": e},
+        )
+        return
 
     open_periods = []
     for group_id, first_seen, status, project_id in group_data:
