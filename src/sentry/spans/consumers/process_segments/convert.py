@@ -48,13 +48,24 @@ def convert_span_to_item(span: Span) -> TraceItem:
                 sentry_sdk.capture_exception()
 
     for k, v in (span.get("measurements") or {}).items():
-        if k is not None and v is not None:
-            if k == "client_sample_rate":
-                client_sample_rate = v["value"]
-            elif k == "server_sample_rate":
-                server_sample_rate = v["value"]
-            else:
-                attributes[k] = AnyValue(double_value=float(v["value"]))
+        if k is None or not isinstance(v, dict):
+            continue
+
+        value = v.get("value")
+        if value is None:
+            continue
+
+        try:
+            numeric_value = float(value)
+        except (ValueError, TypeError):
+            continue
+
+        if k == "client_sample_rate":
+            client_sample_rate = numeric_value
+        elif k == "server_sample_rate":
+            server_sample_rate = numeric_value
+        else:
+            attributes[k] = AnyValue(double_value=numeric_value)
 
     for k, v in (span.get("sentry_tags") or {}).items():
         if v is not None:
