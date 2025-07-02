@@ -356,9 +356,7 @@ class Dashboard extends Component<Props, State> {
     const {dashboard, onUpdate} = this.props;
     return function (sort: Sort) {
       const widget = dashboard.widgets[index]!;
-      const widgetCopy = cloneDeep({
-        ...widget,
-      });
+      const widgetCopy = cloneDeep(widget);
       if (widgetCopy.queries[0]) {
         const direction =
           sort.kind === 'desc' && widget.widgetType !== WidgetType.ISSUE ? '-' : '';

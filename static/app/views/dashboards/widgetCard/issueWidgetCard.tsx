@@ -99,7 +99,7 @@ export function IssueWidgetCard({
         scrollable
         fit="max-content"
         aliases={aliases}
-        onColumnSortChange={onTableColumnSort}
+        onSortChange={onTableColumnSort}
         sort={sort}
         getRenderer={(field, _dataRow, meta) => {
           const customRenderer = datasetConfig.getCustomFieldRenderer?.(

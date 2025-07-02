@@ -76,10 +76,10 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
-   * A callback function that is invoked after a user clicks a sortable column header and overrides default behaviour of navigating
+   * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
    * @param sort `Sort` object contain the `field` and `kind` ('asc' or 'desc')
    */
-  onColumnSortChange?: (sort: Sort) => void;
+  onSortChange?: (sort: Sort) => void;
   /**
    * If true, the table will scroll on overflow. Note that the table headers will also be sticky
    */
@@ -110,7 +110,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     scrollable,
     fit,
     aliases,
-    onColumnSortChange,
+    onSortChange,
     sort,
   } = props;
 
@@ -166,31 +166,32 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           let direction = undefined;
           if (sort?.field === sortColumn) {
             direction = sort.kind;
-          } else if (locationSort?.field === sortColumn) {
+          } else if (locationSort?.field === sortColumn && !sort) {
             direction = locationSort.kind;
           }
-          const nextDirection = direction === 'desc' ? 'asc' : 'desc';
 
           return (
             <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              onClick={() =>
-                onColumnSortChange?.({
+              onClick={() => {
+                const nextDirection = direction === 'desc' ? 'asc' : 'desc';
+
+                onSortChange?.({
                   field: sortColumn,
                   kind: nextDirection,
-                })
-              }
+                });
+              }}
               title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
-                return onColumnSortChange
+                return onSortChange
                   ? location
                   : {
                       ...location,
                       query: {
                         ...location.query,
-                        sort: (nextDirection === 'desc' ? '-' : '') + sortColumn,
+                        sort: (direction === 'desc' ? '' : '-') + sortColumn,
                       },
                     };
               }}
