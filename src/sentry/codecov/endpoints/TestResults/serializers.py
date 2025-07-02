@@ -15,6 +15,7 @@ class TestResultNodeSerializer(serializers.Serializer):
 
     updatedAt = serializers.CharField()
     avgDuration = serializers.FloatField()
+    totalDuration = serializers.FloatField()
     name = serializers.CharField()
     failureRate = serializers.FloatField()
     flakeRate = serializers.FloatField()
