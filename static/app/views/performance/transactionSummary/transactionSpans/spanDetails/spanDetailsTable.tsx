@@ -3,8 +3,8 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';

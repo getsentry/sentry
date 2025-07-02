@@ -286,4 +286,8 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         Process a group of related messages serially.
         """
         for item in items:
-            self.result_processor(item)
+            with sentry_sdk.start_span(
+                name=f"monitors.{self.identifier}.result_consumer",
+                op="result_processor.process",
+            ):
+                self.result_processor(item)
