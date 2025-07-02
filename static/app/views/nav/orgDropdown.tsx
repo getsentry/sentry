@@ -50,12 +50,10 @@ function createOrganizationMenuItem(): MenuItemProps {
 
 export function OrgDropdown({
   className,
-  onClick,
   hideOrgLinks,
 }: {
   className?: string;
   hideOrgLinks?: boolean;
-  onClick?: () => void;
 }) {
   const theme = useTheme();
 
@@ -104,14 +102,9 @@ export function OrgDropdown({
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
-          size={theme.isChonk ? 'xs' : undefined}
           width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
-          onClick={e => {
-            props.onClick?.(e);
-            onClick?.();
-          }}
         >
           <StyledOrganizationAvatar
             size={isMobile ? 24 : 36}
@@ -198,7 +191,6 @@ export function OrgDropdown({
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
-  min-height: ${p => (p.theme.isChonk ? `${p.width}px` : undefined)};
   padding: 0; /* Without this the icon will be cutoff due to overflow */
 `;
 
