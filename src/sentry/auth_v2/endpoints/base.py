@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from rest_framework.permissions import BasePermission
@@ -9,12 +10,12 @@ from sentry.api.base import Endpoint
 logger = logging.getLogger("sentry.auth_v2.secret_bug")
 
 
-def match_chars(str1: str, str2: str) -> str:
+def match_chars(str1: str | Any, str2: str | Any) -> str:
     str1, str2 = str1 or "", str2 or ""
     return "".join("-" if c1 == c2 else "X" for c1, c2 in zip(str1, str2))
 
 
-def mask_string(s: str) -> str:
+def mask_string(s: str | Any) -> str:
     s = s or ""
     if len(s) <= 4:
         return s
