@@ -47,7 +47,7 @@
 /src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/api/endpoints/event_reprocessable.py         @getsentry/ingest
 /src/sentry/api/endpoints/project_reprocessing.py        @getsentry/ingest
-/tests/symbolicator/*                                    @getsentry/ingest
+/tests/symbolicator/                                     @getsentry/ingest
 
 
 ## Security
@@ -112,6 +112,7 @@ Makefile                                                 @getsentry/owners-sentr
 /tests/sentry/api/serializer/test_relocation.py          @getsentry/hybrid-cloud
 /tests/sentry/tasks/test_relocation.py                   @getsentry/hybrid-cloud
 /tests/sentry/utils/test_relocation.py                   @getsentry/hybrid-cloud
+/tests/sentry/relocation/                                @getsentry/hybrid-cloud
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -170,6 +171,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
 /src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
 /src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
+/tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
+/tests/sentry/silo/                                      @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
 ## Alerts & Notifications
@@ -193,6 +196,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
 /src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
+/tests/sentry/rules/                                      @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
@@ -325,6 +329,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/profiles                                                @getsentry/profiling
 /tests/sentry/api/endpoints/test_project_profiling_profile.py         @getsentry/profiling
 /tests/sentry/api/endpoints/test_organization_profiling_profiles.py   @getsentry/profiling
+/tests/sentry/profiling/                                              @getsentry/profiling
 ## End of Profiling
 
 
@@ -387,6 +392,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## Integrations
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /tests/sentry/sentry_apps                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/src/sentry/utils/sentry_apps/                                       @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
@@ -412,6 +418,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 /src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
 
+/tests/sentry_plugins/                                               @getsentry/ecosystem
+/tests/sentry/integrations/                                          @getsentry/ecosystem
 
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
@@ -504,6 +512,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
+/src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
+/src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
+/tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
@@ -592,6 +603,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/issues/test_status_change_consumer.py         @getsentry/issue-detection-backend
 /tests/sentry/issues/test_status_change.py                  @getsentry/issue-detection-backend
 /tests/sentry/search/                                       @getsentry/issue-workflow
+/tests/sentry/seer/similarity/                              @getsentry/issue-detection-backend
+/tests/sentry/similarity/                                   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
@@ -651,12 +664,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/invite_missing_org_members.py                         @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
+/src/sentry/data_secrecy/                                             @getsentry/ecosystem
+/tests/sentry/data_secrecy/                                           @getsentry/ecosystem
 ## End of Ecosystem
 
-## Core Product Foundations
-/src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
-/tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
-## End of Core Product Foundations
 
 # Taskbroker workers
 /src/sentry/taskworker/                                       @getsentry/taskbroker
@@ -686,10 +697,13 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
+/src/social_auth/migrations/                             @getsentry/owners-migrations
+/fixtures/safe_migrations_apps/                          @getsentry/owners-migrations
 
 # Preprod build artifact analysis
 /src/sentry/preprod                                   @getsentry/emerge-tools
 /static/app/views/preprod                             @getsentry/emerge-tools
+/tests/sentry/preprod/                                @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)

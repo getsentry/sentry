@@ -399,6 +399,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "rest_framework",
     "sentry",
     "sentry.analytics",
+    "sentry.auth_v2",
     "sentry.incidents.apps.Config",
     "sentry.deletions",
     "sentry.discover",
@@ -647,6 +648,9 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = "/account/settings/identities/"
 SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 
 INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
+
+# Protect login/registration endpoints during development phase
+AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
@@ -2927,7 +2931,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.6.1"
+SELF_HOSTED_STABLE_VERSION = "25.6.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3952,6 +3956,9 @@ if ngrok_host:
     CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
+if SILO_DEVSERVER or IS_DEV:
+    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
@@ -3982,7 +3989,6 @@ if SILO_DEVSERVER:
     ]
     RPC_TIMEOUT = 15.0
     SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
-    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"

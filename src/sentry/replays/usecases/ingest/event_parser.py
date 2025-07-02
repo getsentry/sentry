@@ -142,6 +142,8 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.HYDRATION_ERROR
                 elif category == "replay.mutations":
                     return EventType.MUTATIONS
+                elif category == "sentry.feedback":
+                    return EventType.FEEDBACK
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
