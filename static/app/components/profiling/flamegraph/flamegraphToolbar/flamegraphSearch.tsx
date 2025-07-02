@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconInfo} from 'sentry/icons';
@@ -431,13 +432,13 @@ function FlamegraphSearch({
       trailing={
         search.query ? (
           <Fragment>
-            <StyledTrailingText>
+            <Text variant="muted" size="2xs" density="compressed">
               {`${
                 search.index !== null && search.results.frames.size > 0
                   ? search.index + 1
                   : '-'
               }/${search.results.frames.size + search.results.spans.size}`}
-            </StyledTrailingText>
+            </Text>
             <StyledSearchBarTrailingButton
               size="zero"
               borderless
@@ -469,11 +470,6 @@ const StyledIconInfo = styled(IconInfo)`
 
 const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
   padding: 0;
-`;
-
-const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
