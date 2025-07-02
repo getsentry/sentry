@@ -243,7 +243,6 @@ function ProjectSeer({project}: ProjectSeerProps) {
   const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
-    !setupAcknowledgement.userHasAcknowledged ||
     !setupAcknowledgement.orgHasAcknowledged ||
     (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
 
