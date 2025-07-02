@@ -13,7 +13,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
-from sentry.models.organization import Organization
+from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -230,8 +230,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
 
-            org = Organization(id=organization_id)
-            if features.has("organizations:revoke-org-auth-on-slug-rename", org):
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+            if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
                 # Changing a slug invalidates all org tokens, so revoke them all.
                 auth_tokens = OrgAuthToken.objects.filter(
                     organization_id=organization_id, date_deactivated__isnull=True
