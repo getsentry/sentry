@@ -4,7 +4,7 @@ import inspect
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, NotRequired, Self, TypedDict, TypeVar
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -147,6 +147,11 @@ class FingerprintRuleMatch(NamedTuple):
     attributes: FingerprintRuleAttributes
 
 
+MatchType = Literal[
+    "messages", "log_info", "exceptions", "frames", "toplevel", "tags", "sdk", "family", "release"
+]
+
+
 class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
@@ -160,7 +165,7 @@ class EventDatastore:
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
 
-    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+    def get_values(self, match_type: MatchType) -> list[dict[str, Any]]:
         """
         Pull values from all the spots in the event appropriate to the given match type.
         """
@@ -399,7 +404,7 @@ class FingerprintMatcher:
         self.negated = negated
 
     @property
-    def match_type(self) -> str:
+    def match_type(self) -> MatchType:
         if self.key == "message":
             return "toplevel"
         if self.key in ("logger", "level"):
@@ -508,7 +513,7 @@ class FingerprintRule:
     def test_for_match_with_event(
         self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        matchers_by_match_type: dict[str, list[FingerprintMatcher]] = {}
+        matchers_by_match_type: dict[MatchType, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
             matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 

@@ -1,0 +1,32 @@
+---
+created: '2025-06-24T23:47:26.902652+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - dogs-are-great
+    - '{{ release }}'
+    matchers:
+    - - message
+      - '*dogs*'
+    text: message:"*dogs*" -> "dogs-are-great{{ release }}"
+  version: 1
+fingerprint:
+- dogs-are-great
+- '{{ release }}'
+title: Yay, dogs!
+variants:
+  custom_fingerprint:
+    matched_rule: message:"*dogs*" -> "dogs-are-great{{ release }}"
+    type: custom_fingerprint
+    values:
+    - dogs-are-great
+    - '{{ release }}'
+  default:
+    component:
+      contributes: false
+      hint: custom server fingerprint takes precedence
+    type: component
