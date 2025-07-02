@@ -207,6 +207,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
         "api.performance.browser.web-vitals.project-scores"
     )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
+    )
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
         "api.performance.browser.web-vitals.transaction"
     )
