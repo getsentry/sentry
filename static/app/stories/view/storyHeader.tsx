@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 

@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

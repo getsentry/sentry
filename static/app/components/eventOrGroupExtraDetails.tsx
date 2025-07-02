@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
@@ -14,7 +15,6 @@ import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';

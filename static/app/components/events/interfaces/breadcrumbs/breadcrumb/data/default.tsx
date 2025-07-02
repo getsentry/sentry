@@ -1,7 +1,7 @@
+import {Link} from 'sentry/components/core/link';
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
-import Link from 'sentry/components/links/link';
 import type {
   BreadcrumbTypeDefault,
   BreadcrumbTypeNavigation,

@@ -1,5 +1,5 @@
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {
   type ProcessingError,

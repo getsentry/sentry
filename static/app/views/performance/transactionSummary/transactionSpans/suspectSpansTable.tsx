@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';

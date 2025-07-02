@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';

@@ -2,9 +2,9 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';

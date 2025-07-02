@@ -1,6 +1,6 @@
 import type {GuidesContent} from 'sentry/components/assistant/types';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';

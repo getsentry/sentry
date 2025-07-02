@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

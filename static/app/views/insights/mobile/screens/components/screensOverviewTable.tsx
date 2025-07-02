@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
