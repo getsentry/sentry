@@ -58,14 +58,9 @@ const StyledButton = withChonk(
     background-color: ${p => p.theme.backgroundSecondary};
     border: none;
     box-shadow: none;
-    color: ${p => p.theme.subText};
     display: flex;
     align-items: center;
     justify-content: center;
-
-    &[aria-expanded='true'] {
-      color: ${p => p.theme.subText};
-    }
 
     > span:first-child {
       display: none;

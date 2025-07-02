@@ -255,7 +255,6 @@ const RowContainer = styled('div')`
   :nth-child(even) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  color: ${p => p.theme.subText};
   background-color: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px transparent;
 `;

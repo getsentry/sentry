@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -298,7 +299,7 @@ function RegressedFunctionDifferentialFlamegraph(
       <div>
         <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
           <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
-          <ChangeArrow>{' \u2192 '}</ChangeArrow>
+          <Text variant="muted">{' \u2192 '}</Text>
           <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
         </Link>
       </div>
@@ -395,16 +396,12 @@ function RegressedFunctionBeforeAfterFlamechart(
       <div>{rendered}</div>
       <div>
         {before}
-        <ChangeArrow>{' \u2192 '}</ChangeArrow>
+        <Text variant="muted">{' \u2192 '}</Text>
         {after}
       </div>
     </RegressedFunctionMainRow>
   );
 }
-
-const ChangeArrow = styled('span')`
-  color: ${p => p.theme.subText};
-`;
 
 const RegressedFunctionsTypeSelect = styled(CompactSelect)`
   button {
