@@ -18,15 +18,6 @@ describe('useActiveReplayTab', () => {
   });
 
   describe('without replay-ai-summaries feature flag', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/',
-        body: OrganizationFixture({
-          features: [], // No replay-ai-summaries feature
-        }),
-      });
-    });
-
     it('should use Breadcrumbs as a default', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
@@ -94,15 +85,6 @@ describe('useActiveReplayTab', () => {
   });
 
   describe('with replay-ai-summaries feature flag', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/',
-        body: OrganizationFixture({
-          features: ['replay-ai-summaries'],
-        }),
-      });
-    });
-
     it('should use AI as a default', () => {
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
