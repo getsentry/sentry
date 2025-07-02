@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -74,12 +74,12 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
             warning_action,
         )
 
-    def create_data_packet(self, value: int) -> DataPacket:
+    def create_data_packet(self, value: int, time_jump: int = 0) -> DataPacket:
         packet = QuerySubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
             values={"value": value},
-            timestamp=datetime.now(UTC),
+            timestamp=datetime.now(UTC) + timedelta(minutes=time_jump),
         )
         return DataPacket[QuerySubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
@@ -168,9 +168,8 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
         ):
             yield
 
-    def test_occurrence_post_process(self, mock_trigger):
+    def test_simple(self, mock_trigger):
         value = self.critical_detector_trigger.comparison + 1
-        self.critical_action.trigger = MagicMock(name="trigger")
         data_packet = self.create_data_packet(value)
         result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
             data_packet
@@ -190,3 +189,91 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
         self.call_post_process_group(occurrence)
 
         assert mock_trigger.call_count == 2  # warning + critical actions
+
+    def test_escalation(self, mock_trigger):
+        value = self.warning_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+
+        assert mock_trigger.call_count == 1  # just warning action
+
+        mock_trigger.reset_mock()
+
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value, 30)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+        assert mock_trigger.call_count == 2  # warning + critical actions
+
+    def test_deescalation(self, mock_trigger):
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+
+        assert mock_trigger.call_count == 2  # both actions
+
+        mock_trigger.reset_mock()
+
+        value = self.warning_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value, 30)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+        assert mock_trigger.call_count == 2  # both actions
