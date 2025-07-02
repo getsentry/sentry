@@ -16,9 +16,13 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     StrArray,
 )
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
@@ -74,14 +78,34 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         try:
-            eap_response = self._make_eap_request(
-                organization, projects, subscription_ids, timerange_args, epoch_cutoff
-            )
+            if features.has("organizations:uptime-eap-uptime-results-query", organization):
+                eap_response = self._make_eap_request(
+                    organization,
+                    projects,
+                    subscription_ids,
+                    timerange_args,
+                    epoch_cutoff,
+                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+                    "guid",
+                    "subscription_id",
+                    include_request_sequence_filter=True,
+                )
+                formatted_response = self._format_response(eap_response, "subscription_id")
+            else:
+                eap_response = self._make_eap_request(
+                    organization,
+                    projects,
+                    subscription_ids,
+                    timerange_args,
+                    epoch_cutoff,
+                    TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
+                    "uptime_check_id",
+                    "uptime_subscription_id",
+                )
+                formatted_response = self._format_response(eap_response, "uptime_subscription_id")
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
-
-        formatted_response = self._format_response(eap_response, epoch_cutoff)
 
         # Map the response back to project uptime subscription ids
         mapped_response = self._map_response_to_project_uptime_subscription_ids(
@@ -127,7 +151,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         }
 
         validated_subscription_ids = [
-            project_uptime_subscription[1]
+            str(uuid.UUID(project_uptime_subscription[1]))
             for project_uptime_subscription in project_uptime_subscriptions
             if project_uptime_subscription[1] is not None
         ]
@@ -141,6 +165,10 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
         epoch_cutoff: datetime.datetime | None,
+        trace_item_type: TraceItemType.ValueType,
+        aggregation_key: str,
+        subscription_key: str,
+        include_request_sequence_filter: bool = False,
     ) -> TimeSeriesResponse:
 
         eap_query_start = timerange_args["start"]
@@ -151,11 +179,40 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         start_timestamp.FromDatetime(eap_query_start)
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(timerange_args["end"])
+
+        subscription_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name=subscription_key,
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_str_array=StrArray(values=subscription_ids)),
+            )
+        )
+
+        if include_request_sequence_filter:
+            request_sequence_filter = TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="request_sequence",
+                        type=AttributeKey.Type.TYPE_INT,
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_int=0),
+                )
+            )
+            query_filter = TraceItemFilter(
+                and_filter=AndFilter(filters=[subscription_filter, request_sequence_filter])
+            )
+        else:
+            query_filter = subscription_filter
+
         request = TimeSeriesRequest(
             meta=RequestMeta(
                 organization_id=organization.id,
                 project_ids=[project.id for project in projects],
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
+                trace_item_type=trace_item_type,
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
             ),
@@ -163,7 +220,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 AttributeAggregation(
                     aggregate=Function.FUNCTION_COUNT,
                     key=AttributeKey(
-                        name="uptime_check_id",
+                        name=aggregation_key,
                         type=AttributeKey.Type.TYPE_STRING,
                     ),
                     label="count()",
@@ -171,7 +228,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             ],
             group_by=[
                 AttributeKey(
-                    name="uptime_subscription_id",
+                    name=subscription_key,
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
                 AttributeKey(
@@ -184,32 +241,28 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 ),
             ],
             granularity_secs=timerange_args["rollup"],
-            filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        name="uptime_subscription_id",
-                        type=AttributeKey.Type.TYPE_STRING,
-                    ),
-                    op=ComparisonFilter.OP_IN,
-                    value=AttributeValue(val_str_array=StrArray(values=subscription_ids)),
-                )
-            ),
+            filter=query_filter,
         )
         responses = timeseries_rpc([request])
         assert len(responses) == 1
         return responses[0]
 
     def _format_response(
-        self, response: TimeSeriesResponse, epoch_cutoff: datetime.datetime | None = None
+        self, response: TimeSeriesResponse, subscription_key: str
     ) -> dict[str, list[tuple[int, dict[str, int]]]]:
         """
         Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
         of timestamps and a dictionary of check statuses to counts.
+
+        Args:
+            response: The EAP RPC TimeSeriesResponse
+            subscription_key: The attribute name for subscription ID ("uptime_subscription_id" or "subscription_id")
+            epoch_cutoff: Optional cutoff timestamp for data
         """
         formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 
         for timeseries in response.result_timeseries:
-            subscription_id = timeseries.group_by_attributes["uptime_subscription_id"]
+            subscription_id = timeseries.group_by_attributes[subscription_key]
             status = timeseries.group_by_attributes["check_status"]
             incident_status = timeseries.group_by_attributes["incident_status"]
 

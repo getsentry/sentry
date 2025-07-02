@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';

@@ -2,12 +2,12 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import Accordion from 'sentry/components/container/accordion';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
