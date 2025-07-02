@@ -272,15 +272,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
-        import pdb
-
-        pdb.set_trace()
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
 
         STATS_PERIODS = [None, "", "24h", "14d", "auto"]
         if features.has("organizations:detailed-data-for-seer", organization, actor=request.user):
-            STATS_PERIODS += "1hr"
+            import pdb
+
+            pdb.set_trace()
+            STATS_PERIODS.append("1h")
 
         if stats_period not in STATS_PERIODS:
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
