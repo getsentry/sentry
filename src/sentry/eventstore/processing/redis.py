@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from typing import Any
-
 from sentry.utils.codecs import JSONCodec
 from sentry.utils.kvstore.encoding import KVStorageCodecWrapper
 from sentry.utils.kvstore.redis import RedisKVStorage
@@ -16,7 +12,7 @@ class RedisClusterEventProcessingStore(EventProcessingStore):
     client as its backend.
     """
 
-    def __init__(self, **options: Any) -> None:
+    def __init__(self, **options):
         super().__init__(
             KVStorageCodecWrapper(
                 RedisKVStorage(redis_clusters.get(options.pop("cluster", "default"))), JSONCodec()
