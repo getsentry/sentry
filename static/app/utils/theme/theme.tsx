@@ -973,7 +973,7 @@ const breakpoints = {
   '2xl': '2560px',
 } as const satisfies Breakpoints;
 
-type Size = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
 type IconDirection = 'up' | 'right' | 'down' | 'left';
@@ -1087,7 +1087,7 @@ const formTheme: FormTheme = {
   },
 };
 
-const iconSizes: Record<Exclude<Size, '2xs'>, string> = {
+const iconSizes: Record<Size, string> = {
   xs: '12px',
   sm: '14px',
   md: '18px',
@@ -1179,13 +1179,13 @@ const commonTheme = {
 
   borderRadius: '6px',
   fontSize: {
-    '2xs': '11px',
     xs: '11px',
     sm: '12px',
     md: '14px',
     lg: '16px',
     xl: '18px',
-  } satisfies Record<'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl', string>,
+    '2xl': '20px',
+  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
 
   fontWeight: {
     normal: 400 as const,

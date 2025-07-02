@@ -41,7 +41,7 @@ interface TextProps {
    * The size of the text.
    * @default md
    */
-  size?: '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
   /**
    * Strikethrough the text.
@@ -135,22 +135,22 @@ export const Heading = styled((props: TitleProps) => {
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
-function getDefaultTitleFontSize(as: TitleProps['as']) {
+function getDefaultTitleFontSize(as: TitleProps['as']): TextProps['size'] {
   switch (as) {
     case 'h1':
-      return 'xl';
+      return '2xl';
     case 'h2':
-      return 'lg';
-    case 'h3':
-      return 'md';
-    case 'h4':
-      return 'sm';
-    case 'h5':
-      return 'xs';
-    case 'h6':
-      return '2xs';
-    default:
       return 'xl';
+    case 'h3':
+      return 'lg';
+    case 'h4':
+      return 'md';
+    case 'h5':
+      return 'sm';
+    case 'h6':
+      return 'xs';
+    default:
+      return '2xl';
   }
 }
 
@@ -180,8 +180,6 @@ function getLineHeight(density: TextProps['density']) {
 
 function getFontSize(size: TextProps['size'], theme: Theme) {
   switch (size) {
-    case '2xs':
-      return theme.fontSize['2xs'];
     case 'xs':
       return theme.fontSize.xs;
     case 'sm':
@@ -190,6 +188,8 @@ function getFontSize(size: TextProps['size'], theme: Theme) {
       return theme.fontSize.lg;
     case 'xl':
       return theme.fontSize.xl;
+    case '2xl':
+      return theme.fontSize['2xl'];
     case 'md':
     default:
       return theme.fontSize.md;
