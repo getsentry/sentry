@@ -7,9 +7,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.snuba.api.endpoints.test_organization_events_uptime_results import (
-    UptimeResultEAPTestCase,
-)
+from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -331,7 +329,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
         incident_status=IncidentStatus.NO_INCIDENT,
         scheduled_check_time=None,
     ):
-        uptime_result = self.create_uptime_result(
+        uptime_result = self.create_eap_uptime_result(
             subscription_id=str(uuid.UUID(subscription_id)),
             guid=str(uuid.UUID(subscription_id)),
             request_url="https://santry.io",
