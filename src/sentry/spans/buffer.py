@@ -189,7 +189,7 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
-        max_segment_spans = options.get("spans.buffer.max-segment-spans")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         result_meta = []
         is_root_span_count = 0
@@ -224,7 +224,7 @@ class SpansBuffer:
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
                         redis_ttl,
-                        max_segment_spans,
+                        max_segment_bytes,
                         *[span.span_id for span in subsegment],
                     )
 

@@ -201,7 +201,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 plan.id === 'mm2_b') &&
               !plan.id.endsWith('_ac') &&
               !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id)
+              !isTrialPlan(plan.id) &&
+              !plan.isTestPlan
             ) {
               acc[plan.id] = plan;
             }

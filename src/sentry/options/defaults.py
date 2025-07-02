@@ -1801,6 +1801,11 @@ register(
     default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
+register(
+    "performance.issues.sql_injection.query_value_length_threshold",
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -3109,18 +3114,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "demo-mode.disable-sandbox-redirect",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "demo-mode.sandbox-redirect-logout",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3275,6 +3268,11 @@ register(
 )
 register(
     "taskworker.selfhosted.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.workflow_engine.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

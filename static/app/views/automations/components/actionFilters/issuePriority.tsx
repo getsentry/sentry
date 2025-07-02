@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   type Priority,
@@ -10,8 +11,8 @@ import {useDataConditionNodeContext} from 'sentry/views/automations/components/d
 export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
   return tct('Current issue priority is [level]', {
     level:
-      PRIORITY_CHOICES.find(choice => choice.value === condition.comparison.level)
-        ?.label || condition.comparison.level,
+      PRIORITY_CHOICES.find(choice => choice.value === condition.comparison)?.label ||
+      condition.comparison,
   });
 }
 
@@ -19,14 +20,12 @@ export function IssuePriorityNode() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return tct('Current issue priority is [level]', {
     level: (
-      <AutomationBuilderSelectField
+      <AutomationBuilderSelect
         name={`${condition_id}.comparison`}
-        value={condition.comparison.match}
+        value={condition.comparison}
         options={PRIORITY_CHOICES}
-        onChange={(value: Priority) => {
-          onUpdate({
-            match: value,
-          });
+        onChange={(option: SelectValue<Priority>) => {
+          onUpdate({comparison: option.value});
         }}
       />
     ),

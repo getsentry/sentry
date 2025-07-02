@@ -33,7 +33,7 @@ type Props = {
   isVideoReplay: boolean;
 };
 
-function FocusTabs({isVideoReplay}: Props) {
+export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
@@ -56,7 +56,7 @@ function FocusTabs({isVideoReplay}: Props) {
           });
         }}
       >
-        <TabList>
+        <TabList hideBorder>
           {tabs.map(([tab, label]) => (
             <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
               {label}
@@ -69,12 +69,6 @@ function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
-  padding-inline: ${space(1)};
-  border-bottom: solid 1px #e0dce5;
-
-  & > * {
-    margin-bottom: -1px;
-  }
+  ${p => (p.theme.isChonk ? '' : `padding-inline: ${space(1)};`)}
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
-
-export default FocusTabs;

@@ -13,7 +13,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -180,9 +179,6 @@ export function PageOverviewSidebar({
           />
         )}
       </ChartZoom>
-      <MiniAggregateWaterfallContainer>
-        <MiniAggregateWaterfall transaction={transaction} />
-      </MiniAggregateWaterfallContainer>
       <SidebarSpacer />
       <SidebarSpacer />
       <SectionHeading>
@@ -312,11 +308,6 @@ const SectionHeading = styled('h4')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
-`;
-
-const MiniAggregateWaterfallContainer = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const ProjectScoreEmptyLoadingElement = styled('div')`

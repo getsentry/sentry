@@ -1,7 +1,7 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,

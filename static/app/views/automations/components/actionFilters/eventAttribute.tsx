@@ -1,5 +1,5 @@
-import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -30,7 +30,7 @@ export function EventAttributeNode() {
 function AttributeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.attribute`}
       placeholder={t('attribute')}
       value={condition.comparison.attribute}
@@ -39,9 +39,7 @@ function AttributeField() {
         label: attribute,
       }))}
       onChange={(value: Attributes) => {
-        onUpdate({
-          attribute: value,
-        });
+        onUpdate({comparison: {...condition.comparison, attribute: value}});
       }}
     />
   );
@@ -50,14 +48,12 @@ function AttributeField() {
 function MatchField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
       value={condition.comparison.match}
       options={MATCH_CHOICES}
       onChange={(value: MatchType) => {
-        onUpdate({
-          match: value,
-        });
+        onUpdate({comparison: {...condition.comparison, match: value}});
       }}
     />
   );
@@ -66,14 +62,12 @@ function MatchField() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${condition_id}.comparison.value`}
       placeholder={t('value')}
       value={condition.comparison.value}
-      onChange={(value: string) => {
-        onUpdate({
-          value,
-        });
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onUpdate({comparison: {...condition.comparison, value: e.target.value}});
       }}
     />
   );

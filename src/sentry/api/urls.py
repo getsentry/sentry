@@ -38,7 +38,6 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
 from sentry.api.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
-from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
@@ -74,6 +73,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -940,6 +940,7 @@ BROADCAST_URLS = [
     re_path(
         r"^(?P<broadcast_id>[^/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
+        name="sentry-api-0-broadcast-details",
     ),
 ]
 
@@ -1687,11 +1688,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-trends-stats/$",
         OrganizationEventsTrendsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans-aggregation/$",
-        OrganizationSpansAggregationEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-aggregation",
     ),
     # This endpoint is for experimentation only
     # Once this feature is developed, the endpoint will replace /events-trends-stats
@@ -2570,6 +2566,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/(?P<hook_id>[^/]+)/stats/$",
         ProjectServiceHookStatsEndpoint.as_view(),
+        name="sentry-api-0-project-service-hook-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:issues|groups)/$",
@@ -2594,6 +2591,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/keys/(?P<key_id>[^/]+)/stats/$",
         ProjectKeyStatsEndpoint.as_view(),
+        name="sentry-api-0-project-key-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/members/$",
@@ -3216,30 +3214,37 @@ INTERNAL_URLS = [
     re_path(
         r"^quotas/$",
         InternalQuotasEndpoint.as_view(),
+        name="sentry-api-0-internal-quotas",
     ),
     re_path(
         r"^queue/tasks/$",
         InternalQueueTasksEndpoint.as_view(),
+        name="sentry-api-0-internal-queue-tasks",
     ),
     re_path(
         r"^stats/$",
         InternalStatsEndpoint.as_view(),
+        name="sentry-api-0-internal-stats",
     ),
     re_path(
         r"^warnings/$",
         InternalWarningsEndpoint.as_view(),
+        name="sentry-api-0-internal-warnings",
     ),
     re_path(
         r"^packages/$",
         InternalPackagesEndpoint.as_view(),
+        name="sentry-api-0-internal-packages",
     ),
     re_path(
         r"^environment/$",
         InternalEnvironmentEndpoint.as_view(),
+        name="sentry-api-0-internal-environment",
     ),
     re_path(
         r"^mail/$",
         InternalMailEndpoint.as_view(),
+        name="sentry-api-0-internal-mail",
     ),
     re_path(
         r"^project-config/$",
@@ -3352,6 +3357,11 @@ urlpatterns = [
     re_path(
         r"^auth/",
         include(AUTH_URLS),
+    ),
+    # Auth
+    re_path(
+        r"^auth-v2/",
+        include(AUTH_V2_URLS),
     ),
     # Broadcasts
     re_path(
