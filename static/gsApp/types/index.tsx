@@ -804,6 +804,7 @@ export enum CohortId {
   EIGHTH = 8,
   NINTH = 9,
   TENTH = 10,
+  TEST_ONE = 111,
 }
 
 /** @internal exported for tests only */
@@ -813,18 +814,13 @@ export type Cohort = {
   secondDiscount: number;
 };
 
-// TODO(data categories): BIL-963
 export type NextPlanInfo = {
   contractPeriod: string;
   discountAmount: number;
   discountMonths: number;
-  errorCredits: number;
-  errorCreditsMonths: number;
   id: string;
   name: string;
   reserved: Partial<Record<DataCategory, number>>;
-  reservedAttachments: number;
-  reservedErrors: number;
   totalPrice: number;
   categoryCredits?: Partial<
     Record<
@@ -835,7 +831,6 @@ export type NextPlanInfo = {
       }
     >
   >;
-  reservedTransactions?: number;
 };
 
 export type PlanMigration = {

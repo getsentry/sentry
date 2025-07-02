@@ -207,6 +207,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
         "api.performance.browser.web-vitals.project-scores"
     )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
+    )
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
         "api.performance.browser.web-vitals.transaction"
     )
@@ -488,6 +491,7 @@ class Referrer(StrEnum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
     API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
     API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"

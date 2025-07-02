@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
