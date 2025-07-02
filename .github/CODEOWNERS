@@ -146,6 +146,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
+## Auth v2
+/static/app/views/authV2                                 @getsentry/owners-auth @getsentry/security
+/src/sentry/auth_v2                                      @getsentry/owners-auth @getsentry/security
+/tests/sentry/auth_v2                                    @getsentry/owners-auth @getsentry/security
+## End of Auth v2
+
 ## Crons
 /static/app/views/monitors                               @getsentry/crons
 /src/sentry/monitors                                     @getsentry/crons
