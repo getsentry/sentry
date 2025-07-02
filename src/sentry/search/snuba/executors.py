@@ -885,8 +885,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            span.set_attribute("Max Candidates", max_candidates)
-            span.set_attribute("Result Size", len(group_ids))
+            span.set_data("Max Candidates", max_candidates)
+            span.set_data("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         if not group_ids:
@@ -1702,8 +1702,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         : max_candidates + 1
                     ]
                 )
-                span.set_attribute("Max Candidates", max_candidates)
-                span.set_attribute("Result Size", len(group_ids_to_pass_to_snuba))
+                span.set_data("Max Candidates", max_candidates)
+                span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
 
                 if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
                     metrics.incr(

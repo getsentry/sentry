@@ -362,8 +362,8 @@ def subscription_checker(**kwargs):
         date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
     ):
         with sentry_sdk.start_span(op="repair_subscription") as span:
-            span.set_attribute("subscription_id", subscription.id)
-            span.set_attribute("status", subscription.status)
+            span.set_data("subscription_id", subscription.id)
+            span.set_data("status", subscription.status)
             count += 1
             if subscription.status == QuerySubscription.Status.CREATING.value:
                 create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
