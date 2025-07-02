@@ -99,6 +99,7 @@ export function TracesTable() {
       fields: [
         'trace',
         ...GENERATION_COUNTS,
+        'count_if(span.op,gen_ai.execute_tool)',
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
         AI_COST_ATTRIBUTE_SUM,
       ],
