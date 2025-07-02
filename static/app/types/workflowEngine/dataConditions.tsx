@@ -103,8 +103,8 @@ export enum DataConditionHandlerSubgroupType {
 export interface DataConditionHandler {
   comparisonJsonSchema: Record<string, any>;
   handlerGroup: DataConditionHandlerGroupType;
-  handlerSubgroup: DataConditionHandlerSubgroupType;
   type: DataConditionType;
+  handlerSubgroup?: DataConditionHandlerSubgroupType;
 }
 
 // for keeping track of conflicting condition ids in the UI

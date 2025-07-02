@@ -153,6 +153,7 @@ function ComparisonTypeField() {
     return (
       <AutomationBuilderSelect
         name={`${subfilter_id}.type`}
+        aria-label={t('Comparison type')}
         value={subfilter.type}
         placeholder={t('Select value type')}
         options={[
@@ -186,6 +187,7 @@ function AttributeField() {
   return (
     <AutomationBuilderSelect
       name={`${subfilter_id}.attribute`}
+      aria-label={t('Attribute')}
       placeholder={t('Select attribute')}
       value={subfilter.attribute}
       options={Object.values(Attributes).map(attribute => ({
@@ -206,6 +208,7 @@ function KeyField() {
   return (
     <AutomationBuilderInput
       name={`${subfilter_id}.key`}
+      aria-label={t('Tag')}
       placeholder={t('Enter tag')}
       value={subfilter.key}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +225,7 @@ function MatchField() {
   return (
     <AutomationBuilderSelect
       name={`${subfilter_id}.match`}
+      aria-label={t('Match type')}
       value={subfilter.match}
       options={[
         {
@@ -245,6 +249,7 @@ function ValueField() {
   return (
     <AutomationBuilderInput
       name={`${subfilter_id}.value`}
+      aria-label={t('Value')}
       placeholder={t('value')}
       value={`${subfilter.value}`}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
