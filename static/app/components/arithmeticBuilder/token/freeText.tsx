@@ -19,7 +19,6 @@ import {
   nextTokenKeyOfKind,
   tokenizeExpression,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
-import type {AggregateFunction} from 'sentry/components/arithmeticBuilder/types';
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
@@ -116,11 +115,23 @@ function InternalInput({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {dispatch, aggregateFunctions} = useArithmeticBuilder();
+  const {dispatch, aggregations, getFieldDefinition} = useArithmeticBuilder();
+
+  const getFunctionDefault = useCallback(
+    (func: string): string => {
+      const definition = getFieldDefinition(func);
+      const parameterDefinitions = definition?.parameters ?? [];
+      const parameters = parameterDefinitions.map(
+        parameterDefinition => parameterDefinition.defaultValue
+      );
+      return `${func}(${parameters.join(',')})`;
+    },
+    [getFieldDefinition]
+  );
 
   const items: Array<SelectSectionWithKey<string>> = useSuggestionItems({
     nextAllowedTokenKinds,
-    allowedFunctions: aggregateFunctions,
+    allowedFunctions: aggregations,
     filterValue,
   });
 
@@ -165,11 +176,11 @@ function InternalInput({
           if (input.endsWith('(')) {
             const pos = input.lastIndexOf(' ');
             const maybeFunc = input.substring(pos + 1, input.length - 1);
-            if (aggregateFunctions.some(func => func.name === maybeFunc)) {
+            if (aggregations.includes(maybeFunc)) {
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,
-                text: `${input.substring(0, pos + 1)}${getInitialText(maybeFunc, true)}`,
+                text: `${input.substring(0, pos + 1)}${getFunctionDefault(maybeFunc)}`,
                 focusOverride: {
                   itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION),
                 },
@@ -184,7 +195,15 @@ function InternalInput({
       setInputValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
     },
-    [aggregateFunctions, dispatch, resetInputValue, setInputValue, state, token]
+    [
+      aggregations,
+      dispatch,
+      getFunctionDefault,
+      resetInputValue,
+      setInputValue,
+      state,
+      token,
+    ]
   );
 
   const onInputCommit = useCallback(() => {
@@ -275,12 +294,12 @@ function InternalInput({
       dispatch({
         type: 'REPLACE_TOKEN',
         token,
-        text: getInitialText(option.value, isFunction),
+        text: isFunction ? getFunctionDefault(option.value) : option.value,
         focusOverride: {itemKey},
       });
       resetInputValue();
     },
-    [dispatch, state, token, resetInputValue]
+    [dispatch, getFunctionDefault, state, token, resetInputValue]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
@@ -340,7 +359,7 @@ function useSuggestionItems({
   filterValue,
   nextAllowedTokenKinds,
 }: {
-  allowedFunctions: AggregateFunction[];
+  allowedFunctions: string[];
   filterValue: string;
   nextAllowedTokenKinds: TokenKind[];
 }): Array<SelectSectionWithKey<string>> {
@@ -463,7 +482,7 @@ function useFunctionItems({
   filterValue,
   nextAllowedTokenKinds,
 }: {
-  allowedFunctions: AggregateFunction[];
+  allowedFunctions: string[];
   filterValue: string;
   nextAllowedTokenKinds: TokenKind[];
 }): Array<SelectSectionWithKey<string>> {
@@ -473,7 +492,7 @@ function useFunctionItems({
     }
 
     const items = filterValue
-      ? allowedFunctions.filter(agg => agg.name.includes(filterValue))
+      ? allowedFunctions.filter(agg => agg.includes(filterValue))
       : allowedFunctions;
 
     return [
@@ -481,10 +500,10 @@ function useFunctionItems({
         key: 'functions',
         label: t('functions'),
         options: items.map(item => ({
-          key: `${TokenKind.FUNCTION}:${item.name}`,
-          label: item.label ?? item.name,
-          value: item.name,
-          textValue: item.name,
+          key: `${TokenKind.FUNCTION}:${item}`,
+          label: item,
+          value: item,
+          textValue: item,
           hideCheck: true,
         })),
       },
@@ -494,14 +513,6 @@ function useFunctionItems({
 
 function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
-}
-
-function getInitialText(key: string, isFunction: boolean) {
-  if (!isFunction) {
-    return key;
-  }
-  // TODO: generate this
-  return `${key}(span.duration)`;
 }
 
 const Row = styled('div')`
