@@ -220,7 +220,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
 
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
-            span.set_data("attachment_id", attachment.id)
+            span.set_attribute("attachment_id", attachment.id)
             attachment_objects.append(
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
