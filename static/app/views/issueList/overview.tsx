@@ -12,7 +12,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {openMissingPrimaryEmailModal} from 'sentry/actionCreators/modal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -48,7 +47,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useUser} from 'sentry/utils/useUser';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
@@ -147,11 +145,6 @@ function useSavedSearches() {
   };
 }
 
-function useSetEmailModal() {
-  const user = useUser();
-  return user.email === '';
-}
-
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
@@ -179,7 +172,6 @@ function IssueListOverview({
   const {selection} = usePageFilters();
   const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
-  const showSetEmailModal = useSetEmailModal();
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
@@ -212,13 +204,6 @@ function IssueListOverview({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
-
-  // XXX: remove after 30 day grace period for setting primary email address
-  useEffect(() => {
-    if (showSetEmailModal) {
-      openMissingPrimaryEmailModal();
-    }
-  }, [showSetEmailModal]);
 
   useIssuesINPObserver();
 
