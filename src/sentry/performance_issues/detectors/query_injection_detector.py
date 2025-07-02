@@ -72,13 +72,23 @@ class QueryInjectionDetector(PerformanceDetector):
         if len(unsafe_inputs) == 0:
             return
 
-        fingerprint = self._fingerprint(description)
+        parameterized_description = span.get("sentry_tags", {}).get("description")
+        # If the query description is not parameterized, use the original description with replacements
+        if not parameterized_description:
+            parameterized_description = description
+        vulnerable_keys = [key for key, _ in unsafe_inputs]
+        fingerprint_description = f"{'-'.join(vulnerable_keys)}-{parameterized_description}"
+        fingerprint = self._fingerprint(fingerprint_description)
+
+        issue_description = (
+            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
+        )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             type=DBQueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
-            desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
+            desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
             cause_span_ids=[],
             parent_span_ids=[],
             offender_span_ids=spans_involved,
