@@ -103,15 +103,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
                 subname=subname,
             )
 
-        # We do snapshot tests against two different snapshots here, to be
-        # forward compatible with the upcoming changes from
-        # <https://github.com/getsentry/symbolicator/pull/1667>
-        # This is temporary and will go away once symbolicator is merged and
-        # the docker image used in sentrys own tests is updated.
-        try:
-            make_snapshot()
-        except BaseException:
-            make_snapshot(subname="new")
+        make_snapshot()
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
