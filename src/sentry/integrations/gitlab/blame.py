@@ -22,6 +22,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -67,6 +68,7 @@ def fetch_file_blames(
                 and rate_limit_info
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
+                metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
                 logger.warning(
                     "get_blame_for_files.rate_limit_too_low",
                     extra={
