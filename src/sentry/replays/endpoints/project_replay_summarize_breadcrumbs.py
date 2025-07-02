@@ -146,21 +146,20 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEven
         return []
 
 
-def parse_timestamp_to_milliseconds(timestamp_value: Any) -> float | None:
+def parse_timestamp_to_milliseconds(timestamp_value: Any, unit: str) -> float:
     """Parse a timestamp value to milliseconds.
     The argument timestamp value can be string, float, or None.
-    Returns None if the timestamp cannot be parsed.
     """
     if timestamp_value is not None:
         if isinstance(timestamp_value, str):
             try:
                 dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
-                return dt.timestamp() * 1000  # Convert to milliseconds
+                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
             except (ValueError, AttributeError):
-                return None
+                return 0.0
         else:
             return float(timestamp_value)
-    return None
+    return 0.0
 
 
 def fetch_trace_connected_errors(
@@ -174,7 +173,6 @@ def fetch_trace_connected_errors(
         queries = []
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
-                projects=[project],
                 start=start,
                 end=end,
                 organization=project.organization,
@@ -216,17 +214,11 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp_to_milliseconds(event.get("timestamp_ms"))
-                timestamp_s = parse_timestamp_to_milliseconds(event.get("timestamp"))
+                timestamp_ms = parse_timestamp_to_milliseconds(event.get("timestamp_ms"), "ms")
+                timestamp_s = parse_timestamp_to_milliseconds(event.get("timestamp"), "s")
+                timestamp = timestamp_ms or timestamp_s * 1000
 
-                if timestamp_ms is not None:
-                    timestamp = timestamp_ms
-                elif timestamp_s is not None:
-                    timestamp = timestamp_s * 1000
-                else:
-                    timestamp = None
-
-                if timestamp is not None:
+                if timestamp:
                     error_events.append(
                         GroupEvent(
                             category="error",

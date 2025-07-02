@@ -349,6 +349,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         span_id = "1" + uuid.uuid4().hex[:15]
         event_id = uuid.uuid4().hex
         error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -370,7 +371,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         self.store_replays(
@@ -424,6 +425,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         trace_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
         event_id = uuid.uuid4().hex
+        project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -445,7 +447,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         self.store_replays(
@@ -522,6 +524,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         connected_event_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
         connected_error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
         self.store_event(
             data={
                 "event_id": connected_event_id,
@@ -542,7 +545,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         # Store the replay with both error IDs and trace IDs
