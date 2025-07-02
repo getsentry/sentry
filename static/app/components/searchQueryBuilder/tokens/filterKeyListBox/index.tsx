@@ -15,6 +15,11 @@ import type {
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
+import {
+  AskSeerLabel,
+  AskSeerListItem,
+  AskSeerPane,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
@@ -141,7 +146,7 @@ function RecentSearchFilterOption<T>({
 }
 
 function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
-  const ref = useRef<HTMLLIElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const organization = useOrganization();
 
@@ -631,52 +636,4 @@ const EmptyState = styled('div')`
   div {
     max-width: 280px;
   }
-`;
-
-const AskSeerPane = styled('div')`
-  grid-area: seer;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.purple100};
-  width: 100%;
-`;
-
-const AskSeerListItem = styled('li')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: ${space(1)} ${space(1.5)};
-  background: transparent;
-  border-radius: 0;
-  background-color: none;
-  box-shadow: none;
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  text-align: left;
-  justify-content: flex-start;
-  gap: ${space(1)};
-  list-style: none;
-  margin: 0;
-
-  &:hover,
-  &:focus {
-    background-color: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
-  }
-
-  &[aria-selected='true'] {
-    background: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
-  }
-`;
-const AskSeerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
