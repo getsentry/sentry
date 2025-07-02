@@ -251,9 +251,9 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
         http_status=None,
     ):
         create_params = {
-            "subscription_id": str(uuid.UUID(subscription_id)),
-            "guid": str(uuid.UUID(subscription_id)),
-            "check_id": str(uuid.uuid4()),
+            "subscription_id": uuid.UUID(subscription_id).hex,
+            "guid": uuid.UUID(subscription_id).hex,
+            "check_id": uuid.uuid4().hex,
             "check_status": check_status,
             "incident_status": incident_status,
             "scheduled_check_time": scheduled_check_time,
