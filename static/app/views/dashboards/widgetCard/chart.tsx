@@ -178,7 +178,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         type: column.type === 'never' ? null : column.type,
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
-      const tableData = convertTableDataToTabularData(tableResults?.[0]);
+      const tableData = convertTableDataToTabularData(tableResults?.[i]);
 
       return (
         <TableWrapper key={`table:${result.title}`}>
