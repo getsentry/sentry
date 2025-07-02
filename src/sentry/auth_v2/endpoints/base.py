@@ -36,6 +36,8 @@ class AuthV2Permission(BasePermission):
             },
         )
 
+        logger.info("all_headers", extra={"headers": request.META.keys()})
+
         if settings.IS_DEV:
             return True
 
