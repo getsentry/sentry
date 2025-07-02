@@ -6,7 +6,7 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 
 export default function OverviewPageloadsChartWidget(props: LoadableChartWidgetProps) {
   const {query} = useTransactionNameQuery();
-  const fullQuery = `'span.op:[pageload]' ${query}`.trim();
+  const fullQuery = `span.op:pageload ${query}`.trim();
   return (
     <BaseTrafficWidget
       id="overviewPageloadsChartWidget"
