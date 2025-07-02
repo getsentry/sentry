@@ -3027,7 +3027,7 @@ register(
 register(
     "uptime.snuba_uptime_results.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
