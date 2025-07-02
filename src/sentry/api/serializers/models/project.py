@@ -341,7 +341,7 @@ class ProjectSerializer(Serializer):
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
-            span.set_data("Object Count", len(item_list))
+            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):

@@ -1561,7 +1561,7 @@ class BaseQueryBuilder:
 
     def process_results(self, results: Any) -> EventsResponse:
         with sentry_sdk.start_span(op="QueryBuilder", name="process_results") as span:
-            span.set_data("result_count", len(results.get("data", [])))
+            span.set_attribute("result_count", len(results.get("data", [])))
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
                 translated_columns.update(

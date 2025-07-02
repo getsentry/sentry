@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from django.http import Http404, HttpRequest
 from django.http.response import HttpResponseBase
-from sentry_sdk.tracing import TransactionSource
+from sentry_sdk.consts import TransactionSource
 
 from sentry import features
 from sentry.features.exceptions import FeatureNotRegistered
