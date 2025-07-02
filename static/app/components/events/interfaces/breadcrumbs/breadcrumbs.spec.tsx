@@ -22,7 +22,11 @@ describe('Breadcrumbs', () => {
 
     props = {
       organization: OrganizationFixture(),
-      event: EventFixture({entries: [], projectID: project.id}),
+      event: EventFixture({
+        entries: [],
+        projectID: project.id,
+        contexts: {trace: {trace_id: 'trace-id'}},
+      }),
       data: {
         values: [
           {
@@ -80,6 +84,7 @@ describe('Breadcrumbs', () => {
             title: '/settings/',
             'project.name': 'javascript',
             id: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+            trace: 'trace-id',
           },
         ],
         meta: {},
@@ -209,7 +214,7 @@ describe('Breadcrumbs', () => {
 
       expect(screen.getByText('/settings/')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/traces/trace/undefined/?referrer=breadcrumbs&statsPeriod=14d'
+        '/organizations/org-slug/traces/trace/trace-id/?referrer=breadcrumbs&statsPeriod=14d'
       );
     });
   });
