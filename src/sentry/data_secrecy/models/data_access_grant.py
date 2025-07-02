@@ -10,7 +10,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 @control_silo_model
 class DataAccessGrant(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     class GrantType(StrEnum):
         ZENDESK = "zendesk"
