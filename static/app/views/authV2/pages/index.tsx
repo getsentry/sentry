@@ -4,9 +4,10 @@ import {MyNewComponent} from 'sentry/views/authV2/components';
 import {loginContext} from 'sentry/views/authV2/contexts/loginContext';
 import {organizationContext} from 'sentry/views/authV2/contexts/organizationContext';
 import {sessionContext} from 'sentry/views/authV2/contexts/sessionContext';
+import LoginPage from 'sentry/views/authV2/pages/loginPage';
 import type {MyNewType} from 'sentry/views/authV2/types';
 
-function LoginPage() {
+function IndexPage() {
   const hasFlag = !!localStorage.getItem('sentry-auth-v2');
 
   const knipGoAway: MyNewType = !!(
@@ -34,14 +35,10 @@ function LoginPage() {
     );
   }
 
-  return (
-    <PageStyle>
-      <DivStyle>login page</DivStyle>
-    </PageStyle>
-  );
+  return <LoginPage />;
 }
 
-export default LoginPage;
+export default IndexPage;
 
 const PageStyle = styled('div')`
   display: flex;
