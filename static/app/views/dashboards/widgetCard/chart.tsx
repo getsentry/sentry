@@ -170,7 +170,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         fields.map(field => ({
           field,
         })),
-        tableResults[0]?.meta
+        tableResults[i]?.meta
       ).map(column => ({
         key: column.key,
         name: column.name,

@@ -117,8 +117,8 @@ export function decodeColumnOrder(
     }
 
     // If provided meta with field type, prioritize that over guessing
-    if (meta?.[column.key]) {
-      column.type = meta[column.key];
+    if (meta?.fields[column.key]) {
+      column.type = meta.fields[column.key];
     }
 
     column.column = col;
