@@ -144,9 +144,20 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   if (!docsPlatform) {
     return null;
   }
-  return docsPlatform === 'apple-ios'
-    ? 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'
-    : docsPlatform === 'apple-macos'
-      ? 'https://docs.sentry.io/platforms/apple/guides/macos/profiling/'
-      : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
+
+  if (docsPlatform === 'react-native') {
+    return `https://docs.sentry.io/platforms/react-native/profiling/`;
+  }
+
+  const [language, framework] = docsPlatform.split('-');
+
+  if (!language && !framework) {
+    return null;
+  }
+
+  if (!framework) {
+    return `https://docs.sentry.io/platforms/${language}/profiling/`;
+  }
+
+  return `https://docs.sentry.io/platforms/${language}/guides/${framework}/profiling/`;
 }
