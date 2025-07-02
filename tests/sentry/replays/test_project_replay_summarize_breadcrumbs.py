@@ -328,10 +328,187 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         ):
             response = self.client.get(self.url, {"enable_error_context": "true"})
 
+        assert make_seer_request.call_count == 2
         call_args = json.loads(make_seer_request.call_args[0][0])
         assert "logs" in call_args
         assert any("ZeroDivisionError" in log for log in call_args["logs"])
         assert any("division by zero" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_trace_connected_errors(self, make_seer_request):
+        """Test handling of breadcrumbs with trace connected errors"""
+        return_value = json.dumps({"trace_errors": "Trace connected errors found"}).encode()
+        make_seer_request.return_value = return_value
+
+        now = datetime.now(timezone.utc)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+        event_id = uuid.uuid4().hex
+        error_timestamp = now.timestamp() - 1
+
+        self.store_event(
+            data={
+                "event_id": event_id,
+                "timestamp": error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ConnectionError",
+                            "value": "Failed to connect to database",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                now,
+                self.project.id,
+                self.replay_id,
+                trace_ids=[trace_id],
+                error_ids=[],
+            )
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        make_seer_request.assert_called_once()
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert any("ConnectionError" in log for log in call_args["logs"])
+        assert any("Failed to connect to database" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_both_direct_and_trace_connected_errors(self, make_seer_request):
+        """Test handling of breadcrumbs with both direct and trace connected errors"""
+        return_value = json.dumps({"errors": "Both types of errors found"}).encode()
+        make_seer_request.return_value = return_value
+
+        now = datetime.now(timezone.utc)
+        trace_id = uuid.uuid4().hex
+
+        # Create a direct error event
+        direct_event_id = uuid.uuid4().hex
+        direct_error_timestamp = now.timestamp() - 2
+        self.store_event(
+            data={
+                "event_id": direct_event_id,
+                "timestamp": direct_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                        }
+                    ]
+                },
+                "contexts": {"replay": {"replay_id": self.replay_id}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Create a trace connected error event
+        connected_event_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+        connected_error_timestamp = now.timestamp() - 1
+        self.store_event(
+            data={
+                "event_id": connected_event_id,
+                "timestamp": connected_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ConnectionError",
+                            "value": "Failed to connect to database",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Store the replay with both error IDs and trace IDs
+        self.store_replays(
+            mock_replay(
+                now,
+                self.project.id,
+                self.replay_id,
+                error_ids=[direct_event_id],
+                trace_ids=[trace_id],
+            )
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        make_seer_request.assert_called_once()
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert any("ZeroDivisionError" in log for log in call_args["logs"])
+        assert any("division by zero" in log for log in call_args["logs"])
+        assert any("ConnectionError" in log for log in call_args["logs"])
+        assert any("Failed to connect to database" in log for log in call_args["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
