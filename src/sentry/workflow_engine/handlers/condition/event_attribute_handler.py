@@ -77,6 +77,10 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
+        if not isinstance(event, GroupEvent):
+            # cannot evaluate event attributes on non-GroupEvent types
+            return False
+
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

@@ -572,6 +572,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=True,
                             use_aggregate_conditions=use_aggregate_conditions,
                             fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                            in request.GET,
                         ),
                         sampling_mode=snuba_params.sampling_mode,
                     )

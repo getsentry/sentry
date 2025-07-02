@@ -31,6 +31,7 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -532,8 +533,9 @@ const docs: Docs = {
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   crashReportOnboarding,
-  profilingOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;

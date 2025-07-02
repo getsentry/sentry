@@ -274,6 +274,7 @@ export function SpanNodeDetails(
                     project={project}
                     organization={organization}
                     location={location}
+                    hideNodeActions={props.hideNodeActions}
                   />
                   <AIInputSection node={node} />
                   <AIOutputSection node={node} />
@@ -361,6 +362,7 @@ function EAPSpanNodeDetails({
   location,
   traceId,
   theme,
+  hideNodeActions,
 }: EAPSpanNodeDetailsProps) {
   const {
     data: traceItemData,
@@ -416,6 +418,7 @@ function EAPSpanNodeDetails({
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         <ProfilesProvider
@@ -452,6 +455,7 @@ function EAPSpanNodeDetails({
                       location={location}
                       attributes={attributes}
                       avgSpanDuration={avgSpanDuration}
+                      hideNodeActions={hideNodeActions}
                     />
                     <AIInputSection node={node} attributes={attributes} />
                     <AIOutputSection node={node} attributes={attributes} />

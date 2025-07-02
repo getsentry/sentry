@@ -105,6 +105,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-gatsby",
     "javascript-nextjs",
     "javascript-react",
+    "javascript-react-router",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
@@ -345,6 +346,9 @@ class Project(Model):
         # This Project has sent feature flags
         has_flags: bool
 
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
@@ -368,8 +372,8 @@ class Project(Model):
             sentry_sdk.start_span(op="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_data("project_id", self.id)
-            span.set_data("project_slug", self.slug)
+            span.set_attribute("project_id", self.id)
+            span.set_attribute("project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):

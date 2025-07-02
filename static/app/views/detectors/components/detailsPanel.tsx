@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -12,18 +13,26 @@ interface DetailsPanelProps {
 }
 
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
+  if (!dataSource.queryObj) {
+    return <Container>{t('Query not found.')}</Container>;
+  }
+
   return (
     <Container>
       <Flex direction="column" gap={space(0.5)}>
         <Heading>{t('Query:')}</Heading>
         <Query>
-          <Label>{t('visualize:')}</Label>{' '}
+          <Label>{t('visualize:')}</Label>
           <Value>{dataSource.queryObj.snubaQuery.aggregate}</Value>
-          <Label>{t('where:')}</Label>{' '}
-          <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+          {dataSource.queryObj.snubaQuery.query && (
+            <Fragment>
+              <Label>{t('where:')}</Label>
+              <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+            </Fragment>
+          )}
         </Query>
       </Flex>
-      <Flex gap={space(0.5)}>
+      <Flex gap={space(0.5)} align="center">
         <Heading>{t('Threshold:')}</Heading>
         <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow, true)}</Value>
       </Flex>
@@ -52,16 +61,15 @@ function DetailsPanel({detector}: DetailsPanelProps) {
 }
 
 const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
 
 const Query = styled('dl')`
   display: grid;
   grid-template-columns: auto auto;
-  grid-template-rows: repeat(3, 1fr);
   width: fit-content;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${space(0.25)} ${space(0.5)};
   margin: 0;
 `;
 
@@ -72,7 +80,7 @@ const Label = styled('dt')`
 `;
 
 const Value = styled('dl')`
-  ${p => p.theme.overflowEllipsis};
+  word-break: break-all;
   margin: 0;
 `;
 

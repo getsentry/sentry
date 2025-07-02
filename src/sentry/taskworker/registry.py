@@ -150,10 +150,9 @@ class TaskNamespace:
             name=activation.taskname,
             origin="taskworker",
         ) as span:
-            # TODO(taskworker) add monitor headers
-            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+            span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
             produce_future = self._producer(topic).produce(
                 ArroyoTopic(name=topic.value),

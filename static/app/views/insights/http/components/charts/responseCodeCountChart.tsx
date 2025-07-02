@@ -81,6 +81,7 @@ export function ResponseCodeCountChart({
 
   const exploreUrl = getExploreUrl({
     organization,
+    selection,
     visualize: [
       {
         chartType: ChartType.LINE,

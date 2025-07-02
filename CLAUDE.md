@@ -445,6 +445,17 @@ for org in organizations:
 
 # RIGHT: Use prefetch_related
 organizations.prefetch_related('projects')
+
+# WRONG: Use hasattr() for unions
+x: str | None = "hello"
+if hasattr(x, "replace"):
+    x = x.replace("e", "a")
+
+# RIGHT: Use isinstance()
+x: str | None = "hello"
+if isinstance(x, str):
+    x = x.replace("e", "a")
+
 ```
 
 ### Frontend

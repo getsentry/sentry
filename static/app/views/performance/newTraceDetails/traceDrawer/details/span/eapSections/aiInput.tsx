@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -24,12 +23,12 @@ function renderTextMessages(content: any) {
   }
   return content
     .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
+    .map((part: any) => part.text.trim())
     .join('\n');
 }
 
 function renderToolMessage(content: any) {
-  return <StructuredData value={content} maxDefaultDepth={2} withAnnotatedText />;
+  return content;
 }
 
 function parseAIMessages(messages: string) {
@@ -109,6 +108,32 @@ function transformInputMessages(inputMessages: string) {
   }
 }
 
+function transformPrompt(prompt: string) {
+  try {
+    const json = JSON.parse(prompt);
+    const result = [];
+    const {system, messages} = json;
+    if (system) {
+      result.push({
+        role: 'system',
+        content: system,
+      });
+    }
+    const parsedMessages = parseAIMessages(messages);
+    if (parsedMessages) {
+      result.push(...parsedMessages);
+    }
+    return JSON.stringify(result);
+  } catch (error) {
+    Sentry.captureMessage('Error parsing ai.prompt', {
+      extra: {
+        error,
+      },
+    });
+    return undefined;
+  }
+}
+
 const roleHeadings = {
   system: t('System'),
   user: t('User'),
@@ -145,6 +170,12 @@ export function AIInputSection({
     );
     promptMessages = inputMessages && transformInputMessages(inputMessages);
   }
+  if (!promptMessages) {
+    const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
+    if (messages) {
+      promptMessages = transformPrompt(messages);
+    }
+  }
 
   const messages = defined(promptMessages) && parseAIMessages(promptMessages);
 
@@ -172,9 +203,16 @@ export function AIInputSection({
               <TraceDrawerComponents.MultilineTextLabel>
                 {roleHeadings[message.role]}
               </TraceDrawerComponents.MultilineTextLabel>
-              <TraceDrawerComponents.MultilineText>
-                {message.content}
-              </TraceDrawerComponents.MultilineText>
+              {typeof message.content === 'string' ? (
+                <TraceDrawerComponents.MultilineText>
+                  {message.content}
+                </TraceDrawerComponents.MultilineText>
+              ) : (
+                <TraceDrawerComponents.MultilineJSON
+                  value={message.content}
+                  maxDefaultDepth={2}
+                />
+              )}
             </Fragment>
           ))}
         </Fragment>

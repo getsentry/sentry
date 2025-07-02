@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -53,11 +53,13 @@ export function SpanDescription({
   organization,
   location,
   project,
+  hideNodeActions,
 }: {
   location: Location;
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
     eventId: node.event?.eventID,
@@ -219,6 +221,7 @@ export function SpanDescription({
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         organization,
         attributes: span.data,
@@ -375,7 +378,7 @@ const StyledCodeSnippet = styled(CodeSnippet)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

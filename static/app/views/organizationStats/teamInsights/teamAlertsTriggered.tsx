@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -18,7 +18,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -47,6 +46,7 @@ function TeamAlertsTriggered({
   period,
   utc,
 }: TeamAlertsTriggeredProps) {
+  const theme = useTheme();
   const datetime = {start, end, period, utc};
 
   const {
@@ -113,7 +113,7 @@ function TeamAlertsTriggered({
     }
 
     return (
-      <SubText color={diff <= 0 ? 'successText' : 'errorText'}>
+      <SubText color={diff <= 0 ? theme.successText : theme.errorText}>
         {formatPercentage(Math.abs(diff / weeklyAvg), 0)}
         <PaddedIconArrow direction={diff <= 0 ? 'down' : 'up'} size="xs" />
       </SubText>
@@ -217,7 +217,7 @@ const ChartWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.5fr 0.2fr 0.2fr 0.2fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
@@ -249,8 +249,8 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const SubText = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;
 
 const ButtonsContainer = styled('div')`

@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -74,26 +74,26 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
                   </Alert>
                 </Alert.Container>
               )}
-              <FlexContainer>
-                <FlexContainer>
+              <Flex justify="space-between" gap={space(1)}>
+                <Flex justify="space-between" gap={space(1)}>
                   <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                   <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
-                </FlexContainer>
+                </Flex>
                 <Button priority="primary" onClick={handleDoneClick}>
                   {t('Done')}
                 </Button>
-              </FlexContainer>
+              </Flex>
             </Fragment>
           ) : (
-            <FlexContainer>
-              <FlexContainer>
+            <Flex justify="space-between" gap={space(1)}>
+              <Flex justify="space-between" gap={space(1)}>
                 <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                 <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
-              </FlexContainer>
+              </Flex>
               <Button priority="default" onClick={handleGenerateClick}>
                 {t('Regenerate')}
               </Button>
-            </FlexContainer>
+            </Flex>
           )
         ) : (
           <Button priority="primary" onClick={handleGenerateClick}>
@@ -104,10 +104,3 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
     </OnboardingStep.Container>
   );
 }
-
-const FlexContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;

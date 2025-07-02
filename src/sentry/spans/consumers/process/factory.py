@@ -2,8 +2,9 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from functools import partial
+from typing import cast
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -12,10 +13,12 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
@@ -38,9 +41,12 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        flusher_processes: int | None = None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         super().__init__()
+
+        self.rebalancing_count = 0
 
         # config
         self.max_batch_size = max_batch_size
@@ -48,6 +54,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
+        self.flusher_processes = flusher_processes
         self.produce_to_pipe = produce_to_pipe
 
         if self.num_processes != 1:
@@ -58,6 +65,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        # TODO: remove once span buffer is live in all regions
+        sentry_sdk.set_level("warning")
+
+        self.rebalancing_count += 1
+        sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
 
         committer = CommitOffsets(commit)
@@ -69,6 +81,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         flusher = self._flusher = SpanFlusher(
             buffer,
             next_step=committer,
+            max_processes=self.flusher_processes,
             produce_to_pipe=self.produce_to_pipe,
         )
 
@@ -117,12 +130,16 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.__pool.close()
 
 
+@metrics.wraps("spans.buffer.process_batch")
 def process_batch(
     buffer: SpansBuffer,
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
+    killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
     min_timestamp = None
+    decode_time = 0.0
     spans = []
+
     for value in values.payload:
         assert isinstance(value, BrokerValue)
 
@@ -131,18 +148,20 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
-            val = rapidjson.loads(payload.value)
+            decode_start = time.monotonic()
+            val = cast(SpanEvent, orjson.loads(payload.value))
+            decode_time += time.monotonic() - decode_start
 
-            partition_id = value.partition.index
-
-            if killswitches.killswitch_matches_context(
+            if killswitches.value_matches(
                 "spans.drop-in-buffer",
+                killswitch_config,
                 {
                     "org_id": val.get("organization_id"),
                     "project_id": val.get("project_id"),
                     "trace_id": val.get("trace_id"),
-                    "partition_id": partition_id,
+                    "partition_id": value.partition.index,
                 },
+                emit_metrics=False,
             ):
                 continue
 
@@ -152,6 +171,7 @@ def process_batch(
                 parent_span_id=val.get("parent_span_id"),
                 project_id=val["project_id"],
                 payload=payload.value,
+                end_timestamp_precise=val["end_timestamp_precise"],
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
             spans.append(span)
@@ -170,6 +190,10 @@ def process_batch(
             # in those situations it's better to halt the consumer as we're
             # otherwise very likely to just DLQ everything anyway.
             raise InvalidMessage(value.partition, value.offset)
+
+    # This timing is not tracked in case of an exception. This is desired
+    # because otherwise the ratio with other batch metrics is out of sync.
+    metrics.timing("spans.buffer.process_batch.decode", decode_time)
 
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)

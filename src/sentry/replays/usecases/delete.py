@@ -83,6 +83,11 @@ def _delete_if_exists(filename: str) -> None:
 
 
 def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
+    # Null segment_ids can cause this to fail. If no segments were ingested then we can skip
+    # deleting the segements.
+    if row["max_segment_id"] is None:
+        return []
+
     # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
     # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
     # to verify it exists.
@@ -100,7 +105,7 @@ def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
 class MatchedRow(TypedDict):
     retention_days: int
     replay_id: str
-    max_segment_id: int
+    max_segment_id: int | None
 
 
 class MatchedRows(TypedDict):
@@ -134,6 +139,8 @@ def fetch_rows_matching_pattern(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
+            # We only match segment rows because those contain the PII we want to delete.
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
         groupby=[Column("replay_id")],

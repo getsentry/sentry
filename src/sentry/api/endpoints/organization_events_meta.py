@@ -84,21 +84,36 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         )
 
         with handle_query_errors():
-            result = dataset.query(
-                selected_columns=["count()"],
-                snuba_params=snuba_params,
-                query=request.query_params.get("query"),
-                referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
-                has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
-                # TODO: @athena - add query_source when all datasets support it
-                # query_source=(
-                #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
-                # ),
-                fallback_to_transactions=True,
-            )
+            if dataset == spans_rpc:
+                result = spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=request.query_params.get("query"),
+                    selected_columns=["count()"],
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_ORGANIZATION_EVENTS_META,
+                    config=SearchResolverConfig(),
+                    sampling_mode=None,
+                )
 
-        return Response({"count": result["data"][0]["count"]})
+                return Response({"count": result["data"][0]["count()"]})
+            else:
+                result = dataset.query(
+                    selected_columns=["count()"],
+                    snuba_params=snuba_params,
+                    query=request.query_params.get("query"),
+                    referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
+                    has_metrics=use_metrics,
+                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                    # TODO: @athena - add query_source when all datasets support it
+                    # query_source=(
+                    #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                    # ),
+                    fallback_to_transactions=True,
+                )
+
+                return Response({"count": result["data"][0]["count"]})
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
@@ -155,7 +170,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", name="serialize_results") as span:
             results = list(results_cursor)
-            span.set_data("result_length", len(results))
+            span.set_attribute("result_length", len(results))
             context = serialize(
                 results,
                 request.user,

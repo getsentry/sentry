@@ -38,7 +38,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import redis
 
 pytestmark = [requires_kafka]
@@ -471,7 +471,7 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.DISABLED,
@@ -480,7 +480,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_manual(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.MANUAL,
+            UptimeMonitorMode.MANUAL,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
@@ -489,7 +489,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_auto_young(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=4),
             ObjectStatus.ACTIVE,
@@ -498,7 +498,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_auto_not_failed(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.OK,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
@@ -507,7 +507,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def run_test(
         self,
-        mode: ProjectUptimeSubscriptionMode,
+        mode: UptimeMonitorMode,
         uptime_status: UptimeStatus,
         update_date: datetime,
         expected_status: int,

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Link, type LinkProps} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link, {type LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 

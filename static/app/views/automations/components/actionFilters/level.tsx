@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   type Level,
@@ -30,14 +31,12 @@ export function LevelNode() {
 function MatchField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
       value={condition.comparison.match}
       options={LEVEL_MATCH_CHOICES}
-      onChange={(value: MatchType) => {
-        onUpdate({
-          match: value,
-        });
+      onChange={(option: SelectValue<MatchType>) => {
+        onUpdate({comparison: {...condition.comparison, match: option.value}});
       }}
     />
   );
@@ -46,14 +45,12 @@ function MatchField() {
 function LevelField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.level`}
       value={condition.comparison.level}
       options={LEVEL_CHOICES}
-      onChange={(value: Level) => {
-        onUpdate({
-          level: value,
-        });
+      onChange={(option: SelectValue<Level>) => {
+        onUpdate({comparison: {...condition.comparison, level: option.value}});
       }}
     />
   );

@@ -18,6 +18,7 @@ from sentry.codecov.enums import MeasurementInterval, OrderingDirection, Orderin
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class TestResultsEndpoint(CodecovEndpoint):
+    __test__ = False
     owner = ApiOwner.CODECOV
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

@@ -209,6 +209,16 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
+    if cardinality_limits := get_cardinality_limits(timeout, project):
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    return metrics_config or None
+
+
+def get_cardinality_limits(timeout: TimeChecker, project: Project) -> list[CardinalityLimit] | None:
+    if options.get("relay.cardinality-limiter.mode") == "disabled":
+        return None
+
     passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
         str(project.organization.id), []
     )
@@ -247,7 +257,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         "relay.cardinality-limiter.limits", []
     )
     option_limit_options: list[CardinalityLimitOption] = options.get(
-        "relay.cardinality-limiter.limits", []
+        "relay.cardinality-limiter.limits"
     )
 
     for clo in project_limit_options + organization_limit_options + option_limit_options:
@@ -270,9 +280,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         except KeyError:
             pass
 
-    metrics_config["cardinalityLimits"] = cardinality_limits
-
-    return metrics_config or None
+    return cardinality_limits
 
 
 def get_project_config(
@@ -291,7 +299,7 @@ def get_project_config(
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         with (
-            sentry_sdk.start_transaction(name="get_project_config"),
+            sentry_sdk.start_span(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
             return _get_project_config(project, project_keys=project_keys)

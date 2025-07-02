@@ -68,18 +68,32 @@ export function useActionNodeContext(): ActionNodeProps {
 
 type ActionNode = {
   action: React.ComponentType<any>;
+  defaultData?: Record<string, any>;
   details?: React.ComponentType<any>;
   label?: string;
+  link?: string;
+  ticketType?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
   [
     ActionType.AZURE_DEVOPS,
-    {label: t('Azure DevOps'), action: AzureDevOpsNode, details: AzureDevOpsDetails},
+    {
+      label: t('Azure DevOps'),
+      action: AzureDevOpsNode,
+      details: AzureDevOpsDetails,
+      ticketType: t('an Azure DevOps work item'),
+      link: 'https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync',
+    },
   ],
   [
     ActionType.EMAIL,
-    {label: t('Notify on preferred channel'), action: EmailNode, details: EmailDetails},
+    {
+      label: t('Notify on preferred channel'),
+      action: EmailNode,
+      details: EmailDetails,
+      defaultData: {fallthroughType: 'ActiveMembers'},
+    },
   ],
   [
     ActionType.DISCORD,
@@ -89,19 +103,43 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       details: DiscordDetails,
     },
   ],
-  [ActionType.GITHUB, {label: t('Github'), action: GithubNode, details: GithubDetails}],
+  [
+    ActionType.GITHUB,
+    {
+      label: t('Github'),
+      action: GithubNode,
+      details: GithubDetails,
+      ticketType: t('a GitHub issue'),
+    },
+  ],
   [
     ActionType.GITHUB_ENTERPRISE,
     {
       label: t('Github Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
+      ticketType: t('a GitHub Enterprise issue'),
     },
   ],
-  [ActionType.JIRA, {label: t('Jira'), action: JiraNode, details: JiraDetails}],
+  [
+    ActionType.JIRA,
+    {
+      label: t('Jira'),
+      action: JiraNode,
+      details: JiraDetails,
+      ticketType: t('a Jira issue'),
+      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+    },
+  ],
   [
     ActionType.JIRA_SERVER,
-    {label: t('Jira Server'), action: JiraServerNode, details: JiraServerDetails},
+    {
+      label: t('Jira Server'),
+      action: JiraServerNode,
+      details: JiraServerDetails,
+      ticketType: t('a Jira Server issue'),
+      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+    },
   ],
   [
     ActionType.MSTEAMS,
@@ -113,7 +151,12 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   ],
   [
     ActionType.OPSGENIE,
-    {label: t('Opsgenie'), action: OpsgenieNode, details: OpsgenieDetails},
+    {
+      label: t('Opsgenie'),
+      action: OpsgenieNode,
+      details: OpsgenieDetails,
+      defaultData: {priority: 'P1'},
+    },
   ],
   [
     ActionType.PAGERDUTY,
@@ -121,6 +164,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Pagerduty'),
       action: PagerdutyNode,
       details: PagerdutyDetails,
+      defaultData: {priority: 'default'},
     },
   ],
   [

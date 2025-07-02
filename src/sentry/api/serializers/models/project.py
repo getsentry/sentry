@@ -284,6 +284,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -340,7 +341,7 @@ class ProjectSerializer(Serializer):
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
-            span.set_data("Object Count", len(item_list))
+            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):
@@ -551,6 +552,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
+            "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -798,6 +800,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
+            hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],

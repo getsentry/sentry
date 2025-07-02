@@ -91,7 +91,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 {
                     "retention_days": 90,
                     "replay_id": "b",
-                    "max_segment_id": 0,
+                    "max_segment_id": None,
                 },
             ],
             "has_more": False,
@@ -152,14 +152,24 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
 
     def test_run_bulk_replay_delete_job_chained_runs(self):
+        project = self.create_project()
+
         t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay_id1 = uuid.uuid4().hex
         replay_id2 = uuid.uuid4().hex
+        replay_id3 = uuid.uuid4().hex
+        replay_id4 = uuid.uuid4().hex
         self.store_replays(
             mock_replay(t1, self.project.id, replay_id1, segment_id=0, environment="prod")
         )
         self.store_replays(
             mock_replay(t1, self.project.id, replay_id2, segment_id=0, environment="prod")
+        )
+        self.store_replays(
+            mock_replay(t1, project.id, replay_id3, segment_id=0, environment="prod")
+        )
+        self.store_replays(
+            mock_replay(t1, self.project.id, replay_id4, segment_id=None, environment="prod")
         )
 
         with TaskRunner():

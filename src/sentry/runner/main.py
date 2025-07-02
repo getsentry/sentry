@@ -70,7 +70,6 @@ for cmd in map(
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
         "sentry.runner.commands.llm.llm",
-        "sentry.runner.commands.workstations.workstations",
     ),
 ):
     cli.add_command(cmd)
@@ -130,7 +129,6 @@ def main() -> None:
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
-
         try:
             func(**kwargs)
         except Exception as e:

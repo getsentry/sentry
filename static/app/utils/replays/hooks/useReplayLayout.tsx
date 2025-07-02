@@ -4,8 +4,8 @@ import {useTheme} from '@emotion/react';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 export enum LayoutKey {

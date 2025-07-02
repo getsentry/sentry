@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import sentry_sdk.scope
 from django.conf import settings
+from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
@@ -19,6 +20,7 @@ from sentry.utils.sdk import (
     check_current_scope_transaction,
     check_tag_for_scope_bleed,
     merge_context_into_scope,
+    traces_sampler,
 )
 
 
@@ -63,6 +65,18 @@ class SDKUtilsTest(TestCase):
             "maisey": "silly",
             "charlie": "goofy",
         }
+
+    def test_traces_sampler_custom_sample_rate_0_0(self):
+        sampling_context = {"sample_rate": 0.0}
+        assert traces_sampler(sampling_context) == 0.0
+
+    def test_traces_sampler_custom_sample_rate_0_5(self):
+        sampling_context = {"sample_rate": 0.5}
+        assert traces_sampler(sampling_context) == 0.5
+
+    def test_traces_sampler_custom_sample_rate_1_0(self):
+        sampling_context = {"sample_rate": 1.0}
+        assert traces_sampler(sampling_context) == 1.0
 
 
 @patch("sentry.utils.sdk.logger.warning")
@@ -293,7 +307,8 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         capture_exception_with_scope_check(Exception())
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]
-        empty_scope = Scope(client=passed_scope.client)
+        empty_scope = Scope()
+        empty_scope.set_client(passed_scope.client)
 
         for entry in empty_scope.__slots__:
             # _propagation_context is generated on __init__ for tracing without performance
@@ -502,3 +517,17 @@ class BindAmbiguousOrgContextTest(TestCase):
             slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]
             assert len(slug_list_in_org_context) == 3
             assert slug_list_in_org_context[-1] == "... (3 more)"
+
+
+def test_before_send_error_level():
+    event = {
+        "tags": {
+            "silo_mode": "REGION",
+            "sentry_region": "testregion456576",
+        },
+        "level": "error",
+    }
+    hint = {"exc_info": (OperationalError, OperationalError("test"), None)}
+    event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
+    assert event_with_before_send
+    assert event_with_before_send["level"] == "warning"

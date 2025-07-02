@@ -148,7 +148,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+            span.set_attribute("organization", organization)
 
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
@@ -246,6 +246,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                        in request.GET,
                     ),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
@@ -278,6 +280,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 config=SearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET,
                 ),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -209,7 +209,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -217,7 +217,7 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 

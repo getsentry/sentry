@@ -26,6 +26,7 @@ import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateField
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
+  isBaseVisualize,
   isGroupBy,
   isVisualize,
   updateLocationWithAggregateFields,
@@ -121,7 +122,7 @@ function defaultPageParams(): ReadablePageParams {
   const sortBys = defaultSortBys(
     mode,
     fields,
-    aggregateFields.filter(isVisualize).flatMap(visualize => visualize.yAxes)
+    aggregateFields.filter(isVisualize).map(visualize => visualize.yAxis)
   );
 
   return new ReadablePageParams({
@@ -229,9 +230,26 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
-export function useExploreAggregateFields(): AggregateField[] {
+interface UseExploreAggregateFieldsOptions {
+  validate?: boolean;
+}
+
+export function useExploreAggregateFields(
+  options?: UseExploreAggregateFieldsOptions
+): AggregateField[] {
+  const {validate = false} = options || {};
   const pageParams = useExplorePageParams();
-  return pageParams.aggregateFields;
+  return useMemo(() => {
+    if (validate) {
+      return pageParams.aggregateFields.filter(aggregateField => {
+        if (isVisualize(aggregateField)) {
+          return aggregateField.isValid();
+        }
+        return true;
+      });
+    }
+    return pageParams.aggregateFields;
+  }, [pageParams.aggregateFields, validate]);
 }
 
 export function useExploreFields(): string[] {
@@ -269,9 +287,20 @@ export function useExploreId(): string | undefined {
   return pageParams.id;
 }
 
-export function useExploreVisualizes(): Visualize[] {
+interface UseExploreVisualizesOptions {
+  validate: boolean;
+}
+
+export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
+  const {validate = false} = options || {};
   const pageParams = useExplorePageParams();
-  return pageParams.visualizes;
+
+  return useMemo(() => {
+    if (validate) {
+      return pageParams.visualizes.filter(visualize => visualize.isValid());
+    }
+    return pageParams.visualizes;
+  }, [pageParams.visualizes, validate]);
 }
 
 export function newExploreTarget(
@@ -357,7 +386,7 @@ function findAllFieldRefs(
 
   const readableVisualizeFields = readablePageParams.aggregateFields
     .filter<Visualize>(isVisualize)
-    .flatMap(visualize => visualize.yAxes)
+    .map(visualize => visualize.yAxis)
     .map(yAxis => parseFunction(yAxis)?.arguments?.[0])
     .filter<string>(defined);
 
@@ -371,7 +400,7 @@ function findAllFieldRefs(
     writablePageParams.aggregateFields === null
       ? []
       : writablePageParams.aggregateFields
-          ?.filter<Visualize>(isVisualize)
+          ?.filter<BaseVisualize>(isBaseVisualize)
           ?.flatMap(visualize => visualize.yAxes)
           ?.map(yAxis => parseFunction(yAxis)?.arguments?.[0])
           ?.filter<string>(defined);

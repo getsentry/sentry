@@ -20,7 +20,7 @@ export const SPAN_HEADER_TOOLTIPS: Record<string, React.ReactNode> = {
       {t('The total time spent on this span.')}
       <br />
       <ExternalLink
-        href={`${MODULE_PRODUCT_DOC_LINKS[ModuleName.DB]}#what-is-time-spent`}
+        href={`https://docs.sentry.io/product/insights/overview/metrics/#time-spent`}
       >
         {t('How is this calculated?')}
       </ExternalLink>

@@ -197,6 +197,9 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         "n_plus_one_api_calls_total_duration_threshold": options.get(
             "performance.issues.n_plus_one_api_calls.total_duration"
         ),
+        "sql_injection_query_value_length_threshold": options.get(
+            "performance.issues.sql_injection.query_value_length_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -329,10 +332,11 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "detection_enabled": settings["http_overhead_detection_enabled"],
         },
         DetectorType.SQL_INJECTION: {
-            "detection_enabled": settings["database_query_injection_detection_enabled"]
+            "detection_enabled": settings["db_query_injection_detection_enabled"],
+            "query_value_length_threshold": settings["sql_injection_query_value_length_threshold"],
         },
         DetectorType.QUERY_INJECTION: {
-            "detection_enabled": settings["database_query_injection_detection_enabled"]
+            "detection_enabled": settings["db_query_injection_detection_enabled"]
         },
     }
 
@@ -509,8 +513,8 @@ def report_metrics_for_detectors(
     sdk_name = get_sdk_name(event)
 
     try:
-        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
+        # Setting a tag isn't critical, the root span doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
+        set_tag = sdk_span.root_span.set_tag
     except AttributeError:
         set_tag = lambda *args: None
 

@@ -1,4 +1,8 @@
-from typing import TypedDict
+from typing import NotRequired, Required, TypedDict
+
+from sentry.utils.cache import cache
+
+type ModelId = str
 
 
 class AIModelCost(TypedDict):
@@ -7,9 +11,23 @@ class AIModelCost(TypedDict):
     costPer1kTokens: float
 
 
-class AIModelCosts(TypedDict):
-    version: int
-    costs: list[AIModelCost]
+# Cache key for storing AI model costs
+AI_MODEL_COSTS_CACHE_KEY = "ai-model-costs:v2"
+# Cache timeout: 30 days (we re-fetch every 30 minutes, so this provides more than enough overlap)
+AI_MODEL_COSTS_CACHE_TTL = 30 * 24 * 60 * 60
+
+
+class AIModelCostV2(TypedDict):
+    inputPerToken: float
+    outputPerToken: float
+    outputReasoningPerToken: float
+    inputCachedPerToken: float
+
+
+class AIModelCosts(TypedDict, total=False):
+    version: Required[int]
+    costs: NotRequired[list[AIModelCost]]
+    models: NotRequired[dict[ModelId, AIModelCostV2]]
 
 
 _AI_MODEL_COST_DATA = [
@@ -363,4 +381,21 @@ _PRECOMPUTED_AI_MODEL_COSTS: AIModelCosts = {
 
 
 def ai_model_costs_config() -> AIModelCosts:
+    """
+    Get AI model costs configuration.
+
+    This function first tries to get updated costs from cache (fetched from OpenRouter),
+    and falls back to the precomputed costs if cache is empty.
+
+    Returns:
+        AIModelCosts object containing cost information for AI models
+    """
+    # NOTE (vgrozdanic): in the transition period from v1 to v2, we need to
+    # support both versions of the AI model costs config.
+    # Once we've fully migrated to v2, we can remove the v1 config.
+    cached_costs = cache.get(AI_MODEL_COSTS_CACHE_KEY)
+    if cached_costs is not None:
+        return cached_costs
+
+    # Fall back to precomputed costs (v1)
     return _PRECOMPUTED_AI_MODEL_COSTS

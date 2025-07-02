@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
@@ -97,7 +97,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
+            options={LOG_AGGREGATES}
             onChange={val => {
               if (val.value === 'count') {
                 setLogsPageParams({
@@ -162,7 +162,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.background};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
   }
 `;
