@@ -7,12 +7,7 @@ from django.urls import reverse
 
 from sentry.models.files.file import File
 from sentry.replays.lib import kafka
-from sentry.replays.lib.storage import (
-    RecordingSegmentStorageMeta,
-    make_video_filename,
-    storage,
-    storage_kv,
-)
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
@@ -215,7 +210,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             file_id=None,
         )
         storage.set(metadata1, b"hello, world!")
-        storage_kv.set(make_video_filename(metadata1), b"hello, world!")
 
         metadata2 = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -225,8 +219,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             file_id=None,
         )
         storage.set(metadata2, b"hello, world!")
-        # Intentionally not written.
-        # storage_kv.set(make_video_filename(metadata2), b"hello, world!")
 
         metadata3 = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -236,7 +228,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             file_id=None,
         )
         storage.set(metadata3, b"hello, world!")
-        storage_kv.set(make_video_filename(metadata3), b"hello, world!")
 
         with self.feature(REPLAYS_FEATURES):
             with TaskRunner():
@@ -246,6 +237,3 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata1) is None
         assert storage.get(metadata2) is None
         assert storage.get(metadata3) is not None
-        assert storage_kv.get(make_video_filename(metadata1)) is None
-        assert storage_kv.get(make_video_filename(metadata2)) is None
-        assert storage_kv.get(make_video_filename(metadata3)) is not None

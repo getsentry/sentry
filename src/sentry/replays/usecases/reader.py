@@ -26,13 +26,7 @@ from snuba_sdk import (
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
-from sentry.replays.lib.storage import (
-    RecordingSegmentStorageMeta,
-    filestore,
-    make_video_filename,
-    storage,
-    storage_kv,
-)
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.utils.snuba import raw_snql_query
@@ -288,17 +282,10 @@ def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
 
 def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
     result = _download_segment(segment)
-    if result is None:
-        return storage_kv.get(make_video_filename(segment))
-
-    video, _ = result
-    if video is None:
-        # Fallback -- video was saved separately. This could be removed
-        # post GA if we don't care about breaking beta customers old
-        # replays.
-        return storage_kv.get(make_video_filename(segment))
-    else:
+    if result is not None:
+        video, _ = result
         return video
+    return None
 
 
 def _download_segment(
