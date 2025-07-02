@@ -274,7 +274,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
-        if stats_period not in (None, "", "24h", "14d", "auto"):
+
+        STATS_PERIODS = [None, "", "24h", "14d", "auto"]
+        if features.has("organizations:detailed-data-for-seer", organization, actor=request.user):
+            STATS_PERIODS += "1hr"
+
+        if stats_period not in STATS_PERIODS:
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         stats_period, stats_period_start, stats_period_end = calculate_stats_period(
             stats_period, start, end
