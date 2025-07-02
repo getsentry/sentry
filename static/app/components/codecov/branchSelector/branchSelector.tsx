@@ -44,7 +44,7 @@ export function BranchSelector() {
     return [...optionSet].map(makeOption);
   }, [branch]);
 
-  const menuHeaderTrailingItems = useCallback(
+  const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
       if (!branch || branch === defaultBranch) {
         return null;
@@ -71,7 +71,7 @@ export function BranchSelector() {
       options={options}
       value={branch ?? ''}
       onChange={handleChange}
-      menuHeaderTrailingItems={menuHeaderTrailingItems}
+      menuHeaderTrailingItems={branchResetButton}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
