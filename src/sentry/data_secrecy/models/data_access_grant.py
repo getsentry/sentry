@@ -17,8 +17,8 @@ class DataAccessGrant(DefaultFieldsModel):
         MANUAL = "manual"
 
     class RevocationReason(StrEnum):
-        TICKET_RESOLVED = "ticket resolved"
-        MANUAL_REVOCATION = "manual revocation"
+        TICKET_RESOLVED = "ticket_resolved"
+        MANUAL_REVOCATION = "manual_revocation"
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     grant_type = models.CharField(max_length=24, choices=[(t.value, t.value) for t in GrantType])
@@ -26,7 +26,12 @@ class DataAccessGrant(DefaultFieldsModel):
     ticket_id = models.CharField(max_length=64, null=True)
 
     # For MANUAL type grants, store the user who granted the access
-    granted_by_user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    granted_by_user = FlexibleForeignKey(
+        "sentry.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="granted_data_access_grants",
+    )
 
     # Access window for the grant
     grant_start = models.DateTimeField(default=timezone.now)
@@ -36,6 +41,14 @@ class DataAccessGrant(DefaultFieldsModel):
     revocation_date = models.DateTimeField(null=True, blank=True)
     revocation_reason = models.CharField(
         max_length=20, choices=[(t.value, t.value) for t in RevocationReason]
+    )
+
+    # If the grant is manually revoked record the user who revoked it
+    revoked_by_user = FlexibleForeignKey(
+        "sentry.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="revoked_data_access_grants",
     )
 
     class Meta:
