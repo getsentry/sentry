@@ -326,7 +326,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT:
             uptime_check_id = row_dict["check_id"].val_str
             scheduled_check_time = datetime.fromtimestamp(
-                row_dict.get("scheduled_check_time_us").val_int / 1_000_000
+                row_dict["scheduled_check_time_us"].val_int / 1_000_000
             )
             duration_val = row_dict.get("check_duration_us")
             duration_ms = (
