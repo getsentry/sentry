@@ -13,7 +13,6 @@ import {
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {type EventTransaction} from 'sentry/types/event';
@@ -526,24 +525,3 @@ function EAPSpanNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-export function SectionTitleWithQuestionTooltip({
-  title,
-  tooltipText,
-}: {
-  title: string;
-  tooltipText: string;
-}) {
-  return (
-    <Flex>
-      <div>{title}</div>
-      <QuestionTooltip title={tooltipText} size="sm" />
-    </Flex>
-  );
-}
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

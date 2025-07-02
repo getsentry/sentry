@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SectionTitleWithQuestionTooltip} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   AdditionalData,
   hasAdditionalData,
@@ -23,7 +23,7 @@ export function Contexts({event}: {event: EventTransaction | undefined}) {
     <FoldSection
       sectionKey={SectionKey.CONTEXTS}
       title={
-        <SectionTitleWithQuestionTooltip
+        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
           title={t('Contexts')}
           tooltipText={t(
             "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
