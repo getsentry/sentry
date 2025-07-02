@@ -47,8 +47,8 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
 
             organization_members = list(qs)
 
-            span.set_data("Project Count", len(projects))
-            span.set_data("Member Count", len(organization_members))
+            span.set_attribute("Project Count", len(projects))
+            span.set_attribute("Member Count", len(organization_members))
 
         return Response(
             serialize(

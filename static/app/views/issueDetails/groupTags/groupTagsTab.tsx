@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';

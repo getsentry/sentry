@@ -37,7 +37,7 @@ class BigtableNodeStorage(NodeStorage):
 
     def __init__(
         self,
-        project: str | None = None,
+        project: str,
         instance: str = "sentry",
         table: str = "nodestore",
         automatic_expiry: bool = False,
