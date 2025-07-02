@@ -21,6 +21,7 @@ import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
@@ -79,9 +80,10 @@ export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const combinedQuery = useCombinedQuery(getAITracesFilter());
 
   const tracesRequest = useTraces({
-    query: getAITracesFilter(),
+    query: combinedQuery,
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
