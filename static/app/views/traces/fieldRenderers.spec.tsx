@@ -21,7 +21,7 @@ import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 describe('Renderers', function () {
   let context: ReturnType<typeof initializeOrg>;
 
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
 
   const projects = [
     ProjectFixture({

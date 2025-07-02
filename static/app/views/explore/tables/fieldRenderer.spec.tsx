@@ -19,7 +19,7 @@ const mockedEventData = {
 };
 
 describe('FieldRenderer tests', function () {
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
 
   const location: Location = LocationFixture({
     query: {

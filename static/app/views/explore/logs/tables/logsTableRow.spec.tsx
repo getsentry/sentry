@@ -51,7 +51,7 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
 }
 
 describe('logsTableRow', () => {
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
 
   const projects = [ProjectFixture()];
   ProjectsStore.loadInitialData(projects);

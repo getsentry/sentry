@@ -13,7 +13,7 @@ import {
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 describe('attributesTree', () => {
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
 
   const location = LocationFixture();
 
