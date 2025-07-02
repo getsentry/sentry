@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
   AI = 'ai',

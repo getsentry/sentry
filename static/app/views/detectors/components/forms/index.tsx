@@ -1,25 +1,39 @@
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
-import {CronDetectorForm} from 'sentry/views/detectors/components/forms/cron';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
-import {UptimeDetectorForm} from 'sentry/views/detectors/components/forms/uptime';
+import type {EditableDetectorType} from 'sentry/views/detectors/components/forms/config';
+import {
+  EditExistingMetricDetectorForm,
+  NewMetricDetectorForm,
+} from 'sentry/views/detectors/components/forms/metric/metric';
+import {
+  EditExistingUptimeDetectorForm,
+  NewUptimeDetectorForm,
+} from 'sentry/views/detectors/components/forms/uptime';
 
-type DetectorFormProps = {
-  detectorType: DetectorType;
-};
-
-export function DetectorForm({detectorType}: DetectorFormProps) {
+export function NewDetectorForm({detectorType}: {detectorType: EditableDetectorType}) {
   switch (detectorType) {
     case 'metric_issue':
-      return <MetricDetectorForm />;
-    case 'uptime_subscription':
-      return <CronDetectorForm />;
+      return <NewMetricDetectorForm />;
     case 'uptime_domain_failure':
-      return <UptimeDetectorForm />;
-    case 'error':
-      // TODO: Redirect to another page or display an error message?
-      // Error detectors cannot be edited.
+      return <NewUptimeDetectorForm />;
+    default:
+      unreachable(detectorType);
       return null;
+  }
+}
+
+export function EditExistingDetectorForm({
+  detector,
+  detectorType,
+}: {
+  detector: Detector;
+  detectorType: EditableDetectorType;
+}) {
+  switch (detectorType) {
+    case 'metric_issue':
+      return <EditExistingMetricDetectorForm detector={detector} />;
+    case 'uptime_domain_failure':
+      return <EditExistingUptimeDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);
       return null;

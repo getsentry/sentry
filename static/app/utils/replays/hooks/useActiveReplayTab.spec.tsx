@@ -1,20 +1,15 @@
-import * as qs from 'query-string';
-
 import {MockApiClient} from 'sentry-test/api';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {TestStubs} from 'sentry-test/testStubs';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {OrganizationContext} from 'sentry/contexts/organizationContext';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
-function mockLocation(query = '') {
-  window.location.search = qs.stringify({query});
-}
-
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
-    mockLocation();
+    setWindowLocation('http://localhost/');
   });
 
   describe('without replay-ai-summaries feature flag', () => {
@@ -41,7 +36,7 @@ describe('useActiveReplayTab', () => {
     });
 
     it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
-      mockLocation('click.tag:button');
+      setWindowLocation('http://localhost/?query=click.tag:button');
 
       const {result} = renderHook(useActiveReplayTab, {
         initialProps: {},
@@ -152,7 +147,20 @@ describe('useActiveReplayTab', () => {
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       state: undefined,
-      query: {query: '', t_main: TabKey.NETWORK},
+      query: {t_main: TabKey.NETWORK},
+    });
+  });
+
+  it('should set the default tab if the name is invalid', () => {
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
+
+    result.current.setActiveTab('foo bar');
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
+      pathname: '/',
+      query: {t_main: TabKey.BREADCRUMBS},
     });
   });
 });

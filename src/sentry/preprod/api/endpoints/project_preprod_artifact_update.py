@@ -113,7 +113,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             "preprod_artifact.api.update",
             organization_id=project.organization_id,
             project_id=project.id,
-            user_id=request.user.id,
         )
 
         # Validate request data
