@@ -28,6 +28,8 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
         return None
+    if group.organization.get_option("sentry:hide_ai_features"):
+        return None
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
         return None
 

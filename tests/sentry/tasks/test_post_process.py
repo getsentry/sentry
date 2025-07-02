@@ -2818,6 +2818,34 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         # Now it should be called since no lock is held
         mock_start_seer_automation.assert_called_once_with(event2.group.id)
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_with_hide_ai_features_enabled(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that seer automation is not started when organization has hideAiFeatures set to True"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
 
 class PostProcessGroupErrorTest(
     TestCase,
