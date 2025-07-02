@@ -50,7 +50,7 @@ function SentryAppActionSettingsButton() {
               config={sentryApp.settings as SchemaFormConfig}
               appName={sentryApp.name}
               onSubmitSuccess={(formData: Record<string, string>) =>
-                onUpdate({data: formData})
+                onUpdate({data: {settings: formData.settings}})
               }
               resetValues={action.data}
             />
