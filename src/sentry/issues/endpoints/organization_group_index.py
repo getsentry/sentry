@@ -277,9 +277,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         STATS_PERIODS = [None, "", "24h", "14d", "auto"]
         if features.has("organizations:detailed-data-for-seer", organization, actor=request.user):
-            import pdb
-
-            pdb.set_trace()
             STATS_PERIODS.append("1h")
 
         if stats_period not in STATS_PERIODS:
