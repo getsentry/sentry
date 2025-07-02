@@ -67,16 +67,6 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
-  const columns = useMemo(() => {
-    return eventView.getColumns().reduce(
-      (acc, col) => {
-        acc[col.key] = col;
-        return acc;
-      },
-      {} as Record<string, TableColumn<string>>
-    );
-  }, [eventView]);
-
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
     aggregateFields,
@@ -101,6 +91,25 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
     result.data?.length ?? 0
   );
 
+  const columns = useMemo(() => {
+    const cols = eventView.getColumns().reduce(
+      (acc, col) => {
+        acc[col.key] = col;
+        return acc;
+      },
+      {} as Record<string, TableColumn<string>>
+    );
+
+    return aggregateFields
+      .map(aggregateField => {
+        const key = isGroupBy(aggregateField)
+          ? aggregateField.groupBy
+          : aggregateField.yAxis;
+        return cols[key];
+      })
+      .filter(defined);
+  }, [aggregateFields, eventView]);
+
   return (
     <Fragment>
       <Table ref={tableRef} style={initialTableStyles}>
@@ -109,24 +118,21 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent />
             </TableHeadCell>
-            {aggregateFields.map((aggregateField, i) => {
+            {columns.map((column, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
-              const key = isGroupBy(aggregateField)
-                ? aggregateField.groupBy
-                : aggregateField.yAxis;
-              const fieldType = meta.fields?.[key];
-              const align = fieldAlignment(key, fieldType);
-              const label = prettifyField(key, stringTags, numberTags);
+              const fieldType = meta.fields?.[column.key];
+              const align = fieldAlignment(column.key, fieldType);
+              const label = prettifyField(column.key, stringTags, numberTags);
 
-              const direction = sorts.find(s => s.field === key)?.kind;
+              const direction = sorts.find(s => s.field === column.key)?.kind;
 
               function updateSort() {
                 const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field: key, kind}]);
+                setSorts([{field: column.key, kind}]);
               }
 
               return (
@@ -196,23 +202,13 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       </StyledLink>
                     </Tooltip>
                   </TableBodyCell>
-                  {aggregateFields.map((aggregateField, j) => {
-                    const key = isGroupBy(aggregateField)
-                      ? aggregateField.groupBy
-                      : aggregateField.yAxis;
-
-                    const column = columns[key];
-
-                    if (!defined(column)) {
-                      return null;
-                    }
-
+                  {columns.map((column, j) => {
                     return (
                       <TableBodyCell key={j}>
                         <FieldRenderer
                           column={column}
                           data={row}
-                          unit={meta?.units?.[key]}
+                          unit={meta?.units?.[column.key]}
                           meta={meta}
                         />
                       </TableBodyCell>
