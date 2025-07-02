@@ -141,5 +141,5 @@ export const getAIToolCallsFilter = () => {
 };
 
 export const getAITracesFilter = () => {
-  return `has:${AI_MODEL_ID_ATTRIBUTE}`;
+  return `span.op:gen_ai.*`;
 };

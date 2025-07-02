@@ -1,4 +1,4 @@
-import React, {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -8,16 +8,23 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {
+  EAPSpanSearchQueryBuilder,
+  useEAPSpanSearchQueryBuilderProps,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import Redirect from 'sentry/components/redirect';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
 import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
@@ -31,6 +38,7 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {
   AIInsightsFeature,
   usePreferedAiModule,
@@ -48,10 +56,8 @@ import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings'
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
@@ -82,14 +88,11 @@ function useShouldShowLegacyLLMAlert() {
 }
 
 function AgentsMonitoringPage() {
-  const location = useLocation();
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const hasInsightsLlmMonitoring = useShouldShowLegacyLLMAlert();
   const datePageFilterProps = limitMaxPickableDays(organization);
-
-  const {eventView, handleSearch} = useTransactionNameQuery();
-  const searchBarQuery = getTransactionSearchQuery(location, eventView.query);
+  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
@@ -112,8 +115,29 @@ function AgentsMonitoringPage() {
     [organization, activeTable, onActiveTableChange]
   );
 
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
+
+  const eapSpanSearchQueryBuilderProps = useMemo(
+    () => ({
+      initialQuery: searchQuery ?? '',
+      onSearch: (newQuery: string) => {
+        setSearchQuery(newQuery);
+      },
+      searchSource: 'agent-monitoring',
+      numberTags,
+      stringTags,
+      replaceRawSearchKeys: ['span.description'],
+    }),
+    [searchQuery, numberTags, stringTags, setSearchQuery]
+  );
+
+  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
+    eapSpanSearchQueryBuilderProps
+  );
+
   return (
-    <React.Fragment>
+    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
         headerActions={<AiModuleToggleButton />}
@@ -136,12 +160,9 @@ function AgentsMonitoringPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <StyledTransactionNameSearchBar
-                      organization={organization}
-                      eventView={eventView}
-                      onSearch={handleSearch}
-                      query={searchBarQuery}
-                    />
+                    <QueryBuilderWrapper>
+                      <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                    </QueryBuilderWrapper>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -199,7 +220,7 @@ function AgentsMonitoringPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-    </React.Fragment>
+    </SearchQueryBuilderProvider>
   );
 }
 
@@ -220,13 +241,15 @@ function PageWithProviders() {
         moduleName={ModuleName.AGENTS}
         analyticEventName="insight.page_loads.agents"
       >
-        <AgentsMonitoringPage />
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <AgentsMonitoringPage />
+        </TraceItemAttributeProvider>
       </ModulePageProviders>
     </AIInsightsFeature>
   );
 }
 
-const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
+const QueryBuilderWrapper = styled('div')`
   flex: 2;
 `;
 
