@@ -246,11 +246,6 @@ def assemble_preprod_artifact_size_analysis(
                 pass  # Ignore cleanup errors
             raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
-        # Update artifact state in its own transaction with proper database routing
-        with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
-            preprod_artifact.save(update_fields=["state", "date_updated"])
-
         # Update size metrics in its own transaction
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
