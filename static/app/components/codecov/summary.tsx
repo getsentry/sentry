@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
 import {IconFilter} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';

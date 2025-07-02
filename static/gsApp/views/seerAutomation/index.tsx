@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import Link from 'sentry/components/links/link';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
