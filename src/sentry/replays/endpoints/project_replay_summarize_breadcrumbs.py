@@ -173,7 +173,10 @@ def fetch_trace_connected_errors(
 
         queries = []
         for trace_id in trace_ids:
+            # Get all projects in the organization to find trace-connected errors
+            org_projects = list(Project.objects.filter(organization=project.organization))
             snuba_params = SnubaParams(
+                projects=org_projects,
                 start=start,
                 end=end,
                 organization=project.organization,
