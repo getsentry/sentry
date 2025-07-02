@@ -1,4 +1,4 @@
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
 export const titleText =
@@ -14,12 +14,12 @@ export const bodyText =
 ### Title
 
 <Storybook.SideBySide>
-  <Text.Title>H1 Heading is the Default</Text.Title>
-  <Text.Title as="h2">H2 Heading</Text.Title>
-  <Text.Title as="h3">H3 Heading</Text.Title>
-  <Text.Title as="h4">H4 Heading</Text.Title>
-  <Text.Title as="h5">H5 Heading</Text.Title>
-  <Text.Title as="h6">H6 Heading</Text.Title>
+  <Heading>H1 Heading is the Default</Heading>
+  <Heading as="h2">H2 Heading</Heading>
+  <Heading as="h3">H3 Heading</Heading>
+  <Heading as="h4">H4 Heading</Heading>
+  <Heading as="h5">H5 Heading</Heading>
+  <Heading as="h6">H6 Heading</Heading>
 </Storybook.SideBySide>
 
 ### Text
@@ -59,6 +59,12 @@ export const bodyText =
     <label>Comfortable</label>
     <Text density="comfortable">{bodyText}</Text>
   </div>
+</Storybook.SideBySide>
+
+### Tabular
+
+<Storybook.SideBySide>
+  <Text tabular>1234567890</Text>
 </Storybook.SideBySide>
 
 ### Overflow

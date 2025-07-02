@@ -50,6 +50,11 @@ interface TextProps {
   strikethrough?: boolean;
 
   /**
+   * If true, the text will be displayed in a tabular font.
+   */
+  tabular?: boolean;
+
+  /**
    * Determines if the text should be underlined.
    * @default false
    */
@@ -88,6 +93,7 @@ export const Text = styled((props: TextProps) => {
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
 `;
 
 interface TitleProps extends TextProps {
@@ -98,7 +104,7 @@ interface TitleProps extends TextProps {
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-const Title = styled((props: TitleProps) => {
+export const Heading = styled((props: TitleProps) => {
   const {children, as, ...rest} = props;
   const TitleComponent = as || 'h1';
 
@@ -119,11 +125,8 @@ const Title = styled((props: TitleProps) => {
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
 `;
-
-Object.assign(Text, {
-  Title,
-});
 
 function getDefaultTitleFontSize(as: TitleProps['as']) {
   switch (as) {
