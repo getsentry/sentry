@@ -13,7 +13,10 @@ registry = TaskRegistry()
 class TestTaskworkerRollout(TestCase):
     def setUp(self):
         super().setUp()
-        self.namespace = registry.create_namespace(name="test_namespace")
+        if not registry.contains("test_namespace"):
+            self.namespace = registry.create_namespace(name="test_namespace")
+        else:
+            self.namespace = registry.get("test_namespace")
         self.config = TaskworkerConfig(
             namespace=self.namespace,
             retry=None,
