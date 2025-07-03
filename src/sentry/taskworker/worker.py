@@ -180,7 +180,7 @@ class TaskWorker:
 
         def result_thread() -> None:
             logger.debug("taskworker.worker.result_thread_started")
-            iopool = ThreadPoolExecutor(max_workers=self._concurrency)
+            iopool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
                     try:
