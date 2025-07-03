@@ -698,6 +698,16 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
         nullify_id(snuba_query_snapshot)
         snuba_query_snapshot.save()
+
+        event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=_unpack_snuba_query(alert_rule)
+        )
+        for event_type in event_types:
+            event_type_snapshot = deepcopy(event_type)
+            nullify_id(event_type_snapshot)
+            event_type_snapshot.snuba_query = snuba_query_snapshot
+            event_type_snapshot.save()
+
         alert_rule_snapshot = deepcopy(alert_rule)
         nullify_id(alert_rule_snapshot)
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
