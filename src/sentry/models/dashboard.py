@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
 from django.db.models.query import QuerySet
@@ -93,6 +94,16 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             favorite.dashboard.id for favorite in existing_favorite_dashboards
         }
         new_dashboard_ids = set(new_dashboard_positions)
+
+        sentry_sdk.set_context(
+            "reorder_favorite_dashboards",
+            {
+                "organization": organization.id,
+                "user_id": user_id,
+                "existing_dashboard_ids": existing_dashboard_ids,
+                "new_dashboard_positions": new_dashboard_positions,
+            },
+        )
 
         if existing_dashboard_ids != new_dashboard_ids:
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
