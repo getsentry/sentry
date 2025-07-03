@@ -86,6 +86,10 @@ class MultiProducer:
             self.producers.append(producer)
             self.topics.append(topic)
 
+        # Validate that we have at least one producer
+        if not self.producers:
+            raise ValueError(f"No producers configured for topic {self.topic.value}")
+
     def produce(self, payload: KafkaPayload):
         """Produce message with load balancing."""
         if len(self.producers) == 1:
