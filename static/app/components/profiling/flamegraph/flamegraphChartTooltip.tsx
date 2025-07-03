@@ -2,19 +2,18 @@ import {useMemo} from 'react';
 import * as React from 'react';
 import type {vec2} from 'gl-matrix';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import type {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
-import {
-  FlamegraphTooltipColorIndicator,
-  FlamegraphTooltipFrameMainInfo,
-  FlamegraphTooltipTimelineInfo,
-} from './flamegraphTooltip';
+import {FlamegraphTooltipColorIndicator} from './flamegraphTooltip';
 
 interface FlamegraphChartTooltipProps {
   chart: FlamegraphChart;
@@ -45,24 +44,24 @@ export function FlamegraphChartTooltip({
       {series.map((p, i) => {
         return (
           <React.Fragment key={i}>
-            <FlamegraphTooltipFrameMainInfo>
+            <Flex align="center" gap={space(1)}>
               <FlamegraphTooltipColorIndicator
                 backgroundColor={p.fillColor || p.lineColor}
               />
               {p.name}:&nbsp;
-              <FlamegraphTooltipTimelineInfo>
+              <Text variant="muted" ellipsis>
                 {chart.tooltipFormatter(p.points[0]!.y)}
-              </FlamegraphTooltipTimelineInfo>
-            </FlamegraphTooltipFrameMainInfo>
+              </Text>
+            </Flex>
           </React.Fragment>
         );
       })}
-      <FlamegraphTooltipTimelineInfo>
+      <Text variant="muted" ellipsis>
         {t('at')}{' '}
         {chart.timelineFormatter(
           configSpaceCursor[0] + chartView.configSpaceTransform[6]
         )}{' '}
-      </FlamegraphTooltipTimelineInfo>
+      </Text>
     </BoundTooltip>
   ) : null;
 }

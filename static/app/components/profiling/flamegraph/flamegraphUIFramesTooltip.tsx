@@ -2,8 +2,11 @@ import {useMemo} from 'react';
 import * as React from 'react';
 import type {vec2} from 'gl-matrix';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
@@ -11,11 +14,7 @@ import type {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRe
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
-import {
-  FlamegraphTooltipColorIndicator,
-  FlamegraphTooltipFrameMainInfo,
-  FlamegraphTooltipTimelineInfo,
-} from './flamegraphTooltip';
+import {FlamegraphTooltipColorIndicator} from './flamegraphTooltip';
 
 interface FlamegraphUIFramesTooltipProps {
   configSpaceCursor: vec2;
@@ -59,15 +58,17 @@ export function FlamegraphUIFramesTooltip({
 
         return (
           <React.Fragment key={i}>
-            <FlamegraphTooltipFrameMainInfo>
-              <FlamegraphTooltipColorIndicator backgroundColor={cssColor} />
-              {uiFrames.formatter(rect.width)}{' '}
-              {frame.type === 'frozen' ? t('frozen frame') : t('slow frame')}
-            </FlamegraphTooltipFrameMainInfo>
-            <FlamegraphTooltipTimelineInfo>
-              {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
-              {uiFrames.timelineFormatter(rect.right)}
-            </FlamegraphTooltipTimelineInfo>
+            <Flex direction="column" gap={space(1)}>
+              <Flex align="center" gap={space(1)}>
+                <FlamegraphTooltipColorIndicator backgroundColor={cssColor} />
+                {uiFrames.formatter(rect.width)}{' '}
+                {frame.type === 'frozen' ? t('frozen frame') : t('slow frame')}
+              </Flex>
+              <Text variant="muted" ellipsis>
+                {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
+                {uiFrames.timelineFormatter(rect.right)}
+              </Text>
+            </Flex>
           </React.Fragment>
         );
       })}

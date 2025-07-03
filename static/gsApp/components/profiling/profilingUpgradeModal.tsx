@@ -143,7 +143,6 @@ const Header = styled(({children, ...props}: {children: React.ReactNode}) => (
 
 const ModalLayout = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

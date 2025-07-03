@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -168,7 +168,9 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
+                <Heading as="h2" size="2xl" bold>
+                  {t('Find Slow Code')}
+                </Heading>
                 <SubTitle>
                   {t(
                     'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
@@ -383,11 +385,6 @@ const PulsingIndicator = styled('div')`
 
 const SubTitle = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`

@@ -1,11 +1,9 @@
 import {useCallback, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -83,9 +81,6 @@ function BoundTooltip({
   canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
-  const theme = useTheme();
-  const flamegraphTheme = useFlamegraphTheme();
-
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
@@ -108,7 +103,7 @@ function BoundTooltip({
   const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const onRef = useCallback(
-    (node: any) => {
+    (node: HTMLDivElement | null) => {
       if (node === null) {
         return;
       }
@@ -137,10 +132,6 @@ function BoundTooltip({
     <Tooltip
       ref={onRef}
       style={{
-        willChange: 'transform',
-        fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
-        fontFamily: flamegraphTheme.FONTS.FONT,
-        zIndex: theme.zIndex.tooltip,
         maxWidth: containerBoundsRef.current.width - 2 * WIDTH_OFFSET,
       }}
     >
@@ -150,18 +141,18 @@ function BoundTooltip({
 }
 
 const Tooltip = styled('div')`
+  z-index: ${p => p.theme.zIndex.tooltip};
   background: ${p => p.theme.background};
   position: absolute;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+
   overflow: hidden;
+
   pointer-events: none;
   user-select: none;
+  padding: ${space(1)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(0.25)} ${space(1)};
   border: 1px solid ${p => p.theme.border};
-  line-height: 24px;
-  font-size: ${p => p.theme.fontSize.sm};
+  will-change: transform;
 `;
 
 export {BoundTooltip};
