@@ -19,7 +19,12 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'messaging.destination.name', name: t('Queue Name'), width: COL_WIDTH_UNDEFINED},
+  {
+    key: 'transaction',
+    name: t('Job'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {key: 'messaging.destination.name', name: t('Queue Name'), width: 140},
   {key: 'count()', name: t('Processed'), width: 124},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {
@@ -50,6 +55,7 @@ export function JobsTable() {
       'count()',
       'project.id',
       'messaging.destination.name',
+      'transaction',
       'avg(messaging.message.receive.latency)',
       'avg_if(span.duration,span.op,queue.process)',
       'failure_rate()',
@@ -80,6 +86,13 @@ export function JobsTable() {
       switch (column.key) {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
+        case 'transaction':
+          return (
+            <JobCell
+              destination={dataRow['messaging.destination.name']}
+              transaction={dataRow.transaction}
+            />
+          );
         case 'failure_rate()':
           return (
             <ErrorRateCell
@@ -133,6 +146,26 @@ function DestinationCell({destination}: {destination: string}) {
       }}
     >
       {destination}
+    </Link>
+  );
+}
+
+function JobCell({destination, transaction}: {destination: string; transaction: string}) {
+  const moduleURL = useModuleURL('queue');
+  const {query} = useLocation();
+  return (
+    <Link
+      to={{
+        pathname: `${moduleURL}/destination/`,
+        query: {
+          ...query,
+          destination,
+          transaction,
+          'span.op': 'queue.process',
+        },
+      }}
+    >
+      {transaction}
     </Link>
   );
 }
