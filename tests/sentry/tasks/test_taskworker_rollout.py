@@ -11,7 +11,6 @@ from sentry.testutils.helpers.options import override_options
 class TestTaskworkerRollout(TestCase):
     def setUp(self):
         super().setUp()
-        # Create a fresh registry for each test to ensure isolation
         self.registry = TaskRegistry()
         self.namespace = self.registry.create_namespace(name="test_namespace")
         self.config = TaskworkerConfig(
