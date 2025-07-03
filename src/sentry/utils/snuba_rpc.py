@@ -50,7 +50,7 @@ SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
 SNUBA_INFO = (
     os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
 )
-_query_thread_pool = ThreadPoolExecutor(thread_name_prefix="_make_rpc_requests", max_workers=10)
+_query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10)
 
 
 @dataclass(frozen=True)

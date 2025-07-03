@@ -26,7 +26,7 @@ from sentry.snuba.spans_rpc import run_table_query
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 _query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix="OrganizationTraceItemsAttributesRankedEndpoint",
+    thread_name_prefix=__name__,
     max_workers=4,
 )
 

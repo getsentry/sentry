@@ -201,7 +201,7 @@ class TaskWorker:
 
         def result_thread() -> None:
             logger.debug("taskworker.worker.result_thread.started")
-            iopool = ThreadPoolExecutor(thread_name_prefix=__file__, max_workers=self._concurrency)
+            iopool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
                     try:

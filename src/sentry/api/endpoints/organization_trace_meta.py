@@ -23,7 +23,7 @@ from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
 
 # 1 worker for each query
 _query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix="OrganizationTraceMetaEndpoint",
+    thread_name_prefix=__name__,
     max_workers=3,
 )
 

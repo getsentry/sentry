@@ -368,9 +368,9 @@ def reset_snuba(call_snuba):
 
     assert all(
         response.status_code == 200
-        for response in ThreadPoolExecutor(
-            len(init_endpoints), thread_name_prefix="reset_snuba"
-        ).map(call_snuba, init_endpoints)
+        for response in ThreadPoolExecutor(len(init_endpoints), thread_name_prefix=__name__).map(
+            call_snuba, init_endpoints
+        )
     )
 
 

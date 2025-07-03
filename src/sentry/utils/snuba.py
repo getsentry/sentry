@@ -556,7 +556,7 @@ _snuba_pool = connection_from_url(
     maxsize=10,
 )
 _query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix="_bulk_snuba_query",
+    thread_name_prefix=__name__,
     max_workers=10,
 )
 
