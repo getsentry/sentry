@@ -16,6 +16,7 @@ import type {
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {
+  ASK_SEER_ITEM_KEY,
   AskSeerLabel,
   AskSeerListItem,
   AskSeerPane,
@@ -38,8 +39,6 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
-
-const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;

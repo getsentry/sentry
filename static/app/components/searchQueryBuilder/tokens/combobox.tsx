@@ -31,6 +31,7 @@ import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {
+  ASK_SEER_ITEM_KEY,
   AskSeerLabel,
   AskSeerListItem,
   AskSeerPane,
@@ -195,13 +196,13 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
       shouldFilterResults ? filterValue : '',
       maxOptions
     );
-    return showAskSeerOption ? options.add('ask_seer') : options;
+    return showAskSeerOption ? options.add(ASK_SEER_ITEM_KEY) : options;
   }, [items, shouldFilterResults, filterValue, maxOptions, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
     return showAskSeerOption
-      ? baseDisabledKeys.filter(key => key !== 'ask_seer')
+      ? baseDisabledKeys.filter(key => key !== ASK_SEER_ITEM_KEY)
       : baseDisabledKeys;
   }, [hiddenOptions, items, showAskSeerOption]);
 
@@ -266,7 +267,7 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
-      key: 'ask_seer',
+      key: ASK_SEER_ITEM_KEY,
       'aria-label': 'Ask Seer',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,

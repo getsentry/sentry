@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+export const ASK_SEER_ITEM_KEY = 'ask_seer';
+
 export const AskSeerPane = styled('div')`
   grid-area: seer;
   display: flex;
