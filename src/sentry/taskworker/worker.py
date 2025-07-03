@@ -298,7 +298,6 @@ class TaskWorker:
                     process = self.mp_context.Process(
                         name=f"taskworker-child-{i}",
                         target=child_process,
-                        daemon=True,
                         args=(
                             self._child_tasks,
                             self._processed_tasks,
