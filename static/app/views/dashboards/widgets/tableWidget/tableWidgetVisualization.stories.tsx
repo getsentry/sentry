@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -9,6 +8,7 @@ import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {
   TabularColumn,
   TabularData,
@@ -32,7 +32,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
       width: -1,
     },
   ];
-  const initParams = qs.parse(location.search);
+
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -117,13 +117,33 @@ ${JSON.stringify(aliases)}
     );
   });
 
-  story('Sorting by Column', () => {
+  story('Sorting', () => {
+    const location = useLocation();
+    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [sort, setSort] = useState<Sort>();
+    function onChangeSort(newSort: Sort) {
+      const sortedData: Array<TabularRow<string>> = Object.entries(
+        sampleHTTPRequestTableData.data
+      )
+        .sort(([, a], [, b]) => {
+          const aField = a?.[newSort.field] ?? 0;
+          const bField = b?.[newSort.field] ?? 0;
+          const value = newSort.kind === 'asc' ? 1 : -1;
+
+          if (aField < bField) return -value;
+          if (aField > bField) return value;
+          return 0;
+        })
+        .map(result => result[1]);
+      setSort(newSort);
+      setData({data: sortedData, meta: data.meta});
+    }
+
     const sortableColumns = customColumns.map(column => ({
       ...column,
       sortable: true,
       width: -1,
     }));
-    const [curSort, setSort] = useState<Sort | undefined>(undefined);
     return (
       <Fragment>
         <p>
@@ -148,18 +168,30 @@ columns={[{
           `}
         </CodeSnippet>
         <p>
+          This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
+          <code>sort</code> URL query parameter as a reference for sorting, which is why
+          most of the default behavior in this section is to fallback to the URL
+          parameter.{' '}
+          <i>
+            The table displays the rows in the order the data is provided and you are
+            responsible for ensuring the data is sorted.
+          </i>
+        </p>
+        <p>
           Sorting may require the display of a directional arrow. The table will try to
-          automatically determine the direction based on the <code>sort</code> location
-          query parameter. Note that the table only supports sorting by one column at a
-          time, so if multiple <code>sort</code> parameters are provided, it will choose
-          the first one.
+          automatically determine the direction based on the <code>sort</code> URL query
+          parameter. Note that the table only supports sorting by one column at a time, so
+          if multiple <code>sort</code> parameters are provided, it will choose the first
+          one.
         </p>
         <p>
           For an interactive example, click column headers below and pay attention to the
           parameter in the URL. Use the button to reset the parameter.
         </p>
         <ButtonContainer>
-          <LinkButton to={`?name=${initParams.name}`}>Clear sort parameter</LinkButton>
+          <LinkButton to={{...location, query: {...location.query, sort: undefined}}}>
+            Clear sort parameter
+          </LinkButton>
         </ButtonContainer>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -167,20 +199,11 @@ columns={[{
         />
         <p>
           If the sort is not stored in the parameter, then pass the <code>sort</code> prop
-          to correcly display the sort arrow direction. Similarly to the default
-          behaviour, only one sort is allowed. If both the prop and parameter are defined,
+          to correctly display the sort arrow direction. Similarly to the default
+          behavior, only one sort is allowed. If both the prop and parameter are defined,
           the table will prioritize the prop. You can test this by clicking column headers
           and note how the arrow doesn't change in the table below.
         </p>
-        <CodeSnippet language="tsx">
-          {`
-<TableWidgetVisualization
-  columns={...}
-  sort={{field: 'http.request_method', kind: 'desc'}}
-  tableData={...}
-/>
-        `}
-        </CodeSnippet>
         <br />
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
@@ -190,36 +213,50 @@ columns={[{
 
         <p>
           The default action when a sortable column header is clicked is to update the
-          <code>sort</code> location query parameter. If you wish to override the URL
-          update, you can pass <code>onSortChange</code> which accepts a<code>Sort</code>
+          <code>sort</code> URL query parameter. If you wish to override the URL update,
+          you can pass <code>onChangeSort</code> which accepts a<code>Sort</code>
           object that represents the newly selected sort. This and the <code>sort</code>
-          prop are useful if you need to manage internal state:
+          prop are useful if you need to manage internal state or perform custom sorting.
         </p>
-        <CodeSnippet language="tsx">
-          {`
-const [curSort, setSort] = useState<Sort | undefined>(undefined);
-<TableWidgetVisualization
-  columns={...}
-  tableData={...}
-  sort={curSort}
-  onSortChange={(sort: Sort) => setSort(sort)}
-/>
-        `}
-        </CodeSnippet>
         <p>
           Try clicking the column headers below!{' '}
           <b>
             Current sort is
-            <code>{curSort?.field ?? 'undefined'}</code> by
-            <code>{curSort?.kind ?? 'undefined'}</code> order
+            <code>{sort?.field ?? 'undefined'}</code> by
+            <code>{sort?.kind ?? 'undefined'}</code> order
           </b>
         </p>
         <TableWidgetVisualization
           columns={sortableColumns}
-          tableData={sampleHTTPRequestTableData}
-          sort={curSort}
-          onSortChange={(sort: Sort) => setSort(sort)}
+          tableData={data}
+          sort={sort}
+          onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
         />
+        <CodeSnippet language="tsx">
+          {`
+const [data, setData] = useState<TabularData>(...);
+const [sort, setSort] = useState<Sort | undefined>(undefined);
+
+// Performs sorting and updates internal state
+function onChangeSort(newSort: Sort) {
+  const sortedData: Array<TabularRow<string>> = Object.entries(
+    sampleHTTPRequestTableData.data
+  )
+    .sort(([, a], [, b]) => {
+      const aField = a?.[newSort.field] ?? 0;
+      const bField = b?.[newSort.field] ?? 0;
+      const value = newSort.kind === 'asc' ? 1 : -1;
+
+      if (aField < bField) return -value;
+      if (aField > bField) return value;
+      return 0;
+    })
+    .map(result => result[1]);
+  setSort(newSort);
+  setData({data: sortedData, meta: data.meta});
+}
+        `}
+        </CodeSnippet>
       </Fragment>
     );
   });
