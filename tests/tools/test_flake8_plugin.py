@@ -283,3 +283,13 @@ class MyClass:
             ...
 """
     assert _run(okay) == []
+
+
+def test_S014_checks_body_of_with():
+    notsure = """\
+with noop:
+    t = ThreadPoolExecutor()
+"""
+    assert _run(notsure) == [
+        "t.py:2:8: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."
+    ]
