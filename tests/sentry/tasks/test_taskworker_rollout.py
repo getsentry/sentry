@@ -7,16 +7,12 @@ from sentry.taskworker.registry import TaskRegistry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
-registry = TaskRegistry()
-
 
 class TestTaskworkerRollout(TestCase):
     def setUp(self):
         super().setUp()
-        if not registry.contains("test_namespace"):
-            self.namespace = registry.create_namespace(name="test_namespace")
-        else:
-            self.namespace = registry.get("test_namespace")
+        self.registry = TaskRegistry()
+        self.namespace = self.registry.create_namespace(name="test_namespace")
         self.config = TaskworkerConfig(
             namespace=self.namespace,
             retry=None,
