@@ -14,6 +14,7 @@ from sentry.conf.server import (
 )
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
+from sentry.net.retry import LoggedRetry
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
@@ -65,6 +66,10 @@ def get_similarity_data_from_seer(
         options.get("seer.similarity.circuit-breaker-config"),
     )
 
+    retries: LoggedRetry | None = None
+    if total := options.get("seer.similarity.grouping-ingest-retries"):
+        retries = LoggedRetry(logger=logger, total=total)
+
     try:
         response = make_signed_seer_api_request(
             seer_grouping_connection_pool,
@@ -72,7 +77,7 @@ def get_similarity_data_from_seer(
             json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
                 "utf8"
             ),
-            retries=options.get("seer.similarity.grouping-ingest-retries"),
+            retries=retries,
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
         )
