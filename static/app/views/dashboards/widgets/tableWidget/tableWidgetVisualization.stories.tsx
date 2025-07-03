@@ -235,7 +235,7 @@ columns={[{
         <CodeSnippet language="tsx">
           {`
 const [data, setData] = useState<TabularData>(...);
-const [sort, setSort] = useState<Sort | undefined>(undefined);
+const [sort, setSort] = useState<Sort>();
 
 // Performs sorting and updates internal state
 function onChangeSort(newSort: Sort) {
