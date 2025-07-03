@@ -39,8 +39,8 @@ export function EmailDetails({action}: {action: Action}) {
   if (target_type === ActionTarget.ISSUE_OWNERS) {
     return tct('Notify Suggested Assignees and, if none found, notify [fallthrough]', {
       fallthrough:
-        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthrough_type)
-          ?.label || String(action.data.fallthrough_type),
+        FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthroughType)
+          ?.label || String(action.data.fallthroughType),
     });
   }
 
@@ -79,8 +79,17 @@ function TargetTypeField() {
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(option: SelectValue<string>) => {
-        onUpdate({config: {target_type: option.value, target_identifier: undefined}});
+      onChange={(option: SelectValue<ActionTarget>) => {
+        onUpdate({
+          config: {
+            ...action.config,
+            target_type: option.value,
+            target_identifier: undefined,
+          },
+          ...(option.value === ActionTarget.ISSUE_OWNERS
+            ? {data: {fallthroughType: FallthroughChoiceType.ACTIVE_MEMBERS}}
+            : {}),
+        });
       }}
     />
   );
@@ -97,7 +106,10 @@ function IdentifierField() {
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) => {
-            onUpdate({config: {target_identifier: value.actor.id}, data: {}});
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            });
           }}
           useId
           styles={selectControlStyles}
@@ -113,7 +125,10 @@ function IdentifierField() {
           key={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}, data: {}})
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            })
           }
           styles={selectControlStyles}
         />
@@ -129,11 +144,11 @@ function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.data.fallthrough_type`}
-      value={action.data.fallthrough_type}
+      name={`${actionId}.data.fallthroughType`}
+      value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
       onChange={(option: SelectValue<string>) =>
-        onUpdate({data: {fallthrough_type: option.value}})
+        onUpdate({data: {fallthroughType: option.value}})
       }
     />
   );

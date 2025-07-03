@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';

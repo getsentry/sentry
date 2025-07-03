@@ -13,7 +13,6 @@ export const AI_RUN_OPS = [
   'ai.pipeline.stream_text',
   'ai.pipeline.stream_object',
 ];
-export const AI_RUN_DESCRIPTIONS = ['ai.generateText', 'generateText'];
 
 // AI Generations - equivalent to OTEL Inference span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#inference
@@ -40,11 +39,7 @@ export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 export const AI_TOOL_CALL_DESCRIPTIONS = ['ai.toolCall'];
 
 const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
-const AI_DESCRIPTIONS = [
-  ...AI_RUN_DESCRIPTIONS,
-  ...AI_GENERATION_DESCRIPTIONS,
-  ...AI_TOOL_CALL_DESCRIPTIONS,
-];
+const AI_DESCRIPTIONS = [...AI_GENERATION_DESCRIPTIONS, ...AI_TOOL_CALL_DESCRIPTIONS];
 
 export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
 export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE =
@@ -128,8 +123,8 @@ function joinValues(values: string[]) {
   return values.map(value => `"${value}"`).join(',');
 }
 
-export const getAgentRunsFilter = () => {
-  return `(span.op:[${joinValues(AI_RUN_OPS)}] or span.description:[${joinValues(AI_RUN_DESCRIPTIONS)}])`;
+export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) => {
+  return `${negated ? '!' : ''}span.op:[${joinValues(AI_RUN_OPS)}]`;
 };
 
 export const getAIGenerationsFilter = () => {
@@ -141,5 +136,5 @@ export const getAIToolCallsFilter = () => {
 };
 
 export const getAITracesFilter = () => {
-  return `has:${AI_MODEL_ID_ATTRIBUTE}`;
+  return `span.op:gen_ai.*`;
 };

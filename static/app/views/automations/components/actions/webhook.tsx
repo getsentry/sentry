@@ -41,6 +41,7 @@ function ServicesField() {
       onChange={(option: SelectValue<string>) => {
         onUpdate({
           config: {
+            ...action.config,
             target_identifier: option.value,
           },
         });
