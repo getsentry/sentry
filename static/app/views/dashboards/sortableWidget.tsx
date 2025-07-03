@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import type {User} from 'sentry/types/user';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -34,6 +35,7 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
+  onWidgetTableSort?: (sort: Sort) => void;
   windowWidth?: number;
 };
 
@@ -57,6 +59,7 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
+    onWidgetTableSort,
   } = props;
 
   const organization = useOrganization();
@@ -104,6 +107,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
+    onWidgetTableSort,
   };
 
   return (
