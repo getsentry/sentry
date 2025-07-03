@@ -84,7 +84,7 @@ typing-extensions>=4.9.0
 ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2.2.2
-vroomrs==0.1.6
+vroomrs==0.1.7
 pyuwsgi==2.0.28.post1
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
