@@ -1,5 +1,6 @@
 import time
 from time import sleep
+from typing import Any
 
 import orjson
 from arroyo.processing.strategies.noop import Noop
@@ -95,7 +96,7 @@ def create_memory_producer_factory():
     from arroyo.backends.local.storages.memory import MemoryMessageStorage
 
     # Create shared storage so we can inspect messages across producers
-    storage = MemoryMessageStorage()
+    storage = MemoryMessageStorage[Any]()
     broker = LocalBroker(storage)
 
     def producer_factory(producer_config):
