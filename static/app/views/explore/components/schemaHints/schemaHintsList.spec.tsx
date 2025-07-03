@@ -208,7 +208,7 @@ describe('SchemaHintsList', () => {
 
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_QUERY',
-      query: 'count_unique(user):>0',
+      query: 'count_unique(span.op):>0',
       focusOverride: {
         itemKey: 'filter:0',
         part: 'value',
