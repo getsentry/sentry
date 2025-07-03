@@ -594,7 +594,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
-        max_per_page = 1000 if dataset == ourlogs else None
+        max_per_page = 9999 if dataset == ourlogs else None
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
