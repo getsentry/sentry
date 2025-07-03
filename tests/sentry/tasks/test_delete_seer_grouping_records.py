@@ -72,3 +72,12 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             group_ids.append(group.id)
         call_delete_seer_grouping_records_by_hash(group_ids)
         mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_call_delete_seer_grouping_records_by_hash_no_group_ids(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        call_delete_seer_grouping_records_by_hash([])
+        mock_apply_async.assert_not_called()
