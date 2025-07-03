@@ -246,7 +246,7 @@ class SetJoinTimeout(ProcessingStrategy[TStrategyPayload]):
     def join(self, timeout: float | None = None) -> None:
         self.next_step.join(self.timeout)
 
-    def close(self):
+    def close(self) -> None:
         self.next_step.close()
 
     def terminate(self) -> None:
