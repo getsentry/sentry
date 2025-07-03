@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
 import {
@@ -70,7 +71,7 @@ export function JobsTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'messaging.destination.name'}
+        forceCellGrow={column.key === 'transaction'}
         cursorParamName="jobsCursor"
       >
         {column.name}
@@ -150,11 +151,16 @@ function DestinationCell({destination}: {destination: string}) {
   );
 }
 
+const StyledJobLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis};
+  min-width: 0;
+`;
+
 function JobCell({destination, transaction}: {destination: string; transaction: string}) {
   const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   return (
-    <Link
+    <StyledJobLink
       to={{
         pathname: `${moduleURL}/destination/`,
         query: {
@@ -166,6 +172,6 @@ function JobCell({destination, transaction}: {destination: string; transaction: 
       }}
     >
       {transaction}
-    </Link>
+    </StyledJobLink>
   );
 }
