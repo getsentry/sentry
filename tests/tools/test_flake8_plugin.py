@@ -234,51 +234,52 @@ from sentry.db.models.fields.array import ArrayField
     assert _run(src) == expected
 
 
-class TestDescribeS014:
-    def test_it_catches_global_assignment(self):
-        bad = """\
+def test_S014_catches_global_assignment():
+    bad = """\
 from concurrent.futures import ThreadPoolExecutor
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3)
 """
-        expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
-        assert _run(bad) == expected
+    expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
+    assert _run(bad) == expected
 
-        good = """\
+    good = """\
 from concurrent.futures import ThreadPoolExecutor
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix='xyz')
 """
-        assert _run(good) == []
+    assert _run(good) == []
 
-    def test_it_catches_module_import(self):
-        bad = """\
+
+def test_S014_catches_module_import():
+    bad = """\
 import concurrent.futures
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 """
-        expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
-        assert _run(bad) == expected
+    expected = ["t.py:4:21: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."]
+    assert _run(bad) == expected
 
-        good = """\
+    good = """\
 import concurrent.futures
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = concurrent.futures.ThreadPoolExecutor(thread_name_prefix='abc', max_workers=3)
 """
-        assert _run(good) == []
+    assert _run(good) == []
 
-    def test_it_dont_catches_immediate_with(self):
-        okay = """\
+
+def test_S014_immediate_with_is_okay():
+    okay = """\
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-class C:
-    def f():
+class MyClass:
+    def my_method(self):
         # Use a threadpool to send requests concurrently
         with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
             ...
 """
-        assert _run(okay) == []
+    assert _run(okay) == []
