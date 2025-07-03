@@ -79,4 +79,6 @@ const InformationColumn = styled(Column)`
 
 const ActionsColumn = styled(Column)`
   justify-content: flex-end;
+  min-width: max-content;
+  flex-shrink: 0;
 `;
