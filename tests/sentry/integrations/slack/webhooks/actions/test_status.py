@@ -41,9 +41,8 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@freeze_time(
-    "2025-01-01 00:00:00"
-)  # Prevent flakiness from timestamp mismatch when building linking URL
+# Prevent flakiness from timestamp mismatch when building linking URL
+@freeze_time()
 class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
