@@ -70,10 +70,9 @@ export function TestSuiteDropdown() {
           PLACEHOLDER_TEST_SUITES.every(suite => value.includes(suite));
         // Show 2 suites only if the combined string's length does not exceed 22.
         // Otherwise show only 1 test suite.
-        const suitesToShow =
-          value[0]?.length! + value[1]?.length! < 22
-            ? value.slice(0, 2)
-            : value.slice(0, 1);
+        const totalLength =
+          (value[0]?.length ?? 0) + (value[1]?.length ?? 0) + (value[1] ? 2 : 0);
+        const suitesToShow = totalLength < 22 ? value.slice(0, 2) : value.slice(0, 1);
         const enumeratedLabel = suitesToShow.map(env => trimSlug(env, 22)).join(', ');
 
         const label = areAllSuitesSelected ? t('All Test Suites') : enumeratedLabel;
