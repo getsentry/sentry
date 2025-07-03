@@ -621,8 +621,6 @@ type MetricsResponseRaw = {
 } & {
   [Property in MetricsStringFields as `${Property}`]: string;
 } & {
-  [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
-} & {
   ['project.id']: number;
 };
 export type MetricsResponse = Flatten<MetricsResponseRaw>;
