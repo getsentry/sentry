@@ -410,7 +410,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
           ),
           manual: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/#manual-instrumentation" />
           ),
         }
       )}
