@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
-    NotificationRenderedTemplate,
     NotificationSource,
     NotificationStrategy,
     NotificationTarget,
@@ -18,9 +17,18 @@ class MockNotification(NotificationData):
     message: str
 
 
-class MockNotificationTemplate(NotificationTemplate[MockNotification]):
-    def process(self, *, data: MockNotification) -> NotificationRenderedTemplate:
-        return data.message
+def mock_notification_loader(data: MockNotification) -> NotificationTemplate:
+    return NotificationTemplate(
+        subject="Mock Notification",
+        body=data.message,
+        actions=[
+            {
+                "label": "Visit Sentry",
+                "link": "https://www.sentry.io",
+            }
+        ],
+        footer="This is a mock footer",
+    )
 
 
 class MockStrategy(NotificationStrategy):

@@ -23,7 +23,7 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> SlackRenderable:
+    ](cls, *, data: DataT, template: NotificationTemplate) -> SlackRenderable:
         return {}
 
 

@@ -23,7 +23,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> MSTeamsRenderable:
+    ](cls, *, data: DataT, template: NotificationTemplate) -> MSTeamsRenderable:
         return {}
 
 
