@@ -1,4 +1,5 @@
 import {useLocation} from 'sentry/utils/useLocation';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
@@ -9,6 +10,7 @@ export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
   | typeof BACKEND_LANDING_SUB_PATH
   | typeof AI_LANDING_SUB_PATH
+  | typeof AGENTS_LANDING_SUB_PATH
   | typeof MOBILE_LANDING_SUB_PATH;
 
 const domainViews = [
@@ -16,6 +18,7 @@ const domainViews = [
   BACKEND_LANDING_SUB_PATH,
   AI_LANDING_SUB_PATH,
   MOBILE_LANDING_SUB_PATH,
+  AGENTS_LANDING_SUB_PATH,
 ];
 
 export type DomainViewFilters = {
