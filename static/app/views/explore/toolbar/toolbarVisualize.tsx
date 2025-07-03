@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -19,7 +16,11 @@ import {
   parseFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {
   useExploreVisualizes,
   useSetExploreVisualizes,
@@ -162,22 +163,34 @@ function VisualizeEquation({
   const expression = stripEquationPrefix(yAxis);
 
   const {tags: numberTags} = useTraceItemTags('number');
-
-  const aggregateFunctions: AggregateFunction[] = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-      name: aggregate,
-      label: aggregate,
-    }));
-  }, []);
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
-    return Object.entries(numberTags).map(([key, tag]) => {
-      return {
-        name: key,
-        label: tag.name,
-      };
-    });
-  }, [numberTags]);
+    return [
+      ...Object.entries(numberTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.MEASUREMENT,
+          name: key,
+          label: tag.name,
+        };
+      }),
+      ...Object.entries(stringTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.TAG,
+          name: key,
+          label: tag.name,
+        };
+      }),
+    ];
+  }, [numberTags, stringTags]);
+
+  const getSpanFieldDefinition = useCallback(
+    (key: string) => {
+      const tag = numberTags[key] ?? stringTags[key];
+      return getFieldDefinition(key, 'span', tag?.kind);
+    },
+    [numberTags, stringTags]
+  );
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -196,8 +209,9 @@ function VisualizeEquation({
   return (
     <ToolbarRow>
       <ArithmeticBuilder
-        aggregateFunctions={aggregateFunctions}
+        aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
         functionArguments={functionArguments}
+        getFieldDefinition={getSpanFieldDefinition}
         expression={expression}
         setExpression={handleExpressionChange}
       />

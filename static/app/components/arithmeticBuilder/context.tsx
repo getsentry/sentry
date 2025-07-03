@@ -5,23 +5,23 @@ import type {
   ArithmeticBuilderAction,
   FocusOverride,
 } from 'sentry/components/arithmeticBuilder/action';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import type {FieldDefinition} from 'sentry/utils/fields';
 
 interface ArithmeticBuilderContextData {
-  aggregateFunctions: AggregateFunction[];
+  aggregations: string[];
   dispatch: Dispatch<ArithmeticBuilderAction>;
   focusOverride: FocusOverride | null;
   functionArguments: FunctionArgument[];
+  getFieldDefinition: (key: string) => FieldDefinition | null;
 }
 
 export const ArithmeticBuilderContext = createContext<ArithmeticBuilderContextData>({
   dispatch: () => {},
   focusOverride: null,
-  aggregateFunctions: [],
+  aggregations: [],
   functionArguments: [],
+  getFieldDefinition: () => null,
 });
 
 export function useArithmeticBuilder() {

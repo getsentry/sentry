@@ -25,6 +25,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
@@ -71,6 +72,7 @@ export function ArithmeticTokenFunction({
           token={token}
           attribute={attribute}
           rowRef={ref}
+          argumentIndex={0}
         />
         {showUnfocusedState && (
           // Inject a floating span with the attribute name so when it's
@@ -87,6 +89,7 @@ export function ArithmeticTokenFunction({
 }
 
 interface InternalInputProps {
+  argumentIndex: number;
   attribute: TokenAttribute;
   item: Node<Token>;
   rowRef: RefObject<HTMLDivElement | null>;
@@ -94,7 +97,14 @@ interface InternalInputProps {
   token: TokenFunction;
 }
 
-function InternalInput({token, item, state, attribute, rowRef}: InternalInputProps) {
+function InternalInput({
+  argumentIndex,
+  token,
+  item,
+  state,
+  attribute,
+  rowRef,
+}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
@@ -111,10 +121,43 @@ function InternalInput({token, item, state, attribute, rowRef}: InternalInputPro
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch, functionArguments} = useArithmeticBuilder();
+  const {dispatch, functionArguments, getFieldDefinition} = useArithmeticBuilder();
+
+  const parameterDefinition = useMemo(
+    () => getFieldDefinition(token.function)?.parameters?.[argumentIndex],
+    [argumentIndex, getFieldDefinition, token]
+  );
+
+  const attributesFilter = useMemo(() => {
+    if (parameterDefinition && parameterDefinition.kind === 'column') {
+      const columnTypes = parameterDefinition.columnTypes;
+      return typeof columnTypes === 'function'
+        ? columnTypes
+        : (field: {key: string; valueType: FieldValueType}) =>
+            columnTypes.includes(field.valueType);
+    }
+    return () => false;
+  }, [parameterDefinition]);
+
+  const allowedAttributes = useMemo(() => {
+    return functionArguments.filter(functionArgument => {
+      const definition = getFieldDefinition(functionArgument.name);
+      const defaultType =
+        functionArgument.kind === FieldKind.MEASUREMENT
+          ? FieldValueType.NUMBER
+          : FieldValueType.STRING;
+      return (
+        definition &&
+        attributesFilter({
+          key: functionArgument.name,
+          valueType: definition?.valueType ?? defaultType,
+        })
+      );
+    });
+  }, [attributesFilter, functionArguments, getFieldDefinition]);
 
   const items = useAttributeItems({
-    allowedAttributes: functionArguments,
+    allowedAttributes,
     filterValue,
   });
 

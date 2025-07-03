@@ -18,6 +18,23 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+
+const aggregations = ['avg', 'sum', 'count', 'count_unique'];
+
+const functionArguments = [
+  {name: 'span.duration', kind: FieldKind.MEASUREMENT},
+  {name: 'span.self_time', kind: FieldKind.MEASUREMENT},
+  {name: 'span.op', kind: FieldKind.TAG},
+  {name: 'span.description', kind: FieldKind.TAG},
+];
+
+const getSpanFieldDefinition = (key: string) => {
+  const argument = functionArguments.find(
+    functionArgument => functionArgument.name === key
+  );
+  return getFieldDefinition(key, 'span', argument?.kind);
+};
 
 interface TokensProp {
   expression: string;
@@ -42,8 +59,9 @@ function Tokens(props: TokensProp) {
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
-        aggregateFunctions: [{name: 'avg'}, {name: 'sum'}, {name: 'count'}],
-        functionArguments: [{name: 'span.duration'}, {name: 'span.self_time'}],
+        aggregations,
+        functionArguments,
+        getFieldDefinition: getSpanFieldDefinition,
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -86,7 +104,7 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(4);
+      expect(screen.getAllByRole('option')).toHaveLength(5);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -109,7 +127,7 @@ describe('token', function () {
 
       await userEvent.click(input);
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(4);
+      expect(screen.getAllByRole('option')).toHaveLength(5);
       await userEvent.type(input, 'avg');
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
@@ -136,7 +154,7 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(4);
+      expect(screen.getAllByRole('option')).toHaveLength(5);
 
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
@@ -158,7 +176,7 @@ describe('token', function () {
       await userEvent.click(input);
 
       // typing should reduce the options avilable in the autocomplete
-      expect(screen.getAllByRole('option')).toHaveLength(4);
+      expect(screen.getAllByRole('option')).toHaveLength(5);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
@@ -490,6 +508,34 @@ describe('token', function () {
           name: 'avg(span.duration)',
         })
       ).not.toBeInTheDocument();
+    });
+
+    it('filters only compatible number attributes for some functions', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      await userEvent.click(input);
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]).toHaveTextContent('span.duration');
+      expect(options[1]).toHaveTextContent('span.self_time');
+      await userEvent.type(input, 'time');
+      expect(screen.getByRole('option')).toHaveTextContent('span.self_time');
+    });
+
+    it('filters only compatible string attributes for some functions', async function () {
+      render(<Tokens expression="count_unique(span.op)" />);
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      await userEvent.click(input);
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]).toHaveTextContent('span.op');
+      expect(options[1]).toHaveTextContent('span.description');
+      await userEvent.type(input, 'desc');
+      expect(screen.getByRole('option')).toHaveTextContent('span.description');
     });
   });
 
