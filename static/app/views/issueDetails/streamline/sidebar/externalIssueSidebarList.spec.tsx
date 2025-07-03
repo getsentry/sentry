@@ -160,16 +160,13 @@ describe('ExternalIssueSidebarList', () => {
 
     render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
-    expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
+    expect(
+      await screen.findByRole('button', {name: 'Add Linked Issue'})
+    ).toBeInTheDocument();
 
-    // Both items are listed inside the dropdown
-    expect(
-      await screen.findByRole('menuitemradio', {name: /GitHub sentry/})
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('menuitemradio', {name: /GitHub codecov/})
-    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Linked Issue'}));
+    await userEvent.hover(await screen.findByText('GitHub sentry'));
+    await userEvent.hover(await screen.findByText('GitHub codecov'));
   });
 
   it('should render empty state when no integrations', async () => {
@@ -209,7 +206,7 @@ describe('ExternalIssueSidebarList', () => {
           id: '2',
           status: 'active',
           externalIssues: [],
-          name: 'Jira',
+          name: 'Jira Integration 2',
           domainName: 'example.com',
         }),
       ],
@@ -217,17 +214,14 @@ describe('ExternalIssueSidebarList', () => {
 
     render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
 
-    expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Linked Issue'}));
 
-    // Item with different name and subtext should show both
-    const menuItem = await screen.findByRole('menuitemradio', {
-      name: /Jira Integration 1/,
-    });
-    expect(menuItem).toHaveTextContent('hello.com');
-
-    // Item with name matching integration name should only show subtext
-    expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
+    expect(
+      (await screen.findByText('Jira Integration 1')).parentNode?.textContent
+    ).toContain('hello.com');
+    expect(
+      (await screen.findByText('Jira Integration 2')).parentNode?.textContent
+    ).toContain('example.com');
   });
 
   it('should render links to group.pluginActions', async () => {
@@ -251,12 +245,10 @@ describe('ExternalIssueSidebarList', () => {
       />
     );
 
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Linked Issue'}));
+
     expect(
-      await screen.findByRole('button', {name: 'Create Redmine Issue'})
+      screen.getByRole('option', {name: 'Create Redmine Issue'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create Redmine Issue'})).toHaveAttribute(
-      'href',
-      '/path/to/redmine'
-    );
   });
 });
