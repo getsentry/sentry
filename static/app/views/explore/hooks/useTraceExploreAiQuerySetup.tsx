@@ -1,13 +1,12 @@
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
-export function TraceExploreAiQueryProvider({children}: {children: React.ReactNode}) {
+export function useTraceExploreAiQuerySetup() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const client = useApi();
@@ -46,10 +45,4 @@ export function TraceExploreAiQueryProvider({children}: {children: React.ReactNo
     projects,
     memberProjects,
   ]);
-
-  return (
-    <TraceExploreAiQueryContext.Provider value={{}}>
-      {children}
-    </TraceExploreAiQueryContext.Provider>
-  );
 }
