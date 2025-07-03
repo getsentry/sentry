@@ -298,6 +298,11 @@ export function useExploreSortBys(): Sort[] {
     : pageParams.sortBys;
 }
 
+export function useExploreAggregateSortBys(): Sort[] {
+  const pageParams = useExplorePageParams();
+  return pageParams.aggregateSortBys;
+}
+
 export function useExploreTitle(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.title;
