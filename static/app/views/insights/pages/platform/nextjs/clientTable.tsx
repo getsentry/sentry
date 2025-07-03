@@ -8,10 +8,13 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {EAP_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -58,8 +61,17 @@ export function ClientTable() {
   const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
+  const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation', 'default'];
+
+  const existingQuery = new MutableSearch('');
+  existingQuery.addOp('(');
+  existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+  existingQuery.addOp(')');
+  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValue('is_transaction', 'true');
+
   const tableDataRequest = useTableData({
-    query: `span.op:[pageload, navigation]`,
+    query: existingQuery.formatString(),
     fields: [
       'transaction',
       'project.id',
