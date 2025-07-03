@@ -191,7 +191,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
-      const sort = decodeSorts(widget.queries[0]?.orderby)[0];
+      const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
 
       return (
         <TableWrapper key={`table:${result.title}`}>
