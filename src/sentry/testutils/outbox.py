@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
 
 from sentry.hybridcloud.models.outbox import OutboxBase
-from sentry.hybridcloud.models.webhookpayload import THE_PAST, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import THE_PAST, DestinationType, WebhookPayload
 from sentry.hybridcloud.tasks.deliver_from_outbox import (
     enqueue_outbox_jobs,
     enqueue_outbox_jobs_control,
@@ -65,6 +65,7 @@ def assert_webhook_payloads_for_mailbox(
     request: WSGIRequest,
     mailbox_name: str,
     region_names: list[str],
+    destination_types: dict[DestinationType, int] | None = None,
 ):
     """
     A test method for asserting that a webhook payload is properly queued for
@@ -72,12 +73,13 @@ def assert_webhook_payloads_for_mailbox(
 
     :param request:
     :param mailbox_name: The mailbox name that messages should be found in.
-    :param region_names: The regions each messages should be queued for
+    :param region_names: Optional list of regions each messages should be queued for
+    :param destination_type: The destination type of the messages
     """
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
     region_names_set = set(region_names)
     messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
-    message_count = messages.count()
+    message_count = messages.filter(region_name__isnull=False).count()
     if message_count != len(region_names_set):
         raise Exception(
             f"Mismatch: Found {message_count} WebhookPayload but {len(region_names_set)} region_names"
@@ -89,12 +91,28 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_body == expected_payload["request_body"]
         assert message.schedule_for == THE_PAST
         assert message.attempts == 0
-        assert message.region_name is not None
-        try:
-            region_names_set.remove(message.region_name)
-        except KeyError:
-            raise Exception(
-                f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
-            )
+
+        if destination_types:
+            destination_type = DestinationType(message.destination_type)
+            assert destination_type in destination_types
+            destination_types[destination_type] -= 1
+            if destination_types[destination_type] == 0:
+                del destination_types[destination_type]
+
+        if message.destination_type == DestinationType.CODECOV:
+            assert message.region_name is None
+        else:
+            assert message.region_name is not None
+            try:
+                region_names_set.remove(message.region_name)
+            except KeyError:
+                raise Exception(
+                    f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
+                )
     if len(region_names_set) != 0:
         raise Exception(f"WebhookPayload not found for some region_names: {str(region_names_set)}")
+
+    if destination_types and len(destination_types) != 0:
+        raise Exception(
+            f"WebhookPayload not found for some destination_types: {str(destination_types)}"
+        )
