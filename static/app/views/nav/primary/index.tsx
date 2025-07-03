@@ -113,7 +113,7 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             <SidebarLink
-              to={`/${prefix}/insights/frontend/`}
+              to={`/${prefix}/insights/`}
               activeTo={`/${prefix}/insights`}
               analyticsKey="insights"
               group={PrimaryNavGroup.INSIGHTS}
