@@ -59,7 +59,7 @@ class TestFrameInfo:
     @pytest.mark.parametrize("filepath", LEGITIMATE_HTTP_FILENAMES)
     def test_legitimate_http_filenames_accepted(self, filepath: str) -> None:
         # These files contain "http" but should NOT be rejected
-        frame_info = FrameInfo({"filename": filepath})
+        frame_info = create_frame_info({"filename": filepath})
         assert frame_info.raw_path == filepath
 
     def test_raises_no_extension(self) -> None:
