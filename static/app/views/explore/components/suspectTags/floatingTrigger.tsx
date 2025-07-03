@@ -9,15 +9,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
+import type {ChartInfo} from 'sentry/views/explore/charts';
 import {Drawer} from 'sentry/views/explore/components/suspectTags/drawer';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
 type Props = {
   boxSelectOptions: BoxSelectOptions;
+  chartInfo: ChartInfo;
   triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
+export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}: Props) {
   const router = useRouter();
   const pageCoords = boxSelectOptions.pageCoords;
 
@@ -54,19 +56,22 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
   const handleFindSuspectAttributes = useCallback(() => {
     if (!isDrawerOpen) {
       setIsDrawerOpen(true);
-      openDrawer(() => <Drawer />, {
-        ariaLabel: t('Suspect Attributes Drawer'),
-        drawerKey: 'suspect-attributes-drawer',
-        resizable: true,
-        drawerCss: css`
-          height: calc(100% - ${space(4)});
-        `,
-        onClose: () => {
-          setIsDrawerOpen(false);
-        },
-      });
+      openDrawer(
+        () => <Drawer chartInfo={chartInfo} boxSelectOptions={boxSelectOptions} />,
+        {
+          ariaLabel: t('Suspect Attributes Drawer'),
+          drawerKey: 'suspect-attributes-drawer',
+          resizable: true,
+          drawerCss: css`
+            height: calc(100% - ${space(4)});
+          `,
+          onClose: () => {
+            setIsDrawerOpen(false);
+          },
+        }
+      );
     }
-  }, [isDrawerOpen, openDrawer]);
+  }, [boxSelectOptions, chartInfo, isDrawerOpen, openDrawer]);
 
   if (!pageCoords) return null;
 
