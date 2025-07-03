@@ -113,6 +113,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
+  _testContext?: Partial<LogsPageParams>;
   blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
@@ -128,6 +129,7 @@ export function LogsPageParamsProvider({
   blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
+  _testContext,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
@@ -207,6 +209,7 @@ export function LogsPageParamsProvider({
         groupBy,
         aggregateFn,
         aggregateParam,
+        ..._testContext,
       }}
     >
       {children}
@@ -237,7 +240,15 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
-    updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
+    if (
+      pageParams.sortBys ||
+      pageParams.search ||
+      pageParams.aggregateFn ||
+      pageParams.aggregateParam ||
+      pageParams.groupBy
+    ) {
+      updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
+    }
     if (pageParams.sortBys || pageParams.aggregateSortBys || pageParams.search) {
       // make sure to clear the cursor every time the query is updated
       delete target.query[LOGS_CURSOR_KEY];
@@ -511,14 +522,17 @@ export function useLogsAutoRefresh() {
 
 export function useSetLogsAutoRefresh() {
   const setPageParams = useSetLogsPageParams();
-  const {queryKey} = useLogsQueryKeyWithInfinite({referrer: 'api.explore.logs-table'});
+  const {queryKey} = useLogsQueryKeyWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+  });
   const queryClient = useQueryClient();
   return useCallback(
     (autoRefresh: boolean) => {
-      setPageParams({autoRefresh});
       if (autoRefresh) {
         queryClient.removeQueries({queryKey});
       }
+      setPageParams({autoRefresh});
     },
     [setPageParams, queryClient, queryKey]
   );
