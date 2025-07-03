@@ -23,9 +23,9 @@ export default function ReplayPreferenceDropdown({
 
   const SKIP_OPTION_VALUE = 'skip';
 
-  // Calculate adjusted duration for each speed
+  // Calculate adjusted duration for each speed (rounded up)
   const calculateAdjustedDuration = (originalDurationMs: number, speed: number) => {
-    return originalDurationMs / speed;
+    return Math.ceil(originalDurationMs / speed);
   };
 
   // Check if we should show duration (data is loaded and duration is available)
