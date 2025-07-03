@@ -1,0 +1,8 @@
+static/app/views/profiling/profileFlamechart.tsx:146:29
+static/app/views/profiling/landingAggregateFlamegraph.tsx:158:30
+static/app/views/profiling/landingAggregateFlamegraph.tsx:364:38
+static/app/views/profiling/differentialFlamegraph.tsx:344:41
+static/app/views/profiling/continuousProfileFlamegraph.tsx:145:29
+static/app/views/profiling/profileSummary/index.tsx:645:33
+static/app/views/profiling/landing/styles.tsx:34:33
+static/app/views/profiling/landing/slowestFunctionsWidget.tsx:515:32
