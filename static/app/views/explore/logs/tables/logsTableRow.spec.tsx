@@ -72,6 +72,7 @@ describe('logsTableRow', () => {
   const rowDetails = [
     ...Object.entries(rowData),
     ...Object.entries({
+      [OurLogKnownFieldKey.SPAN_ID]: 'faded0',
       [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: 'derp',
       [OurLogKnownFieldKey.CODE_LINE_NUMBER]: '10',
       [OurLogKnownFieldKey.CODE_FILE_PATH]: 'herp/merp/derp.py',
@@ -129,6 +130,9 @@ describe('logsTableRow', () => {
     // Check that the log body and timestamp are rendered
     expect(screen.getByText('test log body')).toBeInTheDocument();
     expect(screen.getByText('2025-04-03T15:50:10+00:00')).toBeInTheDocument();
+
+    // Check that the span ID is not rendered
+    expect(screen.queryByText('span_id')).not.toBeInTheDocument();
 
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');

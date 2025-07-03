@@ -101,16 +101,23 @@ export function Attributes({
       : undefined;
 
   const sortedAndFilteredAttributes = useMemo(() => {
-    const sorted = sortAttributes(attributes);
+    const sortedAttributes = sortAttributes(attributes);
+
+    const onlyVisibleAttributes = sortedAttributes.filter(
+      attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
+    );
+
     if (!searchQuery.trim()) {
-      return sorted;
+      return onlyVisibleAttributes;
     }
 
-    return sorted.filter(
-      attribute =>
-        !HIDDEN_ATTRIBUTES.includes(attribute.name) &&
-        attribute.name.toLowerCase().trim().includes(searchQuery.toLowerCase().trim())
-    );
+    const normalizedSearchQuery = searchQuery.toLowerCase().trim();
+
+    const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
+      return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
+    });
+
+    return onlyMatchingAttributes;
   }, [attributes, searchQuery]);
 
   const customRenderers: Record<
@@ -190,7 +197,6 @@ export function Attributes({
         {sortedAndFilteredAttributes.length > 0 ? (
           <AttributesTreeWrapper>
             <AttributesTree
-              hiddenAttributes={HIDDEN_ATTRIBUTES}
               columnCount={columnCount}
               attributes={sortedAndFilteredAttributes}
               renderers={customRenderers}
