@@ -202,7 +202,7 @@ function WebVitalsWidgetVisualization({
         differenceToPreviousPeriod={differenceToPreviousPeriod}
         text={text}
         width={260}
-        height={220}
+        height={240}
         y={46}
         x={60}
         size={130}
