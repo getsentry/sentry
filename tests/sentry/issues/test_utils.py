@@ -94,6 +94,7 @@ class StatusChangeTestMixin:
             "fingerprint": ["some-fingerprint"],
             "new_status": 1,
             "new_substatus": 1,
+            "detector_id": None,
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 

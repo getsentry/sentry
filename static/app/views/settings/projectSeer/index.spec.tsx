@@ -42,6 +42,22 @@ describe('ProjectSeer', function () {
       features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
     });
 
+    // Mock the seer setup check endpoint
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
@@ -256,6 +272,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium', // Start from medium
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -344,6 +361,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({

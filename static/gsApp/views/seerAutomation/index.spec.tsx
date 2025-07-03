@@ -8,6 +8,24 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SeerAutomationRoot from './index';
 
 describe('SeerAutomation', function () {
+  beforeEach(() => {
+    // Mock the seer setup check endpoint for all tests
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
@@ -17,6 +35,7 @@ describe('SeerAutomation', function () {
   it('can update the org default autofix automation tuning setting', async function () {
     const organization = OrganizationFixture({
       features: ['trigger-autofix-on-issue-summary'],
+      defaultSeerScannerAutomation: true,
     });
     const project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
@@ -53,9 +72,9 @@ describe('SeerAutomation', function () {
       select.focus();
     });
 
-    // Open the menu and select a new value (e.g., 'Only Super Highly Actionable Issues')
+    // Open the menu and select a new value (e.g., 'Only the Most Actionable Issues')
     await userEvent.click(select);
-    const option = await screen.findByText('Only Super Highly Actionable Issues');
+    const option = await screen.findByText('Only the Most Actionable Issues');
     await userEvent.click(option);
 
     act(() => {

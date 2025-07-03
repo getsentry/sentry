@@ -2,7 +2,7 @@ import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -17,7 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
   Aggregation,
@@ -77,7 +77,10 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<string>> {
+export function decodeColumnOrder(
+  fields: readonly Field[],
+  meta?: MetaType
+): Array<TableColumn<string>> {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
@@ -112,6 +115,12 @@ export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<s
         column.type = 'duration';
       }
     }
+
+    // If provided meta with field type, prioritize that over guessing
+    if (meta?.fields?.[column.key]) {
+      column.type = meta.fields[column.key];
+    }
+
     column.column = col;
 
     return column;
@@ -720,10 +729,8 @@ export function handleAddQueryToDashboard({
       limit: widgetAsQueryParams?.limit,
       widgetType,
     },
+    source,
     router,
-    // Previously undetected because the type relied on implicit any.
-    // @ts-expect-error TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
-    widgetAsQueryParams,
     location,
   });
   return;

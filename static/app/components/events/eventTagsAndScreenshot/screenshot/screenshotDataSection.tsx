@@ -6,11 +6,11 @@ import {
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -47,12 +47,17 @@ export function ScreenshotDataSection({
     },
     {enabled: !isShare}
   );
-  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots = attachments?.filter(attachment =>
+    attachment.name.includes('screenshot')
+  );
 
-  const showScreenshot = !isShare && !!screenshots.length;
+  const showScreenshot = !isShare && !!screenshots?.length;
+  if (!showScreenshot) {
+    return null;
+  }
+
   const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {

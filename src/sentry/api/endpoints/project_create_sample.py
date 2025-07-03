@@ -11,6 +11,11 @@ from sentry.api.serializers import serialize
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.utils.samples import create_sample_event
 
+# we have a more modern python example for python
+PLATFORM_MAPPING = {
+    "python": "python-modern",
+}
+
 
 @region_silo_endpoint
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
@@ -25,7 +30,10 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     def post(self, request: Request, project) -> Response:
         try:
             event = create_sample_event(
-                project, platform=project.platform, default="javascript", tagged=True
+                project,
+                platform=PLATFORM_MAPPING.get(project.platform, project.platform),
+                default="javascript",
+                tagged=True,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
 

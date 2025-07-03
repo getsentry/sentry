@@ -1,15 +1,18 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRoute,
+} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/insights/common/components/samplesTable/common';
@@ -22,7 +25,11 @@ import {
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
@@ -66,7 +73,10 @@ type SpanTableRow = {
     timestamp: string;
   };
   'transaction.span_id': string;
-} & SpanSample;
+} & SpanSample & {
+    [SpanIndexedField.PROFILER_ID]?: string;
+    [SpanIndexedField.PROFILE_ID]?: string;
+  };
 
 type Props = {
   avg: number;
@@ -191,16 +201,33 @@ export function SpanSamplesTable({
     }
 
     if (column.key === 'profile_id') {
+      const profileId =
+        row[SpanIndexedField.PROFILEID] || row[SpanIndexedField.PROFILE_ID];
+      const continuousProfilerId = row[SpanIndexedField.PROFILER_ID];
+      const link =
+        continuousProfilerId && row?.transaction
+          ? generateContinuousProfileFlamechartRouteWithQuery({
+              organization,
+              projectSlug: row.project,
+              profilerId: continuousProfilerId,
+              start: new Date(row?.transaction.timestamp).toISOString(),
+              end: new Date(
+                new Date(row?.transaction.timestamp).getTime() +
+                  row?.transaction['span.duration']
+              ).toISOString(),
+            })
+          : profileId
+            ? generateProfileFlamechartRoute({
+                organization,
+                projectSlug: row.project,
+                profileId,
+              })
+            : undefined;
       return (
         <IconWrapper>
-          {row.profile_id ? (
+          {link ? (
             <Tooltip title={t('View Profile')}>
-              <LinkButton
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/profiling/profile/${row.project}/${row.profile_id}/flamegraph/?spanId=${row.span_id}`
-                )}
-                size="xs"
-              >
+              <LinkButton to={link} size="xs">
                 <IconProfiling size="xs" />
               </LinkButton>
             </Tooltip>

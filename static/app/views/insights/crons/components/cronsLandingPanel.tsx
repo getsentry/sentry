@@ -226,7 +226,7 @@ export function CronsLandingPanel() {
 }
 
 const BackButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   margin: ${space(1)} 0 0 ${space(1)};
   padding-left: ${space(0.5)};

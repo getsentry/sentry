@@ -1,26 +1,31 @@
 import {useCallback, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-const SAMPLE_BRANCH_ITEMS = [
-  'main',
-  'branch-1',
-  'branch-2',
-  'this-is-a-really-long-branch-name-that-keeps-going-on-and-on-and-on',
-];
+const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
 
 export function BranchSelector() {
-  const {branch} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {branch, changeContextValue} = useCodecovContext();
+
+  // TODO: create endpoint that exposes repository's default branch
+  const defaultBranch = 'main';
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({branch: selectedOption.value});
+    },
+    [changeContextValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
@@ -39,16 +44,26 @@ export function BranchSelector() {
     return [...optionSet].map(makeOption);
   }, [branch]);
 
-  const handleChange = useCallback(
-    (newBranch: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        branch: newBranch.value,
-      };
-      setSearchParams(updatedParams);
+  const branchResetButton = useCallback(
+    ({closeOverlay}: any) => {
+      if (!branch || branch === defaultBranch) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            changeContextValue({branch: defaultBranch});
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset to default')}
+        </ResetButton>
+      );
     },
-    [searchParams, setSearchParams]
+    [branch, changeContextValue]
   );
 
   return (
@@ -56,6 +71,7 @@ export function BranchSelector() {
       options={options}
       value={branch ?? ''}
       onChange={handleChange}
+      menuHeaderTrailingItems={branchResetButton}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
@@ -65,12 +81,12 @@ export function BranchSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <FlexContainer>
+              <Flex align="center" gap={space(0.75)}>
                 <IconContainer>
                   <IconBranch />
                 </IconContainer>
                 <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
-              </FlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -100,13 +116,18 @@ const OptionLabel = styled('span')`
   }
 `;
 
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const ResetButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;

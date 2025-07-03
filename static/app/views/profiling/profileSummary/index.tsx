@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
@@ -15,7 +16,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -195,7 +195,7 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -335,14 +335,14 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [setFrameFilter]
   );
 
-  const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
+  const flamegraphFrameFilter = useMemo((): ((frame: Frame) => boolean) => {
     if (frameFilter === 'all') {
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const onResetFrameFilter = useCallback(() => {
@@ -785,8 +785,8 @@ const ProfileDigestHeader = styled('div')`
 
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
 `;
 

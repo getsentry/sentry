@@ -24,6 +24,7 @@ import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCou
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -45,6 +46,7 @@ import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummar
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
 import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
+import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -106,6 +108,9 @@ function TransactionHeader({
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
+        }
+        case Tab.WEB_VITALS: {
+          return vitalsRouteWithQuery(routeQuery);
         }
         case Tab.TRANSACTION_SUMMARY:
         default:
@@ -210,9 +215,6 @@ function TransactionHeader({
             <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
             <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
             <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-            <TabList.Item key={Tab.SPANS} hidden>
-              {t('Spans')}
-            </TabList.Item>
             <TabList.Item
               key={Tab.WEB_VITALS}
               textValue={t('Web Vitals')}
@@ -356,7 +358,9 @@ function TransactionHeader({
         <ButtonBar gap={1}>
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
-              hasFeature && !metricsCardinality?.isLoading ? (
+              hasFeature &&
+              !metricsCardinality?.isLoading &&
+              !deprecateTransactionAlerts(organization) ? (
                 <CreateAlertFromViewButton
                   size="sm"
                   eventView={eventView}
@@ -409,7 +413,6 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
                 key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}

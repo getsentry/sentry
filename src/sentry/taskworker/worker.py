@@ -217,7 +217,13 @@ class TaskWorker:
             next = self._send_update_task(result, fetch_next)
             if next:
                 try:
+                    start_time = time.monotonic()
                     self._child_tasks.put(next)
+                    metrics.distribution(
+                        "taskworker.worker.child_task.put.duration",
+                        time.monotonic() - start_time,
+                        tags={"processing_pool": self._processing_pool_name},
+                    )
                 except queue.Full:
                     logger.warning(
                         "taskworker.send_result.child_task_queue_full",
@@ -255,7 +261,7 @@ class TaskWorker:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 self._processed_tasks.put(result)
-            logger.exception(
+            logger.warning(
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
             )

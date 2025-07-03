@@ -74,7 +74,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.fontWeightBold,
+    fontWeight: p.theme.fontWeight.bold,
 
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
@@ -110,11 +110,12 @@ export function DO_NOT_USE_getChonkButtonStyles(
       borderRadius: 'inherit',
       border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
       transform: `translateY(-${chonkElevation(p.size)})`,
-      transition: 'transform 0.1s ease-in-out',
+      transition: 'transform 0.06s ease-in-out',
     },
 
     '&:focus-visible': {
       outline: 'none',
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
       '&::after': {
         border: `1px solid ${p.theme.focusBorder}`,

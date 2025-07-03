@@ -135,11 +135,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
 export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const FieldHelp = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

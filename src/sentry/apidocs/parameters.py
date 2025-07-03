@@ -95,6 +95,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         type=str,
         description="The name of environments to filter by.",
     )
+    EVENT_ID = OpenApiParameter(
+        name="event_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The event ID to look up.",
+    )
 
     @staticmethod
     def member_id(description: str) -> OpenApiParameter:
@@ -1106,4 +1113,12 @@ Available fields are:
         required=False,
         type=int,
         description="""The number of results to return from the end of the list.""",
+    )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        required=False,
+        type=str,
+        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
+        """,
     )

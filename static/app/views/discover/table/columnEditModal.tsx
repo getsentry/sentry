@@ -169,7 +169,7 @@ const Instruction = styled('div')`
 `;
 
 const modalCss = (theme: Theme) => css`
-  @media (min-width: ${theme.breakpoints.medium}) {
+  @media (min-width: ${theme.breakpoints.md}) {
     width: auto;
     max-width: 900px;
   }

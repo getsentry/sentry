@@ -10,10 +10,10 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -84,7 +84,7 @@ export function OverviewRow({
   });
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const monitorDetails = singleMonitorView ? null : (
@@ -279,7 +279,7 @@ const OwnershipDetails = styled('div')`
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UnassignedLabel = styled('div')`
@@ -294,7 +294,7 @@ const MonitorStatuses = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
@@ -304,7 +304,7 @@ const ScheduleDetails = styled('small')`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 interface TimelineRowProps {
@@ -350,7 +350,7 @@ const DetailsActions = styled('div')`
   opacity: 0;
 
   /* Align to the center of the heading text */
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
   margin: ${space(3)};
 
   /* Show when timeline is hovered / focused */
@@ -380,7 +380,7 @@ const EnvRow = styled('div')`
   gap: ${space(0.5)};
   justify-content: space-between;
   align-items: center;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
 `;
 
 const EnvActionButton = styled(Button)`
@@ -405,7 +405,7 @@ const TimelineEnvOuterContainer = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
   opacity: var(--disabled-opacity);
 `;
 

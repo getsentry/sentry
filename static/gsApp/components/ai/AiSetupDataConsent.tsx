@@ -5,13 +5,14 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
-import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconRefresh} from 'sentry/icons';
+import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
@@ -28,23 +29,36 @@ import {getPotentialProductTrial} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
-  groupId: string;
+  groupId?: string;
 };
 
 function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {data: autofixSetupData, hasAutofixQuota, refetch} = useAutofixSetup({groupId});
   const navigate = useNavigate();
   const subscription = useSubscription();
+
+  // Use group-specific setup if groupId is provided, otherwise use organization setup
+  const groupSetup = useAutofixSetup({groupId: groupId!}, {enabled: Boolean(groupId)});
+  const orgSetup = useOrganizationSeerSetup({enabled: !groupId});
+
+  // Determine which data to use based on whether groupId is provided
+  const isGroupMode = Boolean(groupId);
+  const setupData = isGroupMode ? groupSetup.data : null;
+  const hasAutofixQuota = isGroupMode
+    ? groupSetup.hasAutofixQuota
+    : orgSetup.billing.hasAutofixQuota;
+  const orgHasAcknowledged = isGroupMode
+    ? setupData?.setupAcknowledgement.orgHasAcknowledged
+    : orgSetup.setupAcknowledgement.orgHasAcknowledged;
+  const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
   const trial = getPotentialProductTrial(
     subscription?.productTrials ?? null,
     DataCategory.SEER_AUTOFIX
   );
 
-  const orgHasAcknowledged = autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
   const canStartTrial = Boolean(trial && !trial.isStarted);
@@ -59,6 +73,13 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   const userHasBillingAccess = organization.access.includes('org:billing');
 
+  const warnAboutGithubIntegration =
+    isGroupMode &&
+    !setupData?.integration.ok &&
+    shouldShowBilling &&
+    !isTouchCustomer &&
+    !hasSeerButNeedsPayg;
+
   const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
       return promptsUpdate(api, {
@@ -68,12 +89,18 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       });
     },
     onSuccess: () => {
-      // Make sure this query key doesn't go out of date with the one on the Sentry side!
-      queryClient.invalidateQueries({
-        queryKey: [
-          `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
-        ],
-      });
+      // Invalidate the appropriate query based on mode
+      if (isGroupMode && groupId) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+          ],
+        });
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: [`/organizations/${organization.slug}/seer/setup-check/`],
+        });
+      }
     },
   });
 
@@ -107,7 +134,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap={space(1)}>
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <StyledSeerWaitingIcon size="lg" />
+          <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -161,7 +188,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} column>
+                  <Flex gap={space(2)} direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -288,6 +315,13 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           </LegalText>
         )}
       </SingleCard>
+      {warnAboutGithubIntegration && (
+        <Alert type="warning">
+          {t(
+            'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+          )}
+        </Alert>
+      )}
     </ConsentItemsContainer>
   );
 }
@@ -317,12 +351,8 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-`;
-
-const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -336,12 +366,12 @@ const Paragraph = styled('p')`
 
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.pink400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(1)};
 `;

@@ -61,6 +61,12 @@ class AssembleTask:
     RELEASE_BUNDLE = "organization.artifacts"  # Release file upload
     ARTIFACT_BUNDLE = "organization.artifact_bundle"  # Artifact bundle upload
     PREPROD_ARTIFACT = "organization.preprod_artifact_bundle"  # Preprod artifact upload
+    PREPROD_ARTIFACT_SIZE_ANALYSIS = (
+        "organization.preprod_artifact_size_analysis"  # Preprod artifact size analysis upload
+    )
+    PREPROD_ARTIFACT_INSTALLABLE_APP = (
+        "organization.preprod_artifact_installable_app"  # Preprod artifact installable app upload
+    )
 
 
 class AssembleResult(NamedTuple):

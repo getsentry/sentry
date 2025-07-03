@@ -105,7 +105,10 @@ export interface OnboardingConfig<
       onPlatformOptionsChange?: (
         platformOptions: SelectedPlatformOptions<PlatformOptions>
       ) => void;
-      onProductSelectionChange?: (products: ProductSolution[]) => void;
+      onProductSelectionChange?: (params: {
+        previousProducts: ProductSolution[];
+        products: ProductSolution[];
+      }) => void;
       onProductSelectionLoad?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
@@ -113,6 +116,7 @@ export interface OnboardingConfig<
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
+  agentMonitoringOnboarding?: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;

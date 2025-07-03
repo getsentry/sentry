@@ -7,14 +7,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -67,26 +67,31 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
       </span>
       {' | '}
       <span>
-        <Subheading>{t('Fixes')}:</Subheading> {getSeerLabel(autofixAutomationTuning)}
+        <Subheading>{t('Fixes')}:</Subheading>{' '}
+        {getSeerLabel(autofixAutomationTuning, seerScannerAutomation)}
       </span>
     </SeerValue>
   );
 }
 
 const Subheading = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SeerSelectLabel = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-function getSeerLabel(key: string) {
+function getSeerLabel(key: string, seerScannerAutomation: boolean) {
+  if (!seerScannerAutomation) {
+    return t('Off');
+  }
+
   switch (key) {
     case 'off':
       return t('Off');
     case 'super_low':
-      return t('Only Super Highly Actionable Issues');
+      return t('Only the Most Actionable Issues');
     case 'low':
       return t('Highly Actionable and Above');
     case 'medium':
@@ -220,7 +225,7 @@ export function SeerAutomationProjectList() {
 
   const actionMenuItems = SEER_THRESHOLD_MAP.map(key => ({
     key,
-    label: <SeerSelectLabel>{getSeerLabel(key)}</SeerSelectLabel>,
+    label: <SeerSelectLabel>{getSeerLabel(key, true)}</SeerSelectLabel>,
     onAction: () => updateProjectsSeerValue(key),
   }));
 

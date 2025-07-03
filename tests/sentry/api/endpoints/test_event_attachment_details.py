@@ -35,10 +35,7 @@ class CreateAttachmentMixin(TestCase):
         attachment = CachedAttachment(
             name="hello.png", content_type="image/png; foo=bar", data=data
         )
-        file = EventAttachment.putfile(
-            self.project.id,
-            attachment,
-        )
+        file = EventAttachment.putfile(self.project.id, attachment)
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -50,7 +47,6 @@ class CreateAttachmentMixin(TestCase):
             size=file.size,
             sha1=file.sha1,
             # storage:
-            file_id=file.file_id,
             blob_path=file.blob_path,
         )
 

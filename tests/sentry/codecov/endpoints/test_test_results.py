@@ -39,6 +39,7 @@ class TestResultsEndpointTest(APITestCase):
                                         "node": {
                                             "updatedAt": "2025-05-22T16:21:18.763951+00:00",
                                             "avgDuration": 0.04066228070175437,
+                                            "totalDuration": 1.0,
                                             "lastDuration": 0.04066228070175437,
                                             "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_no_yaml",
                                             "failureRate": 0.0,
@@ -54,6 +55,7 @@ class TestResultsEndpointTest(APITestCase):
                                         "node": {
                                             "updatedAt": "2025-05-22T16:21:18.763961+00:00",
                                             "avgDuration": 0.034125877192982455,
+                                            "totalDuration": 1.0,
                                             "lastDuration": 0.034125877192982455,
                                             "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
                                             "failureRate": 0.0,
@@ -103,6 +105,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": 20,
             "last": None,
+            "before": None,
+            "after": None,
         }
 
         mock_codecov_client_instance.query.assert_called_once()
@@ -174,6 +178,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": 10,
             "last": None,
+            "before": None,
+            "after": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args
@@ -226,6 +232,8 @@ class TestResultsEndpointTest(APITestCase):
             },
             "first": None,
             "last": 5,
+            "before": None,
+            "after": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -24,17 +23,17 @@ function renderTextMessages(content: any) {
   }
   return content
     .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
+    .map((part: any) => part.text.trim())
     .join('\n');
 }
 
 function renderToolMessage(content: any) {
-  return <StructuredData value={content} maxDefaultDepth={2} withAnnotatedText />;
+  return content;
 }
 
 function parseAIMessages(messages: string) {
   try {
-    const array: any[] = JSON.parse(messages);
+    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
         switch (message.role) {
@@ -109,6 +108,32 @@ function transformInputMessages(inputMessages: string) {
   }
 }
 
+function transformPrompt(prompt: string) {
+  try {
+    const json = JSON.parse(prompt);
+    const result = [];
+    const {system, messages} = json;
+    if (system) {
+      result.push({
+        role: 'system',
+        content: system,
+      });
+    }
+    const parsedMessages = parseAIMessages(messages);
+    if (parsedMessages) {
+      result.push(...parsedMessages);
+    }
+    return JSON.stringify(result);
+  } catch (error) {
+    Sentry.captureMessage('Error parsing ai.prompt', {
+      extra: {
+        error,
+      },
+    });
+    return undefined;
+  }
+}
+
 const roleHeadings = {
   system: t('System'),
   user: t('User'),
@@ -131,7 +156,7 @@ export function AIInputSection({
   }
 
   let promptMessages = getTraceNodeAttribute(
-    'ai.prompt.messages',
+    'gen_ai.request.messages',
     node,
     event,
     attributes
@@ -143,12 +168,20 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages);
+  }
+  if (!promptMessages) {
+    const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
+    if (messages) {
+      promptMessages = transformPrompt(messages);
+    }
   }
 
-  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
 
-  if (!aiInput) {
+  const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+
+  if (!messages && !toolArgs) {
     return null;
   }
 
@@ -159,24 +192,34 @@ export function AIInputSection({
       disableCollapsePersistence
     >
       {/* If parsing fails, we'll just show the raw string */}
-      {typeof aiInput === 'string' ? (
+      {typeof messages === 'string' ? (
         <TraceDrawerComponents.MultilineText>
-          {aiInput}
+          {messages}
         </TraceDrawerComponents.MultilineText>
-      ) : (
+      ) : messages ? (
         <Fragment>
-          {aiInput.map((message, index) => (
+          {messages.map((message, index) => (
             <Fragment key={index}>
               <TraceDrawerComponents.MultilineTextLabel>
                 {roleHeadings[message.role]}
               </TraceDrawerComponents.MultilineTextLabel>
-              <TraceDrawerComponents.MultilineText>
-                {message.content}
-              </TraceDrawerComponents.MultilineText>
+              {typeof message.content === 'string' ? (
+                <TraceDrawerComponents.MultilineText>
+                  {message.content}
+                </TraceDrawerComponents.MultilineText>
+              ) : (
+                <TraceDrawerComponents.MultilineJSON
+                  value={message.content}
+                  maxDefaultDepth={2}
+                />
+              )}
             </Fragment>
           ))}
         </Fragment>
-      )}
+      ) : null}
+      {toolArgs ? (
+        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+      ) : null}
     </FoldSection>
   );
 }

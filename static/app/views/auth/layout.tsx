@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';

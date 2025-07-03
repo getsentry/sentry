@@ -53,7 +53,7 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -80,7 +80,7 @@ interface ReplayReaderParams {
   /**
    * The root Replay event, created at the start of the browser session.
    */
-  replayRecord: ReplayRecord | undefined;
+  replayRecord: HydratedReplayRecord | undefined;
 
   /**
    * If provided, the replay will be clipped to this window.
@@ -304,7 +304,7 @@ export default class ReplayReader {
   private _errors: ErrorFrame[] = [];
   private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
-  private _replayRecord: ReplayRecord;
+  private _replayRecord: HydratedReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];

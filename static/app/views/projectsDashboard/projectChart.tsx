@@ -22,7 +22,13 @@ type Props = {
   transactionStats?: Project['transactionStats'];
 };
 
-function ProjectChart({firstEvent, stats, transactionStats, onBarClick, project}: Props) {
+export function ProjectChart({
+  firstEvent,
+  stats,
+  transactionStats,
+  onBarClick,
+  project,
+}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
   const navigate = useNavigate();
@@ -198,5 +204,3 @@ const constructErrorsLink = (
     `/organizations/${organization.slug}/issues/?project=${project.id}&start=${start.toISOString()}&end=${end.toISOString()}`
   );
 };
-
-export default ProjectChart;

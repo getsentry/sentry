@@ -51,6 +51,7 @@ export enum TraceViewSources {
   DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
   LOGS = 'logs',
+  AGENT_MONITORING = 'agent_monitoring',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.

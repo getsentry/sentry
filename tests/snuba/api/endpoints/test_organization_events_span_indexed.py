@@ -918,8 +918,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "trace",
                     "transaction.span_id",
                 ],
-                # This is to skip INP spans
-                "query": "!transaction.span_id:00",
                 "orderby": "timestamp",
                 "statsPeriod": "1h",
                 "project": self.project.id,
@@ -2426,8 +2424,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     "trace",
                     "transaction.span_id",
                 ],
-                # This is to skip INP spans
-                "query": "!transaction.span_id:00",
                 "orderby": "timestamp",
                 "statsPeriod": "1h",
                 "project": self.project.id,
@@ -4974,7 +4970,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -5005,6 +5004,159 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "span.status": "success",
                 "description": "foo",
                 equation: 2,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
+
+    def test_equation_single_function_term(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|count()"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                equation: 1,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                equation: 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "integer"
+
+    def test_equation_single_field_term(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"lcp": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"lcp": {"value": 1}},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|measurements.lcp"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation, "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+                equation: 1,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+                equation: 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "duration"
+
+    def test_equation_single_literal(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|3.14159"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation, "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+                equation: 3.14159,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+                equation: 3.14159,
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -5063,7 +5215,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -5488,10 +5643,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"file_extension": "css"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"file_extension": "css"}},
+                    start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"file_extension": "js"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"file_extension": "js"}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
@@ -5515,3 +5672,210 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["file_extension"] == "css"
         assert data[1]["file_extension"] == "js"
         assert meta["dataset"] == self.dataset
+
+    def test_filter_timestamp(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+        three_days_ago = before_now(days=3).replace(microsecond=0)
+
+        span1 = self.create_span({}, start_ts=one_day_ago)
+        span2 = self.create_span({}, start_ts=three_days_ago)
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["timestamp"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": one_day_ago.isoformat(),
+            },
+        ]
+
+        timestamp = before_now(days=2).isoformat()
+        timestamp = timestamp.split("T", 2)[0]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:>{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": one_day_ago.isoformat(),
+            },
+        ]
+
+        response = self.do_request(
+            {
+                **request,
+                "query": f"timestamp:<{timestamp}",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "timestamp": three_days_ago.isoformat(),
+            },
+        ]
+
+    def test_disable_extrapolation(self):
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "orderby": "-count()",
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "disableAggregateExtrapolation": 1,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
+        assert data[0]["count()"] == 1
+        assert "count()" not in confidence[0]
+        assert data[1]["count()"] == 1
+        assert "count()" not in confidence[1]
+
+    def test_failure_count(self):
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status": status}},
+                    start_ts=self.ten_mins_ago,
+                )
+                for status in trace_statuses
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_count()"] == 1
+        assert meta["dataset"] == self.dataset
+
+    def test_short_trace_id_filter(self):
+        trace_ids = [
+            "0" * 32,
+            ("7" * 31) + "0",
+            "7" * 32,
+            ("7" * 31) + "f",
+            "f" * 32,
+        ]
+        self.store_spans(
+            [
+                self.create_span(
+                    {"trace_id": trace_id},
+                    start_ts=self.ten_mins_ago,
+                )
+                for trace_id in trace_ids
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for i in range(8, 32):
+            response = self.do_request(
+                {
+                    "field": ["trace"],
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "query": f"trace:{'7' * i}",
+                    "orderby": "trace",
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert {row["trace"] for row in data} == {
+                ("7" * 31) + "0",
+                "7" * 32,
+                ("7" * 31) + "f",
+            }
+
+    def test_eps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "eps()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "eps()": 1 / (90 * 24 * 60 * 60),
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "eps()": "1/second"}
+        assert meta["fields"] == {"description": "string", "eps()": "rate"}

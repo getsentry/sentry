@@ -112,10 +112,19 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_APP_STARTS_DEVICE_CLASS_BREAKDOWN_BAR_CHART = (
+        "api.insights.appstarts.device-class-breakdown-bar-chart"
+    )
+    API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
+        "api.insights.app-starts.mobile-startup-bar-chart"
+    )
     API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
+    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
+    API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
+    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
@@ -164,6 +173,8 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
     API_PERFORMANCE_EVENTS_FACETS_STATS = (
         "api.organization-events-facets-stats-performance.top-tags"
     )
@@ -189,9 +200,15 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_RESOURCES_RESOURCE_SUMMARY_METRICS_RIBBON = (
         "api.performance.browser.resources.resource-summary-metrics-ribbon"
     )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROFILE_EXISTS = (
+        "api.performance.browser.web-vitals.profile-exists"
+    )
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
         "api.performance.browser.web-vitals.project-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
     )
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
         "api.performance.browser.web-vitals.transaction"
@@ -396,6 +413,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR = "api.performance.transaction-name-search-bar"
     API_PERFORMANCE_TRANSACTION_SPANS = "api.performance.transaction-spans"
     API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION = "api.performance.transaction-summary.duration"
+    API_PERFORMANCE_TRANSACTION_SUMMARY_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.transaction-summary.metrics-enhanced.primary"
+    )
     API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART_METRICS_ENHANCED = (
         "api.performance.transaction-summary.sidebar-chart.metrics-enhanced"
     )
@@ -418,6 +438,7 @@ class Referrer(StrEnum):
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
+    API_PROFILING_ONBOARDING = "profiling-onboarding"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
@@ -470,6 +491,7 @@ class Referrer(StrEnum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
     API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
     API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
@@ -653,6 +675,7 @@ class Referrer(StrEnum):
     )
 
     # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_OVERVIEW_API_TABLE = "api.performance.backend.overview.api-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART = (
         "api.performance.backend.overview.requests-chart"
     )
@@ -660,11 +683,19 @@ class Referrer(StrEnum):
         "api.performance.backend.overview.duration-chart"
     )
     API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PAGES_TABLE = "api.performance.backend.overview.pages-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART = (
         "api.performance.backend.overview.queries-chart"
     )
     API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_CLIENT_TABLE = "api.performance.backend.overview.client-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
+    API_PERFORMNACE_BACKEND_OVERVIEW_SLOW_SSR_CHART = (
+        "api.performance.backend.overview.slow-ssr-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
+        "api.performance.backend.overview.web-vitals-chart"
+    )
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -774,6 +805,7 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
 
+    INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
@@ -864,6 +896,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
+    REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -1034,16 +1067,23 @@ VALUES = {referrer.value for referrer in Referrer}
 VALID_SUFFIXES = ["primary", "secondary"]
 
 
-def validate_referrer(referrer: str | None) -> None:
+def is_valid_referrer(referrer: str | None) -> bool:
     if not referrer:
-        return
+        return True
 
     if referrer in VALUES:
-        return
+        return True
 
     for suffix in VALID_SUFFIXES:
         if referrer.removesuffix(f".{suffix}") in VALUES:
-            return
+            return True
+
+    return False
+
+
+def validate_referrer(referrer: str | None) -> bool:
+    if is_valid_referrer(referrer):
+        return True
 
     error_message = f"referrer {referrer} is not part of Referrer Enum"
 
@@ -1052,3 +1092,5 @@ def validate_referrer(referrer: str | None) -> None:
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
+
+    return False

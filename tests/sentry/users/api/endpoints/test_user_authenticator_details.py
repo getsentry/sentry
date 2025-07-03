@@ -294,7 +294,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         user = self.create_user(email="a@example.com", is_superuser=True)
 
         with override_options({"sms.twilio-account": "twilio-account"}):
-            auth = Authenticator.objects.create(type=2, user=user)  # sms
+            auth = Authenticator.objects.create(type=2, user=user, config={})  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 user, ignore_backup=True
             )
@@ -313,7 +313,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         staff_user = self.create_user(email="a@example.com", is_staff=True)
 
         with override_options({"sms.twilio-account": "twilio-account"}):
-            auth = Authenticator.objects.create(type=2, user=staff_user)  # sms
+            auth = Authenticator.objects.create(type=2, user=staff_user, config={})  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 staff_user, ignore_backup=True
             )
@@ -330,7 +330,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
     def test_cannot_delete_without_superuser_or_staff(self):
         user = self.create_user(email="a@example.com", is_superuser=False, is_staff=False)
-        auth = Authenticator.objects.create(type=3, user=user)  # u2f
+        auth = Authenticator.objects.create(type=3, user=user, config={})  # u2f
 
         actor = self.create_user(email="b@example.com", is_superuser=False, is_staff=False)
         self.login_as(user=actor)

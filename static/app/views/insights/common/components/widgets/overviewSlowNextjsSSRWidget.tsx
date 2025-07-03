@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -73,7 +73,7 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
   const hasData =
     spansRequest.data && spansRequest.data.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const aliases = Object.fromEntries(
     spansRequest.data?.map(item => [item['span.group'], item['span.description']]) ?? []

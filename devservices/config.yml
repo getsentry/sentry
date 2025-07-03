@@ -3,6 +3,9 @@ x-sentry-service-config:
   version: 0.1
   service_name: sentry
   dependencies:
+    #########################################################
+    # Docker Compose Services
+    #########################################################
     snuba:
       description: Service that provides fast aggregation and query capabilities on top of Clickhouse
       remote:
@@ -10,6 +13,20 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
+    snuba-profiling:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes profiling consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-profiles
+    snuba-metrics:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes metrics consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-metrics-dev
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -32,6 +49,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/symbolicator.git
         mode: default
+    launchpad:
+      description: Service for analyzing iOS and Android apps
+      remote:
+        repo_name: launchpad
+        branch: main
+        repo_link: https://github.com/getsentry/launchpad.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
@@ -62,37 +86,260 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    #########################################################
+    # Supervisor Programs
+    #########################################################
+    # Taskworker services
     taskworker:
       description: Workers that process tasks from the taskbroker
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
+    # Kafka consumer services for event ingestion
+    ingest-events:
+      description: Kafka consumer for processing ingested events
+    ingest-attachments:
+      description: Kafka consumer for processing ingested attachments
+    ingest-transactions:
+      description: Kafka consumer for processing ingested transactions
+    ingest-monitors:
+      description: Kafka consumer for processing monitor check-ins
+    ingest-profiles:
+      description: Kafka consumer for processing profiling data
+    ingest-occurrences:
+      description: Kafka consumer for processing issue occurrences
+    ingest-feedback-events:
+      description: Kafka consumer for processing user feedback events
+    # Monitor-related services
+    monitors-clock-tick:
+      description: Kafka consumer for monitor clock ticks
+    monitors-clock-tasks:
+      description: Kafka consumer for monitor clock tasks
+    monitors-incident-occurrences:
+      description: Kafka consumer for monitor incident occurrences
+    # Spans and performance monitoring
+    process-spans:
+      description: Kafka consumer for processing spans data
+    process-segments:
+      description: Kafka consumer for processing performance segments
+    # Metrics-related consumers
+    ingest-metrics:
+      description: Kafka consumer for processing metrics data
+    ingest-generic-metrics:
+      description: Kafka consumer for processing generic metrics
+    billing-metrics-consumer:
+      description: Kafka consumer for billing metrics processing
+    # Post-processing forwarders
+    post-process-forwarder-errors:
+      description: Post-process forwarder for error events
+    post-process-forwarder-transactions:
+      description: Post-process forwarder for transaction events
+    post-process-forwarder-issue-platform:
+      description: Post-process forwarder for issue platform events
+    # Subscription results consumers
+    eap-spans-subscription-results:
+      description: Kafka consumer for processing subscription results for spans
+    subscription-results-eap-items:
+      description: Kafka consumer for processing subscription results for eap items
+    metrics-subscription-results:
+      description: Kafka consumer for processing subscription results for metrics
+    generic-metrics-subscription-results:
+      description: Kafka consumer for processing subscription results for generic metrics
+    # Uptime monitoring
+    uptime-results:
+      description: Kafka consumer for uptime monitoring results
+    worker:
+      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad]
     taskbroker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
-    profiling: [postgres, snuba, vroom, spotlight]
-    minimal: [postgres, snuba]
-    full:
+    tracing:
+      [
+        postgres,
+        snuba-metrics,
+        relay,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        eap-spans-subscription-results,
+        subscription-results-eap-items,
+        metrics-subscription-results,
+        generic-metrics-subscription-results,
+        process-spans,
+        ingest-occurrences,
+        process-segments,
+        worker,
+      ]
+    crons:
       [
         postgres,
         snuba,
         relay,
-        redis,
-        redis-cluster,
-        symbolicator,
-        taskbroker,
-        rabbitmq,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        worker,
+      ]
+    profiling:
+      [
+        postgres,
+        snuba-profiling,
+        relay,
         vroom,
         spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-profiles,
+        ingest-occurrences,
+        worker,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
       ]
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        worker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+      ]
+    minimal: [postgres, snuba]
+    ingest-all:
+      [
+        billing-metrics-consumer,
+        ingest-attachments,
+        ingest-events,
+        ingest-feedback-events,
+        ingest-generic-metrics,
+        ingest-metrics,
+        ingest-monitors,
+        ingest-occurrences,
+        ingest-profiles,
+        ingest-transactions,
+        monitors-clock-tasks,
+        monitors-clock-tick,
+        monitors-incident-occurrences,
+        post-process-forwarder-errors,
+        post-process-forwarder-issue-platform,
+        post-process-forwarder-transactions,
+        postgres,
+        process-segments,
+        process-spans,
+        relay,
+        snuba,
+        spotlight,
+        worker,
+        vroom,
+      ]
+    full:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        vroom,
+        ingest-events,
+        ingest-attachments,
+        ingest-transactions,
+        ingest-monitors,
+        ingest-feedback-events,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        ingest-profiles,
+        ingest-occurrences,
+        process-spans,
+        process-segments,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
+        uptime-results,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        taskworker,
+        taskworker-scheduler,
+        worker,
+      ]
+
+x-programs:
+  devserver:
+    command: sentry devserver
+  taskworker:
+    command: sentry run taskworker --autoreload
+  taskworker-scheduler:
+    command: sentry run taskworker-scheduler
+  ingest-events:
+    command: sentry run consumer ingest-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-attachments:
+    command: sentry run consumer ingest-attachments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-transactions:
+    command: sentry run consumer ingest-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-monitors:
+    command: sentry run consumer ingest-monitors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tick:
+    command: sentry run consumer monitors-clock-tick --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tasks:
+    command: sentry run consumer monitors-clock-tasks --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-incident-occurrences:
+    command: sentry run consumer monitors-incident-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-profiles:
+    command: sentry run consumer ingest-profiles --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-occurrences:
+    command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-spans:
+    command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-segments:
+    command: sentry run consumer process-segments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  uptime-results:
+    command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-metrics:
+    command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-generic-metrics:
+    command: sentry run consumer ingest-generic-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  billing-metrics-consumer:
+    command: sentry run consumer billing-metrics-consumer --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-errors:
+    command: sentry run consumer post-process-forwarder-errors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-transactions:
+    command: sentry run consumer post-process-forwarder-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-issue-platform:
+    command: sentry run consumer post-process-forwarder-issue-platform --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-feedback-events:
+    command: sentry run consumer ingest-feedback-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  eap-spans-subscription-results:
+    command: sentry run consumer eap-spans-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  subscription-results-eap-items:
+    command: sentry run consumer subscription-results-eap-items --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  metrics-subscription-results:
+    command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  generic-metrics-subscription-results:
+    command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  worker:
+    command: sentry run worker -c 1 --autoreload
 
 services:
   postgres:

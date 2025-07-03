@@ -159,6 +159,14 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   sampling: [DiscardReason.TRANSACTION_SAMPLED],
 };
 
+function getFilteredReasonGroupName(reason: string): string {
+  if (reason.startsWith('Sampled:')) {
+    return 'dynamic sampling';
+  }
+
+  return startCase(reason);
+}
+
 function getInvalidReasonGroupName(reason: string): string {
   // 1. Check if there is a direct match in the `invalidReasonsGroup`
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
@@ -234,7 +242,7 @@ export function getReasonGroupName(outcome: string | number, reason: string): st
     case Outcome.ABUSE:
       return getRateLimitedReasonGroupName(reason as RateLimitedReason);
     case Outcome.FILTERED:
-      return startCase(reason);
+      return getFilteredReasonGroupName(reason);
     case Outcome.CLIENT_DISCARD:
       return getClientDiscardReasonGroupName(reason as ClientDiscardReason);
     default:

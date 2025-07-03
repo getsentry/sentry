@@ -16,9 +16,10 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import type {Theme} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
@@ -78,10 +79,6 @@ export type UsageChartProps = {
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-  /**
-   * Override chart colors for each outcome
-   */
-  categoryColors?: string[];
   /**
    * Config for category dropdown options
    */
@@ -269,6 +266,19 @@ function chartMetadata({
   };
 }
 
+const outputChartColors = (theme: Theme) => {
+  return isChonkTheme(theme)
+    ? theme.chart.getColorPalette(5)
+    : ([
+        theme.chart.colors[5][0],
+        theme.chart.colors[5][2],
+        theme.chart.colors[5][3],
+        theme.chart.colors[5][4],
+        theme.chart.colors[5][5],
+        theme.chartOther, // Projected
+      ] as const);
+};
+
 function UsageChartBody({
   usageDateStart,
   usageDateEnd,
@@ -277,7 +287,6 @@ function UsageChartBody({
   dataTransform,
   chartSeries,
   chartTooltip,
-  categoryColors,
   isLoading,
   isError,
   errors,
@@ -368,16 +377,7 @@ function UsageChartBody({
     return legend;
   }
 
-  const colors = categoryColors?.length
-    ? categoryColors
-    : [
-        theme.outcome[Outcome.ACCEPTED],
-        theme.outcome[Outcome.FILTERED],
-        theme.outcome[Outcome.RATE_LIMITED],
-        theme.outcome[Outcome.INVALID],
-        theme.outcome[Outcome.CLIENT_DISCARD],
-        theme.chartOther, // Projected
-      ];
+  const colors = outputChartColors(theme);
 
   const series: SeriesOption[] = [
     barSeries({
@@ -528,5 +528,5 @@ const ErrorMessages = styled('div')`
   flex-direction: column;
 
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
