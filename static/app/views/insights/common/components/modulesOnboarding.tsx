@@ -326,9 +326,9 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     description: t(
       'Key metrics for for mobile development that help you ensure a great mobile user experience.'
     ),
-    valuePropDescription: '',
+    valuePropDescription: t('With Mobile Vitals:'),
     valuePropPoints: [
-      t('Recommendations for key mobile metrics based on industry standards.'),
+      t('Get recommendations for key mobile metrics based on industry standards.'),
       t('Track the performance of your application on real user devices.'),
       t('Understand the full lifecycle of an app, from startup to user interactions.'),
     ],
