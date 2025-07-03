@@ -9,6 +9,7 @@ const functionArguments = [
   {name: 'span.duration', kind: FieldKind.MEASUREMENT},
   {name: 'span.self_time', kind: FieldKind.MEASUREMENT},
   {name: 'span.op', kind: FieldKind.TAG},
+  {name: 'span.description', kind: FieldKind.TAG},
 ];
 
 const getSpanFieldDefinition = (key: string) => {
