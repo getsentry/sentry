@@ -473,6 +473,7 @@ def get_stream_processor(
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
+    kafka_slice_id: int | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -494,7 +495,7 @@ def get_stream_processor(
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
 
-    topic_defn = get_topic_definition(consumer_topic)
+    topic_defn = get_topic_definition(consumer_topic, kafka_slice_id=kafka_slice_id)
     real_topic = topic_defn["real_topic_name"]
     cluster_from_config = topic_defn["cluster"]
 
