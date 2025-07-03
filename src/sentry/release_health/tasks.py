@@ -57,7 +57,7 @@ def monitor_release_adoption(**kwargs) -> None:
             on=(Exception,),
             delay=5,
         ),
-        processing_deadline_duration=150,
+        processing_deadline_duration=160,
     ),
 )
 def process_projects_with_sessions(org_id, project_ids) -> None:
