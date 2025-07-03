@@ -23,7 +23,6 @@ import {
   AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-  AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
   AI_TOOL_CALL_DESCRIPTIONS,
   AI_TOOL_CALL_OPS,
@@ -360,10 +359,7 @@ function getNodeInfo(
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
-  if (
-    AI_RUN_OPS.includes(op) ||
-    AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  if (AI_RUN_OPS.includes(op)) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
     const model =
       getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
