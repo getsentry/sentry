@@ -114,7 +114,7 @@ export function SuspectFunctionsTable({
 
   const fields = COLUMNS.map(column => column.value);
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
+  const {initialTableStyles} = useTableStyles(fields.length, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,

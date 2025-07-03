@@ -99,7 +99,7 @@ function AggregatesTable({
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
+  const {initialTableStyles} = useTableStyles(fields.length, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
@@ -235,7 +235,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
+  const {initialTableStyles} = useTableStyles(visibleFields.length, tableRef, {
     minimumColumnWidth: 50,
   });
 

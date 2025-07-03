@@ -17,6 +17,7 @@ import {defined} from 'sentry/utils';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
+  useExploreAggregateFields,
   useExploreFields,
   useExploreGroupBys,
   useExploreQuery,
@@ -36,6 +38,7 @@ import {
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -53,9 +56,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
-  const {result, eventView, fields: tableFields} = aggregatesTableResult;
+  const {result, eventView} = aggregatesTableResult;
 
   const topEvents = useTopEvents();
+  const aggregateFields = useExploreAggregateFields();
   const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
@@ -63,13 +67,26 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const visibleAggregateFields = useMemo(
+    () =>
+      aggregateFields.filter(aggregateField => {
+        if (isGroupBy(aggregateField)) {
+          return Boolean(aggregateField.groupBy);
+        }
+        return true;
+      }),
+    [aggregateFields]
+  );
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(tableFields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    visibleAggregateFields.length,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+    }
+  );
 
   const meta = result.meta ?? {};
 
@@ -85,6 +102,25 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
     result.data?.length ?? 0
   );
 
+  const columns = useMemo(() => {
+    const cols = eventView.getColumns().reduce(
+      (acc, col) => {
+        acc[col.key] = col;
+        return acc;
+      },
+      {} as Record<string, TableColumn<string>>
+    );
+
+    return visibleAggregateFields
+      .map(aggregateField => {
+        const key = isGroupBy(aggregateField)
+          ? aggregateField.groupBy
+          : aggregateField.yAxis;
+        return cols[key];
+      })
+      .filter(defined);
+  }, [visibleAggregateFields, eventView]);
+
   return (
     <Fragment>
       <Table ref={tableRef} style={initialTableStyles}>
@@ -93,21 +129,21 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent />
             </TableHeadCell>
-            {tableFields.map((field, i) => {
+            {columns.map((column, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const label = prettifyField(field, stringTags, numberTags);
+              const fieldType = meta.fields?.[column.key];
+              const align = fieldAlignment(column.key, fieldType);
+              const label = prettifyField(column.key, stringTags, numberTags);
 
-              const direction = sorts.find(s => s.field === field)?.kind;
+              const direction = sorts.find(s => s.field === column.key)?.kind;
 
               function updateSort() {
                 const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSorts([{field: column.key, kind}]);
               }
 
               return (
@@ -129,7 +165,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       />
                     )}
                   </TableHeadCellContent>
-                  {i !== tableFields.length - 1 && (
+                  {i !== columns.length - 1 && (
                     <GridResizer
                       dataRows={
                         !result.isError && !result.isPending && result.data
@@ -177,13 +213,13 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       </StyledLink>
                     </Tooltip>
                   </TableBodyCell>
-                  {tableFields.map((field, j) => {
+                  {columns.map((column, j) => {
                     return (
                       <TableBodyCell key={j}>
                         <FieldRenderer
-                          column={columns[j]!}
+                          column={column}
                           data={row}
-                          unit={meta?.units?.[field]}
+                          unit={meta?.units?.[column.key]}
                           meta={meta}
                         />
                       </TableBodyCell>
