@@ -10,6 +10,7 @@ from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import options
+from sentry.net.retry import LoggedRetry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ def make_signed_seer_api_request(
     if timeout:
         options["timeout"] = timeout
     if retries is not None:
-        options["retries"] = retries
+        options["retries"] = LoggedRetry(logger=logger, total=retries)
 
     with metrics.timer(
         "seer.request_to_seer",
