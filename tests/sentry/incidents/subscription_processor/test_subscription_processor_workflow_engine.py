@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest import mock, skip
+from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
 import orjson
@@ -395,8 +395,8 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality
         assert rule.threshold_type is not None
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
-        assert deserialized_body["context"]["source_id"] == self.sub.id
         assert deserialized_body["context"]["cur_window"]["value"] == value
+        assert deserialized_body["context"]["source_id"] == self.sub.id
 
     def create_workflow_engine_models(self, rule: AlertRule) -> None:
         data_condition_group = self.create_data_condition_group()
@@ -483,7 +483,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @skip("not enabled yet")
     def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -514,7 +513,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @skip("not enabled yet")
     def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -562,7 +560,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @skip("not enabled yet")
     def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
         trigger = self.trigger
