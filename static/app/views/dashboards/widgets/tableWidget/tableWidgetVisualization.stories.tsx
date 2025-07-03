@@ -155,16 +155,10 @@ columns={[{
           the first one.
         </p>
         <p>
-          For an interactive example, click the buttons below to see how the table
-          updates:
+          For an interactive example, click column headers below and pay attention to the
+          parameter in the URL. Use the button to reset the parameter.
         </p>
         <ButtonContainer>
-          <LinkButton to={`?name=${initParams.name}&sort=-count(span.duration)`}>
-            Apply <code>sort=-count(span.duration)</code>
-          </LinkButton>
-          <LinkButton to={`?name=${initParams.name}&sort=count(span.duration)`}>
-            Apply <code>sort=count(span.duration)</code>
-          </LinkButton>
           <LinkButton to={`?name=${initParams.name}`}>Clear sort parameter</LinkButton>
         </ButtonContainer>
         <TableWidgetVisualization
@@ -174,9 +168,9 @@ columns={[{
         <p>
           If the sort is not stored in the parameter, then pass the <code>sort</code> prop
           to correcly display the sort arrow direction. Similarly to the default
-          behaviour, only one sort is allowed. If both the prop and parameter are
-          available, the table will prioritize the prop (you can test this by using the
-          buttons from the previous example to also add the parameter).
+          behaviour, only one sort is allowed. If both the prop and parameter are defined,
+          the table will prioritize the prop. You can test this by clicking column headers
+          and note how the arrow doesn't change in the table below.
         </p>
         <CodeSnippet language="tsx">
           {`
@@ -313,5 +307,4 @@ const ButtonContainer = styled('div')`
   display: flex;
   justify-content: center;
   margin: 20px;
-  gap: 20px;
 `;
