@@ -1701,6 +1701,7 @@ function buildRoutes() {
 
   const domainViewRoutes = (
     <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/insights/index'))} />
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
