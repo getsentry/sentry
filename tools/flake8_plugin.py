@@ -47,6 +47,7 @@ class SentryVisitor(ast.NodeVisitor):
         self.filename = filename
 
         self._except_vars: list[str | None] = []
+        self._in_with_item = False
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -134,8 +135,6 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.handlers[-1].lineno, node.handlers[-1].col_offset, S010_msg))
 
         self.generic_visit(node)
-
-    _in_with_item = False
 
     def visit_withitem(self, node: ast.withitem) -> None:
         orig, self._in_with_item = self._in_with_item, True
