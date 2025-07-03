@@ -152,7 +152,7 @@ unidiff==0.7.4
 uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
-vroomrs==0.1.6
+vroomrs==0.1.7
 wcwidth==0.2.13
 xmlsec==1.3.14
 zstandard==0.18.0
