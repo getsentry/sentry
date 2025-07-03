@@ -32,6 +32,11 @@ import {
   updateLocationWithAggregateFields,
 } from './aggregateFields';
 import {
+  defaultAggregateSortBys,
+  getAggregateSortBysFromLocation,
+  updateLocationWithAggregateSortBys,
+} from './aggregateSortBys';
+import {
   defaultDataset,
   getDatasetFromLocation,
   updateLocationWithDataset,
@@ -54,22 +59,24 @@ import type {BaseVisualize, Visualize} from './visualizes';
 
 interface ReadablePageParamsOptions {
   aggregateFields: AggregateField[];
+  aggregateSortBys: Sort[];
   dataset: DiscoverDatasets | undefined;
   fields: string[];
   mode: Mode;
   query: string;
-  sortBys: Sort[];
+  sampleSortBys: Sort[];
   id?: string;
   title?: string;
 }
 
 class ReadablePageParams {
   aggregateFields: AggregateField[];
+  aggregateSortBys: Sort[];
   dataset: DiscoverDatasets | undefined;
   fields: string[];
   mode: Mode;
   query: string;
-  sortBys: Sort[];
+  sampleSortBys: Sort[];
   id?: string;
   title?: string;
   private _groupBys: string[];
@@ -77,11 +84,12 @@ class ReadablePageParams {
 
   constructor(options: ReadablePageParamsOptions) {
     this.aggregateFields = options.aggregateFields;
+    this.aggregateSortBys = options.aggregateSortBys;
     this.dataset = options.dataset;
     this.fields = options.fields;
     this.mode = options.mode;
     this.query = options.query;
-    this.sortBys = options.sortBys;
+    this.sampleSortBys = options.sampleSortBys;
     this.id = options.id;
     this.title = options.title;
 
@@ -89,6 +97,10 @@ class ReadablePageParams {
       .filter(isGroupBy)
       .map(groupBy => groupBy.groupBy);
     this._visualizes = this.aggregateFields.filter(isVisualize);
+  }
+
+  get sortBys(): Sort[] {
+    return this.mode === Mode.AGGREGATE ? this.aggregateSortBys : this.sampleSortBys;
   }
 
   get groupBys(): string[] {
@@ -102,12 +114,13 @@ class ReadablePageParams {
 
 interface WritablePageParams {
   aggregateFields?: Array<GroupBy | BaseVisualize> | null;
+  aggregateSortBys?: Sort[] | null;
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   id?: string | null;
   mode?: Mode | null;
   query?: string | null;
-  sortBys?: Sort[] | null;
+  sampleSortBys?: Sort[] | null;
   title?: string | null;
 }
 
@@ -119,19 +132,19 @@ function defaultPageParams(): ReadablePageParams {
   const query = defaultQuery();
   const title = defaultTitle();
   const id = defaultId();
-  const sortBys = defaultSortBys(
-    mode,
-    fields,
+  const sortBys = defaultSortBys(fields);
+  const aggregateSortBys = defaultAggregateSortBys(
     aggregateFields.filter(isVisualize).map(visualize => visualize.yAxis)
   );
 
   return new ReadablePageParams({
     aggregateFields,
+    aggregateSortBys,
     dataset,
     fields,
     mode,
     query,
-    sortBys,
+    sampleSortBys: sortBys,
     title,
     id,
   });
@@ -184,17 +197,23 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const query = getQueryFromLocation(location);
     const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
     const visualizes = aggregateFields.filter(isVisualize);
-    const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
+    const sortBys = getSortBysFromLocation(location, fields);
+    const aggregateSortBys = getAggregateSortBysFromLocation(
+      location,
+      groupBys,
+      visualizes
+    );
     const title = getTitleFromLocation(location);
     const id = getIdFromLocation(location);
 
     return new ReadablePageParams({
       aggregateFields,
+      aggregateSortBys,
       dataset,
       fields,
       mode,
       query,
-      sortBys,
+      sampleSortBys: sortBys,
       title,
       id,
     });
@@ -274,7 +293,9 @@ export function useExploreQuery(): string {
 
 export function useExploreSortBys(): Sort[] {
   const pageParams = useExplorePageParams();
-  return pageParams.sortBys;
+  return pageParams.mode === Mode.AGGREGATE
+    ? pageParams.aggregateSortBys
+    : pageParams.sortBys;
 }
 
 export function useExploreTitle(): string | undefined {
@@ -309,11 +330,12 @@ export function newExploreTarget(
 ): Location {
   const target = {...location, query: {...location.query}};
   updateLocationWithAggregateFields(target, pageParams.aggregateFields);
+  updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
   updateLocationWithDataset(target, pageParams.dataset);
   updateLocationWithFields(target, pageParams.fields);
   updateLocationWithMode(target, pageParams.mode);
   updateLocationWithQuery(target, pageParams.query);
-  updateLocationWithSortBys(target, pageParams.sortBys);
+  updateLocationWithSortBys(target, pageParams.sampleSortBys);
   updateLocationWithTitle(target, pageParams.title);
   updateLocationWithId(target, pageParams.id);
   return target;
@@ -617,12 +639,17 @@ export function useSetExploreQuery() {
 }
 
 export function useSetExploreSortBys() {
+  const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
     (sortBys: Sort[]) => {
-      setPageParams({sortBys});
+      setPageParams(
+        pageParams.mode === Mode.AGGREGATE
+          ? {aggregateSortBys: sortBys}
+          : {sampleSortBys: sortBys}
+      );
     },
-    [setPageParams]
+    [pageParams, setPageParams]
   );
 }
 
