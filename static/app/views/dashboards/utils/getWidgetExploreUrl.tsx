@@ -237,11 +237,13 @@ function _getWidgetExploreUrl(
       // if the current sort is on an aggregation, then we should extract its argument
       // and try to sort on that in samples mode
       const aggregateArguments = getAggregateArguments(sortColumn);
-      sort = `${sortDirection}${aggregateArguments[0]}`;
+      if (aggregateArguments.length > 0) {
+        sort = `${sortDirection}${aggregateArguments[0]}`;
+      }
     } else if (exploreMode === Mode.AGGREGATE) {
       sort = widget.queries[0]?.orderby;
     }
-  } else if (fields.includes(sortColumn)) {
+  } else if (!isAggregateFieldOrEquation(sortColumn)) {
     sort = widget.queries[0]?.orderby;
   }
 
