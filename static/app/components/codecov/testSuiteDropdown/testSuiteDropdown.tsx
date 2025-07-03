@@ -109,6 +109,7 @@ const TriggerLabel = styled('span')`
 const StyledBadge = styled(Badge)`
   margin-top: -${space(0.5)};
   margin-bottom: -${space(0.5)};
+  margin-left: ${space(0.5)};
   flex-shrink: 0;
   top: auto;
 `;
