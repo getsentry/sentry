@@ -109,4 +109,29 @@ describe('flutter onboarding docs', function () {
       )
     ).toBeInTheDocument();
   });
+
+  it('renders replay onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dart.flutter': {
+          version: '1.99.9',
+        },
+      },
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.replay.sessionSampleRate/))
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.replay.onErrorSampleRate/))
+    ).toBeInTheDocument();
+  });
 });
