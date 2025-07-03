@@ -223,9 +223,12 @@ const BodyCell = memo(function BodyCell({
     case 'traceId':
       return (
         <span>
-          <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          <TraceIdButton
+            priority="link"
+            onClick={() => openTraceViewDrawer(dataRow.traceId)}
+          >
             {dataRow.traceId.slice(0, 8)}
-          </Button>
+          </TraceIdButton>
         </span>
       );
     case 'transaction':
@@ -301,4 +304,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;

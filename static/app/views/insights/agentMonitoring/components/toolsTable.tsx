@@ -198,6 +198,10 @@ const BodyCell = memo(function BodyCell({
         chartType: ChartType.BAR,
         yAxes: ['count(span.duration)'],
       },
+      {
+        chartType: ChartType.LINE,
+        yAxes: ['avg(span.duration)'],
+      },
     ],
     query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,
   });
