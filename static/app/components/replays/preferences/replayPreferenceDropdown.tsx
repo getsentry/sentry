@@ -1,9 +1,7 @@
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -19,18 +17,8 @@ export default function ReplayPreferenceDropdown({
   isLoading?: boolean;
 }) {
   const [prefs, setPrefs] = useReplayPrefs();
-  const {isFetching, replay} = useReplayContext();
 
   const SKIP_OPTION_VALUE = 'skip';
-
-  // Calculate adjusted duration for each speed
-  const calculateAdjustedDuration = (originalDurationMs: number, speed: number) => {
-    return originalDurationMs / speed;
-  };
-
-  // Check if we should show duration (data is loaded and duration is available)
-  const shouldShowDuration =
-    !isLoading && !isFetching && replay && replay.getDurationMs() > 0;
 
   return (
     <CompositeSelect
@@ -49,30 +37,10 @@ export default function ReplayPreferenceDropdown({
         label={t('Playback Speed')}
         value={prefs.playbackSpeed}
         onChange={opt => setPrefs({playbackSpeed: opt.value})}
-        options={speedOptions.map(option => {
-          const baseLabel = `${option}x`;
-
-          if (shouldShowDuration) {
-            const adjustedDurationMs = calculateAdjustedDuration(
-              replay.getDurationMs(),
-              option
-            );
-            const durationDisplay = formatDuration({
-              duration: [adjustedDurationMs, 'ms'],
-              precision: 'sec',
-              style: 'h:mm:ss',
-            });
-            return {
-              label: `${baseLabel}     ${durationDisplay}`,
-              value: option,
-            };
-          }
-
-          return {
-            label: baseLabel,
-            value: option,
-          };
-        })}
+        options={speedOptions.map(option => ({
+          label: `${option}x`,
+          value: option,
+        }))}
       />
       <CompositeSelect.Region
         label={t('Timestamps')}
