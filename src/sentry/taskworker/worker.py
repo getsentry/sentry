@@ -125,17 +125,16 @@ class TaskWorker:
         self._shutdown = True
         self._shutdown_event.set()
 
-        logger.info("taskworker.worker.shutdown.children")
-        for child in self._children:
-            child.terminate()
-
-        for child in self._children:
-            child.join()
-
         logger.info("taskworker.worker.shutdown.spawn_children")
         if self._spawn_children_thread:
             self._spawn_children_thread.join()
             self._spawn_children_thread = None
+
+        logger.info("taskworker.worker.shutdown.children")
+        for child in self._children:
+            child.terminate()
+        for child in self._children:
+            child.join()
 
         logger.info("taskworker.worker.shutdown.result")
         if self._result_thread:
