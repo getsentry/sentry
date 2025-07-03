@@ -18,6 +18,8 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
 import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -29,6 +31,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 function DestinationSummaryPage() {
+  const moduleTitle = useModuleTitle(ModuleName.QUEUE);
+  const moduleURL = useModuleURL(ModuleName.QUEUE);
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -53,10 +57,15 @@ function DestinationSummaryPage() {
         headerTitle={destination}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: DESTINATION_TITLE,
           },
         ]}
         module={ModuleName.QUEUE}
+        hideDefaultTabs
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
         <Layout.Body>

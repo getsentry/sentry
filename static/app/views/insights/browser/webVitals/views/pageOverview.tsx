@@ -29,6 +29,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -41,6 +42,7 @@ import {
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 function PageOverview() {
+  const moduleTitle = useModuleTitle(ModuleName.VITAL);
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
@@ -144,8 +146,13 @@ function PageOverview() {
             </LinkButton>
           )
         }
-        breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
+        breadcrumbs={
+          transaction
+            ? [{label: moduleTitle, to: moduleURL}, {label: t('Page Summary')}]
+            : []
+        }
         module={ModuleName.VITAL}
+        hideDefaultTabs
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
         <Layout.Body>

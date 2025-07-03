@@ -21,6 +21,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -40,6 +41,8 @@ const {
 } = SpanMetricsField;
 
 function ResourceSummary() {
+  const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
+  const moduleURL = useModuleURL(ModuleName.RESOURCE);
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
@@ -103,10 +106,15 @@ function ResourceSummary() {
         headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
           },
         ]}
         module={ModuleName.RESOURCE}
+        hideDefaultTabs
       />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>

@@ -22,6 +22,8 @@ import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/c
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -50,6 +52,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function HTTPDomainSummaryPage() {
+  const moduleTitle = useModuleTitle(ModuleName.HTTP);
+  const moduleURL = useModuleURL(ModuleName.HTTP);
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
   const filters = useHttpDomainSummaryChartFilter();
@@ -130,11 +134,13 @@ export function HTTPDomainSummaryPage() {
       </Fragment>
     ),
     breadcrumbs: [
+      {label: moduleTitle, to: moduleURL},
       {
         label: t('Domain Summary'),
       },
     ],
     module: ModuleName.HTTP,
+    hideDefaultTabs: true,
   };
 
   return (
