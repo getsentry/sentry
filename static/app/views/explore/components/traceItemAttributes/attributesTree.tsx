@@ -60,6 +60,9 @@ export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBag
 };
 
 interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+  /**
+   * Extra data that gets passed to the renderer function for every attribute in the tree. If any of your field renderers rely on data that isn't related to the attributes (e.g., the current theme or location) or data that lives in another attribute (e.g., using the log level attribute to render the log text attribute) you should pass that data as here.
+   */
   rendererExtra: RendererExtra;
   renderers?: Record<
     string,
@@ -69,6 +72,9 @@ interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
 
 interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   extends AttributesFieldRender<RendererExtra> {
+  /**
+   * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
+   */
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
