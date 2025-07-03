@@ -125,17 +125,18 @@ def _make_rpc_requests(
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    response = [
-        result
-        for result in _query_thread_pool.map(
-            partial_request,
-            endpoint_names,
-            # Currently assuming everything is v1
-            ["v1"] * len(referrers),
-            referrers,
-            requests,
-        )
-    ]
+    with _query_thread_pool:
+        response = [
+            result
+            for result in _query_thread_pool.map(
+                partial_request,
+                endpoint_names,
+                # Currently assuming everything is v1
+                ["v1"] * len(referrers),
+                referrers,
+                requests,
+            )
+        ]
 
     # Split the results back up, the thread pool will return them back in order so we can use the type in the
     # requests list to determine which request goes where
