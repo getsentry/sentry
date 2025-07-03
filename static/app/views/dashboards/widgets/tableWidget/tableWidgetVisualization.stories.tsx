@@ -1,10 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
 import type {
   TabularColumn,
   TabularData,
@@ -14,6 +18,21 @@ import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableW
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
+  const customColumns: TabularColumn[] = [
+    {
+      key: 'count(span.duration)',
+      name: 'count(span.duration)',
+      type: 'number',
+      width: 200,
+    },
+    {
+      key: 'http.request_method',
+      name: 'http.request_method',
+      type: 'string',
+      width: -1,
+    },
+  ];
+  const initParams = qs.parse(location.search);
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -40,20 +59,6 @@ export default Storybook.story('TableWidgetVisualization', story => {
       ...sampleHTTPRequestTableData,
       data: [],
     };
-    const customColumns: TabularColumn[] = [
-      {
-        key: 'count(span.duration)',
-        name: 'count(span.duration)',
-        type: 'number',
-        width: 200,
-      },
-      {
-        key: 'http.request_method',
-        name: 'http.request_method',
-        type: 'string',
-        width: -1,
-      },
-    ];
     const aliases = {
       'count(span.duration)': 'Count of Span Duration',
       'http.request_method': 'HTTP Request Method',
@@ -91,7 +96,7 @@ ${JSON.stringify(customColumns)}
         <p>
           To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
           which maps column key to the alias. In some cases you may have both field
-          aliases set by user (ex. in dashboards) as well as a static mapping. The util
+          aliases set by user (e.g., in dashboards) as well as a static mapping. The util
           function <code>decodeColumnAliases</code> is provided to consolidate them, with
           priority given to user field aliases.
         </p>
@@ -108,6 +113,113 @@ ${JSON.stringify(customColumns)}
 ${JSON.stringify(aliases)}
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Sorting by Column', () => {
+    const sortableColumns = customColumns.map(column => ({
+      ...column,
+      sortable: true,
+      width: -1,
+    }));
+    const [curSort, setSort] = useState<Sort | undefined>(undefined);
+    return (
+      <Fragment>
+        <p>
+          By default, column fields are assumed to be not sortable. To enable sorting,
+          pass the
+          <code>columns</code> prop with the field <code>sortable</code> set to true.
+          e.g.,
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+columns={[{
+  key: 'count(span.duration)',
+  name: 'count(span.duration)',
+  type: 'number',
+  sortable: true
+},
+{
+  key: 'http.request_method',
+  name: 'http.request_method',
+  type: 'string',
+}]}
+          `}
+        </CodeSnippet>
+        <p>
+          Sorting may require the display of a directional arrow. The table will try to
+          automatically determine the direction based on the <code>sort</code> location
+          query parameter. Note that the table only supports sorting by one column at a
+          time, so if multiple <code>sort</code> parameters are provided, it will choose
+          the first one.
+        </p>
+        <p>
+          For an interactive example, click column headers below and pay attention to the
+          parameter in the URL. Use the button to reset the parameter.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={`?name=${initParams.name}`}>Clear sort parameter</LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={sortableColumns}
+        />
+        <p>
+          If the sort is not stored in the parameter, then pass the <code>sort</code> prop
+          to correcly display the sort arrow direction. Similarly to the default
+          behaviour, only one sort is allowed. If both the prop and parameter are defined,
+          the table will prioritize the prop. You can test this by clicking column headers
+          and note how the arrow doesn't change in the table below.
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+<TableWidgetVisualization
+  columns={...}
+  sort={{field: 'http.request_method', kind: 'desc'}}
+  tableData={...}
+/>
+        `}
+        </CodeSnippet>
+        <br />
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          sort={{field: 'http.request_method', kind: 'desc'}}
+          columns={sortableColumns}
+        />
+
+        <p>
+          The default action when a sortable column header is clicked is to update the
+          <code>sort</code> location query parameter. If you wish to override the URL
+          update, you can pass <code>onSortChange</code> which accepts a<code>Sort</code>
+          object that represents the newly selected sort. This and the <code>sort</code>
+          prop are useful if you need to manage internal state:
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+const [curSort, setSort] = useState<Sort | undefined>(undefined);
+<TableWidgetVisualization
+  columns={...}
+  tableData={...}
+  sort={curSort}
+  onSortChange={(sort: Sort) => setSort(sort)}
+/>
+        `}
+        </CodeSnippet>
+        <p>
+          Try clicking the column headers below!{' '}
+          <b>
+            Current sort is
+            <code>{curSort?.field ?? 'undefined'}</code> by
+            <code>{curSort?.kind ?? 'undefined'}</code> order
+          </b>
+        </p>
+        <TableWidgetVisualization
+          columns={sortableColumns}
+          tableData={sampleHTTPRequestTableData}
+          sort={curSort}
+          onSortChange={(sort: Sort) => setSort(sort)}
+        />
       </Fragment>
     );
   });
@@ -189,3 +301,9 @@ function getRenderer(fieldName: string) {
     );
   });
 });
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+`;
