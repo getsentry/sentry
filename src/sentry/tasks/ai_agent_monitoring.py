@@ -197,6 +197,12 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                 # Skip models with no cost data or empty cost data
                 continue
 
+            # models.dev may include provider name in the model ID, e.g. google/gemini-2.0-flash-001
+            # We need to extract the model name, since our SDKs only send the model name
+            # (e.g. gemini-2.0-flash-001)
+            if "/" in model_id:
+                model_id = model_id.split("/", maxsplit=1)[1]
+
             # Convert pricing data to AIModelCostV2 format
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:

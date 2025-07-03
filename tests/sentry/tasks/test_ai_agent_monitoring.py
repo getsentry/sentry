@@ -137,6 +137,13 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "cache_read": 0.31,
                 }
             },
+            "google/gemini-2.0-flash-001": {  # Test provider prefix stripping
+                "cost": {
+                    "input": 0.075,
+                    "output": 0.3,
+                    "cache_read": 0.01875,
+                }
+            },
         }
     },
     "invalid_provider": "this should be ignored",
@@ -184,8 +191,8 @@ class FetchAIModelCostsTest(TestCase):
         assert models is not None
         # Should have OpenRouter models + unique models.dev models
         assert (
-            len(models) == 4
-        )  # gpt-4, gpt-5 from OpenRouter + gpt-4.1-mini, gemini-2.5-pro from models.dev
+            len(models) == 5
+        )  # gpt-4, gpt-5 from OpenRouter + gpt-4.1-mini, gemini-2.5-pro, gemini-2.0-flash-001 from models.dev
 
         # Check OpenRouter models
         gpt4_model = models["gpt-4"]
@@ -214,6 +221,13 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_model.get("outputPerToken") == 10
         assert gemini_model.get("outputReasoningPerToken") == 0.0
         assert gemini_model.get("inputCachedPerToken") == 0.31
+
+        # Check models.dev model with provider prefix (should be stripped)
+        gemini_flash_model = models["gemini-2.0-flash-001"]
+        assert gemini_flash_model.get("inputPerToken") == 0.075
+        assert gemini_flash_model.get("outputPerToken") == 0.3
+        assert gemini_flash_model.get("outputReasoningPerToken") == 0.0
+        assert gemini_flash_model.get("inputCachedPerToken") == 0.01875
 
     @responses.activate
     def test_fetch_ai_model_costs_success_openrouter_only(self):
