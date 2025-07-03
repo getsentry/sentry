@@ -120,5 +120,5 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            max_per_page=1000,
+            max_per_page=9999,
         )
