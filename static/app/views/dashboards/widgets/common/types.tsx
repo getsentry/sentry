@@ -76,6 +76,7 @@ export type TabularData<TFields extends string = string> = {
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
   name: TFields;
+  sortable?: boolean;
   type?: AttributeValueType;
   width?: number;
 };

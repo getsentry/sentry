@@ -3,9 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IconArrow} from 'sentry/icons';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import type {
   TabularColumn,
@@ -15,6 +17,10 @@ import type {
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+
+jest.mock('sentry/icons/iconArrow', () => ({
+  IconArrow: jest.fn(() => <div />),
+}));
 
 describe('TableWidgetVisualization', function () {
   const columns: Array<Partial<TabularColumn>> = [
@@ -27,6 +33,7 @@ describe('TableWidgetVisualization', function () {
       name: 'HTTP Request Method',
     },
   ];
+  const sortableColumns = columns.map(column => ({...column, sortable: true}));
 
   it('Basic table renders correctly', async function () {
     render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
@@ -135,5 +142,60 @@ describe('TableWidgetVisualization', function () {
     const $headers = screen.getAllByRole('columnheader');
     expect($headers[0]).toHaveTextContent(aliases['count(span.duration)']);
     expect($headers[1]).toHaveTextContent(aliases['http.request_method']);
+  });
+
+  it('Sort URL parameter is set and correct arrow direction appears on column header click', async function () {
+    const {router: testRouter} = render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />,
+      {
+        initialRouterConfig: {},
+      }
+    );
+
+    const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
+    await userEvent.click($header);
+    await waitFor(() =>
+      expect(IconArrow).toHaveBeenCalledWith(
+        expect.objectContaining({direction: 'down'}),
+        undefined
+      )
+    );
+    await waitFor(() =>
+      expect(testRouter.location.query.sort).toBe('-count(span.duration)')
+    );
+  });
+
+  it('Sort arrow appears and has correct direction if sort is provided', async function () {
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        sort={{field: 'count(span.duration)', kind: 'asc'}}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />
+    );
+
+    await waitFor(() =>
+      expect(IconArrow).toHaveBeenCalledWith(
+        expect.objectContaining({direction: 'up'}),
+        undefined
+      )
+    );
+  });
+
+  it('Uses onChangeSort if supplied on column header click', async function () {
+    const onChangeSortMock = jest.fn((_sort: Sort) => {});
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        onChangeSort={onChangeSortMock}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />
+    );
+    const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
+    await userEvent.click($header);
+    await waitFor(() => expect(onChangeSortMock).toHaveBeenCalled());
   });
 });
