@@ -58,7 +58,8 @@ export type SearchKeyItem =
   | KeyItem
   | RawSearchItem
   | FilterValueItem
-  | RawSearchFilterValueItem;
+  | RawSearchFilterValueItem
+  | AskSeerItem;
 
 export type FilterKeyItem =
   | KeyItem
