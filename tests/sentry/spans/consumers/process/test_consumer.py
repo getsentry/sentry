@@ -1,5 +1,5 @@
-import time
 from datetime import datetime
+from time import sleep as real_sleep  # Import before monkeypatch
 
 import orjson
 import pytest
@@ -13,12 +13,11 @@ from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 def test_basic(monkeypatch):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
-
     topic = Topic("test")
     messages: list[KafkaPayload] = []
 
     fac = ProcessSpansStrategyFactory(
-        max_batch_size=10,
+        max_batch_size=1,
         max_batch_time=10,
         num_processes=1,
         input_block_size=None,
@@ -60,7 +59,11 @@ def test_basic(monkeypatch):
 
     step.poll()
     # Give flusher threads time to process after drift change
-    time.sleep(0.1)
+    for _ in range(20):
+        if messages:
+            break
+        step.poll()
+        real_sleep(0.1)
 
     step.join()
 

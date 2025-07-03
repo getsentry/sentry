@@ -19,7 +19,7 @@ from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils import metrics
-from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             produce_to_pipe=self.produce_to_pipe,
         )
 
+        # The flusher must be given some time to shut down, because otherwise
+        # we may double-produce segments.
+        flusher = SetJoinTimeout(None, flusher)
+
         if self.num_processes != 1:
             run_task = run_task_with_multiprocessing(
                 function=partial(process_batch, buffer),
@@ -124,7 +128,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=batch,
         )
 
-        return add_timestamp
+        # Our entire insertion process into redis is perfectly idempotent. It
+        # makes no sense to spend time inserting into redis during rebalancing
+        # when we can just parse and batch again.
+        return SetJoinTimeout(0.0, add_timestamp)
 
     def shutdown(self) -> None:
         if self.num_processes != 1:
