@@ -16,7 +16,6 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {TraceExploreAiQueryProvider} from 'sentry/views/explore/components/traceExploreAiQueryProvider';
 import {
   PageParamsProvider,
   useExploreId,
@@ -24,6 +23,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
@@ -70,13 +70,13 @@ export function ExploreContent() {
 }
 
 function SpansTabWrapper({children}: SpansTabContextProps) {
+  useTraceExploreAiQuerySetup();
+
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <PageParamsProvider>
-        <TraceExploreAiQueryProvider>
-          <ExploreTagsProvider>{children}</ExploreTagsProvider>
-        </TraceExploreAiQueryProvider>
+        <ExploreTagsProvider>{children}</ExploreTagsProvider>
       </PageParamsProvider>
     </SpansTabTourProvider>
   );
