@@ -144,14 +144,15 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         if (
             # override_settings(...)
-            isinstance(node.func, ast.Name)
-            and node.func.id == "override_settings"
-        ) or (
+            (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
+            or
             # self.settings(...)
-            isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "self"
-            and node.func.attr == "settings"
+            (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr == "settings"
+            )
         ):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
