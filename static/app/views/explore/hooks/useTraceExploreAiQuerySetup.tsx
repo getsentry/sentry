@@ -6,7 +6,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-export function useTraceExploreAiQuerySetup() {
+interface UseTraceExploreAiQuerySetupArgs {
+  enableAISearch: boolean;
+}
+
+export function useTraceExploreAiQuerySetup({
+  enableAISearch,
+}: UseTraceExploreAiQuerySetupArgs) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const client = useApi();
@@ -20,6 +26,8 @@ export function useTraceExploreAiQuerySetup() {
       pageFilters.selection.projects[0] !== -1
         ? pageFilters.selection.projects
         : memberProjects.map(p => p.id);
+
+    if (!enableAISearch) return;
 
     (async () => {
       try {
@@ -39,10 +47,10 @@ export function useTraceExploreAiQuerySetup() {
     })();
   }, [
     client,
+    enableAISearch,
+    memberProjects,
     organization.id,
     organization.slug,
     pageFilters.selection.projects,
-    projects,
-    memberProjects,
   ]);
 }
