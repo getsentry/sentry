@@ -156,18 +156,24 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
         elif (
-            # ThreadPoolExecutor(...)
-            isinstance(node.func, ast.Name)
-            and node.func.id == "ThreadPoolExecutor"
-        ) or (
-            # concurrent.futures.ThreadPoolExecutor(...)
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr == "ThreadPoolExecutor"
+            (
+                (
+                    # ThreadPoolExecutor(...)
+                    isinstance(node.func, ast.Name)
+                    and node.func.id == "ThreadPoolExecutor"
+                )
+                or (
+                    # concurrent.futures.ThreadPoolExecutor(...)
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "ThreadPoolExecutor"
+                )
+            )
+            # it's okay to not name "immediate" threadpools
+            and not self._in_with_item
         ):
-            if self._in_with_item:
-                pass  # it's okay to not name "immediate" threadpools
-            elif "thread_name_prefix" not in (kw.arg for kw in node.keywords):
+            if "thread_name_prefix" not in (kw.arg for kw in node.keywords):
                 self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
