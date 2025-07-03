@@ -33,6 +33,7 @@ interface SearchQueryBuilderContextData {
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displaySeerResults: boolean;
+  enableAISearch: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
@@ -78,6 +79,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  enableAISearch,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -160,6 +162,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      enableAISearch: Boolean(enableAISearch),
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -183,29 +186,29 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
     };
   }, [
-    state,
     disabled,
     disallowFreeText,
     disallowWildcard,
+    dispatch,
+    displaySeerResults,
+    enableAISearch,
+    filterKeyAliases,
+    filterKeyMenuWidth,
+    filterKeySections,
+    getTagValues,
+    handleSearch,
     parseQuery,
     parsedQuery,
-    filterKeySections,
-    filterKeyMenuWidth,
-    stableFilterKeys,
-    stableGetSuggestedFilterKey,
-    getTagValues,
-    stableFieldDefinitionGetter,
-    dispatch,
-    handleSearch,
     placeholder,
+    portalTarget,
     recentSearches,
+    replaceRawSearchKeys,
     searchSource,
     size,
-    portalTarget,
-    displaySeerResults,
-    setDisplaySeerResults,
-    replaceRawSearchKeys,
-    filterKeyAliases,
+    stableFieldDefinitionGetter,
+    stableFilterKeys,
+    stableGetSuggestedFilterKey,
+    state,
   ]);
 
   return (
