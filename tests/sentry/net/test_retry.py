@@ -12,7 +12,7 @@ def test_logged_retry() -> None:
     mock_logger = Mock(spec=logging.Logger)
 
     pool = PoolManager(
-        retries=LoggedRetry(mock_logger, total=2, backoff_factor=0, status_forcelist=[500]),
+        retries=LoggedRetry(mock_logger, total=2, status_forcelist=[500]),
     )
 
     with patch(
