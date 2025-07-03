@@ -14,7 +14,7 @@ import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type SuspectAttributesResult = {
+type SuspectAttributesResult = {
   rankedAttributes: Array<{
     attributeName: string;
     cohort1: Array<{
