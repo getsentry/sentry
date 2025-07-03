@@ -187,9 +187,9 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
-  const organization = useOrganization();
   const setExplorePageParams = useSetExplorePageParams();
 
+  const organization = useOrganization();
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
