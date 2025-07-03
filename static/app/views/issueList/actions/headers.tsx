@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -39,7 +40,7 @@ function Headers({
             {t('Age')}
           </FirstSeenLabel>
           <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
-            <GraphLabelContents>
+            <Flex flex="1" justify="space-between">
               {t('Trend')}
               <GraphToggles>
                 {selection.datetime.period !== '24h' && (
@@ -57,7 +58,7 @@ function Headers({
                   {selection.datetime.period || t('Custom')}
                 </GraphToggle>
               </GraphToggles>
-            </GraphLabelContents>
+            </Flex>
           </GraphLabel>
           <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
             {t('Events')}
@@ -85,12 +86,6 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
   display: flex;
   justify-content: space-between;
   padding: 0;
-`;
-
-const GraphLabelContents = styled('div')`
-  display: flex;
-  flex: 1;
-  justify-content: space-between;
 `;
 
 const GraphToggles = styled('div')`

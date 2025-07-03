@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Flex} from 'sentry/components/core/layout';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
@@ -40,10 +41,6 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
@@ -78,10 +75,10 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <PlatformWrapper key={id}>
+        <Flex key={id} align="center">
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>
+        </Flex>
       ),
     })),
     help: t('The primary platform for this project'),

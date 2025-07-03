@@ -6,6 +6,7 @@ import testsAnalyticsSummaryDark from 'sentry-images/features/test-analytics-sum
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -88,14 +89,14 @@ export default function TestPreOnboardingPage() {
         <InstructionsSection>
           <h2>{instructionSet.header}</h2>
           <p>{instructionSet.subtext}</p>
-          <ButtonBar>
+          <Flex gap={space(2)}>
             <LinkButton priority="primary" href={instructionSet.mainCTA}>
               {instructionSet.mainCTA}
             </LinkButton>
             <LinkButton priority="default" href="/settings/integrations/github">
               Learn more
             </LinkButton>
-          </ButtonBar>
+          </Flex>
           <PrerequisitesSection>
             <PrerequisitesTitle>
               {t('Prerequisites to connect your GitHub organization:')}
@@ -191,11 +192,6 @@ const InstructionsSection = styled('div')`
   border-radius: 10px;
   padding: 24px 40px;
   max-width: 800px;
-`;
-
-const ButtonBar = styled('div')`
-  display: flex;
-  gap: ${space(2)};
 `;
 
 const PrerequisitesSection = styled('div')`

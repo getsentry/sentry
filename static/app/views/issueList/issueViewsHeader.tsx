@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -236,9 +237,9 @@ function IssueViewsHeader({
   return (
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        <StyledLayoutTitle>
+        <Flex justify="space-between">
           <PageTitle title={title} description={description} />
-          <Actions>
+          <Flex align="center" gap={space(1)}>
             {headerActions}
             {!viewId && (
               <DisableInDemoMode>
@@ -253,8 +254,8 @@ function IssueViewsHeader({
             )}
             <IssueViewStarButton />
             <IssueViewEditMenu />
-          </Actions>
-        </StyledLayoutTitle>
+          </Flex>
+        </Flex>
       </Layout.HeaderContent>
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
@@ -273,17 +274,6 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-top: ${space(2)};
     margin-bottom: 0;
   }
-`;
-
-const StyledLayoutTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const Actions = styled('div')`
-  align-items: center;
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const LeftAlignContainer = styled('div')`

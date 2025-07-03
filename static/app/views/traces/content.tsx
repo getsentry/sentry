@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -113,7 +114,7 @@ function Content() {
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <HeaderContentBar>
+              <Flex align="center" justify="space-between" direction="row">
                 <Layout.Title>
                   {t('Traces')}
                   <PageHeadingQuestionTooltip
@@ -124,7 +125,7 @@ function Content() {
                   />
                 </Layout.Title>
                 <FeedbackWidgetButton />
-              </HeaderContentBar>
+              </Flex>
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
@@ -162,13 +163,6 @@ function Content() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;
 
 const LayoutMain = styled(Layout.Main)`
   display: flex;

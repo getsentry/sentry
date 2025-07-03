@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -126,7 +127,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         {file ? (
           <FinishedWell>
             <IconFile size="lg" />
-            <FileInfo>
+            <Flex align="center" gap={space(0.5)}>
               <div>{file.name}</div>
               <Button
                 aria-label={t('Remove file')}
@@ -135,7 +136,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
-            </FileInfo>
+            </Flex>
             <Button
               priority="primary"
               onClick={handleStartRelocation}
@@ -222,12 +223,6 @@ const FinishedWell = styled('div')`
   border-radius: 3px;
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
-`;
-
-const FileInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`

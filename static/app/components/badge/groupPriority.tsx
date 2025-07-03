@@ -10,6 +10,7 @@ import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -191,9 +192,9 @@ export function GroupPriorityDropdown({
     <DropdownMenu
       size="sm"
       menuTitle={
-        <MenuTitleContainer>
+        <Flex align="flex-end" justify="space-between">
           <div>{t('Set Priority')}</div>
-        </MenuTitleContainer>
+        </Flex>
       }
       minMenuWidth={230}
       trigger={(triggerProps, isOpen) => (
@@ -259,12 +260,6 @@ const StyledTag = styled(Tag)`
 const InlinePlaceholder = styled(Placeholder)`
   display: inline-block;
   vertical-align: middle;
-`;
-
-const MenuTitleContainer = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
 `;
 
 const StyledFooter = styled(DropdownMenuFooter)`

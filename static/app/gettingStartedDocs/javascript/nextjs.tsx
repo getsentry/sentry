@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
@@ -343,7 +343,7 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AdditionalInfoWrapper>
+        <Flex direction="column" gap={space(2)}>
           <div>
             {tct(
               'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
@@ -357,7 +357,7 @@ const feedbackOnboarding: OnboardingConfig = {
               link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
             })}
           </div>
-        </AdditionalInfoWrapper>
+        </Flex>
       ),
     },
   ],
@@ -567,9 +567,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AdditionalInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

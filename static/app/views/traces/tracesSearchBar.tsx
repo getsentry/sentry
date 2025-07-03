@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,7 +36,7 @@ export function TracesSearchBar({
   const localQueries = queries.length ? queries : [''];
 
   return (
-    <TraceSearchBarsContainer>
+    <Flex direction="column" align="flex-start" justify="center" gap={space(1)}>
       {localQueries.map((query, index) => (
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
@@ -76,17 +77,9 @@ export function TracesSearchBar({
           {t('Add Another Span')}
         </Button>
       ) : null}
-    </TraceSearchBarsContainer>
+    </Flex>
   );
 }
-
-const TraceSearchBarsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: ${space(1)};
-`;
 
 const TraceBar = styled('div')`
   display: flex;

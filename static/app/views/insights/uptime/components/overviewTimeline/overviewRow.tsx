@@ -6,6 +6,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -65,26 +66,26 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
         <DetailsHeadline>
           <Name>{uptimeRule.name}</Name>
         </DetailsHeadline>
-        <DetailsContainer>
+        <Flex direction="column" gap={space(0.5)}>
           <OwnershipDetails>
             {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
             {uptimeRule.owner ? (
               <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
             ) : (
-              <UnassignedLabel>
+              <Flex gap={space(0.5)} align="center">
                 <IconUser size="xs" />
                 {t('Unassigned')}
-              </UnassignedLabel>
+              </Flex>
             )}
           </OwnershipDetails>
           <ScheduleDetails>
             <IconTimer size="xs" />
             {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </ScheduleDetails>
-          <MonitorStatuses>
+          <Flex gap={space(0.5)}>
             {uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}
-          </MonitorStatuses>
-        </DetailsContainer>
+          </Flex>
+        </Flex>
       </DetailsLink>
     </DetailsArea>
   );
@@ -136,12 +137,6 @@ const DetailsHeadline = styled('div')`
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -149,12 +144,6 @@ const OwnershipDetails = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const UnassignedLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 const Name = styled('h3')`
@@ -169,11 +158,6 @@ const ScheduleDetails = styled('small')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const MonitorStatuses = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
 `;
 
 interface TimelineRowProps {

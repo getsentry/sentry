@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -231,7 +232,7 @@ function TagDetailsValue({
     );
 
   return (
-    <Value>
+    <Flex gap={space(0.5)} align="center">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -242,7 +243,7 @@ function TagDetailsValue({
           onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
         />
       )}
-    </Value>
+    </Flex>
   );
 }
 
@@ -382,12 +383,6 @@ const Row = styled(Body)`
       visibility: visible;
     }
   }
-`;
-
-const Value = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 const RightAlignedValue = styled('div')`

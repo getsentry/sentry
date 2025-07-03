@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -97,7 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   return (
     <EventNavigationWrapper role="navigation">
-      <LargeDropdownButtonWrapper>
+      <Flex align="center" gap={space(0.25)}>
         <DropdownMenu
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
@@ -198,7 +199,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           }
         />
         <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
-      </LargeDropdownButtonWrapper>
+      </Flex>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
@@ -298,12 +299,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     </EventNavigationWrapper>
   );
 }
-
-const LargeDropdownButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
 
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.fontSize.lg};

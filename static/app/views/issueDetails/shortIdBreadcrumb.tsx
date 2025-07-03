@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -72,7 +73,7 @@ export function ShortIdBreadcrumb({
   }
 
   return (
-    <Wrapper>
+    <Flex gap={space(1)} align="center">
       <ProjectBadge
         project={project}
         avatarSize={16}
@@ -118,15 +119,9 @@ export function ShortIdBreadcrumb({
           ]}
         />
       </ShortIdCopyable>
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};

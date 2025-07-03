@@ -1,7 +1,7 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,11 +14,11 @@ export default function CommitDetailWrapper() {
     <SentryDocumentTitle title="Commit Page Wrapper" orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex align="center" justify="space-between" direction="row">
             <Layout.Title>
               Commit Page Wrapper <FeatureBadge type="new" />
             </Layout.Title>
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -29,10 +29,3 @@ export default function CommitDetailWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

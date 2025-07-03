@@ -5,6 +5,7 @@ import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/gr
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -400,14 +401,9 @@ const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const NameColumn = styled(Column)`
+const NameColumn = styled(Flex)`
   ${p => p.theme.overflowEllipsis};
-  display: flex;
+  align-items: center;
   min-width: 320px;
 `;
 

@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -221,7 +221,7 @@ class PluginSettings<
         onSubmit={this.onSubmit}
         submitDisabled={isSaving || !hasChanges}
       >
-        <Flex>
+        <Flex direction="column">
           {this.state.errors.__all__ && (
             <Alert type="error">
               <ul>
@@ -242,10 +242,5 @@ class PluginSettings<
     );
   }
 }
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 export default PluginSettings;

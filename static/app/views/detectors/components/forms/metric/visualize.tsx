@@ -288,7 +288,7 @@ export function Visualize() {
     <CustomMeasurementsContext value={{customMeasurements}}>
       <AggregateContainer hasParameters={hasVisibleParameters}>
         <Flex gap={space(1)} align="flex-end">
-          <FieldContainer>
+          <Flex direction="column" gap={space(0.5)} flex="1">
             <div>
               <Tooltip
                 title={t(
@@ -308,10 +308,10 @@ export function Visualize() {
                 handleAggregateChange(String(option.value));
               }}
             />
-          </FieldContainer>
+          </Flex>
           {aggregateMetadata?.parameters?.map((param, index) => {
             return (
-              <FieldContainer key={index}>
+              <Flex key={index} direction="column" gap={space(0.5)} flex="1">
                 {param.kind === 'column' ? (
                   <StyledVisualizeSelect
                     searchable
@@ -348,7 +348,7 @@ export function Visualize() {
                     }}
                   />
                 )}
-              </FieldContainer>
+              </Flex>
             );
           })}
         </Flex>
@@ -386,13 +386,6 @@ const AggregateContainer = styled('div')<{hasParameters: boolean}>`
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }
-`;
-
-const FieldContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  flex: 1;
 `;
 
 const StyledAggregateSelect = styled(CompactSelect)`
