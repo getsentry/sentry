@@ -329,7 +329,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)};
-  background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
