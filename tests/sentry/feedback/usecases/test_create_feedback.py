@@ -1192,7 +1192,9 @@ def test_generate_feedback_title():
 
 
 @django_db_all
-def test_create_feedback_issue_uses_generated_title(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_issue_uses_generated_title(
+    default_project, mock_produce_occurrence_to_kafka
+):
     """Test that create_feedback_issue uses the generated title instead of hardcoded 'User Feedback'."""
 
     # Test with a simple message
@@ -1214,7 +1216,9 @@ def test_create_feedback_issue_uses_generated_title(default_project, mock_produc
 
 
 @django_db_all
-def test_create_feedback_issue_title_with_long_message(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_issue_title_with_long_message(
+    default_project, mock_produce_occurrence_to_kafka
+):
     """Test that long feedback messages are properly truncated in the title."""
 
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
@@ -1232,13 +1236,17 @@ def test_create_feedback_issue_title_with_long_message(default_project, mock_pro
     occurrence = call_args[1]["occurrence"]
 
     # Check that the title is truncated properly
-    expected_title = "User Feedback: This is a very long feedback message that describes multiple issues..."
+    expected_title = (
+        "User Feedback: This is a very long feedback message that describes multiple issues..."
+    )
     assert occurrence.issue_title == expected_title
     assert len(occurrence.issue_title) <= 200
 
 
 @django_db_all
-def test_create_feedback_issue_title_with_empty_message(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_issue_title_with_empty_message(
+    default_project, mock_produce_occurrence_to_kafka
+):
     """Test that empty feedback messages fall back to 'User Feedback'."""
 
     # This test won't actually run since empty messages are filtered out,
