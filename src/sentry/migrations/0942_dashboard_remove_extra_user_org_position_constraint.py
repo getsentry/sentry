@@ -25,8 +25,9 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="dashboardfavoriteuser",
-            name="sentry_dashboardfavoriteuser_user_id_organization_id_position_u",
+        migrations.RunSQL(
+            """
+            ALTER TABLE sentry_dashboardfavoriteuser DROP CONSTRAINT IF EXISTS sentry_dashboardfavoriteuser_user_id_organization_id_position_u;
+            """
         ),
     ]
