@@ -34,6 +34,7 @@ import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {AggregateParameter} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -120,9 +121,9 @@ function InternalInput({
   const getFunctionDefault = useCallback(
     (func: string): string => {
       const definition = getFieldDefinition(func);
-      const parameterDefinitions = definition?.parameters ?? [];
-      const parameters = parameterDefinitions.map(
-        parameterDefinition => parameterDefinition.defaultValue
+      const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+      const parameters: string[] = parameterDefinitions.map(
+        parameterDefinition => parameterDefinition.defaultValue ?? ''
       );
       return `${func}(${parameters.join(',')})`;
     },
