@@ -795,6 +795,101 @@ def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
+def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate Apdex score based on response time field and threshold.
+
+    Apdex = (Satisfactory + Tolerable/2) / Total Requests
+    Where:
+    - Satisfactory: response time ≤ T
+    - Tolerable: response time > T and ≤ 4T
+    - Frustrated: response time > 4T
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    # Get the response time field and threshold
+    response_time_field = cast(AttributeKey, args[0])
+    threshold = cast(int, args[1])
+
+    # Calculate 4T for tolerable range
+    tolerable_threshold = threshold * 4
+
+    # Satisfactory requests: response time ≤ T
+    satisfactory = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=response_time_field,
+                    op=ComparisonFilter.OP_LESS_EQUAL,
+                    value=AttributeValue(val_double=threshold),
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Tolerable requests: response time > T and ≤ 4T
+    tolerable = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_GREATER,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_EQUAL,
+                                value=AttributeValue(val_double=tolerable_threshold),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Total requests: count of all requests with the response time field
+    total = Column(
+        aggregation=AttributeAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Calculate (Satisfactory + Tolerable/2) / Total
+    numerator = Column(
+        formula=Column.BinaryFormula(
+            left=satisfactory,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(
+                formula=Column.BinaryFormula(
+                    left=tolerable,
+                    op=Column.BinaryFormula.OP_DIVIDE,
+                    right=Column(literal=LiteralValue(val_double=2.0)),
+                )
+            ),
+        )
+    )
+
+    return Column.BinaryFormula(
+        left=numerator,
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=total,
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -986,5 +1081,19 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "eps": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+    ),
+    "apdex": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                },
+            ),
+            ValueArgumentDefinition(argument_types={"integer"}),
+        ],
+        formula_resolver=apdex,
+        is_aggregate=True,
     ),
 }
