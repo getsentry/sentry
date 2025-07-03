@@ -86,7 +86,7 @@ class MultiProducer:
             self.producers.append(producer)
             self.topics.append(topic)
 
-    def produce(self, payload: KafkaPayload, key: str | None = None):
+    def produce(self, payload: KafkaPayload):
         """Produce message with load balancing."""
         if len(self.producers) == 1:
             # Single producer - no load balancing needed
