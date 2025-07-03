@@ -3,10 +3,24 @@ import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
-import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayCountRageClicksColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
@@ -14,37 +28,45 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/views/replays/jetpackComposePiiNotice';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 const COLUMNS_WEB = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayBrowserColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountDeadClicksColumn,
-  ReplayTableColumns.ReplayCountRageClicksColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayBrowserColumn,
+  ReplayDurationColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountRageClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ] as const;
 
 const COLUMNS_MOBILE = [
-  ReplayTableColumns.ReplaySessionColumn,
-  ReplayTableColumns.ReplayOSColumn,
-  ReplayTableColumns.ReplayDurationColumn,
-  ReplayTableColumns.ReplayCountErrorsColumn,
-  ReplayTableColumns.ReplayActivityColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
 ] as const;
 
 export default function ReplayIndexTable() {
+  const routes = useRoutes();
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const {onSortClick, sortQuery, sortType} = useReplayTableSort();
@@ -71,6 +93,13 @@ export default function ReplayIndexTable() {
   const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
+  const columns = useMemo(() => {
+    const cols = allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB;
+    return organization.features.includes('replay-ui-list-select')
+      ? cols
+      : cols.filter(col => col !== ReplaySelectColumn);
+  }, [allMobileProj, organization.features]);
+
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
@@ -91,19 +120,42 @@ export default function ReplayIndexTable() {
     );
   }
 
+  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const hasNextResultsPage = parseLinkHeader(pageLinks).next?.results;
+
   return (
     <Fragment>
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
-      <ReplayTable
-        columns={allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB}
-        error={error}
-        isPending={isPending}
-        onSortClick={onSortClick}
-        replays={replays}
-        showDropdownFilters
-        sort={sortType}
-      />
-      <Paginate pageLinks={getResponseHeader?.('Link') ?? null} />
+      <ListItemCheckboxProvider
+        hits={hasNextResultsPage ? replays.length + 1 : replays.length}
+        knownIds={replays.map(replay => replay.id)}
+        queryKey={queryKey}
+      >
+        <ReplayTable
+          columns={columns}
+          error={error}
+          isPending={isPending}
+          onClickRow={({replay}) => {
+            const referrer = getRouteStringFromRoutes(routes);
+            const eventView = EventView.fromLocation(location);
+            navigate({
+              pathname: makeReplaysPathname({
+                path: `/${replay.id}/`,
+                organization,
+              }),
+              query: {
+                referrer,
+                ...eventView.generateQueryStringObject(),
+              },
+            });
+          }}
+          onSortClick={onSortClick}
+          replays={replays}
+          showDropdownFilters
+          sort={sortType}
+        />
+      </ListItemCheckboxProvider>
+      <Paginate pageLinks={pageLinks} />
     </Fragment>
   );
 }
