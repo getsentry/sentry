@@ -145,7 +145,7 @@ export function FunctionTrendsWidget({
         paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
-      <ContentContainer>
+      <ContentContainer direction="column">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />

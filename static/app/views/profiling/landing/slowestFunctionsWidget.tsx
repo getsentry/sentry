@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -191,7 +192,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           paginationAnalyticsEvent={paginationAnalyticsEvent}
         />
       </HeaderContainer>
-      <ContentContainer>
+      <ContentContainer direction="column">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -386,13 +387,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         />
       </AccordionItem>
       {isExpanded && (
-        <FunctionChartContainer>
+        <Flex direction="column" flex="1 1 auto" justify="center">
           <FunctionChart
             func={func}
             breakdownFunction={breakdownFunction}
             stats={stats}
           />
-        </FunctionChartContainer>
+        </Flex>
       )}
     </Fragment>
   );
@@ -510,13 +511,6 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
-`;
-
-const FunctionChartContainer = styled('div')`
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const DropdownItem = styled('div')`

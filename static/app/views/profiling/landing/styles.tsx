@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -31,11 +32,8 @@ export const Subtitle = styled('div')`
   display: inline-block;
 `;
 
-export const ContentContainer = styled('div')`
+export const ContentContainer = styled(Flex)`
   flex: 1 1 auto;
-
-  display: flex;
-  flex-direction: column;
   justify-content: center;
 `;
 
