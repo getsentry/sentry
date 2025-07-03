@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
@@ -74,9 +76,19 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
+   * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
+   * @param sort `Sort` object contain the `field` and `kind` ('asc' or 'desc')
+   */
+  onChangeSort?: (sort: Sort) => void;
+
+  /**
    * If true, the table will scroll on overflow. Note that the table headers will also be sticky
    */
   scrollable?: boolean;
+  /**
+   * The current sort order to display
+   */
+  sort?: Sort;
 }
 
 const FRAMELESS_STYLES = {
@@ -99,6 +111,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     scrollable,
     fit,
     aliases,
+    onChangeSort,
+    sort,
   } = props;
 
   const theme = useTheme();
@@ -136,6 +150,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   const {data, meta} = tableData;
+  const locationSort = decodeSorts(location?.query?.sort)[0];
 
   return (
     <GridEditable
@@ -147,11 +162,41 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const column = columnOrder[columnIndex]!;
           const align = fieldAlignment(column.name, column.type as ColumnValueType);
           const name = aliases?.[column.key] || column.name;
+          const sortColumn = getSortField(column.key) ?? column.key;
+
+          let direction = undefined;
+          if (sort?.field === sortColumn) {
+            direction = sort.kind;
+          } else if (locationSort?.field === sortColumn && !sort) {
+            direction = locationSort.kind;
+          }
 
           return (
-            <CellWrapper align={align}>
-              <StyledTooltip title={name}>{name}</StyledTooltip>
-            </CellWrapper>
+            <SortLink
+              align={align}
+              canSort={column.sortable ?? false}
+              onClick={() => {
+                const nextDirection = direction === 'desc' ? 'asc' : 'desc';
+
+                onChangeSort?.({
+                  field: sortColumn,
+                  kind: nextDirection,
+                });
+              }}
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              direction={direction}
+              generateSortLink={() => {
+                return onChangeSort
+                  ? location
+                  : {
+                      ...location,
+                      query: {
+                        ...location.query,
+                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                      },
+                    };
+              }}
+            />
           );
         },
         renderBodyCell: (tableColumn, dataRow, rowIndex, columnIndex) => {
@@ -184,11 +229,4 @@ TableWidgetVisualization.LoadingPlaceholder = function () {
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
-`;
-
-const CellWrapper = styled('div')<{align: Alignments}>`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;
