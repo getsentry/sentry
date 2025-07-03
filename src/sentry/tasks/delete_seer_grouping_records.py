@@ -49,7 +49,7 @@ def delete_seer_grouping_records_by_hash(
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     end_index = min(last_deleted_index + batch_size, len_hashes)
-    delete_grouping_records_by_hash(project_id, hashes[last_deleted_index:end_index])
+    delete_grouping_records_by_hash(project_id, list(hashes[last_deleted_index:end_index]))
     if end_index < len_hashes:
         delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hashes, end_index])
 
