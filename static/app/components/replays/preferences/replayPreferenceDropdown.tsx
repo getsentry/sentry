@@ -63,7 +63,7 @@ export default function ReplayPreferenceDropdown({
               style: 'h:mm:ss',
             });
             return {
-              label: `${baseLabel} (${durationDisplay})`,
+              label: `${baseLabel}     ${durationDisplay}`,
               value: option,
             };
           }
