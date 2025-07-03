@@ -13,7 +13,7 @@ export type DomainView =
   | typeof AGENTS_LANDING_SUB_PATH
   | typeof MOBILE_LANDING_SUB_PATH;
 
-const domainViews = [
+export const domainViews: DomainView[] = [
   FRONTEND_LANDING_SUB_PATH,
   BACKEND_LANDING_SUB_PATH,
   AI_LANDING_SUB_PATH,
@@ -35,7 +35,7 @@ export const useDomainViewFilters = () => {
   const view = pathSegments[indexOfInsights + 1] as DomainViewFilters['view'];
   const isInOverviewPage = pathSegments.length === indexOfInsights + 2; // TODO: remove this with `useInsightsEap`, only needed to seperately control eap on overview page
 
-  if (!domainViews.includes(view || '')) {
+  if (!domainViews.includes(view || ('' as DomainView))) {
     return {isInDomainView: false};
   }
 
