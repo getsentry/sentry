@@ -29,7 +29,8 @@ export default function ReplayPreferenceDropdown({
   };
 
   // Check if we should show duration (data is loaded and duration is available)
-  const shouldShowDuration = !isLoading && !isFetching && replay && replay.getDurationMs() > 0;
+  const shouldShowDuration =
+    !isLoading && !isFetching && replay && replay.getDurationMs() > 0;
 
   return (
     <CompositeSelect
@@ -52,11 +53,14 @@ export default function ReplayPreferenceDropdown({
           const baseLabel = `${option}x`;
 
           if (shouldShowDuration) {
-            const adjustedDurationMs = calculateAdjustedDuration(replay.getDurationMs(), option);
+            const adjustedDurationMs = calculateAdjustedDuration(
+              replay.getDurationMs(),
+              option
+            );
             const durationDisplay = formatDuration({
               duration: [adjustedDurationMs, 'ms'],
               precision: 'sec',
-              style: 'h:mm:ss'
+              style: 'h:mm:ss',
             });
             return {
               label: `${baseLabel} (${durationDisplay})`,
