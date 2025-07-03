@@ -69,6 +69,9 @@ export function LaravelOverviewPage() {
           pathsCursor: undefined,
           commandsCursor: undefined,
           jobsCursor: undefined,
+          // Reset sort parameters when view changes
+          field: undefined,
+          order: undefined,
           view,
         },
       },
