@@ -1,6 +1,10 @@
 import invariant from 'invariant';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
+import {
+  getGraphQLDescription,
+  isFrameGraphQLRequest,
+} from 'sentry/utils/replays/resourceFrame';
 import type {RawSpanFrame, SpanFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
@@ -19,17 +23,21 @@ export default function hydrateSpans(
 
         invariant(isValidDate(start), 'spanFrame.startTimestamp is invalid');
         invariant(isValidDate(end), 'spanFrame.endTimestamp is invalid');
-        return {
+        const spanFrame: SpanFrame = {
           ...frame,
           endTimestamp: end,
           endTimestampMs: end.getTime(),
           offsetMs: Math.abs(start.getTime() - startTimestampMs),
           startTimestamp: start,
           timestampMs: start.getTime(),
-
-          // TODO: do we need this added as well?
-          // id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
         };
+
+        if (isFrameGraphQLRequest(spanFrame)) {
+          spanFrame.description =
+            getGraphQLDescription(spanFrame) ?? spanFrame.description;
+        }
+
+        return spanFrame;
       } catch {
         return undefined;
       }
