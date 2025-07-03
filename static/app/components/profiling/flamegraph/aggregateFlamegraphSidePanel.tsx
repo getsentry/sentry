@@ -104,7 +104,7 @@ export function AggregateFlamegraphSidePanel({
         </TitleContainer>
         {examples.length <= 0 ? (
           <EmptyStateWarning withIcon={false} small>
-            <div>{t('No profiles detected')}</div>
+            <Text variant="muted">{t('No profiles detected')}</Text>
           </EmptyStateWarning>
         ) : (
           examples.map(({example}, index) => (
@@ -130,9 +130,7 @@ function FrameInformation({frame}: FrameInformationProps) {
   if (!defined(frame)) {
     return (
       <EmptyStateWarning withIcon={false} small>
-        <Text size="sm" variant="muted">
-          {t('No function selected')}
-        </Text>
+        <Text variant="muted">{t('No function selected')}</Text>
       </EmptyStateWarning>
     );
   }

@@ -114,9 +114,14 @@ const CollapsibleTimelineHeader = styled('div')<{
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
-export const CollapsibleTimelineLabel = styled('span')`
+export const CollapsibleTimelineLabel = styled(
+  ({children, ...props}: {children: React.ReactNode}) => (
+    <span {...props}>
+      <Text size="xs">{children}</Text>
+    </span>
+  )
+)`
   padding: 1px ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 export function CollapsibleTimelineMessage({children}: {children: React.ReactNode}) {
