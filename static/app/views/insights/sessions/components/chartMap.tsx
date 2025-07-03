@@ -72,6 +72,7 @@ export const PAGE_CHART_OPTIONS: Record<
   ],
   backend: [],
   ai: [],
+  agents: [],
 };
 
 export const DEFAULT_LAYOUTS: Record<
@@ -98,4 +99,5 @@ export const DEFAULT_LAYOUTS: Record<
   ],
   backend: [],
   ai: [],
+  agents: [],
 };
