@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import localStorage from 'sentry/utils/localStorage';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {domainViews, useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
@@ -26,5 +27,5 @@ export function getLastUsedDomainView(): DomainView {
     return storedValue;
   }
 
-  return 'frontend';
+  return FRONTEND_LANDING_SUB_PATH;
 }
