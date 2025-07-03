@@ -16,6 +16,7 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -191,7 +192,7 @@ export function getAlertRuleLogsUrl({
   const queryParams: Record<string, any> = {
     project: [parseInt(projectId, 10)],
     environment: rule.environment,
-    query: rule.query,
+    [LOGS_QUERY_KEY]: rule.query,
   };
 
   if (timePeriod.usingPeriod) {
