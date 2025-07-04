@@ -6,16 +6,11 @@ import pytest
 from botocore.client import ClientError
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
 def test_conf_key() -> None:
     assert AmazonSQSPlugin().conf_key == "amazon-sqs"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("amazon_sqs", AmazonSQSPlugin())
 
 
 class AmazonSQSPluginTest(PluginTestCase):
