@@ -219,10 +219,13 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:
                 ai_model_cost = AIModelCostV2(
-                    inputPerToken=safe_float_conversion(cost_data.get("input")),
-                    outputPerToken=safe_float_conversion(cost_data.get("output")),
+                    inputPerToken=safe_float_conversion(cost_data.get("input"))
+                    / 1000000,  # models.dev have prices per 1M tokens
+                    outputPerToken=safe_float_conversion(cost_data.get("output"))
+                    / 1000000,  # models.dev have price per 1M tokens
                     outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
-                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read")),
+                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
                 )
 
                 models_dict[model_id] = ai_model_cost
