@@ -814,23 +814,38 @@ def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryF
     # Calculate 4T for tolerable range
     tolerable_threshold = threshold * 4
 
-    # Satisfactory requests: response time ≤ T
+    # Satisfactory requests: response time ≤ T and is_transaction = True
     satisfactory = Column(
         conditional_aggregation=AttributeConditionalAggregation(
             aggregate=Function.FUNCTION_COUNT,
             key=response_time_field,
             filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=response_time_field,
-                    op=ComparisonFilter.OP_LESS_EQUAL,
-                    value=AttributeValue(val_double=threshold),
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
                 )
             ),
             extrapolation_mode=extrapolation_mode,
         )
     )
 
-    # Tolerable requests: response time > T and ≤ 4T
+    # Tolerable requests: response time > T and ≤ 4T and is_transaction = True
     tolerable = Column(
         conditional_aggregation=AttributeConditionalAggregation(
             aggregate=Function.FUNCTION_COUNT,
@@ -841,15 +856,24 @@ def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryF
                         TraceItemFilter(
                             comparison_filter=ComparisonFilter(
                                 key=response_time_field,
-                                op=ComparisonFilter.OP_GREATER,
+                                op=ComparisonFilter.OP_GREATER_THAN,
                                 value=AttributeValue(val_double=threshold),
                             )
                         ),
                         TraceItemFilter(
                             comparison_filter=ComparisonFilter(
                                 key=response_time_field,
-                                op=ComparisonFilter.OP_LESS_EQUAL,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
                                 value=AttributeValue(val_double=tolerable_threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
                             )
                         ),
                     ]
@@ -859,11 +883,18 @@ def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryF
         )
     )
 
-    # Total requests: count of all requests with the response time field
+    # Total requests: count of all requests with the response time field and is_transaction = True
     total = Column(
-        aggregation=AttributeAggregation(
+        conditional_aggregation=AttributeConditionalAggregation(
             aggregate=Function.FUNCTION_COUNT,
             key=response_time_field,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_bool=True),
+                )
+            ),
             extrapolation_mode=extrapolation_mode,
         )
     )
@@ -1089,6 +1120,7 @@ SPAN_FORMULA_DEFINITIONS = {
             AttributeArgumentDefinition(
                 attribute_types={
                     "duration",
+                    *constants.DURATION_TYPE,
                 },
             ),
             ValueArgumentDefinition(argument_types={"integer"}),

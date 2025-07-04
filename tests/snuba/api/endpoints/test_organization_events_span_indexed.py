@@ -5879,3 +5879,155 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["units"] == {"description": None, "eps()": "1/second"}
         assert meta["fields"] == {"description": "string", "eps()": "rate"}
+
+    def test_apdex_function(self):
+        """Test the apdex function with span.duration and threshold."""
+        # Create spans with different durations to test apdex calculation
+        # Threshold = 1000ms (1 second)
+        # Satisfactory: ≤ 1000ms
+        # Tolerable: > 1000ms and ≤ 4000ms
+        # Frustrated: > 4000ms
+        spans = [
+            # Satisfactory spans (≤ 1000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=500,  # 500ms - satisfactory
+            ),
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=1000,  # 1000ms - satisfactory (at threshold)
+            ),
+            # Tolerable spans (> 1000ms and ≤ 4000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=2000,  # 2000ms - tolerable
+            ),
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=4000,  # 4000ms - tolerable (at 4T)
+            ),
+            # Frustrated spans (> 4000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - frustrated
+            ),
+            # Non-segment span
+            self.create_span(
+                {"description": "http.server", "is_segment": False},
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - frustrated
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["apdex(span.duration,1000)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        # Expected apdex calculation:
+        # Satisfactory: 2 spans (500ms, 1000ms)
+        # Tolerable: 2 spans (2000ms, 4000ms)
+        # Frustrated: 1 span (5000ms)
+        # Total: 5 spans
+        # Apdex = (2 + 2/2) / 5 = (2 + 1) / 5 = 3/5 = 0.6
+        expected_apdex = 0.6
+
+        assert len(data) == 1
+        assert data[0]["apdex(span.duration,1000)"] == expected_apdex
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {"apdex(span.duration,1000)": "number"}
+
+    def test_apdex_function_with_filter(self):
+        """Test the apdex function with filtering."""
+        # Create spans with different descriptions and durations
+        # Only segments (transactions) will be counted in apdex calculation
+        spans = [
+            # Satisfactory spans for "api" operations (segments)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=800,
+            ),
+            # Tolerable span for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,
+            ),
+            # Frustrated span for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,
+            ),
+            # Other spans that should be filtered out
+            self.create_span(
+                {
+                    "description": "task",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["apdex(span.duration,1000)"],
+                "query": "description:http.server",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        # Expected apdex calculation for filtered results:
+        # Only segments (transactions) are counted in apdex
+        # Satisfactory: 2 spans (500ms, 800ms) - both are segments
+        # Tolerable: 1 span (2000ms) - is a segment
+        # Frustrated: 1 span (5000ms) - is a segment
+        # Total: 4 spans (all segments)
+        # Apdex = (2 + 1/2) / 4 = (2 + 0.5) / 4 = 2.5/4 = 0.625
+        expected_apdex = 0.625
+
+        assert len(data) == 1
+        assert data[0]["apdex(span.duration,1000)"] == expected_apdex
