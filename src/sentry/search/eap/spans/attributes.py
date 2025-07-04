@@ -192,6 +192,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.usage.input_tokens",
+            internal_name="gen_ai.usage.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.output_tokens",
+            internal_name="gen_ai.usage.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_tokens",
+            internal_name="gen_ai.usage.total_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_cost",
+            internal_name="gen_ai.usage.total_cost",
+            search_type="number",
+        ),
+        ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
             internal_name="http.decoded_response_content_length",
             search_type="byte",
