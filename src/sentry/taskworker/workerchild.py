@@ -178,7 +178,6 @@ def child_process(
             child_tasks_get_start = time.monotonic()
             try:
                 # If the queue is empty, this could block for a second.
-                # We could be losing a bunch of throughput here.
                 inflight = child_tasks.get(timeout=1.0)
             except queue.Empty:
                 metrics.distribution(
