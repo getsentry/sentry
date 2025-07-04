@@ -12,7 +12,7 @@ import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer'
 import {
   getImageAttachmentRenderer,
   imageMimeTypes,
-  webmMimeType,
+  webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -56,7 +56,8 @@ function Screenshot({
   openVisualizationModal,
 }: Props) {
   const [loadingImage, setLoadingImage] = useState(
-    imageMimeTypes.includes(screenshot.mimetype) || webmMimeType === screenshot.mimetype
+    imageMimeTypes.includes(screenshot.mimetype) ||
+      webmMimeTypes.includes(screenshot.mimetype)
   );
 
   const {hasRole} = useRole({role: 'attachmentsRole'});
