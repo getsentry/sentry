@@ -212,7 +212,7 @@ class SlackActionEndpoint(Endpoint):
         else:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
-                    integration_id=slack_request.integration.id,
+                    slack_request.integration.id,
                     slack_id=user_id,
                     channel_id=channel,
                     response_url=resp_url,
