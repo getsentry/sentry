@@ -95,6 +95,7 @@ export enum SpanFields {
   NAME = 'span.name',
   KIND = 'span.kind',
   STATUS = 'span.status',
+  STATUS_MESSAGE = 'span.status_message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
