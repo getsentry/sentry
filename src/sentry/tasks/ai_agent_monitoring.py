@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
@@ -73,6 +74,17 @@ def fetch_ai_model_costs() -> None:
         )
         # re-raise to fail the task
         raise
+
+    # Custom model mapping for models pricing - often times the same models are named differently
+    # in different hosting providers. This allows us to map the alternative model id to the existing model id.
+    for model_mapping in options.get("ai-agent-monitoring.custom-model-mapping"):
+        alternative_model_id = model_mapping.get("alternative_model_id")
+        existing_model_id = model_mapping.get("existing_model_id")
+
+        if existing_model_id not in models_dict or alternative_model_id in models_dict:
+            continue
+
+        models_dict[alternative_model_id] = models_dict[existing_model_id]
 
     ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
     cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
@@ -207,10 +219,13 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:
                 ai_model_cost = AIModelCostV2(
-                    inputPerToken=safe_float_conversion(cost_data.get("input")),
-                    outputPerToken=safe_float_conversion(cost_data.get("output")),
+                    inputPerToken=safe_float_conversion(cost_data.get("input"))
+                    / 1000000,  # models.dev have prices per 1M tokens
+                    outputPerToken=safe_float_conversion(cost_data.get("output"))
+                    / 1000000,  # models.dev have price per 1M tokens
                     outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
-                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read")),
+                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
                 )
 
                 models_dict[model_id] = ai_model_cost

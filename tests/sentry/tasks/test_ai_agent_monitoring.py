@@ -8,6 +8,7 @@ from sentry.tasks.ai_agent_monitoring import (
     fetch_ai_model_costs,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 
 
@@ -114,16 +115,16 @@ MOCK_MODELS_DEV_API_RESPONSE = {
         "models": {
             "gpt-4.1-mini": {
                 "cost": {
-                    "input": 0.4,
-                    "output": 1.6,
-                    "cache_read": 0.1,
+                    "input": 0.4 * 1000000,  # models.dev have prices per 1M tokens
+                    "output": 1.6 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_read": 0.1 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "gpt-4": {  # This should be skipped since it exists in OpenRouter
                 "cost": {
-                    "input": 0.1,  # Different from OpenRouter price
-                    "output": 0.2,
-                    "cache_read": 0.05,
+                    "input": 0.1 * 1000000,  # models.dev have prices per 1M tokens
+                    "output": 0.2 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_read": 0.05 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -132,16 +133,16 @@ MOCK_MODELS_DEV_API_RESPONSE = {
         "models": {
             "gemini-2.5-pro": {
                 "cost": {
-                    "input": 1.25,
-                    "output": 10,
-                    "cache_read": 0.31,
+                    "input": 1.25 * 1000000,  # models.dev have prices per 1M tokens
+                    "output": 10 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_read": 0.31 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "google/gemini-2.0-flash-001": {  # Test provider prefix stripping
                 "cost": {
-                    "input": 0.075,
-                    "output": 0.3,
-                    "cache_read": 0.01875,
+                    "input": 0.075 * 1000000,  # models.dev have prices per 1M tokens
+                    "output": 0.3 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_read": 0.01875 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -294,8 +295,8 @@ class FetchAIModelCostsTest(TestCase):
                 "models": {
                     "model-with-pricing": {
                         "cost": {
-                            "input": 0.1,
-                            "output": 0.2,
+                            "input": 0.1 * 1000000,  # models.dev have prices per 1M tokens
+                            "output": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                         }
                     },
                     "model-no-cost": {
@@ -437,3 +438,51 @@ class FetchAIModelCostsTest(TestCase):
         """Test retrieving from empty cache"""
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
+
+    @override_options(
+        {
+            "ai-agent-monitoring.custom-model-mapping": [
+                {
+                    "alternative_model_id": "gemini-pro-alternative",
+                    "existing_model_id": "gemini-2.5-pro",
+                },
+                {
+                    "alternative_model_id": "nonexistent-mapping",
+                    "existing_model_id": "model-that-does-not-exist",
+                },
+            ]
+        }
+    )
+    @responses.activate
+    def test_fetch_ai_model_costs_custom_model_mapping(self):
+        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
+        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Original models should exist
+        assert "gemini-2.5-pro" in models
+
+        # Alternative model IDs should be mapped to existing models
+        assert "gemini-pro-alternative" in models
+
+        # Verify that the alternative models have the same pricing as the existing models
+        gemini_model = models["gemini-2.5-pro"]
+        gemini_alt_model = models["gemini-pro-alternative"]
+        assert gemini_model.get("inputPerToken") == gemini_alt_model.get("inputPerToken")
+        assert gemini_model.get("outputPerToken") == gemini_alt_model.get("outputPerToken")
+        assert gemini_model.get("outputReasoningPerToken") == gemini_alt_model.get(
+            "outputReasoningPerToken"
+        )
+        assert gemini_model.get("inputCachedPerToken") == gemini_alt_model.get(
+            "inputCachedPerToken"
+        )
+
+        # Non-existent mapping should not create a new model
+        assert "nonexistent-mapping" not in models
