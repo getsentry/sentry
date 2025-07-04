@@ -62,3 +62,9 @@ export const UserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
 `;
+
+export const BrowserIconContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  width: max-content;
+`;

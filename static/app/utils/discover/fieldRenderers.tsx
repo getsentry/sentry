@@ -13,6 +13,7 @@ import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
+import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import FileSize from 'sentry/components/fileSize';
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -45,6 +46,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -63,16 +65,20 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import ArrayValue from './arrayValue';
 import {
   BarContainer,
+  BrowserIconContainer,
   Container,
   FieldDateTime,
   FieldShortId,
@@ -367,35 +373,6 @@ type SpecialField = {
   sortField: string | null;
 };
 
-type SpecialFields = {
-  adoption_stage: SpecialField;
-  'apdex()': SpecialField;
-  attachments: SpecialField;
-  'count_unique(user)': SpecialField;
-  device: SpecialField;
-  'error.handled': SpecialField;
-  id: SpecialField;
-  [SpanFields.IS_STARRED_TRANSACTION]: SpecialField;
-  issue: SpecialField;
-  'issue.id': SpecialField;
-  minidump: SpecialField;
-  'performance_score(measurements.score.total)': SpecialField;
-  'profile.id': SpecialField;
-  project: SpecialField;
-  release: SpecialField;
-  replayId: SpecialField;
-  'span.description': SpecialField;
-  'span.status_code': SpecialField;
-  span_id: SpecialField;
-  team_key_transaction: SpecialField;
-  'timestamp.to_day': SpecialField;
-  'timestamp.to_hour': SpecialField;
-  trace: SpecialField;
-  'trend_percentage()': SpecialField;
-  user: SpecialField;
-  'user.display': SpecialField;
-};
-
 const DownloadCount = styled('span')`
   padding-left: ${space(0.75)};
 `;
@@ -409,7 +386,7 @@ const RightAlignedContainer = styled('span')`
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
-const SPECIAL_FIELDS: SpecialFields = {
+const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   'apdex()': {
@@ -538,13 +515,25 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   trace: {
     sortField: 'trace',
-    renderFunc: data => {
+    renderFunc: (data, {organization, location}) => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return emptyValue;
       }
 
-      return <Container>{getShortEventId(id)}</Container>;
+      const target = getTraceDetailsUrl({
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        organization,
+        dateSelection: {statsPeriod: undefined, start: undefined, end: undefined},
+        location,
+      });
+
+      return (
+        <Container>
+          <Link to={target}>{getShortEventId(id)}</Link>
+        </Container>
+      );
     },
   },
   'issue.id': {
@@ -565,13 +554,24 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   replayId: {
     sortField: 'replayId',
-    renderFunc: data => {
+    renderFunc: (data, {organization}) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
         return emptyValue;
       }
 
-      return <Container>{getShortEventId(replayId)}</Container>;
+      const target = makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      });
+
+      return (
+        <Container>
+          <ViewReplayLink replayId={replayId} to={target}>
+            {getShortEventId(replayId)}
+          </ViewReplayLink>
+        </Container>
+      );
     },
   },
   'profile.id': {
@@ -646,6 +646,31 @@ const SPECIAL_FIELDS: SpecialFields = {
             }}
           </Projects>
         </Container>
+      );
+    },
+  },
+  project_id: {
+    sortField: 'project_id',
+    renderFunc: (data, {organization}) => {
+      const projectId = data.project_id;
+      // TODO: add projects to baggage to avoid using deprecated component
+      return (
+        <NumberContainer>
+          <Projects orgId={organization.slug} slugs={[]} projectIds={[projectId]}>
+            {({projects}) => {
+              const project = projects.find(p => p.id === projectId?.toString());
+              if (!project) {
+                return emptyValue;
+              }
+              const target = makeProjectsPathname({
+                path: `/${project?.slug}/?project=${projectId}/`,
+                organization,
+              });
+
+              return <Link to={target}>{projectId}</Link>;
+            }}
+          </Projects>
+        </NumberContainer>
       );
     },
   },
@@ -843,6 +868,56 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  alert_id: {
+    sortField: 'alert_id',
+    renderFunc: data => {
+      const alertId = data.alert_id;
+      if (!alertId) {
+        return <NumberContainer>{emptyValue}</NumberContainer>;
+      }
+
+      return (
+        <NumberContainer>
+          <Link to={''}>{alertId}</Link>
+        </NumberContainer>
+      );
+    },
+  },
+  browser: {
+    sortField: 'browser',
+    renderFunc: data => {
+      const browser = data.browser;
+      if (!browser) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+
+      // also includes the version--don't want to pass that
+      const browserAsList = browser.split();
+
+      return (
+        <BrowserIconContainer>
+          <ContextIcon name={browserAsList[0].toLocaleLowerCase()} size="md" />
+          {browser}
+        </BrowserIconContainer>
+      );
+    },
+  },
+  'browser.name': {
+    sortField: 'browser.name',
+    renderFunc: data => {
+      const browserName: string = data['browser.name'];
+      if (!browserName) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+
+      return (
+        <BrowserIconContainer>
+          <ContextIcon name={browserName.toLocaleLowerCase()} size="md" />
+          {browserName}
+        </BrowserIconContainer>
+      );
+    },
+  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -951,8 +1026,8 @@ export function getSortField(
   field: string,
   tableMeta: MetaType | undefined
 ): string | null {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
+    return SPECIAL_FIELDS[field]!.sortField;
   }
 
   if (!tableMeta) {
@@ -971,7 +1046,7 @@ export function getSortField(
   }
 
   const fieldType = tableMeta[field];
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+  if (Object.hasOwn(FIELD_FORMATTERS, fieldType)) {
     return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].isSortable
       ? field
       : null;
