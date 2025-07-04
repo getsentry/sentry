@@ -523,6 +523,13 @@ const Row = styled('div')`
   height: 24px;
   max-width: 100%;
 
+  /* Ensure that every free text token just before the line wrap
+   * stretches to use all the remaining space by setting flex-row
+   * to 1 for the very last one and auto for the rest.
+   */
+  &:not(:last-child) {
+    flex-grow: auto;
+  }
   &:last-child {
     flex-grow: 1;
   }
