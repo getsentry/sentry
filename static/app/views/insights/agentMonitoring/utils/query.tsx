@@ -4,7 +4,7 @@ import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
-export const AI_RUN_OPS = [
+const AI_RUN_OPS = [
   'ai.run.generateText',
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
@@ -28,18 +28,19 @@ export const AI_GENERATION_OPS = [
   'gen_ai.embed_many',
   'gen_ai.text_completion',
 ];
-export const AI_GENERATION_DESCRIPTIONS = [
-  'ai.generateText.doGenerate',
-  'generateText.doGenerate',
-];
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
-export const AI_TOOL_CALL_DESCRIPTIONS = ['ai.toolCall'];
+const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 
-const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
-const AI_DESCRIPTIONS = [...AI_GENERATION_DESCRIPTIONS, ...AI_TOOL_CALL_DESCRIPTIONS];
+const AI_HANDOFF_OPS = ['gen_ai.handoff'];
+
+const AI_OPS = [
+  ...AI_RUN_OPS,
+  ...AI_GENERATION_OPS,
+  ...AI_TOOL_CALL_OPS,
+  ...AI_HANDOFF_OPS,
+];
 
 export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
 export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE =
@@ -48,8 +49,6 @@ export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
 export const AI_COST_ATTRIBUTE = 'gen_ai.usage.total_cost' as EAPSpanProperty;
 export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
 export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
-
-export const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.total_tokens,integer])` as EAPSpanProperty;
@@ -83,40 +82,24 @@ export function extendWithLegacyAttributeKeys(attributeKeys: string[]) {
   });
 }
 
-export function getIsAiSpan({
-  op = 'default',
-  description,
-}: {
-  description?: string;
-  op?: string;
-}) {
-  if (op !== 'default') {
-    return AI_OPS.includes(op) || op.startsWith('gen_ai.');
-  }
-  return AI_DESCRIPTIONS.includes(description ?? '');
+export function getIsAiSpan({op = 'default'}: {op?: string}) {
+  return AI_OPS.includes(op) || op.startsWith('gen_ai.');
 }
 
 export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
   return AI_RUN_OPS.includes(op);
 }
 
-// TODO: Remove once tool spans have their own op
-export function mapMissingSpanOp({
-  op = 'default',
-  description,
-}: {
-  description?: string;
-  op?: string;
-}) {
-  if (op !== 'default') {
-    return op;
-  }
+export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
+  return AI_GENERATION_OPS.includes(op);
+}
 
-  if (description === 'ai.toolCall') {
-    return 'ai.toolCall';
-  }
+export function getIsAiToolCallSpan({op = 'default'}: {op?: string}) {
+  return AI_TOOL_CALL_OPS.includes(op);
+}
 
-  return op;
+export function getIsAiHandoffSpan({op = 'default'}: {op?: string}) {
+  return AI_HANDOFF_OPS.includes(op);
 }
 
 function joinValues(values: string[]) {
@@ -128,11 +111,11 @@ export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) 
 };
 
 export const getAIGenerationsFilter = () => {
-  return `(span.op:[${joinValues(AI_GENERATION_OPS)}] or span.description:[${joinValues(AI_GENERATION_DESCRIPTIONS)}])`;
+  return `span.op:[${joinValues(AI_GENERATION_OPS)}]`;
 };
 
 export const getAIToolCallsFilter = () => {
-  return `(span.op:[${joinValues(AI_TOOL_CALL_OPS)}] or span.description:[${joinValues(AI_TOOL_CALL_DESCRIPTIONS)}])`;
+  return `span.op:[${joinValues(AI_TOOL_CALL_OPS)}]`;
 };
 
 export const getAITracesFilter = () => {
