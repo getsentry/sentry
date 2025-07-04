@@ -187,6 +187,7 @@ def run_trace_query(
         "parent_span",
         "description",
         "span.op",
+        "span.name",
         "is_transaction",
         "transaction.span_id",
         "transaction.event_id",
