@@ -12,6 +12,7 @@ export const imageMimeTypes = [
   'image/png',
   'image/gif',
   'image/webp',
+  'image/avif',
 ];
 
 const logFileMimeTypes = [
