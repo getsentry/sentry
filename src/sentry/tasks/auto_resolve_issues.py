@@ -71,7 +71,7 @@ def schedule_auto_resolution():
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
-        processing_deadline_duration=75,
+        processing_deadline_duration=90,
     ),
 )
 @log_error_if_queue_has_items
