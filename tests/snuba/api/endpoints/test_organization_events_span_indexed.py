@@ -6113,8 +6113,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         meta = response.data["meta"]
 
         # Expected user misery calculation:
-        # Miserable users: 2 (user2, user5) - both are segments
-        # Total unique users: 5 (user1, user2, user3, user4, user5) - all segments
+        # Miserable users: 2 (user4, user2) - both are segments
+        # Total unique users: 5 (user1, user2, user3, user4) - all segments
         # MISERY_ALPHA = 5.8875, MISERY_BETA = 111.8625
         # User Misery = (2 + 5.8875) / (5 + 5.8875 + 111.8625) = 7.8875 / 122.75 ≈ 0.0643
         expected_user_misery = (2 + 5.8875) / (4 + 5.8875 + 111.8625)

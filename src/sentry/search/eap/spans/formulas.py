@@ -982,10 +982,21 @@ def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
             aggregate=Function.FUNCTION_UNIQ,
             key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.user"),
             filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_bool=True),
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(key=response_time_field),
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
                 )
             ),
             extrapolation_mode=extrapolation_mode,
