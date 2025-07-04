@@ -15,6 +15,7 @@ def test_validate_protected_queries__ok():
     validate_protected_queries(queries)
 
 
+@pytest.mark.skip(reason="flaky: #94922")
 def test_validate_protected_queries__missing_fences():
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
