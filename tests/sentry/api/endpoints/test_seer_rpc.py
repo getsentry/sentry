@@ -1,16 +1,28 @@
+import base64
 from typing import Any
 from unittest.mock import patch
 
 import orjson
+import pytest
+import responses
+from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import (
     generate_request_signature,
+    get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
 )
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
+
+# Fernet key must be 32 bytes long
+TEST_FERNET_KEY = "X" * 32
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -198,3 +210,77 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"consent": True}
         # Should be called twice (checks both existing orgs)
         assert mock_get_acknowledgement.call_count == 2
+
+    @responses.activate
+    @override_settings(SEER_API_SHARED_SECRET=TEST_FERNET_KEY)
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    def test_get_github_enterprise_integration_config(self, mock_get_jwt):
+        """Test when organization has github enterprise integration"""
+
+        installation_id = 1234
+        private_key = "private_key_1"
+        access_token = "access_token_1"
+        responses.add(
+            responses.POST,
+            f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
+            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
+        )
+
+        # Create a GitHub Enterprise integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="github_external_id",
+            metadata={
+                "domain_name": "github.example.org",
+                "installation": {
+                    "private_key": private_key,
+                    "id": 1,
+                    "verify_ssl": True,
+                },
+                "installation_id": installation_id,
+            },
+        )
+
+        result = get_github_enterprise_integration_config(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
+        assert result["base_url"] == "https://github.example.org/api/v3"
+        assert result["verify_ssl"]
+        assert result["encrypted_access_token"]
+
+        # Test that the access token is encrypted correctly
+        fernet = Fernet(base64.urlsafe_b64encode(TEST_FERNET_KEY.encode("utf-8")))
+        decrypted_access_token = fernet.decrypt(
+            result["encrypted_access_token"].encode("utf-8")
+        ).decode("utf-8")
+
+        assert decrypted_access_token == access_token
+
+        mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
+
+        # Test with invalid integration_id
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=self.organization.id,
+                integration_id=-1,
+            )
+
+        # Test with invalid organization_id
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=-1,
+                integration_id=integration.id,
+            )
+
+        # Test with disabled integration
+        integration.status = ObjectStatus.DISABLED
+        integration.save()
+
+        with pytest.raises(Integration.DoesNotExist):
+            get_github_enterprise_integration_config(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+            )
