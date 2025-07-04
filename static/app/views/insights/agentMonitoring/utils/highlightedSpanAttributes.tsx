@@ -62,17 +62,14 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
 
 export function getHighlightedSpanAttributes({
   op,
-  description,
   attributes = {},
   organization,
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  description: string | undefined;
   op: string | undefined;
-
   organization: Organization;
 }) {
-  if (!hasAgentInsightsFeature(organization) || !getIsAiSpan({op, description})) {
+  if (!hasAgentInsightsFeature(organization) || !getIsAiSpan({op})) {
     return [];
   }
 
@@ -151,33 +148,16 @@ export function getTraceNodeAttribute(
   return undefined;
 }
 
-export function getIsAiNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is AITraceSpanNode {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return false;
-  }
+function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
+  return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
+    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+      return false;
+    }
 
-  if (isTransactionNode(node)) {
-    return getIsAiSpan({
-      op: node.value['transaction.op'],
-      description: node.value.transaction,
-    });
-  }
-
-  return getIsAiSpan(node.value);
+    const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
+    return predicate({op});
+  };
 }
 
-export function getIsAiRunNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is AITraceSpanNode {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return false;
-  }
-
-  if (isTransactionNode(node)) {
-    return getIsAiRunSpan({op: node.value['transaction.op']});
-  }
-
-  return getIsAiRunSpan({op: node.value.op});
-}
+export const getIsAiNode = createGetIsAiNode(getIsAiSpan);
+export const getIsAiRunNode = createGetIsAiNode(getIsAiRunSpan);

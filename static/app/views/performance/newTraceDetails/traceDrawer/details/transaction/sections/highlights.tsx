@@ -92,7 +92,6 @@ export function TransactionHighlights(props: HighlightProps) {
         organization: props.organization,
         attributes: props.event.contexts.trace?.data,
         op: props.node.value['transaction.op'],
-        description: props.node.value.transaction,
       })}
     />
   );

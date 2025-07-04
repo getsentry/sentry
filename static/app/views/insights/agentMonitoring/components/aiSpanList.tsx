@@ -18,17 +18,14 @@ import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highli
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
-  AI_GENERATION_DESCRIPTIONS,
-  AI_GENERATION_OPS,
-  AI_HANDOFF_OPS,
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-  AI_RUN_OPS,
-  AI_TOOL_CALL_DESCRIPTIONS,
-  AI_TOOL_CALL_OPS,
   AI_TOOL_NAME_ATTRIBUTE,
   AI_TOTAL_TOKENS_ATTRIBUTE,
-  mapMissingSpanOp,
+  getIsAiGenerationSpan,
+  getIsAiHandoffSpan,
+  getIsAiRunSpan,
+  getIsAiToolCallSpan,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
@@ -351,15 +348,13 @@ function getNodeInfo(
     return node.value?.data?.[key];
   };
 
-  const op = mapMissingSpanOp({
-    op: node.value?.op,
-    description: node.value?.description,
-  });
-
+  const op =
+    (isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op) ??
+    'default';
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
-  if (AI_RUN_OPS.includes(op)) {
+  if (getIsAiRunSpan({op})) {
     const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
     const model =
       getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
@@ -377,10 +372,7 @@ function getNodeInfo(
       );
     }
     nodeInfo.color = colors[0];
-  } else if (
-    AI_GENERATION_OPS.includes(op) ||
-    AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
     const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
@@ -400,14 +392,11 @@ function getNodeInfo(
       );
     }
     nodeInfo.color = colors[2];
-  } else if (
-    AI_TOOL_CALL_OPS.includes(op) ||
-    AI_TOOL_CALL_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
+  } else if (getIsAiToolCallSpan({op})) {
     nodeInfo.icon = <IconTool size="md" />;
     nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
     nodeInfo.color = colors[5];
-  } else if (AI_HANDOFF_OPS.includes(op)) {
+  } else if (getIsAiHandoffSpan({op})) {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
