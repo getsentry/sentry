@@ -264,7 +264,7 @@ describe('getWidgetExploreUrl', () => {
 function expectUrl(url: string) {
   return {
     toMatch({path, params}: {params: Array<[string, string]>; path: string}) {
-      expect(url).toMatch(new RegExp(`^${path}\?`));
+      expect(url).toMatch(new RegExp(`^${path}\\?`));
       const urlParams = new URLSearchParams(url.substring(path.length));
       function compareFn(a: [string, string], b: [string, string]) {
         if (a[0] < b[0]) {
