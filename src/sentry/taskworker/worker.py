@@ -99,7 +99,7 @@ class TaskWorker:
 
         # Convert signals into KeyboardInterrupt.
         # Running shutdown() within the signal handler can lead to deadlocks
-        def signal_handler(*args) -> None:
+        def signal_handler(*args: Any) -> None:
             raise KeyboardInterrupt()
 
         signal.signal(signal.SIGINT, signal_handler)
