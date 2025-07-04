@@ -4,7 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-function getQueryKey(organization: Organization): ApiQueryKey {
+export function getQueryKey(organization: Organization): ApiQueryKey {
   const DASHBOARDS_QUERY_KEY = [
     `/organizations/${organization.slug}/dashboards/`,
     {
