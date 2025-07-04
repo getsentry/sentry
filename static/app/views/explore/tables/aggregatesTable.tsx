@@ -103,23 +103,14 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   );
 
   const columns = useMemo(() => {
-    const cols = eventView.getColumns().reduce(
+    return eventView.getColumns().reduce(
       (acc, col) => {
         acc[col.key] = col;
         return acc;
       },
       {} as Record<string, TableColumn<string>>
     );
-
-    return visibleAggregateFields
-      .map(aggregateField => {
-        const key = isGroupBy(aggregateField)
-          ? aggregateField.groupBy
-          : aggregateField.yAxis;
-        return cols[key];
-      })
-      .filter(defined);
-  }, [visibleAggregateFields, eventView]);
+  }, [eventView]);
 
   return (
     <Fragment>
@@ -129,21 +120,25 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent />
             </TableHeadCell>
-            {columns.map((column, i) => {
+            {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
-              const fieldType = meta.fields?.[column.key];
-              const align = fieldAlignment(column.key, fieldType);
-              const label = prettifyField(column.key, stringTags, numberTags);
+              const field = isGroupBy(aggregateField)
+                ? aggregateField.groupBy
+                : aggregateField.yAxis;
 
-              const direction = sorts.find(s => s.field === column.key)?.kind;
+              const fieldType = meta.fields?.[field];
+              const align = fieldAlignment(field, fieldType);
+              const label = prettifyField(field, stringTags, numberTags);
+
+              const direction = sorts.find(s => s.field === field)?.kind;
 
               function updateSort() {
                 const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field: column.key, kind}]);
+                setSorts([{field, kind}]);
               }
 
               return (
@@ -165,7 +160,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       />
                     )}
                   </TableHeadCellContent>
-                  {i !== columns.length - 1 && (
+                  {i !== visibleAggregateFields.length - 1 && (
                     <GridResizer
                       dataRows={
                         !result.isError && !result.isPending && result.data
@@ -213,13 +208,17 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       </StyledLink>
                     </Tooltip>
                   </TableBodyCell>
-                  {columns.map((column, j) => {
+                  {visibleAggregateFields.map((aggregateField, j) => {
+                    const field = isGroupBy(aggregateField)
+                      ? aggregateField.groupBy
+                      : aggregateField.yAxis;
+
                     return (
                       <TableBodyCell key={j}>
                         <FieldRenderer
-                          column={column}
+                          column={columns[field]}
                           data={row}
-                          unit={meta?.units?.[column.key]}
+                          unit={meta?.units?.[field]}
                           meta={meta}
                         />
                       </TableBodyCell>

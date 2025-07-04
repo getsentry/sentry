@@ -191,7 +191,7 @@ function AggregatesTable({
                       <TableBodyCell key={j}>
                         <MultiQueryFieldRenderer
                           index={index}
-                          column={columns[j]!}
+                          column={columns[j]}
                           data={row}
                           unit={meta?.units?.[field]}
                           meta={meta}
@@ -298,7 +298,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     <TableBodyCell key={j}>
                       <MultiQueryFieldRenderer
                         index={index}
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

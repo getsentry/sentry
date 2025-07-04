@@ -79,16 +79,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(
-      tempColumns
-        .filter(col => {
-          if (isVisualize(col)) {
-            return col.isValid();
-          }
-          return true;
-        })
-        .map(col => (isVisualize(col) ? col.toJSON() : col))
-    );
+    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 

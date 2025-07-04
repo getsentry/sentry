@@ -46,7 +46,7 @@ describe('FieldRenderer tests', function () {
   it('renders span.op', function () {
     render(
       <FieldRenderer
-        column={eventView.getColumns()[3]!}
+        column={eventView.getColumns()[3]}
         data={mockedEventData}
         meta={{}}
       />,
@@ -59,7 +59,7 @@ describe('FieldRenderer tests', function () {
   it('renders span id link to traceview', function () {
     render(
       <FieldRenderer
-        column={eventView.getColumns()[0]!}
+        column={eventView.getColumns()[0]}
         data={mockedEventData}
         meta={{}}
       />,
@@ -76,7 +76,7 @@ describe('FieldRenderer tests', function () {
   it('renders transaction id link to traceview', function () {
     render(
       <FieldRenderer
-        column={eventView.getColumns()[4]!}
+        column={eventView.getColumns()[4]}
         data={mockedEventData}
         meta={{}}
       />,
@@ -93,7 +93,7 @@ describe('FieldRenderer tests', function () {
   it('renders trace id link to traceview', function () {
     render(
       <FieldRenderer
-        column={eventView.getColumns()[2]!}
+        column={eventView.getColumns()[2]}
         data={mockedEventData}
         meta={{}}
       />,
@@ -110,7 +110,7 @@ describe('FieldRenderer tests', function () {
   it('renders timestamp', function () {
     render(
       <FieldRenderer
-        column={eventView.getColumns()[1]!}
+        column={eventView.getColumns()[1]}
         data={mockedEventData}
         meta={{}}
       />,
