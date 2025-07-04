@@ -73,7 +73,6 @@ class TaskWorker:
         )
         self._children: list[BaseProcess] = []
         self._shutdown_event = self.mp_context.Event()
-        self._shutdown = False
         self._result_thread: threading.Thread | None = None
         self._spawn_children_thread: threading.Thread | None = None
 
@@ -122,13 +121,11 @@ class TaskWorker:
         Activate the shutdown event and drain results before terminating children.
         """
         logger.info("taskworker.worker.shutdown.start")
-        self._shutdown = True
         self._shutdown_event.set()
 
         logger.info("taskworker.worker.shutdown.spawn_children")
         if self._spawn_children_thread:
             self._spawn_children_thread.join()
-            self._spawn_children_thread = None
 
         logger.info("taskworker.worker.shutdown.children")
         for child in self._children:
@@ -138,8 +135,8 @@ class TaskWorker:
 
         logger.info("taskworker.worker.shutdown.result")
         if self._result_thread:
-            self._result_thread.join()
-            self._result_thread = None
+            # Use a timeout as sometimes this thread can deadlock on the Event.
+            self._result_thread.join(timeout=5)
 
         # Drain any remaining results synchronously
         while True:
@@ -195,7 +192,7 @@ class TaskWorker:
             logger.debug("taskworker.worker.result_thread.started")
             iopool = ThreadPoolExecutor(max_workers=self._concurrency)
             with iopool as executor:
-                while not self._shutdown:
+                while not self._shutdown_event.is_set():
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
                         executor.submit(self._send_result, result)
@@ -293,7 +290,7 @@ class TaskWorker:
     def start_spawn_children_thread(self) -> None:
         def spawn_children_thread() -> None:
             logger.debug("taskworker.worker.spawn_children_thread.started")
-            while not self._shutdown:
+            while not self._shutdown_event.is_set():
                 self._children = [child for child in self._children if child.is_alive()]
                 if len(self._children) >= self._concurrency:
                     time.sleep(0.1)
