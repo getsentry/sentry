@@ -21,6 +21,7 @@ import {
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
@@ -59,7 +60,12 @@ export function DomainViewHeader({
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsInsightsEnabled = useIsNextJsInsightsAvailable();
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
+  const {view, isInOverviewPage} = useDomainViewFilters();
+
+  const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
+  const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
+  const isAgentMonitoring = view === 'agents';
 
   const crumbs: Crumb[] = [
     {
@@ -100,6 +106,19 @@ export function DomainViewHeader({
       })),
   ];
 
+  const feedbackOptions =
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+      ? {
+          tags: {
+            ['feedback.source']: isAgentMonitoring
+              ? 'agent-monitoring'
+              : isLaravelInsights
+                ? 'laravel-insights'
+                : 'nextjs-insights',
+            ['feedback.owner']: 'telemetry-experience',
+          },
+        }
+      : undefined;
   return (
     <Fragment>
       <Layout.Header>
@@ -112,20 +131,7 @@ export function DomainViewHeader({
             {selectedModule === ModuleName.SESSIONS ? (
               <FeedbackButtonTour />
             ) : (
-              <FeedbackWidgetButton
-                optionOverrides={
-                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                    ? {
-                        tags: {
-                          ['feedback.source']: isLaravelInsightsAvailable
-                            ? 'laravel-insights'
-                            : 'nextjs-insights',
-                          ['feedback.owner']: 'telemetry-experience',
-                        },
-                      }
-                    : undefined
-                }
-              />
+              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
             )}
             {additonalHeaderActions}
           </ButtonBar>

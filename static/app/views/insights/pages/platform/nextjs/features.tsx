@@ -3,8 +3,9 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
-function hasNextJsInsightsFeature(organization: Organization) {
+export function hasNextJsInsightsFeature(organization: Organization) {
   return organization.features.includes('nextjs-insights');
 }
 
@@ -12,6 +13,7 @@ export function useIsNextJsInsightsAvailable() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const {view} = useDomainViewFilters();
 
   const selectedProjects = getSelectedProjectList(selection.projects, projects);
 
@@ -19,5 +21,9 @@ export function useIsNextJsInsightsAvailable() {
     project => project.platform === 'javascript-nextjs'
   );
 
-  return hasNextJsInsightsFeature(organization) && isOnlyNextJsSelected;
+  return (
+    hasNextJsInsightsFeature(organization) &&
+    isOnlyNextJsSelected &&
+    (view === 'frontend' || view === 'backend')
+  );
 }
