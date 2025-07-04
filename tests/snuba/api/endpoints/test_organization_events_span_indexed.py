@@ -6031,3 +6031,169 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         assert len(data) == 1
         assert data[0]["apdex(span.duration,1000)"] == expected_apdex
+
+    def test_user_misery_function(self):
+        """Test the user_misery function with span.duration and threshold."""
+        # Create spans with different durations and users to test user misery calculation
+        # Threshold = 1000ms (1 second)
+        # Miserable threshold = 4000ms (4x threshold)
+        # Users are considered miserable when response time > 4000ms
+        spans = [
+            # Happy users (≤ 4000ms) - segments
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user1"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,  # 500ms - happy
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,  # 2000ms - happy
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user3"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=4000,  # 4000ms - happy (at 4T)
+            ),
+            # Miserable users (> 4000ms) - segments
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user4"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - miserable
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=6000,  # 6000ms - miserable
+            ),
+            # Non-segment span (should not be counted)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user5"},
+                    "is_segment": False,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - miserable but not a segment
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["user_misery(span.duration,1000)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        # Expected user misery calculation:
+        # Miserable users: 2 (user2, user5) - both are segments
+        # Total unique users: 5 (user1, user2, user3, user4, user5) - all segments
+        # MISERY_ALPHA = 5.8875, MISERY_BETA = 111.8625
+        # User Misery = (2 + 5.8875) / (5 + 5.8875 + 111.8625) = 7.8875 / 122.75 ≈ 0.0643
+        expected_user_misery = (2 + 5.8875) / (4 + 5.8875 + 111.8625)
+
+        assert len(data) == 1
+        assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
+            expected_user_misery, rel=1e-3
+        )
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {"user_misery(span.duration,1000)": "number"}
+
+    def test_user_misery_function_with_filter(self):
+        """Test the user_misery function with filtering."""
+        # Create spans with different descriptions, durations, and users
+        # Only segments (transactions) will be counted in user misery calculation
+        spans = [
+            # Happy users for "api" operations (segments)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user1", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,
+            ),
+            # Miserable user for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user3", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,
+            ),
+            # Other spans that should be filtered out
+            self.create_span(
+                {
+                    "description": "task",
+                    "sentry_tags": {"user": "user4", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["user_misery(span.duration,1000)"],
+                "query": "description:http.server",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        # Expected user misery calculation for filtered results:
+        # Only segments (transactions) are counted in user misery
+        # Miserable users: 1 (user3) - is a segment
+        # Total unique users: 3 (user1, user2, user3) - all segments
+        # MISERY_ALPHA = 5.8875, MISERY_BETA = 111.8625
+        # User Misery = (1 + 5.8875) / (3 + 5.8875 + 111.8625) = 6.8875 / 120.75 ≈ 0.0570
+        expected_user_misery = (1 + 5.8875) / (3 + 5.8875 + 111.8625)
+
+        assert len(data) == 1
+        assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
+            expected_user_misery, rel=1e-3
+        )
