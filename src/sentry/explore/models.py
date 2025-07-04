@@ -89,7 +89,7 @@ class ExploreSavedQuery(DefaultFieldsModel):
     # query out of date and should be updated..
     prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
     # This field is used for the transaction -> spans migration.
-    # Migrated discover transactions queries will have this field defined along with DISCOVER_TRANSACTIONS as the dataset.
+    # Migrated discover transactions queries will have this reference along with DISCOVER_TRANSACTIONS as the dataset.
     discover_transaction_query = FlexibleForeignKey(
         "sentry.DiscoverSavedQuery", null=True, on_delete=models.CASCADE
     )
