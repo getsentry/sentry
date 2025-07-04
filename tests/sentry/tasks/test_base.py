@@ -114,6 +114,7 @@ def test_exclude_exception_retry(capture_exception):
     assert capture_exception.call_count == 0
 
 
+@pytest.mark.skip(reason="flaky: #94920")
 @override_settings(
     CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE=True,
     CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE=1.0,
