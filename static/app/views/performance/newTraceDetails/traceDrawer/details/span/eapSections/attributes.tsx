@@ -14,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -29,6 +30,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
@@ -94,6 +96,8 @@ export function Attributes({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
+  const isSentryEmployee = useIsSentryEmployee();
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -107,18 +111,35 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
+    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
+    const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
+      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
+      if (shouldUseOTelFriendlyUI) {
+        return !['span.description', 'span.op'].includes(attribute.name);
+      }
+
+      return attribute.name !== 'span.name';
+    });
+
     if (!searchQuery.trim()) {
-      return onlyVisibleAttributes;
+      return filteredByOTelMode;
     }
 
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
-    const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
+    const onlyMatchingAttributes = filteredByOTelMode.filter(attribute => {
       return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery]);
+  }, [attributes, searchQuery, isSentryEmployee, shouldUseOTelFriendlyUI]);
 
   const customRenderers: Record<
     string,
