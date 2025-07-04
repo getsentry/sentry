@@ -162,6 +162,7 @@ type SpanStringFields =
   | SpanFields.NAME
   | SpanFields.KIND
   | SpanFields.STATUS
+  | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_RESPONSE_MODEL
