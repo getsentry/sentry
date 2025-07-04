@@ -11,7 +11,12 @@ interface WebMViewerProps
   onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
 }
 
-export function WebMViewer({controls = true, onCanPlay, ...props}: WebMViewerProps) {
+export function VideoViewer({
+  controls = true,
+  attachment,
+  onCanPlay,
+  ...props
+}: WebMViewerProps) {
   return (
     <PanelItem>
       <video
@@ -22,7 +27,10 @@ export function WebMViewer({controls = true, onCanPlay, ...props}: WebMViewerPro
           max-width: 100%;
         `}
       >
-        <source src={getAttachmentUrl(props, true)} type="video/webm" />
+        <source
+          src={getAttachmentUrl({attachment, ...props}, true)}
+          type={attachment.mimetype}
+        />
         {t('Your browser does not support the video tag.')}
       </video>
     </PanelItem>
