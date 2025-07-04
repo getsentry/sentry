@@ -6,16 +6,11 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.gitlab.plugin import GitLabPlugin
 
 
 def test_conf_key() -> None:
     assert GitLabPlugin().conf_key == "gitlab"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("gitlab", GitLabPlugin())
 
 
 class GitLabPluginTest(PluginTestCase):

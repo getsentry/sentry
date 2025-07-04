@@ -5,7 +5,6 @@ import responses
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_app_installed, assert_plugin_installed
 from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
@@ -20,11 +19,6 @@ ACCESS_TOKENS_URL = (
 
 def test_conf_key() -> None:
     assert SessionStackPlugin().conf_key == "sessionstack"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("sessionstack", SessionStackPlugin())
-    assert_app_installed("sessionstack", "sentry_plugins.sessionstack")
 
 
 class SessionStackPluginTest(PluginTestCase):

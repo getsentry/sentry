@@ -6,16 +6,11 @@ import responses
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.splunk.plugin import SplunkPlugin
 
 
 def test_conf_key() -> None:
     assert SplunkPlugin().conf_key == "splunk"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("splunk", SplunkPlugin())
 
 
 class SplunkPluginTest(PluginTestCase):

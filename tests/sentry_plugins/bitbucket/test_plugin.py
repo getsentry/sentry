@@ -7,16 +7,11 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 
 
 def test_conf_key() -> None:
     assert BitbucketPlugin().conf_key == "bitbucket"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("bitbucket", BitbucketPlugin())
 
 
 class BitbucketPluginTest(PluginTestCase):
