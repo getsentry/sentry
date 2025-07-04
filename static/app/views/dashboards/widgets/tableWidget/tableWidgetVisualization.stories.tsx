@@ -261,6 +261,112 @@ function onChangeSort(newSort: Sort) {
     );
   });
 
+  story('Column resizing', () => {
+    const location = useLocation();
+    const noWidthColumns = customColumns.map(column => ({...column, width: undefined}));
+    const [columns, setColumns] = useState<TabularColumn[]>(noWidthColumns);
+
+    function onChangeColumnResize(widths: number[]) {
+      const newColumns = columns.map((column, index) => ({
+        ...column,
+        width: widths[index],
+      }));
+      setColumns(newColumns);
+    }
+
+    return (
+      <Fragment>
+        <p>
+          By default, table column widths are assumed to be resizable, mainly because most
+          use cases allow for this. If no resizing is required, pass the
+          <code>{'resizable={false}'}</code> to disable it. As a side note, resizing
+          requires at least two columns to take effect. Having only one column means{' '}
+          <code>resizable</code>prop does nothing. Widths are represented with numbers
+          which are further interpreted as pixels.
+        </p>
+        <p>
+          There are two methods this table uses to set widths. The first is to provide the
+          <code>width</code>
+          field when passing <code>columns</code> prop. One use case of this prop is to
+          set the width of non-resizable table columns.
+        </p>
+        <p>Below is an example of a non column resizable table with preset widths.</p>
+        <TableWidgetVisualization
+          columns={customColumns}
+          tableData={sampleHTTPRequestTableData}
+          resizable={false}
+        />
+        <p>
+          The second method is to automatically parse it from the <code>width</code> URL
+          query parameters if it exists. Note that this requires the table columns to be
+          resizable. This is behaviour occurs in the following situations:
+        </p>
+        <ol>
+          <li>
+            <code>columns</code>prop is not passed
+          </li>
+          <li>
+            <code>columns</code>prop is passed AND no column in <code>columns</code> has
+            defined the field<code>width</code>
+          </li>
+        </ol>
+        <p>
+          To elaborate on point two, if you want to use the default url parameters and
+          need to pass <code>columns</code>prop, then do not add the <code>width</code>
+          field to all columns or set the field to be <code>undefined</code>
+          for all columns.
+        </p>
+        <p>
+          Try interacting with the columns and making note of the url parameter. Use the
+          button to clear the width parameters.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={{...location, query: {...location.query, width: undefined}}}>
+            Clear width parameters
+          </LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={noWidthColumns}
+        />
+        If the table encounters an undefined width (e.g., neither the prop or url
+        parameters are provided), then the column defaults to a width of
+        <code>-1</code>. The table will fallback on the default behaviour
+        <Storybook.JSXNode name="GridEditable" /> uses for undefined widths.
+        <p>
+          Similar to sorting, the default behavior when a column is resized is to update
+          the <code>width</code>url query parameters. If you wish to override this
+          behaviour pass the callback function <code>onChangeColumnResize</code>, which
+          accepts a number array representing the new widths of each column. This and the{' '}
+          <code>width</code>field in <code>columns</code>is useful if you need to manage
+          internal state:
+        </p>
+        <p>
+          Current widths are{' '}
+          <b>[{columns.map(column => column.width ?? 'undefined').toString()}]</b>
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={columns}
+          onChangeColumnResize={onChangeColumnResize}
+        />
+        <CodeSnippet language="jsx">
+          {`
+const [columns, setColumns] = useState<TabularColumn[]>(...);
+
+function onChangeColumnResize(widths: number[]) {
+  const newColumns = columns.map((column, index) => ({
+    ...column,
+    width: widths[index],
+  }));
+  setColumns(newColumns);
+}
+`}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
   story('Using Custom Cell Rendering', () => {
     function getRenderer(fieldName: string) {
       if (fieldName === 'http.request_method') {
