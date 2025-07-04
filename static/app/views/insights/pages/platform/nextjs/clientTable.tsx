@@ -69,6 +69,7 @@ export function ClientTable() {
   existingQuery.addOp(')');
   existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addFilterValue('is_transaction', 'true');
+  existingQuery.addFilterValues('!sentry.origin', ['auto.db.*', 'auto'], false);
 
   const tableDataRequest = useTableData({
     query: existingQuery.formatString(),
@@ -146,7 +147,11 @@ export function ClientTable() {
               dataRow={dataRow}
               targetView="frontend"
               projectId={dataRow['project.id'].toString()}
-              query={`transaction.op:${dataRow['span.op']}`}
+              query={
+                ['navigation', 'pageload'].includes(dataRow['span.op'])
+                  ? `transaction.op:${dataRow['span.op']}`
+                  : undefined
+              }
             />
           );
         }
