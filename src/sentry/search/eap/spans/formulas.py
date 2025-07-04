@@ -813,7 +813,7 @@ def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryF
 
     # Get the response time field and threshold
     response_time_field = cast(AttributeKey, args[0])
-    threshold = cast(int, args[1])
+    threshold = cast(float, args[1])
 
     # Calculate 4T for tolerable range
     tolerable_threshold = threshold * 4
@@ -940,7 +940,7 @@ def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
 
     # Get the response time field and threshold
     response_time_field = cast(AttributeKey, args[0])
-    threshold = cast(int, args[1])
+    threshold = cast(float, args[1])
 
     # Calculate 4T for miserable threshold
     miserable_threshold = threshold * 4
