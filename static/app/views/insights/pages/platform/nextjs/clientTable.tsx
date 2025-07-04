@@ -64,9 +64,7 @@ export function ClientTable() {
   const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation', 'default'];
 
   const existingQuery = new MutableSearch('');
-  existingQuery.addOp('(');
   existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
-  existingQuery.addOp(')');
   existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addFilterValue('is_transaction', 'true');
   existingQuery.addFilterValues('!sentry.origin', ['auto.db.*', 'auto'], false);
