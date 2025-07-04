@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
-import {agentsInsightsEventMap} from 'sentry/utils/analytics/agentsInsightsAnalyticsEvents';
 import {
   alertsEventMap,
   type AlertsEventParameters,
@@ -129,7 +128,6 @@ const allEventMap: Record<string, string | null> = {
   ...laravelInsightsEventMap,
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
-  ...agentsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
