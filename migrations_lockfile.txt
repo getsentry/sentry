@@ -5,7 +5,7 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0005_explore_django_json_field
+explore: 0006_add_migration_fields_explore_saved_query
 
 feedback: 0001_squashed_0004_index_together
 
