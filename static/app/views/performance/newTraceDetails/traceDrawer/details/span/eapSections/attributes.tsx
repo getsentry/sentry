@@ -14,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -94,6 +95,7 @@ export function Attributes({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
+  const isSentryEmployee = useIsSentryEmployee();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -107,18 +109,27 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
+    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
+    const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
+      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
+        return false;
+      }
+
+      return true;
+    });
+
     if (!searchQuery.trim()) {
-      return onlyVisibleAttributes;
+      return onlyAllowedAttributes;
     }
 
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
-    const onlyMatchingAttributes = onlyVisibleAttributes.filter(attribute => {
+    const onlyMatchingAttributes = onlyAllowedAttributes.filter(attribute => {
       return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery]);
+  }, [attributes, searchQuery, isSentryEmployee]);
 
   const customRenderers: Record<
     string,
