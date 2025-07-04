@@ -16,7 +16,7 @@ const AI_RUN_OPS = [
 
 // AI Generations - equivalent to OTEL Inference span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#inference
-const AI_GENERATION_OPS = [
+export const AI_GENERATION_OPS = [
   'ai.run.doGenerate',
   'gen_ai.chat',
   'gen_ai.generate_content',
