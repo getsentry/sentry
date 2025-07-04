@@ -42,6 +42,7 @@ import {
   getWidgetLogURL,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -359,7 +360,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        Mode.SAMPLES
+      ),
     });
   }
 
