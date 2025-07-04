@@ -2,7 +2,7 @@ import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer'
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
-import {VideoViewer} from 'sentry/components/events/attachmentViewers/webmViewer';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import type {IssueAttachment} from 'sentry/types/group';
 
 export const imageMimeTypes = [
