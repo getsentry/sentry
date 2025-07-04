@@ -1,6 +1,6 @@
 // These are the span op we are currently ingesting.
 
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
@@ -42,22 +42,17 @@ const AI_OPS = [
   ...AI_HANDOFF_OPS,
 ];
 
-export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
-export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE =
-  'gen_ai.response.model' as EAPSpanProperty;
-export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
-export const AI_COST_ATTRIBUTE = 'gen_ai.usage.total_cost' as EAPSpanProperty;
-export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
-export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
+export const AI_MODEL_ID_ATTRIBUTE = SpanFields.GEN_AI_REQUEST_MODEL;
+export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE = SpanFields.GEN_AI_RESPONSE_MODEL;
+export const AI_TOOL_NAME_ATTRIBUTE = SpanFields.GEN_AI_TOOL_NAME;
+export const AI_COST_ATTRIBUTE = SpanFields.GEN_AI_USAGE_TOTAL_COST;
+export const AI_AGENT_NAME_ATTRIBUTE = SpanFields.GEN_AI_AGENT_NAME;
+export const AI_TOTAL_TOKENS_ATTRIBUTE = SpanFields.GEN_AI_USAGE_TOTAL_TOKENS;
 
-export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.total_tokens,integer])` as EAPSpanProperty;
-export const AI_INPUT_TOKENS_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.input_tokens,integer])` as EAPSpanProperty;
-export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.output_tokens,integer])` as EAPSpanProperty;
-export const AI_COST_ATTRIBUTE_SUM =
-  `sum(tags[gen_ai.usage.total_cost,number])` as EAPSpanProperty;
+export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`;
+export const AI_INPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`;
+export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
+export const AI_COST_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_COST})`;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.request.model', ['ai.model.id']],

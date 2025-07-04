@@ -13,7 +13,6 @@ import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   type DiscoverProperty,
   type DiscoverResponse,
-  type EAPSpanProperty,
   SpanIndexedField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
@@ -94,7 +93,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           ? ([
               `measurements.score.${webVital}`,
               `measurements.score.weight.${webVital}`,
-            ] as EAPSpanProperty[])
+            ] as const)
           : []),
       ],
     },
@@ -128,7 +127,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           ? ([
               `measurements.score.${webVital}`,
               `measurements.score.weight.${webVital}`,
-            ] as DiscoverProperty[])
+            ] as const)
           : []),
       ],
     },
@@ -140,7 +139,9 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   const finalData = finalResult.data.map(row => ({
     ...row,
-    'span.duration': useEap ? row['span.duration'] : row['transaction.duration'],
+    'span.duration': useEap
+      ? row['span.duration']
+      : (row as (typeof result)['data'][number])['transaction.duration'],
     ...(webVital
       ? {
           [`${webVital}Score`]: Math.round(
