@@ -175,12 +175,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   const onResizeColumn = (columnIndex: number, nextColumn: TabularColumn) => {
-    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const newWidths: number[] = new Array(Math.max(columnIndex, widths.length)).fill(
-      COL_WIDTH_UNDEFINED
-    );
-    widths.forEach((width, index) => (newWidths[index] = width));
-    newWidths[columnIndex] = newWidth;
+    const newWidths: number[] = [...widths];
+    newWidths[columnIndex] = nextColumn.width
+      ? Number(nextColumn.width)
+      : COL_WIDTH_UNDEFINED;
 
     if (onChangeResizeColumn) {
       onChangeResizeColumn(newWidths);
