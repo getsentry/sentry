@@ -30,6 +30,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
@@ -96,6 +97,7 @@ export function Attributes({
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
   const isSentryEmployee = useIsSentryEmployee();
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -118,18 +120,29 @@ export function Attributes({
       return true;
     });
 
+    // Filter attributes based on OTEL-friendly UI flag
+    const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
+      if (shouldUseOTelFriendlyUI) {
+        // Hide span.description and span.op when OTEL-friendly UI is enabled
+        return !['span.description', 'span.op'].includes(attribute.name);
+      }
+
+      // Hide span.name when OTEL-friendly UI is disabled
+      return attribute.name !== 'span.name';
+    });
+
     if (!searchQuery.trim()) {
-      return onlyAllowedAttributes;
+      return filteredByOTelMode;
     }
 
     const normalizedSearchQuery = searchQuery.toLowerCase().trim();
 
-    const onlyMatchingAttributes = onlyAllowedAttributes.filter(attribute => {
+    const onlyMatchingAttributes = filteredByOTelMode.filter(attribute => {
       return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery, isSentryEmployee]);
+  }, [attributes, searchQuery, isSentryEmployee, shouldUseOTelFriendlyUI]);
 
   const customRenderers: Record<
     string,
