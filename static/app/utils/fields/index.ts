@@ -1932,6 +1932,13 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [SpanFields.STATUS_MESSAGE]: {
+    desc: t(
+      'Span status message. If the span operation was not successful, this contains an error message.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
