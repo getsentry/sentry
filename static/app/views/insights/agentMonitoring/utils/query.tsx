@@ -4,7 +4,7 @@ import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
-export const AI_RUN_OPS = [
+const AI_RUN_OPS = [
   'ai.run.generateText',
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
@@ -16,7 +16,7 @@ export const AI_RUN_OPS = [
 
 // AI Generations - equivalent to OTEL Inference span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#inference
-export const AI_GENERATION_OPS = [
+const AI_GENERATION_OPS = [
   'ai.run.doGenerate',
   'gen_ai.chat',
   'gen_ai.generate_content',
@@ -31,9 +31,16 @@ export const AI_GENERATION_OPS = [
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 
-const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
+const AI_HANDOFF_OPS = ['gen_ai.handoff'];
+
+const AI_OPS = [
+  ...AI_RUN_OPS,
+  ...AI_GENERATION_OPS,
+  ...AI_TOOL_CALL_OPS,
+  ...AI_HANDOFF_OPS,
+];
 
 export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
 export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE =
@@ -42,8 +49,6 @@ export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
 export const AI_COST_ATTRIBUTE = 'gen_ai.usage.total_cost' as EAPSpanProperty;
 export const AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name' as EAPSpanProperty;
 export const AI_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens' as EAPSpanProperty;
-
-export const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.total_tokens,integer])` as EAPSpanProperty;
