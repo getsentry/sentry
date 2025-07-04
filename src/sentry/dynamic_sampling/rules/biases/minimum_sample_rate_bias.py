@@ -11,7 +11,7 @@ class MinimumSampleRateBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         return [
             {
-                "samplingValue": {"type": "sampleRate", "value": base_sample_rate},
+                "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
                 "type": "trace",
                 "condition": {},
                 "id": RESERVED_IDS[RuleType.MINIMUM_SAMPLE_RATE_RULE],
