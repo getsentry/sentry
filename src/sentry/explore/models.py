@@ -19,10 +19,12 @@ from sentry.models.organization import Organization
 class ExploreSavedQueryDataset(TypesClass):
     SPANS = 0
     OURLOGS = 1
+    DISCOVER_TRANSACTIONS = 101
 
     TYPES = [
         (SPANS, "spans"),
         (OURLOGS, "ourlogs"),
+        (DISCOVER_TRANSACTIONS, "discover_transactions"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -86,6 +88,11 @@ class ExploreSavedQuery(DefaultFieldsModel):
     # The version of the prebuilt query. If the version found in the explore_saved_queries.py hardcoded list is greater, then the saved
     # query out of date and should be updated..
     prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
+    # This field is used for the transaction -> spans migration.
+    # Migrated discover transactions queries will have this field defined along with DISCOVER_TRANSACTIONS as the dataset.
+    discover_transaction_query = FlexibleForeignKey(
+        "sentry.DiscoverSavedQuery", null=True, on_delete=models.CASCADE
+    )
 
     class Meta:
         app_label = "explore"
