@@ -224,12 +224,12 @@ describe('TableWidgetVisualization', function () {
       await waitFor(() => expect(testRouter.location.query.width).toBeDefined());
     });
 
-    it('Uses onChangeColumnResize if supplied on column resize', async function () {
-      const onChangeColumnResizeMock = jest.fn((_widths: number[]) => {});
+    it('Uses onChangeResizeColumn if supplied on column resize', async function () {
+      const onChangeResizeColumnMock = jest.fn((_widths: number[]) => {});
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          onChangeColumnResize={onChangeColumnResizeMock}
+          onChangeResizeColumn={onChangeResizeColumnMock}
         />
       );
 
@@ -239,7 +239,7 @@ describe('TableWidgetVisualization', function () {
         {target: $gridResizer, coords: {x: 100}},
         {keys: '[/MouseLeft]'},
       ]);
-      await waitFor(() => expect(onChangeColumnResizeMock).toHaveBeenCalled());
+      await waitFor(() => expect(onChangeResizeColumnMock).toHaveBeenCalled());
     });
   });
 });

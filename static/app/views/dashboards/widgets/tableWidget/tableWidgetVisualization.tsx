@@ -80,7 +80,7 @@ interface TableWidgetVisualizationProps {
    * A callback function on column resize that is invoked when a user resizes a column. If omitted, resizing will update the width in the URL
    * @param widths an array of numbers containing the widths by column order
    */
-  onChangeColumnResize?: (widths: number[]) => void;
+  onChangeResizeColumn?: (widths: number[]) => void;
 
   /**
    * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
@@ -123,7 +123,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     aliases,
     onChangeSort,
     sort,
-    onChangeColumnResize,
+    onChangeResizeColumn,
     resizable = true,
   } = props;
 
@@ -182,8 +182,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     widths.forEach((width, index) => (newWidths[index] = width));
     newWidths[columnIndex] = newWidth;
 
-    if (onChangeColumnResize) {
-      onChangeColumnResize(newWidths);
+    if (onChangeResizeColumn) {
+      onChangeResizeColumn(newWidths);
       return;
     }
 

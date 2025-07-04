@@ -266,7 +266,7 @@ function onChangeSort(newSort: Sort) {
     const noWidthColumns = customColumns.map(column => ({...column, width: undefined}));
     const [columns, setColumns] = useState<TabularColumn[]>(noWidthColumns);
 
-    function onChangeColumnResize(widths: number[]) {
+    function onChangeResizeColumn(widths: number[]) {
       const newColumns = columns.map((column, index) => ({
         ...column,
         width: widths[index],
@@ -336,7 +336,7 @@ function onChangeSort(newSort: Sort) {
         <p>
           Similar to sorting, the default behavior when a column is resized is to update
           the <code>width</code>url query parameters. If you wish to override this
-          behaviour pass the callback function <code>onChangeColumnResize</code>, which
+          behaviour pass the callback function <code>onChangeResizeColumn</code>, which
           accepts a number array representing the new widths of each column. This and the{' '}
           <code>width</code>field in <code>columns</code>is useful if you need to manage
           internal state:
@@ -348,7 +348,7 @@ function onChangeSort(newSort: Sort) {
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
           columns={columns}
-          onChangeColumnResize={onChangeColumnResize}
+          onChangeResizeColumn={onChangeResizeColumn}
         />
         <CodeSnippet language="jsx">
           {`
