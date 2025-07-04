@@ -276,7 +276,7 @@ function renderBodyCell(
   theme: Theme
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
-    const {timestamp, span_id, trace, project} = dataRow;
+    const {timestamp, span_id, trace} = dataRow;
     const spanDuration = dataRow[SpanIndexedField.SPAN_DURATION];
     const transactionId = dataRow[SpanIndexedField.TRANSACTION_ID];
     const transactionDuration = dataRow['transaction.duration'];
@@ -316,7 +316,6 @@ function renderBodyCell(
       return (
         <SpanIdCell
           moduleName={ModuleName.OTHER}
-          projectSlug={project}
           spanId={span_id}
           timestamp={timestamp}
           traceId={trace}

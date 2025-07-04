@@ -92,6 +92,7 @@ describe('ScreenLoadEventSamples', function () {
             'span.duration': 131,
             project: 'sentry-cocoa',
             id: 'f0587aad3de14aeb',
+            trace: 'trace-id',
           },
         ],
       },
@@ -123,7 +124,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/backend/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
+      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
     );
 
     // Profile is a button

@@ -51,9 +51,7 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
 }
 
 describe('logsTableRow', () => {
-  const organization = OrganizationFixture({
-    features: ['trace-view-v1'],
-  });
+  const organization = OrganizationFixture();
 
   const projects = [ProjectFixture()];
   ProjectsStore.loadInitialData(projects);

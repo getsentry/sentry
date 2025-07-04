@@ -47,11 +47,9 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ? generateLinkToEventInTraceView({
         timestamp: transaction.endTimestamp ?? '',
         eventId: transaction.id,
-        projectSlug,
         traceSlug: transaction.contexts?.trace?.trace_id ?? '',
         location,
         organization,
-        transactionName,
       })
     : null;
 

@@ -241,12 +241,10 @@ function EventsTable({
           if (field === 'id') {
             target = generateLinkToEventInTraceView({
               traceSlug: dataRow.trace?.toString()!,
-              projectSlug: dataRow['project.name']?.toString()!,
               eventId: dataRow.id,
               timestamp: dataRow.timestamp!,
               location: locationWithTab,
               organization,
-              transactionName,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
               view: domainViewFilters?.view,
             });

@@ -208,7 +208,6 @@ function EventDetailsContent(props: Props) {
                         projectId={projectId}
                         location={location}
                         errorDest="issue"
-                        transactionDest="performance"
                       />
                     </Layout.Main>
                   )}

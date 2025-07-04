@@ -137,7 +137,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
                           project={project}
                           eventView={eventView}
                           spanSlug={spanSlug}
-                          transactionName={transactionName}
                           totalCount={totalCount}
                           suspectSpansResults={suspectSpansResults}
                           spanExamplesResults={spanExamplesResults}
@@ -164,7 +163,6 @@ type ContentProps = {
   spanSlug: SpanSlug;
   suspectSpansResults: SuspectSpansProps;
   totalCount: number;
-  transactionName: string;
 };
 
 function SpanDetailsContent(props: ContentProps) {
@@ -174,7 +172,6 @@ function SpanDetailsContent(props: ContentProps) {
     project,
     eventView,
     spanSlug,
-    transactionName,
     totalCount,
     suspectSpansResults,
     spanExamplesResults,
@@ -210,7 +207,6 @@ function SpanDetailsContent(props: ContentProps) {
         organization={organization}
         project={project}
         suspectSpan={suspectSpan}
-        transactionName={transactionName}
         isLoading={spanExamplesResults.isLoading}
         examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}

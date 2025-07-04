@@ -271,10 +271,8 @@ function TransactionEventDetails({
             eventId: transaction.id,
             traceSlug,
             timestamp: transaction.endTimestamp,
-            projectSlug: project.slug,
             location,
             organization,
-            transactionName: transaction.title,
           })
         : null;
 
@@ -407,7 +405,6 @@ function ProfileEventDetails({
             project?.slug && transaction?.id && organization
               ? generateLinkToEventInTraceView({
                   traceSlug,
-                  projectSlug: project.slug,
                   eventId: transaction.id,
                   timestamp: transaction.endTimestamp,
                   location,

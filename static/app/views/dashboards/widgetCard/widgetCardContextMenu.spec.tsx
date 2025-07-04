@@ -97,7 +97,7 @@ describe('WidgetCardContextMenu', () => {
           <WidgetCardContextMenu
             dashboardFilters={undefined}
             location={LocationFixture()}
-            organization={OrganizationFixture({})}
+            organization={OrganizationFixture()}
             router={RouterFixture()}
             selection={PageFiltersFixture()}
             widget={WidgetFixture({widgetType: WidgetType.SPANS})}

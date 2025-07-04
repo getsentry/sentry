@@ -25,7 +25,6 @@ describe('EventMetas', () => {
         location={LocationFixture()}
         organization={organization}
         errorDest="discover"
-        transactionDest="discover"
         meta={null}
         projectId="1"
         quickTrace={null}
