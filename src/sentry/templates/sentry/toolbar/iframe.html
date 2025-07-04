@@ -23,6 +23,7 @@ Required context variables:
       (function() {
         const referrer = '{{ referrer|escapejs }}';
         const state = '{{ state|escapejs }}'; // enum of: logged-out, missing-project, invalid-domain, logged-in
+            // The reason: {{ reason|escapejs }}
         const logging = '{{ logging|escapejs }}';
         const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';

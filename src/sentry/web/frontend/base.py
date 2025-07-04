@@ -401,8 +401,14 @@ class BaseView(View, OrganizationMixin):
                 request=request,
             )
 
-        if not self.has_permission(request, *args, **kwargs):
-            return self.handle_permission_required(request, *args, **kwargs)
+        has_permission, reason = self.check_permission(request, *args, **kwargs)
+        if not has_permission:
+            return self.handle_permission_required(
+                request,
+                reason,
+                *args,
+                **kwargs,
+            )
 
         if "organization" in kwargs:
             org = kwargs["organization"]
@@ -453,11 +459,16 @@ class BaseView(View, OrganizationMixin):
     def handle_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return redirect_to_sudo(request.get_full_path())
 
-    def has_permission(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
-        return True
+    def check_permission(self, request: HttpRequest, *args: Any, **kwargs: Any) -> tuple[bool, str]:
+        return True, ""
 
     def handle_permission_required(
-        self, request: HttpRequest, *args: Any, **kwargs: Any
+        self,
+        request: HttpRequest,
+        reason: str,
+        organization: Organization | RpcOrganization | None,
+        *args: Any,
+        **kwargs: Any,
     ) -> HttpResponse:
         path = reverse("sentry-login")
         query_params = {
@@ -528,20 +539,20 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         context["organization"] = organization
         return context
 
-    def has_permission(
+    def check_permission(
         self,
         request: HttpRequest,
         organization: RpcOrganization | Organization | None,
         *args: Any,
         **kwargs: Any,
-    ) -> bool:
+    ) -> tuple[bool, str]:
         if organization is None:
-            return False
+            return False, "Missing organization"
         if self.valid_sso_required:
             if request.access.requires_sso and not request.access.sso_is_valid:
-                return False
+                return False, "SSO is invalid"
             if self.needs_sso(request, organization):
-                return False
+                return False, "SSO is required"
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info(
                 "User %s does not have %s permission to access organization %s",
@@ -549,8 +560,8 @@ class AbstractOrganizationView(BaseView, abc.ABC):
                 self.required_scope,
                 organization,
             )
-            return False
-        return True
+            return False, "Missing required scope"
+        return True, ""
 
     def is_auth_required(
         self, request: HttpRequest, organization_slug: str | None = None, *args: Any, **kwargs: Any
@@ -583,6 +594,7 @@ class AbstractOrganizationView(BaseView, abc.ABC):
     def handle_permission_required(
         self,
         request: HttpRequest,
+        reason: str,
         organization: Organization | RpcOrganization | None,
         *args: Any,
         **kwargs: Any,
@@ -707,12 +719,12 @@ class ProjectView(OrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def check_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> tuple[bool, str]:  # type: ignore[override]
         if project is None:
-            return False
-        rv = super().has_permission(request, organization)
+            return False, "Missing project"
+        rv, reason = super().check_permission(request, organization)
         if not rv:
-            return rv
+            return rv, reason
 
         teams = list(project.teams.all())
 
@@ -724,11 +736,11 @@ class ProjectView(OrganizationView):
                     self.required_scope,
                     project,
                 )
-                return False
+                return False, "Missing required team scope"
         elif not any(request.access.has_team_access(team) for team in teams):
             logger.info("User %s does not have access to project %s", request.user, project)
-            return False
-        return True
+            return False, "No access to project"
+        return True, ""
 
     def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
