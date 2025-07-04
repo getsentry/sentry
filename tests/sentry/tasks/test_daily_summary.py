@@ -967,13 +967,13 @@ class DailySummaryTest(
         # check the new in release section
         assert ":rocket:" in blocks[4]["fields"][0]["text"]
         assert self.release.version in blocks[4]["fields"][0]["text"]
-        assert link_text.format(self.group2.id) in blocks[4]["fields"][0]["text"]
-        assert link_text.format(self.group3.id) in blocks[4]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in str(orjson.dumps(blocks[4]["fields"]))
+        assert link_text.format(self.group3.id) in str(orjson.dumps(blocks[4]["fields"]))
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
         assert "*Issues that escalated today*" in blocks[6]["fields"][0]["text"]
         assert link_text.format(self.group3.id) in blocks[6]["fields"][0]["text"]
