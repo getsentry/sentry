@@ -120,14 +120,11 @@ export function Attributes({
       return true;
     });
 
-    // Filter attributes based on OTEL-friendly UI flag
     const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
       if (shouldUseOTelFriendlyUI) {
-        // Hide span.description and span.op when OTEL-friendly UI is enabled
         return !['span.description', 'span.op'].includes(attribute.name);
       }
 
-      // Hide span.name when OTEL-friendly UI is disabled
       return attribute.name !== 'span.name';
     });
 
