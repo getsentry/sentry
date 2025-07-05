@@ -73,6 +73,9 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.auth_v2.endpoints.auth_user_merge_verification_code import (
+    AuthUserMergeVerificationCodeEndpoint,
+)
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
@@ -928,6 +931,11 @@ AUTH_URLS = [
         r"^validate/$",
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
+    ),
+    re_path(
+        r"^user-merge-verification-codes/$",
+        AuthUserMergeVerificationCodeEndpoint.as_view(),
+        name="sentry-api-0-auth-verification-codes",
     ),
 ]
 
