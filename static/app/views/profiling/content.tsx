@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -149,76 +150,78 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
           </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
-            <LayoutMain fullWidth>
-              <ActionBar>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                </PageFilterBar>
-              </ActionBar>
-              {showOnboardingPanel ? (
-                <Onboarding />
-              ) : (
-                <Fragment>
-                  {organization.features.includes(
-                    'profiling-global-suspect-functions'
-                  ) && (
-                    <WidgetsContainer>
-                      <LandingWidgetSelector
-                        cursorName={LEFT_WIDGET_CURSOR}
-                        widgetHeight="410px"
-                        defaultWidget="slowest functions"
-                        storageKey="profiling-landing-widget-0"
-                        onDataState={updateWidget1DataState}
+            <Layout.Main fullWidth>
+              <Flex direction="column">
+                <ActionBar>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                    <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                    <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  </PageFilterBar>
+                </ActionBar>
+                {showOnboardingPanel ? (
+                  <Onboarding />
+                ) : (
+                  <Fragment>
+                    {organization.features.includes(
+                      'profiling-global-suspect-functions'
+                    ) && (
+                      <WidgetsContainer>
+                        <LandingWidgetSelector
+                          cursorName={LEFT_WIDGET_CURSOR}
+                          widgetHeight="410px"
+                          defaultWidget="slowest functions"
+                          storageKey="profiling-landing-widget-0"
+                          onDataState={updateWidget1DataState}
+                        />
+                        <LandingWidgetSelector
+                          cursorName={RIGHT_WIDGET_CURSOR}
+                          widgetHeight="410px"
+                          defaultWidget="regressed functions"
+                          storageKey="profiling-landing-widget-1"
+                          onDataState={updateWidget2DataState}
+                        />
+                      </WidgetsContainer>
+                    )}
+                    <div>
+                      <Tabs value={tab} onChange={onTabChange}>
+                        <TabList hideBorder>
+                          <TabList.Item key="transactions">
+                            {t('Transactions')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                              )}
+                            />
+                          </TabList.Item>
+                          <TabList.Item key="flamegraph">
+                            {t('Aggregate Flamegraph')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                              )}
+                            />
+                          </TabList.Item>
+                        </TabList>
+                      </Tabs>
+                    </div>
+                    {tab === 'flamegraph' ? (
+                      <FlamegraphTab onDataState={updateFlamegraphDataState} />
+                    ) : (
+                      <TransactionsTab
+                        location={location}
+                        selection={selection}
+                        onDataState={updateTransactionsTableDataState}
                       />
-                      <LandingWidgetSelector
-                        cursorName={RIGHT_WIDGET_CURSOR}
-                        widgetHeight="410px"
-                        defaultWidget="regressed functions"
-                        storageKey="profiling-landing-widget-1"
-                        onDataState={updateWidget2DataState}
-                      />
-                    </WidgetsContainer>
-                  )}
-                  <div>
-                    <Tabs value={tab} onChange={onTabChange}>
-                      <TabList hideBorder>
-                        <TabList.Item key="transactions">
-                          {t('Transactions')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
-                            )}
-                          />
-                        </TabList.Item>
-                        <TabList.Item key="flamegraph">
-                          {t('Aggregate Flamegraph')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
-                            )}
-                          />
-                        </TabList.Item>
-                      </TabList>
-                    </Tabs>
-                  </div>
-                  {tab === 'flamegraph' ? (
-                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
-                  ) : (
-                    <TransactionsTab
-                      location={location}
-                      selection={selection}
-                      onDataState={updateTransactionsTableDataState}
-                    />
-                  )}
-                </Fragment>
-              )}
-            </LayoutMain>
+                    )}
+                  </Fragment>
+                )}
+              </Flex>
+            </Layout.Main>
           </LayoutBody>
         </Layout.Page>
       </PageFiltersContainer>
@@ -357,18 +360,20 @@ function ProfilingContentPageHeader() {
 
   return (
     <StyledLayoutHeader unified={prefersStackedNav}>
-      <StyledHeaderContent unified={prefersStackedNav}>
-        <Layout.Title>
-          {t('Profiling')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/profiling/"
-            title={t(
-              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-            )}
-          />
-        </Layout.Title>
-        <FeedbackWidgetButton />
-      </StyledHeaderContent>
+      <Layout.HeaderContent>
+        <Flex align="center" justify="space-between" direction="row">
+          <Layout.Title>
+            {t('Profiling')}
+            <PageHeadingQuestionTooltip
+              docsUrl="https://docs.sentry.io/product/profiling/"
+              title={t(
+                'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+              )}
+            />
+          </Layout.Title>
+          <FeedbackWidgetButton />
+        </Flex>
+      </Layout.HeaderContent>
     </StyledLayoutHeader>
   );
 }
@@ -395,11 +400,6 @@ const LayoutBody = styled(Layout.Body)`
   }
 `;
 
-const LayoutMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-`;
-
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
@@ -416,13 +416,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
 
 const StyledLayoutHeader = styled(Layout.Header)`
   display: block;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
 `;
 
 const ActionBar = styled('div')`

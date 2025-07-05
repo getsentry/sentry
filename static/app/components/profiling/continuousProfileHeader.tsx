@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -57,23 +58,19 @@ export function ContinuousProfileHeader({
           <ProfilingBreadcrumbs organization={organization} trails={breadCrumbs} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <StyledHeaderActions>
-        <FeedbackWidgetButton />
-        {transactionTarget && (
-          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Trace')}
-          </LinkButton>
-        )}
-      </StyledHeaderActions>
+      <Layout.HeaderActions>
+        <Flex direction="row" gap={space(1)}>
+          <FeedbackWidgetButton />
+          {transactionTarget && (
+            <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+              {t('Go to Trace')}
+            </LinkButton>
+          )}
+        </Flex>
+      </Layout.HeaderActions>
     </SmallerLayoutHeader>
   );
 }
-
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-`;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: ${space(1.5)};

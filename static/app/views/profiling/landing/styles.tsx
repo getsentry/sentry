@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -31,32 +32,26 @@ export const Subtitle = styled('div')`
   display: inline-block;
 `;
 
-export const ContentContainer = styled('div')`
-  flex: 1 1 auto;
+export function ContentContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Flex flex="1 1 auto" direction="column" justify="center">
+      {children}
+    </Flex>
+  );
+}
 
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
+export function StatusContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" justify="center" flex="1 1 auto">
+      {children}
+    </Flex>
+  );
+}
 
-export const StatusContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1 1 auto;
-
-  .loading {
-    margin: 0 auto;
-  }
-`;
-
-export const Accordion = styled('ul')`
-  display: flex;
-  flex-direction: column;
+export const Accordion = styled(Flex)`
   padding: ${space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
-  flex: 1 1 auto;
 `;
 
 export const AccordionItem = styled('li')`

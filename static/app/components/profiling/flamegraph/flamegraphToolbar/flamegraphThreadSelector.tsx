@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -122,10 +123,10 @@ interface ThreadLabelDetailsProps {
 
 function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex direction="row" justify="space-between" gap={space(1)}>
       <div>{props.duration}</div>
       <div>{tn('%s sample', '%s samples', props.samples)}</div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -163,13 +164,6 @@ export function compareProfiles(activeThreadId?: number) {
     return a.name > b.name ? 1 : -1;
   };
 }
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 14ch;

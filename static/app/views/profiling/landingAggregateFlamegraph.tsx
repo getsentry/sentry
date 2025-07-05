@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -148,16 +149,12 @@ const CollapseExpandButton = styled(Button)`
 
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
-    <DoubleChevronWrapper>
+    <Flex>
       <IconChevron style={{marginRight: `-3px`}} {...props} />
       <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
+    </Flex>
   );
 }
-
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
 
 interface LandingAggregateFlamegraphProps {
   onDataState?: (dataState: DataState) => void;
@@ -264,7 +261,7 @@ export function LandingAggregateFlamegraph({
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
             <AggregateFlamegraphLayout>
-              <AggregateFlamegraphContainer>
+              <Flex direction="column" flex="1 1 100%">
                 <AggregateFlamegraphToolbar
                   scheduler={scheduler}
                   canvasPoolManager={canvasPoolManager}
@@ -304,7 +301,7 @@ export function LandingAggregateFlamegraph({
                     canvasPoolManager={canvasPoolManager}
                   />
                 )}
-              </AggregateFlamegraphContainer>
+              </Flex>
               <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
               </AggregateFlamegraphSidePanelContainer>
@@ -359,12 +356,6 @@ const RequestStateMessageContainer = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.subText};
-`;
-
-const AggregateFlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
 `;
 
 const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`

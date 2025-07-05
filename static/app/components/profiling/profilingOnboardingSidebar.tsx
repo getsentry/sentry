@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout/flex';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -379,23 +380,17 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   return (
     <Wrapper>
       {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-      <Steps>
+      <Flex direction="column" gap="1.5rem">
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
-      </Steps>
+      </Flex>
     </Wrapper>
   );
 }
 
 const Wrapper = styled('div')`
   margin-top: ${space(2)};
-`;
-
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 `;
 
 const Introduction = styled('div')`

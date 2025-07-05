@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
@@ -142,7 +143,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
           trails={breadcrumbTrails}
         />
         <Layout.Title>
-          <ProfilingTitleContainer>
+          <ProfilingTitleContainer align="center" gap={space(1)}>
             {props.project ? (
               <IdBadge
                 hideName
@@ -156,12 +157,14 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </Layout.Title>
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
-        <StyledHeaderActions>
-          <FeedbackWidgetButton />
-          <LinkButton to={transactionSummaryTarget} size="sm">
-            {t('View Summary')}
-          </LinkButton>
-        </StyledHeaderActions>
+        <Layout.HeaderActions>
+          <Flex direction="row" gap={space(1)}>
+            <FeedbackWidgetButton />
+            <LinkButton to={transactionSummaryTarget} size="sm">
+              {t('View Summary')}
+            </LinkButton>
+          </Flex>
+        </Layout.HeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
@@ -185,16 +188,7 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
   }
 `;
 
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-`;
-
-const ProfilingTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+const ProfilingTitleContainer = styled(Flex)`
   font-size: ${p => p.theme.fontSize.lg};
 `;
 

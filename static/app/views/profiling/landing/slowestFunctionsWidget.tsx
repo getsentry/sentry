@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -208,7 +209,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <Accordion>
+          <Accordion as="ul" direction="column" flex="1 1 auto">
             {functionsData.map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
@@ -386,13 +387,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         />
       </AccordionItem>
       {isExpanded && (
-        <FunctionChartContainer>
+        <Flex flex="1 1 auto" direction="column" justify="center">
           <FunctionChart
             func={func}
             breakdownFunction={breakdownFunction}
             stats={stats}
           />
-        </FunctionChartContainer>
+        </Flex>
       )}
     </Fragment>
   );
@@ -510,13 +511,6 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
-`;
-
-const FunctionChartContainer = styled('div')`
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const DropdownItem = styled('div')`
