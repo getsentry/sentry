@@ -407,8 +407,15 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
-    overflow: visible;
+  /* Ensure horizontal scrollbar is visible when content overflows */
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /* Set a minimum width to ensure the table has proper dimensions */
+  min-width: 100%;
+
+  @media (min-width: ${props => props.theme.breakpoints.lg}) {
+    overflow: initial;
   }
 `;
 
