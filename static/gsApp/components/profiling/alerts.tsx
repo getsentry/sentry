@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -357,13 +358,15 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
           {sdkDeprecations.values().map(sdk => {
             const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
             return (
-              <SDKDeprecationContainer key={key}>
-                <Dot />
-                {tct('[name] minimum version [version]', {
-                  name: <code>{sdk.sdkName}</code>,
-                  version: <code>{sdk.minimumVersion}</code>,
-                })}
-              </SDKDeprecationContainer>
+              <li key={key}>
+                <Flex direction="row" align="baseline">
+                  <Dot />
+                  {tct('[name] minimum version [version]', {
+                    name: <code>{sdk.sdkName}</code>,
+                    version: <code>{sdk.minimumVersion}</code>,
+                  })}
+                </Flex>
+              </li>
             );
           })}
         </SDKDeprecationsContainer>
@@ -401,12 +404,6 @@ function useSDKDeprecations() {
 
 const SDKDeprecationsContainer = styled('ul')`
   margin: 0;
-`;
-
-const SDKDeprecationContainer = styled('li')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
 `;
 
 const Dot = styled('span')`
