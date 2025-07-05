@@ -186,31 +186,37 @@ function ProfileReferenceRow(props: ProfileReferenceRowProps) {
 
   if (isTransactionProfileReference(props.reference)) {
     return (
-      <Flex justify="space-between">
-        <Link to={target}>{getShortEventId(props.reference.profile_id)}</Link>
-        {props.reference.start ? (
-          <DateTime date={props.reference.start * 1000} />
-        ) : (
-          '\u2013'
-        )}
-      </Flex>
+      <RowContainer>
+        <Flex justify="space-between">
+          <Link to={target}>{getShortEventId(props.reference.profile_id)}</Link>
+          {props.reference.start ? (
+            <DateTime date={props.reference.start * 1000} />
+          ) : (
+            '\u2013'
+          )}
+        </Flex>
+      </RowContainer>
     );
   }
 
   if (isContinuousProfileReference(props.reference)) {
     return (
-      <Flex justify="space-between">
-        <Link to={target}>{getShortEventId(props.reference.profiler_id)}</Link>
-        <DateTime date={props.reference.start * 1000} />
-      </Flex>
+      <RowContainer>
+        <Flex justify="space-between">
+          <Link to={target}>{getShortEventId(props.reference.profiler_id)}</Link>
+          <DateTime date={props.reference.start * 1000} />
+        </Flex>
+      </RowContainer>
     );
   }
 
   return (
-    <Flex justify="space-between">
-      <Link to={target}>{getShortEventId(props.reference)}</Link>
-      {'\u2013'}
-    </Flex>
+    <RowContainer>
+      <Flex justify="space-between">
+        <Link to={target}>{getShortEventId(props.reference)}</Link>
+        {'\u2013'}
+      </Flex>
+    </RowContainer>
   );
 }
 
