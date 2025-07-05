@@ -187,9 +187,10 @@ const AttachmentComponentWrapper = styled('div')`
   & > video {
     max-width: 100%;
     max-height: calc(100vh - 300px);
-    width: auto;
+    width: 100%;
     height: auto;
     object-fit: contain;
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
