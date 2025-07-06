@@ -19,7 +19,6 @@ import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 type FilterKeySearchItem = {
   description: string;
@@ -137,16 +136,13 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    enableAISearch,
   } = useSearchQueryBuilder();
   const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-  const showAskSeerOption = !!(traceExploreAiQueryContext && areAiFeaturesAllowed);
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -258,23 +254,23 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...(showAskSeerOption ? [createAskSeerItem()] : []),
+        ...(enableAISearch ? [createAskSeerItem()] : []),
       ];
     }
 
     return keyItems;
   }, [
-    filterValue,
-    search,
-    includeSuggestions,
+    disallowFreeText,
+    enableAISearch,
     filterKeySections,
+    filterKeys,
+    filterValue,
     flatKeys,
     getFieldDefinition,
-    filterKeys,
-    inputValue,
-    disallowFreeText,
-    replaceRawSearchKeys,
     hasRawSearchReplacement,
-    showAskSeerOption,
+    includeSuggestions,
+    inputValue,
+    replaceRawSearchKeys,
+    search,
   ]);
 }
