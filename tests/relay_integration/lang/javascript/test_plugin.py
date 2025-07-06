@@ -760,6 +760,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
         assert raw_frame.lineno == 2
 
+    @pytest.mark.skip(reason="flaky: #94874")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_expansion_via_debug(self):
