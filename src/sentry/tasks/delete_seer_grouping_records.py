@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
-    hashes: list[str],
+    hashes: Sequence[str],
     last_deleted_index: int = 0,
     *args: Any,
     **kwargs: Any,
@@ -48,13 +49,13 @@ def delete_seer_grouping_records_by_hash(
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     end_index = min(last_deleted_index + batch_size, len_hashes)
-    delete_grouping_records_by_hash(project_id, hashes[last_deleted_index:end_index])
+    delete_grouping_records_by_hash(project_id, list(hashes[last_deleted_index:end_index]))
     if end_index < len_hashes:
         delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hashes, end_index])
 
 
 def call_delete_seer_grouping_records_by_hash(
-    group_ids: list[int],
+    group_ids: Sequence[int],
 ) -> None:
     project = None
     if group_ids:
