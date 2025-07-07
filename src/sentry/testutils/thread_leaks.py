@@ -37,9 +37,11 @@ def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
     for thread in sorted(threads, key=lambda t: t.ident or 0):
         func = getattr(thread, "_target", None)
         if func is None:
-            func_name = "None"
+            func_fqname = "None"
         else:
-            func_name = f"@{func.__module__}.{func.__qualname__}"
+            # fallback chiefly for functools.partial
+            func_name = getattr(func, "__qualname__", str(func))
+            func_fqname = f"{func.__module__}.{func_name}"
         where = getattr(thread, "_where", "")
         if where:
             where = "\n  " + where.replace("\n", "\n  ")
@@ -48,7 +50,7 @@ def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
         result.append(
             f"""
 Thread ID: {thread.ident}
-{thread!r}@{func_name}{where}"""
+{thread!r}@{func_fqname}{where}"""
         )
     return "".join(result)
 

@@ -74,9 +74,11 @@ class SingletonProducer:
         assert not cls.__active_producers, cls.__active_producers
 
     def __repr__(self):
-        class_name = type(self).__name__
-        func_name = f"{self._factory.__module__}.{self._factory.__qualname__}"
-        return f"{class_name}({func_name}, {self.max_futures!r})"
+        class_name = type(self).__qualname__
+        # fallback chiefly for functools.partial
+        func_name = getattr(self._factory, "__qualname__", str(self._factory))
+        func_fqname = f"{self._factory.__module__}.{func_name}"
+        return f"{class_name}({func_fqname}, {self.max_futures!r})"
 
 
 atexit.register(SingletonProducer._shutdown_all)
