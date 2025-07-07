@@ -349,6 +349,7 @@ def get_attribute_values_with_substring(
     fields_with_substrings: list[dict[str, str]],
     stats_period: str = "48h",
     limit: int = 100,
+    sampled: bool = True,
 ) -> dict:
     """
     Get attribute values with substring.
@@ -369,6 +370,12 @@ def get_attribute_values_with_substring(
     start_time_proto.FromDatetime(start)
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
+
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
 
     resolver = SearchResolver(
         params=SnubaParams(
@@ -394,6 +401,7 @@ def get_attribute_values_with_substring(
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
                     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
                 ),
                 key=resolved_field.proto_definition,
                 limit=limit,
