@@ -133,7 +133,7 @@ class AuthenticatorConfig(models.JSONField):
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
-    def get_db_prep_value(self, value: Any, *args: Any, **kwargs: Any) -> Any:
+    def _encode_value(self, value: Any) -> Any:
         if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
@@ -141,8 +141,10 @@ class AuthenticatorConfig(models.JSONField):
                 # AuthenticatorData is a non-json-serializable bytes subclass
                 if isinstance(device["binding"], AuthenticatorData):
                     device["binding"] = base64.b64encode(device["binding"]).decode()
+        return value
 
-        return super().get_db_prep_value(value, *args, **kwargs)
+    def get_db_prep_value(self, value: Any, *args: Any, **kwargs: Any) -> Any:
+        return super().get_db_prep_value(self._encode_value(value), *args, **kwargs)
 
     def from_db_value(
         self, value: str | None, expression: Expression, connection: BaseDatabaseWrapper
@@ -153,6 +155,9 @@ class AuthenticatorConfig(models.JSONField):
                 if isinstance(device["binding"], str):
                     device["binding"] = AuthenticatorData(base64.b64decode(device["binding"]))
         return ret
+
+    def value_to_string(self, obj: models.Model) -> object:  # type: ignore[override]  # see typeddjango/django-stubs#2729
+        return self._encode_value(self.value_from_object(obj))
 
 
 @control_silo_model
