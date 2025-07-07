@@ -5,6 +5,6 @@
 {% block main %}
   <p>You've initiated an account merger which requires verification. Please use the code below to confirm:</p>
   <p>{{code}}</p>
-  <p>This code expires in 30 minutes.</p>
+  <p>This code expires in {{mins_valid}} minutes.</p>
   <p>If you didn't attempt this action, please secure your account immediately and contact support@sentry.io.</p>
 {% endblock %}

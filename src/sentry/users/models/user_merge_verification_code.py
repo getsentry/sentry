@@ -68,6 +68,7 @@ class UserMergeVerificationCode(DefaultFieldsModel):
             "user": user,
             "domain": get_server_hostname(),
             "code": token,
+            "mins_valid": TOKEN_MINUTES_VALID,
             "datetime": timezone.now(),
         }
 

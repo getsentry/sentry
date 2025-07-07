@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,13 +23,16 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         user = request.user
-        # if user is authenticated, as they must be to use the endpoint, then this is true
-        assert user.id is not None
+        # if user is authenticated, as they must be to use the endpoint, then user.id won't be None
+        if user.id is None:
+            return Response(
+                status=403, data={"error": "Must be authenticated to use this endpoint."}
+            )
         try:
             # regenerate the code if it exists
-            code: UserMergeVerificationCode = UserMergeVerificationCode.objects.get(user_id=user.id)
+            code = UserMergeVerificationCode.objects.get(user_id=user.id)
             code.regenerate_token()
         except UserMergeVerificationCode.DoesNotExist:
             code = UserMergeVerificationCode.objects.create(user_id=user.id)
         code.send_email(user.id, code.token)
-        return Response("Successfully created or regenerated merge account verification code.")
+        return Response(status=status.HTTP_201_CREATED)
