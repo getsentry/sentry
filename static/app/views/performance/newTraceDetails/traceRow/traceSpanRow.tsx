@@ -80,7 +80,7 @@ export function TraceSpanRow(
           />
           {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
             <React.Fragment>
-              <span className="TraceName">
+              <span className="TraceName" title={props.node.value.name}>
                 {props.node.value.name
                   ? ellipsize(props.node.value.name, 100)
                   : (spanId ?? 'unknown')}
