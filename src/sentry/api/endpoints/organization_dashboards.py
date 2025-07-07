@@ -145,43 +145,31 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
-            if features.has(
-                "organizations:dashboards-table-view", organization, actor=request.user
-            ):
-                user_name_dict = {
-                    user.id: user.name
-                    for user in user_service.get_many_by_id(
-                        ids=list(dashboards.values_list("created_by_id", flat=True))
-                    )
-                }
-                dashboards = dashboards.annotate(
-                    user_name=Case(
-                        *[
-                            When(created_by_id=user_id, then=Value(user_name))
-                            for user_id, user_name in user_name_dict.items()
-                        ],
-                        default=Value(""),
-                        output_field=CharField(),
-                    )
+            user_name_dict = {
+                user.id: user.name
+                for user in user_service.get_many_by_id(
+                    ids=list(dashboards.values_list("created_by_id", flat=True))
                 )
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default=1,
-                        output_field=IntegerField(),
-                    ),
-                    "-user_name" if desc else "user_name",
-                    "-date_added",
-                ]
-            else:
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default="created_by_id",
-                        output_field=IntegerField(),
-                    ),
-                    "-date_added",
-                ]
+            }
+            dashboards = dashboards.annotate(
+                user_name=Case(
+                    *[
+                        When(created_by_id=user_id, then=Value(user_name))
+                        for user_id, user_name in user_name_dict.items()
+                    ],
+                    default=Value(""),
+                    output_field=CharField(),
+                )
+            )
+            order_by = [
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                ),
+                "-user_name" if desc else "user_name",
+                "-date_added",
+            ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             order_by = [
