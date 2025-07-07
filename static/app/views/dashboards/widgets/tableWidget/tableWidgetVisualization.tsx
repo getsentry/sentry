@@ -185,7 +185,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const onResizeColumn = (columnIndex: number, nextColumn: TabularColumn) => {
     const newWidths: number[] = [...widths];
-    newWidths[columnIndex] = nextColumn.width
+    newWidths[columnIndex] = defined(nextColumn.width)
       ? Number(nextColumn.width)
       : COL_WIDTH_UNDEFINED;
 
