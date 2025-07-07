@@ -81,7 +81,7 @@ function SpanEvidenceTraceViewImpl({
     traceSlug: traceId,
     limit: 10000,
   });
-  const tree = useIssuesTraceTree({trace, meta: null, replay: null});
+  const tree = useIssuesTraceTree({trace, replay: null});
 
   const rootEventResults = useTraceRootEvent({
     tree,

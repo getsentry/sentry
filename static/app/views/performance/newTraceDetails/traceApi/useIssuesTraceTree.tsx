@@ -10,25 +10,20 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
-  meta: TraceMetaQueryResults | null;
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
-function getTraceViewQueryStatus(
-  traceQueryStatus: QueryStatus,
-  traceMetaQueryStatus?: QueryStatus
-): QueryStatus {
-  if (traceQueryStatus === 'error' || traceMetaQueryStatus === 'error') {
+function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
+  if (traceQueryStatus === 'error') {
     return 'error';
   }
 
-  if (traceQueryStatus === 'pending' || traceMetaQueryStatus === 'pending') {
+  if (traceQueryStatus === 'pending') {
     return 'pending';
   }
 

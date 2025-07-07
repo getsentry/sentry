@@ -70,7 +70,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const params = useTraceQueryParams({
     timestamp,
   });
-  const tree = useIssuesTraceTree({trace, meta: null, replay: null});
+  const tree = useIssuesTraceTree({trace, replay: null});
 
   const rootEventResults = useTraceRootEvent({
     tree,
