@@ -54,6 +54,14 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "percentile(transaction.duration,0.5000):>100 AND percentile(transaction.duration, 0.25):>20",
             "(p50(span.duration):>100 AND percentile(span.duration, 0.25):>20) AND is_transaction:1",
         ),
+        pytest.param(
+            "user_misery(300):>0.5",
+            "(user_misery(span.duration,300):>0.5) AND is_transaction:1",
+        ),
+        pytest.param(
+            "apdex(300):>0.5",
+            "(apdex(span.duration,300):>0.5) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str):
@@ -96,6 +104,10 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         pytest.param(
             ["percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
             ["p50(span.duration)", "percentile(span.duration,0.94)"],
+        ),
+        pytest.param(
+            ["user_misery(300)", "apdex(300)"],
+            ["user_misery(span.duration,300)", "apdex(span.duration,300)"],
         ),
     ],
 )

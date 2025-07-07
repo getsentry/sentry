@@ -77,6 +77,10 @@ def function_switcheroo(term):
         swapped_term = "count(span.duration)"
     elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
+    elif term.startswith("apdex"):
+        swapped_term = "apdex(span.duration,300)"
+    elif term.startswith("user_misery"):
+        swapped_term = "user_misery(span.duration,300)"
 
     return swapped_term, swapped_term != term
 
