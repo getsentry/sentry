@@ -126,11 +126,13 @@ class SQLInjectionDetector(PerformanceDetector):
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
             where_index = description.upper().find("WHERE")
-            comment_index = description.find("--")
+            # Search for comments only in the portion after WHERE clause
+            description_after_where = description[where_index:]
+            comment_index = description_after_where.find("--")
             if comment_index != -1:
-                description_to_search = description[where_index:comment_index]
+                description_to_search = description_after_where[:comment_index]
             else:
-                description_to_search = description[where_index:]
+                description_to_search = description_after_where
             if re.search(regex_key, description_to_search) and re.search(
                 regex_value, description_to_search
             ):
