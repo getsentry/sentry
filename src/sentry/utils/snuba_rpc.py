@@ -50,7 +50,6 @@ SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
 SNUBA_INFO = (
     os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
 )
-_query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10)
 
 
 @dataclass(frozen=True)
@@ -125,10 +124,11 @@ def _make_rpc_requests(
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    with _query_thread_pool:
+    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10)
+    with query_thread_pool:
         response = [
             result
-            for result in _query_thread_pool.map(
+            for result in query_thread_pool.map(
                 partial_request,
                 endpoint_names,
                 # Currently assuming everything is v1
