@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 
 from sentry.models.project import Project
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     ReplayActionsEventPayload,
@@ -73,9 +74,7 @@ def emit_click_events(
         "payload": list(json.dumps(payload).encode()),
     }
 
-    publisher = _initialize_publisher()
-    publisher.publish("ingest-replay-events", json.dumps(action))
-    publisher.flush()
+    publish_replay_event(json.dumps(action))
 
 
 @sentry_sdk.trace
