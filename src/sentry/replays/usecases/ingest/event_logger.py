@@ -1,5 +1,7 @@
 import logging
+import uuid
 from collections.abc import Generator
+from hashlib import md5
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -9,8 +11,6 @@ from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     ReplayActionsEventPayload,
     ReplayActionsEventPayloadClick,
-    _initialize_publisher,
-    encode_as_uuid,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -243,3 +243,7 @@ def _should_report_rage_click_issue(project: Project) -> bool:
     Checks the project option, controlled by a project owner.
     """
     return project.get_option("sentry:replay_rage_click_issues")
+
+
+def encode_as_uuid(message: str) -> str:
+    return str(uuid.UUID(md5(message.encode()).hexdigest()))
