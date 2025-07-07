@@ -55,12 +55,12 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "(p50(span.duration):>100 AND percentile(span.duration, 0.25):>20) AND is_transaction:1",
         ),
         pytest.param(
-            "user_misery(300):>0.5",
-            "(user_misery(span.duration,300):>0.5) AND is_transaction:1",
+            "user_misery():>0.5 OR apdex():>0.5",
+            "(user_misery(span.duration,300):>0.5 OR apdex(span.duration,300):>0.5) AND is_transaction:1",
         ),
         pytest.param(
-            "apdex(300):>0.5",
-            "(apdex(span.duration,300):>0.5) AND is_transaction:1",
+            "apdex(1000):>0.5 OR user_misery(1000):>0.5",
+            "(apdex(span.duration,1000):>0.5 OR user_misery(span.duration,1000):>0.5) AND is_transaction:1",
         ),
     ],
 )

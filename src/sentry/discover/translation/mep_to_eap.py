@@ -1,3 +1,4 @@
+import re
 from typing import TypedDict
 
 from parsimonious import NodeVisitor
@@ -5,6 +6,8 @@ from parsimonious import NodeVisitor
 from sentry.api.event_search import event_search_grammar
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
+
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\(([^)]+)\)"
 
 
 class QueryParts(TypedDict):
@@ -77,10 +80,16 @@ def function_switcheroo(term):
         swapped_term = "count(span.duration)"
     elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
-    elif term.startswith("apdex"):
+    elif term == "apdex()":
         swapped_term = "apdex(span.duration,300)"
-    elif term.startswith("user_misery"):
+    elif term == "user_misery()":
         swapped_term = "user_misery(span.duration,300)"
+    elif term == "apdex()":
+        swapped_term = "apdex(span.duration,300)"
+
+    match = re.match(APDEX_USER_MISERY_PATTERN, term)
+    if match:
+        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
 
     return swapped_term, swapped_term != term
 
