@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -15,13 +14,10 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {getIntervalOptionsForPageFilter} from 'sentry/views/explore/hooks/useChartInterval';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   LogAttributesHumanLabel,
@@ -256,87 +252,4 @@ export function parseLinkHeaderFromLogsPage(
 ) {
   const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
   return parseLinkHeader(linkHeader ?? null);
-}
-
-/**
- * Creates empty timeseries data for streaming when the original timeseries is empty.
- * Uses proper intervals that match the page filter datetime so that streaming table data
- * gets merged into the correct buckets.
- */
-export function createEmptyTimeseriesResults(
-  datetime: PageFilters['datetime'],
-  yAxis = 'count(message)',
-  bucketCount = 16
-): Record<string, TimeSeries[]> {
-  // Get the smallest interval possible (most bars) from page filter
-  const intervalOptions = getIntervalOptionsForPageFilter(datetime);
-  const intervalString = intervalOptions[0]?.value || '1m';
-
-  // Convert interval string to milliseconds
-  const intervalHours = parsePeriodToHours(intervalString);
-  const intervalMs = intervalHours * 60 * 60 * 1000;
-
-  // Create timestamps starting from current time and going back
-  const now = Date.now();
-  const values: Array<{timestamp: number; value: number}> = [];
-  const sampleCount: Array<{timestamp: number; value: number}> = [];
-  const samplingRate: Array<{timestamp: number; value: number}> = [];
-
-  for (let i = bucketCount - 1; i >= 0; i--) {
-    const timestamp = now - i * intervalMs;
-    // Round timestamp down to interval boundary
-    const roundedTimestamp = Math.floor(timestamp / intervalMs) * intervalMs;
-
-    values.push({
-      timestamp: roundedTimestamp,
-      value: 0, // Start with 0, streaming will add actual counts
-    });
-
-    // sampleCount uses timestamps in seconds
-    sampleCount.push({
-      timestamp: Math.floor(roundedTimestamp / 1000),
-      value: 0,
-    });
-
-    samplingRate.push({
-      timestamp: Math.floor(roundedTimestamp / 1000),
-      value: 1,
-    });
-  }
-
-  const timeSeries: TimeSeries = {
-    yAxis,
-    values,
-    meta: {
-      valueType: 'string',
-      valueUnit: null,
-      interval: intervalMs,
-    },
-    confidence: 'high',
-    sampleCount,
-    samplingRate,
-    dataScanned: 'full',
-  };
-
-  return {
-    [yAxis]: [timeSeries],
-  };
-}
-
-export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
-  return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
-}
-
-export function getLogRowTimeSeriesBucket(
-  record: OurLogsResponseItem,
-  periodStartMillis: number,
-  intervalMillis: number // calculated from the distance between buckets in the events-stats response
-): {bucketIndex: number; bucketMillis: number} {
-  const rowTimestamp = getLogRowTimestampMillis(record);
-  const relativeRowTimestamp = rowTimestamp - periodStartMillis;
-  const bucketIndex = Math.floor(relativeRowTimestamp / intervalMillis);
-  return {
-    bucketIndex,
-    bucketMillis: periodStartMillis + bucketIndex * intervalMillis,
-  };
 }
