@@ -296,7 +296,6 @@ def generate_feedback_title(feedback_message: str, max_words: int = 10) -> str:
     # Clean and split the message into words
     words = feedback_message.strip().split()
 
-    # Take first few words, respecting word boundaries
     if len(words) <= max_words:
         summary = feedback_message.strip()
     else:
