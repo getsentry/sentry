@@ -291,7 +291,8 @@ function onChangeSort(newSort: Sort) {
         <p>
           Also by default, is managing column widths and resizing via <code>width</code>{' '}
           URL parameters. E.g., <code>?width=-1&width=512</code> will set the first column
-          to have automatic width, and the second column to have a width of 512px.
+          to have automatic width, and the second column to have a width of 512px. Note:
+          this behavior only applies if the table columns are resizable.
         </p>
         <p>
           If both the URL parameters and <code>width</code>field in the{' '}
