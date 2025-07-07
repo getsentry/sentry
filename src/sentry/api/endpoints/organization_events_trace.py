@@ -1767,16 +1767,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=1,
         )
-        span_meta_query = SpansIndexedQueryBuilder(
-            dataset=Dataset.SpansIndexed,
-            selected_columns=[
-                "count() as span_count",
-            ],
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            limit=1,
-        )
         transaction_children_query = SpansIndexedQueryBuilder(
             dataset=Dataset.SpansIndexed,
             selected_columns=[
@@ -1789,35 +1779,19 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=10_000,
         )
-        span_count_query = SpansIndexedQueryBuilder(
-            dataset=Dataset.SpansIndexed,
-            selected_columns=[
-                "span.op",
-                "count()",
-            ],
-            orderby=["-count()"],
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            limit=10_000,
-        )
 
         with handle_query_errors():
             results = bulk_snuba_queries(
                 [
                     meta_query.get_snql_query(),
                     transaction_children_query.get_snql_query(),
-                    span_meta_query.get_snql_query(),
-                    span_count_query.get_snql_query(),
                 ],
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
                 query_source=query_source,
             )
-            meta_result, children_result, span_meta_result, span_count_result = (
+            meta_result, children_result = (
                 results[0],
                 results[1],
-                results[2],
-                results[3],
             )
             if len(meta_result["data"]) == 0:
                 return Response(status=404)
@@ -1831,13 +1805,13 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             self.serialize(
                 meta_result["data"][0],
                 children_result["data"],
-                span_count_result["data"],
-                span_meta_result["data"][0],
             )
         )
 
     def serialize(
-        self, results: Mapping[str, int], child_result: Any, span_result: Any, span_meta_result: Any
+        self,
+        results: Mapping[str, int],
+        child_result: Any,
     ) -> Mapping[str, int | dict[str, int]]:
         return {
             # Values can be null if there's no result
@@ -1845,7 +1819,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
-            "span_count": span_meta_result.get("span_count") or 0,
+            "span_count": 0,
             "transaction_child_count_map": child_result,
-            "span_count_map": {row["span.op"]: row["count"] for row in span_result},
+            "span_count_map": {},
         }

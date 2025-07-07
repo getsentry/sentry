@@ -1708,8 +1708,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_no_team(self):
         self.load_trace()
@@ -1725,8 +1725,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_with_errors(self):
         self.load_trace()
@@ -1743,8 +1743,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 3
         assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_with_default(self):
         self.load_trace()
@@ -1761,6 +1761,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
-        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
         assert len(data["transaction_child_count_map"]) == 8
