@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -29,16 +30,23 @@ export function TestSearchBar({testCount}: TestSearchBarProps) {
   const count = testCount > 999 ? `${(testCount / 1000).toFixed(1)}K` : testCount;
   const searchTitle = `${testTitle} (${count})`;
 
-  const handleSearchChange = debounce((newValue: string) => {
-    const currentParams = Object.fromEntries(searchParams.entries());
-    if (newValue) {
-      currentParams.term = newValue;
-    } else {
-      delete currentParams.term;
-    }
+  const handleSearchChange = useMemo(
+    () =>
+      debounce((newValue: string) => {
+        setSearchParams(prev => {
+          const currentParams = Object.fromEntries(prev.entries());
 
-    setSearchParams(currentParams);
-  }, 500);
+          if (newValue) {
+            currentParams.term = newValue;
+          } else {
+            delete currentParams.term;
+          }
+
+          return currentParams;
+        });
+      }, 500),
+    [setSearchParams]
+  );
 
   return (
     <Container>
