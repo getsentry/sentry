@@ -4,6 +4,7 @@ import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSel
 import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
+import {TestSuiteDropdown} from 'sentry/components/codecov/testSuiteDropdown/testSuiteDropdown';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -26,12 +27,15 @@ export default function TestsPage() {
 
   return (
     <LayoutGap>
-      <PageFilterBar condensed>
-        <IntegratedOrgSelector />
-        <RepoSelector />
-        <BranchSelector />
-        <DateSelector />
-      </PageFilterBar>
+      <ControlsContainer>
+        <PageFilterBar condensed>
+          <IntegratedOrgSelector />
+          <RepoSelector />
+          <BranchSelector />
+          <DateSelector />
+        </PageFilterBar>
+        <TestSuiteDropdown />
+      </ControlsContainer>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
@@ -41,5 +45,10 @@ export default function TestsPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
+  gap: ${space(2)};
+`;
+
+const ControlsContainer = styled('div')`
+  display: flex;
   gap: ${space(2)};
 `;
