@@ -289,16 +289,17 @@ function onChangeSort(newSort: Sort) {
           resizable={false}
         />
         <p>
-          Also by default, is managing column widths and resizing via <code>width</code>{' '}
-          URL parameters. E.g., <code>?width=-1&width=512</code> will set the first column
-          to have automatic width, and the second column to have a width of 512px. Note:
-          this behavior only applies if the table columns are resizable.
+          Also by default, is <Storybook.JSXNode name="TableWidgetVisualization" />{' '}
+          managing column widths and resizing via <code>width</code> URL parameters. E.g.,{' '}
+          <code>?width=-1&width=512</code> will set the first column to have automatic
+          width, and the second column to have a width of 512px. Note: this behavior only
+          applies if the table columns are resizable.
         </p>
         <p>
           If both the URL parameters and <code>width</code>field in the{' '}
           <code>columns</code>prop are supplied, the table will prioritize the prop. If
-          you want the default behaviour and need to pass <code>columns</code>, then
-          ensure that the <code>width</code>field does not exist or is set to{' '}
+          you want the default behavior and need to pass <code>columns</code>, then ensure
+          that the <code>width</code>field does not exist or is set to{' '}
           <code>undefined</code>for every column.
         </p>
         <p>
@@ -316,10 +317,9 @@ function onChangeSort(newSort: Sort) {
         />
         <p>
           If you wish to override default behavior of updating the URL, pass the callback
-          function <code>onResizeColumn</code>, which accepts a{' '}
-          <code>TabularColumn[]</code> representing the columns with new widths. This and
-          the <code>width</code>field in <code>columns</code>is useful if you need to
-          manage internal state:
+          function <code>onResizeColumn</code>, which accepts <code>TabularColumn[]</code>{' '}
+          representing the columns with new widths. This and the <code>width</code>field
+          in <code>columns</code>is useful if you need to manage internal state:
         </p>
         <p>
           Current widths are{' '}
