@@ -1228,7 +1228,6 @@ def test_create_feedback_issue_title_with_long_message(
 
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    # Verify the occurrence was created
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
     # Get the occurrence from the call
