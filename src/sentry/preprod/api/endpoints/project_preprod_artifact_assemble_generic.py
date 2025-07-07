@@ -16,7 +16,10 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
-from sentry.preprod.tasks import assemble_preprod_artifact_size_analysis
+from sentry.preprod.tasks import (
+    assemble_preprod_artifact_installable_app,
+    assemble_preprod_artifact_size_analysis,
+)
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -151,6 +154,17 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                     return response
 
                 assemble_preprod_artifact_size_analysis.apply_async(
+                    kwargs={
+                        "org_id": project.organization_id,
+                        "project_id": project.id,
+                        "checksum": checksum,
+                        "chunks": chunks,
+                        "artifact_id": artifact_id,
+                    }
+                )
+            elif assemble_type == AssembleType.INSTALLABLE_APP.value:
+                update_assemble_status(AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP)
+                assemble_preprod_artifact_installable_app.apply_async(
                     kwargs={
                         "org_id": project.organization_id,
                         "project_id": project.id,

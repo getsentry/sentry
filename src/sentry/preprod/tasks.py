@@ -330,3 +330,64 @@ def assemble_preprod_artifact_size_analysis(
             assemble_result, project, artifact_id, org_id
         ),
     )
+
+
+def _assemble_preprod_artifact_installable_app(
+    assemble_result: AssembleResult, project, artifact_id, org_id
+):
+    from sentry.preprod.models import PreprodArtifact
+
+    try:
+        preprod_artifact = PreprodArtifact.objects.get(
+            project=project,
+            id=artifact_id,
+        )
+    except PreprodArtifact.DoesNotExist:
+        # Ideally this should never happen
+        logger.exception(
+            "PreprodArtifact not found during installable app assembly",
+            extra={
+                "artifact_id": artifact_id,
+                "project_id": project.id,
+                "organization_id": org_id,
+            },
+        )
+        # Clean up the assembled file since we can't associate it with an artifact
+        try:
+            # Close the temporary file handle first
+            if hasattr(assemble_result, "bundle_temp_file") and assemble_result.bundle_temp_file:
+                assemble_result.bundle_temp_file.close()
+            # Then delete the file object
+            assemble_result.bundle.delete()
+        except Exception:
+            pass  # Ignore cleanup errors
+        raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
+
+    # Update artifact state in its own transaction with proper database routing
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        preprod_artifact.installable_app_file_id = assemble_result.bundle.id
+        preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+        processing_deadline_duration=30,
+    ),
+)
+def assemble_preprod_artifact_installable_app(
+    org_id, project_id, checksum, chunks, artifact_id, **kwargs
+):
+    _assemble_preprod_artifact_file(
+        AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP,
+        project_id,
+        org_id,
+        checksum,
+        chunks,
+        lambda assemble_result, project: _assemble_preprod_artifact_installable_app(
+            assemble_result, project, artifact_id, org_id
+        ),
+    )
