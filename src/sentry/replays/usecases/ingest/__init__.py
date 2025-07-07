@@ -30,6 +30,7 @@ from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
+    emit_trace_items_to_eap,
     log_canvas_size,
     log_mutation_events,
     log_option_events,
@@ -434,6 +435,9 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
             recording.retention_days,
             recording.replay_event,
         )
+
+    # Emit trace-items to EAP.
+    emit_trace_items_to_eap(recording.trace_items)
 
 
 @sentry_sdk.trace
