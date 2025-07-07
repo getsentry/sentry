@@ -80,9 +80,15 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
+        performance_trace_explorer = features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
+        )
+
+        visibility_explore_view = features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        )
+
+        if not performance_trace_explorer and not visibility_explore_view:
             return Response(status=404)
 
         try:
@@ -145,6 +151,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 max_per_page=max_span_tags,
             )
 
+        if not performance_trace_explorer:
+            return Response(status=404)
+
         with handle_query_errors():
             # This has the limitations that we cannot paginate and
             # we do not provide any guarantees around which tag keys
@@ -186,9 +195,15 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
-        if not features.has(
+        performance_trace_explorer = features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
+        )
+
+        visibility_explore_view = features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        )
+
+        if not performance_trace_explorer and not visibility_explore_view:
             return Response(status=404)
 
         try:
@@ -219,6 +234,9 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 max_span_tag_values=max_span_tag_values,
             )
         else:
+            if not performance_trace_explorer:
+                return Response(status=404)
+
             executor = SpanFieldValuesAutocompletionExecutor(
                 organization=organization,
                 snuba_params=snuba_params,
