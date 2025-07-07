@@ -652,6 +652,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={**result},
             )
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed_check_updated_interval(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -803,6 +804,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed(self):
         features = [
             "organizations:uptime",
@@ -1182,6 +1184,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_provider_stats(self):
         features = [
             "organizations:uptime",
