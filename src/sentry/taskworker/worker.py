@@ -160,7 +160,10 @@ class TaskWorker:
             # causing processing deadline expiration.
             # Whereas in pools that have consistent short tasks, this happens
             # more frequently, allowing workers to run more smoothly.
-            metrics.incr("taskworker.worker.add_tasks.child_tasks_full")
+            metrics.incr(
+                "taskworker.worker.add_tasks.child_tasks_full",
+                tags={"processing_pool": self._processing_pool_name},
+            )
             return False
 
         inflight = self.fetch_task()
