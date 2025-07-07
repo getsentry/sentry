@@ -25,12 +25,12 @@ class SessionSerializerTest(TestCase):
         result = self.serializer.serialize(request)
 
         assert result == {
-            "todo_email_verification": False,
-            "todo_2fa_verification": True,
-            "user_id": "123",
-            "session_csrf_token": "csrf_token_value",
-            "session_expiry_date": "2023-12-31",
-            "session_orgs": ["org1", "org2"],
+            "todoEmailVerification": False,
+            "todo2faVerification": True,
+            "userId": "123",
+            "sessionCsrfToken": "csrf_token_value",
+            "sessionExpiryDate": "2023-12-31",
+            "sessionOrgs": ["org1", "org2"],
         }
 
     def test_serialize_with_empty_session_data(self):
@@ -42,10 +42,10 @@ class SessionSerializerTest(TestCase):
         result = self.serializer.serialize(request)
 
         assert result == {
-            "todo_email_verification": None,
-            "todo_2fa_verification": None,
-            "user_id": None,
-            "session_csrf_token": "csrf_token_value",
-            "session_expiry_date": "2023-12-31",
-            "session_orgs": None,
+            "todoEmailVerification": None,
+            "todo2faVerification": None,
+            "userId": None,
+            "sessionCsrfToken": "csrf_token_value",
+            "sessionExpiryDate": "2023-12-31",
+            "sessionOrgs": None,
         }
