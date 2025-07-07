@@ -86,3 +86,162 @@ def rrf_score(
 def rank_min(xs: list[float], ascending: bool = False):
     ranks = {x: rank for rank, x in enumerate(sorted(set(xs), reverse=not ascending), 1)}
     return [ranks[x] for x in xs]
+
+
+def boxcox_transform(
+    values: list[float], lambda_param: float | None = None
+) -> tuple[list[float], float]:
+    """
+    Apply BoxCox transformation to a list of values.
+
+    Parameters:
+        values: List of positive values to transform
+        lambda_param: BoxCox lambda parameter. If None, finds optimal lambda.
+
+    Returns:
+        Tuple of (transformed values, lambda parameter used)
+    """
+
+    if lambda_param is not None:
+        if lambda_param == 0.0:
+            transformed = [math.log(max(v, 1e-10)) for v in values]
+        else:
+            transformed = [(pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in values]
+        return transformed, lambda_param
+
+    # Find optimal lambda using MLE
+    optimal_lambda = boxcox_normmax(values)
+
+    if optimal_lambda == 0.0:
+        transformed = [math.log(max(v, 1e-10)) for v in values]
+    else:
+        transformed = [(pow(max(v, 1e-10), optimal_lambda) - 1) / optimal_lambda for v in values]
+
+    return transformed, optimal_lambda
+
+
+def boxcox_llf(lambda_param: float, values: list[float]) -> float:
+    """
+    Compute the Box-Cox log-likelihood function.
+
+    Parameters:
+        lambda_param: BoxCox lambda parameter
+        values: List of positive values
+
+    Returns:
+        Log-likelihood value
+    """
+    n = len(values)
+    if n == 0:
+        return 0.0
+
+    # Transform the data
+    if lambda_param == 0.0:
+        y = [math.log(max(v, 1e-10)) for v in values]
+    else:
+        y = [(pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in values]
+
+    # Calculate mean and sum of squares
+    y_mean = sum(y) / n
+    sum_sq = sum((yi - y_mean) ** 2 for yi in y)
+
+    # Log-likelihood calculation
+    # llf = (lambda - 1) * sum(log(x)) - n/2 * log(sum_sq)
+    log_sum = sum(math.log(max(v, 1e-10)) for v in values)
+    llf = (lambda_param - 1) * log_sum - (n / 2) * math.log(max(sum_sq, 1e-10))
+
+    return llf
+
+
+def boxcox_normmax(values: list[float]) -> float:
+    """
+    Calculate the approximate optimal lambda parameter for BoxCox transformation that maximizes the log-likelihood.
+
+    Uses MLE method with ternary search rather than Brent's methodfor efficient optimization.
+
+    Parameters:
+        values: List of positive values
+
+    Returns:
+        Approximate optimal lambda parameter
+    """
+    if not values:
+        return 0.0
+
+    if any(v <= 0 for v in values):
+        raise ValueError("All values must be positive for BoxCox transformation")
+
+    left = -2.0
+    right = 2.0
+    tolerance = 1e-6
+    max_iters = 50
+    iters = 0
+
+    while right - left > tolerance and iters < max_iters:
+        m1 = left + (right - left) / 3
+        m2 = right - (right - left) / 3
+
+        llf_m1 = boxcox_llf(m1, values)
+        llf_m2 = boxcox_llf(m2, values)
+
+        if llf_m1 > llf_m2:
+            right = m2
+        else:
+            left = m1
+
+        iters += 1
+
+    return (left + right) / 2
+
+
+def calculate_z_scores(values: list[float]) -> list[float]:
+    """
+    Calculate z-scores for a list of values.
+
+    Parameters:
+        values: List of numerical values
+
+    Returns:
+        List of z-scores corresponding to input values
+    """
+    if not values:
+        return []
+
+    mean_val = sum(values) / len(values)
+    variance = sum((x - mean_val) ** 2 for x in values) / len(values)
+    std_dev = math.sqrt(variance)
+
+    if std_dev == 0:
+        return [0.0] * len(values)
+
+    return [(x - mean_val) / std_dev for x in values]
+
+
+def filter_by_z_score_threshold(
+    values: list[float], z_threshold: float = 1.5, lambda_param: float = 0.0
+) -> list[int]:
+    """
+    Get indices of values that pass BoxCox + z-score filtering.
+
+    This function applies BoxCox normalization to the values,
+    calculates z-scores, and returns indices where z-scores >= threshold.
+
+    Parameters:
+        values: List of numerical values to filter
+        z_threshold: Minimum z-score threshold for inclusion
+        lambda_param: BoxCox lambda parameter (0 for log transformation)
+
+    Returns:
+        List of indices that pass the filtering criteria
+    """
+    if not values:
+        return []
+
+    # Apply BoxCox transformation - unpack the tuple to get just the transformed values
+    transformed_values, _ = boxcox_transform(values, lambda_param)
+
+    # Calculate z-scores on transformed data
+    z_scores = calculate_z_scores(transformed_values)
+
+    # Return indices that meet the threshold
+    return [i for i, z_score in enumerate(z_scores) if z_score >= z_threshold]

@@ -2,7 +2,13 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, Sequence
 from typing import TypeVar
 
-from sentry.seer.math import entropy, kl_divergence, laplace_smooth, rrf_score
+from sentry.seer.math import (
+    entropy,
+    filter_by_z_score_threshold,
+    kl_divergence,
+    laplace_smooth,
+    rrf_score,
+)
 
 T = TypeVar("T")
 
@@ -11,6 +17,36 @@ Distribution = dict[str, float]
 KeyedValueCount = tuple[str, str, float]
 ValueCount = tuple[str, float]
 Score = tuple[str, float]
+
+
+def filter_by_z_score(
+    data: Sequence[KeyedValueCount], z_threshold: float = 1.5, lambda_param: float = 0.0
+) -> list[KeyedValueCount]:
+    """
+    Filter data by applying BoxCox transformation and z-score filtering.
+
+    This function applies BoxCox normalization to the count values in the data,
+    calculates z-scores, and filters to keep only items with z-scores >= threshold.
+
+    Parameters:
+        data: Sequence of (key, value, count) tuples
+        z_threshold: Minimum z-score threshold for inclusion
+        lambda_param: BoxCox lambda parameter (0 for log transformation)
+
+    Returns:
+        Filtered list of (key, value, count) tuples
+    """
+    if not data:
+        return []
+
+    # Extract counts (the third element of each tuple)
+    counts = [count for _, _, count in data]
+
+    # Get indices that pass the filtering criteria
+    passing_indices = filter_by_z_score_threshold(counts, z_threshold, lambda_param)
+
+    # Filter data based on passing indices
+    return [data[i] for i in passing_indices]
 
 
 def keyed_kl_score(
@@ -186,3 +222,63 @@ def _ensure_symmetry(a: Distribution, b: Distribution) -> tuple[Distribution, Di
 
 def _smooth_distribution(dist: Distribution) -> Distribution:
     return dict(zip(dist.keys(), laplace_smooth(list(dist.values()))))
+
+
+def keyed_rrf_score_with_filtering(
+    baseline: Sequence[KeyedValueCount],
+    outliers: Sequence[KeyedValueCount],
+    total_baseline: int,
+    total_outliers: int,
+    entropy_alpha: float = 0.2,
+    kl_alpha: float = 0.8,
+    offset: int = 60,
+    apply_filtering: bool = True,
+    z_threshold: float = 1.5,
+    lambda_param: float = 0.0,
+    filter_baseline: bool = False,
+    filter_outliers: bool = True,
+) -> tuple[list[tuple[str, float]], list[KeyedValueCount], list[KeyedValueCount]]:
+    """
+    RRF score a multi-dimensional distribution with optional BoxCox + z-score filtering.
+
+    This function demonstrates how to apply filtering as an independent step before RRF scoring.
+
+    Parameters:
+        baseline: Baseline distribution data
+        outliers: Outliers distribution data
+        total_baseline: Total count for baseline
+        total_outliers: Total count for outliers
+        entropy_alpha: Weight for entropy in RRF
+        kl_alpha: Weight for KL divergence in RRF
+        offset: RRF offset parameter
+        apply_filtering: Whether to apply BoxCox + z-score filtering
+        z_threshold: Z-score threshold for filtering
+        lambda_param: BoxCox lambda parameter
+        filter_baseline: Whether to filter baseline data
+        filter_outliers: Whether to filter outliers data
+
+    Returns:
+        Tuple of (scores, filtered_baseline, filtered_outliers)
+        This allows you to inspect the intermediary filtering results
+    """
+    filtered_baseline = list(baseline)
+    filtered_outliers = list(outliers)
+
+    if apply_filtering:
+        if filter_baseline:
+            filtered_baseline = filter_by_z_score(baseline, z_threshold, lambda_param)
+        if filter_outliers:
+            filtered_outliers = filter_by_z_score(outliers, z_threshold, lambda_param)
+
+    # Apply RRF scoring to the filtered data
+    scores = keyed_rrf_score(
+        filtered_baseline,
+        filtered_outliers,
+        total_baseline,
+        total_outliers,
+        entropy_alpha,
+        kl_alpha,
+        offset,
+    )
+
+    return scores, filtered_baseline, filtered_outliers
