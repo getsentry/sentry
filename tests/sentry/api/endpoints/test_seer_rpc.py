@@ -418,6 +418,9 @@ class TestSeerRpcMethods(APITestCase):
 
         mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
 
+    @override_settings(SEER_API_SHARED_SECRET=TEST_FERNET_KEY)
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_get_github_enterprise_integration_config_invalid_integration_id(self):
         # Test with invalid integration_id
         with pytest.raises(Integration.DoesNotExist):
             get_github_enterprise_integration_config(
@@ -425,12 +428,56 @@ class TestSeerRpcMethods(APITestCase):
                 integration_id=-1,
             )
 
+    @override_settings(SEER_API_SHARED_SECRET=TEST_FERNET_KEY)
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_get_github_enterprise_integration_config_invalid_organization_id(self):
+        installation_id = 1234
+        private_key = "private_key_1"
+
+        # Create a GitHub Enterprise integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="github_external_id",
+            metadata={
+                "domain_name": "github.example.org",
+                "installation": {
+                    "private_key": private_key,
+                    "id": 1,
+                    "verify_ssl": True,
+                },
+                "installation_id": installation_id,
+            },
+        )
+
         # Test with invalid organization_id
         with pytest.raises(Integration.DoesNotExist):
             get_github_enterprise_integration_config(
                 organization_id=-1,
                 integration_id=integration.id,
             )
+
+    @override_settings(SEER_API_SHARED_SECRET=TEST_FERNET_KEY)
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_get_github_enterprise_integration_config_disabled_integration(self):
+        installation_id = 1234
+        private_key = "private_key_1"
+
+        # Create a GitHub Enterprise integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="github_external_id",
+            metadata={
+                "domain_name": "github.example.org",
+                "installation": {
+                    "private_key": private_key,
+                    "id": 1,
+                    "verify_ssl": True,
+                },
+                "installation_id": installation_id,
+            },
+        )
 
         # Test with disabled integration
         integration.status = ObjectStatus.DISABLED
