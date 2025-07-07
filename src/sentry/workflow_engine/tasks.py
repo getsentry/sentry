@@ -1,4 +1,5 @@
 from django.db import router, transaction
+from django.db.models import Value
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import features, nodestore
@@ -289,7 +290,7 @@ def trigger_action(
     ), "Exactly one of event_id or activity_id must be provided"
 
     # Fetch the action and detector
-    action = Action.objects.get(id=action_id)
+    action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
     detector = Detector.objects.get(id=detector_id)
 
     project_id = detector.project_id
@@ -308,9 +309,6 @@ def trigger_action(
     else:
         # Here, we probably build the event data from the activity
         raise NotImplementedError("Activity ID is not supported yet")
-
-    # Annotate the action with workflow_id
-    setattr(action, "workflow_id", workflow_id)
 
     action.trigger(event_data, detector)
 
