@@ -1242,12 +1242,3 @@ def test_create_feedback_issue_title_with_long_message(
     assert len(occurrence.issue_title) <= 200
 
 
-@django_db_all
-def test_create_feedback_issue_title_with_empty_message(
-    default_project, mock_produce_occurrence_to_kafka
-):
-    """Test that empty feedback messages fall back to 'User Feedback'."""
-
-    # This test won't actually run since empty messages are filtered out,
-    # but we test the function directly above to ensure the fallback works
-    pass
