@@ -159,7 +159,8 @@ def build_workflow_event_data(
         raise ValueError(f"Event not found: event_id={event_id}, project_id={project_id}")
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    group = Group.objects.get_from_cache(id=group_id)
+    # TODO(iamrajjoshi): Should we use get_from_cache here?
+    group = Group.objects.get(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
@@ -170,6 +171,7 @@ def build_workflow_event_data(
 
     return WorkflowEventData(
         event=group_event,
+        group=group,
         group_state=group_state,
         has_reappeared=has_reappeared,
         has_escalated=has_escalated,
@@ -216,11 +218,37 @@ def process_workflows_event(
         group_state=group_state,
         has_reappeared=has_reappeared,
         has_escalated=has_escalated,
-        group_state=group_state,
     )
     process_workflows(event_data)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
+
+
+def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
+    """Build parameters for trigger_action.delay() call."""
+    event_id = None
+    activity_id = None
+    occurrence_id = None
+
+    if isinstance(event_data.event, GroupEvent):
+        event_id = event_data.event.event_id
+        occurrence_id = event_data.event.occurrence_id
+    elif isinstance(event_data.event, Activity):
+        activity_id = event_data.event.id
+
+    return {
+        "action_id": action.id,
+        "detector_id": detector.id,
+        "workflow_id": getattr(action, "workflow_id", None),
+        "event_id": event_id,
+        "activity_id": activity_id,
+        "group_id": event_data.event.group_id,
+        "occurrence_id": occurrence_id,
+        "group_state": event_data.group_state,
+        "has_reappeared": event_data.has_reappeared,
+        "has_escalated": event_data.has_escalated,
+        "workflow_env_id": event_data.workflow_env.id if event_data.workflow_env else None,
+    }
 
 
 @instrumented_task(
@@ -229,13 +257,13 @@ def process_workflows_event(
     acks_late=True,
     default_retry_delay=5,
     max_retries=3,
-    soft_time_limit=50,
-    time_limit=60,
+    soft_time_limit=25,
+    time_limit=30,
     silo_mode=SiloMode.REGION,
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=30,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
@@ -245,8 +273,8 @@ def trigger_action(
     action_id: int,
     detector_id: int,
     workflow_id: int,
-    project_id: int,
-    event_id: str,
+    event_id: str | None,
+    activity_id: int | None,
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
@@ -255,22 +283,31 @@ def trigger_action(
     workflow_env_id: int | None,
 ) -> None:
 
-    logger = log_context.get_logger(__name__)
+    # XOR check to ensure exactly one of event_id or activity_id is provided
+    assert (event_id is not None) != (
+        activity_id is not None
+    ), "Exactly one of event_id or activity_id must be provided"
 
     # Fetch the action and detector
     action = Action.objects.get(id=action_id)
     detector = Detector.objects.get(id=detector_id)
 
-    event_data = build_workflow_event_data(
-        project_id=project_id,
-        event_id=event_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        group_state=group_state,
-        has_reappeared=has_reappeared,
-        has_escalated=has_escalated,
-        workflow_env_id=workflow_env_id,
-    )
+    project_id = detector.project_id
+
+    if event_id is not None:
+        event_data = build_workflow_event_data(
+            project_id=project_id,
+            event_id=event_id,
+            group_id=group_id,
+            occurrence_id=occurrence_id,
+            group_state=group_state,
+            has_reappeared=has_reappeared,
+            has_escalated=has_escalated,
+            workflow_env_id=workflow_env_id,
+        )
+    else:
+        # Here, we probably build the event data from the activity
+        raise NotImplementedError("Activity ID is not supported yet")
 
     # Annotate the action with workflow_id
     setattr(action, "workflow_id", workflow_id)

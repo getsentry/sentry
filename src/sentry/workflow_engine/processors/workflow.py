@@ -29,7 +29,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.tasks import trigger_action
+from sentry.workflow_engine.tasks import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -416,17 +416,7 @@ def process_workflows(
         ):
             for action in actions:
                 trigger_action.delay(
-                    action_id=action.id,
-                    detector_id=detector.id,
-                    workflow_id=getattr(action, "workflow_id", None),
-                    project_id=detector.project.id,
-                    event_id=event_data.event.event_id,
-                    group_id=event_data.event.group_id,
-                    occurrence_id=event_data.event.occurrence_id,
-                    group_state=event_data.group_state,
-                    has_reappeared=event_data.has_reappeared,
-                    has_escalated=event_data.has_escalated,
-                    workflow_env_id=event_data.workflow_env.id if event_data.workflow_env else None,
+                    **build_trigger_action_task_params(action, detector, event_data)
                 )
                 metrics_incr(
                     "action.trigger",
