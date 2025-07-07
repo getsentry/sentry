@@ -304,7 +304,6 @@ def generate_feedback_title(feedback_message: str, max_words: int = 10) -> str:
         if len(summary) < len(feedback_message.strip()):
             summary += "..."
 
-    # Ensure the title isn't too long for external systems
     title = f"User Feedback: {summary}"
 
     # Truncate if necessary (keeping some buffer for external system limits)
