@@ -111,6 +111,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.exclude(
                 organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
             )
+        elif filter_by == "owned":
+            dashboards = Dashboard.objects.filter(
+                created_by_id=request.user.id, organization_id=organization.id
+            )
+        elif filter_by == "shared":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                created_by_id=request.user.id
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -218,7 +226,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned"}
+            or pin_by
+            and pin_by == "favorites"
+        ):
             render_pre_built_dashboard = False
 
         return self.paginate(
