@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
@@ -12,10 +13,15 @@ interface Props {
     isLoading: boolean;
     error?: Error | null;
   };
+  onDeleteFlow?: (flowId: string) => void;
 }
 
-export default function FlowsTable({response}: Props) {
+export default function FlowsTable({response, onDeleteFlow}: Props) {
   const {data, isLoading} = response;
+
+  console.log('FlowsTable - Received response:', response);
+  console.log('FlowsTable - Data:', data);
+  console.log('FlowsTable - Loading:', isLoading);
 
   if (isLoading) {
     return <div>{t('Loading...')}</div>;
@@ -34,6 +40,9 @@ export default function FlowsTable({response}: Props) {
         </SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell name="status">{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell name="lastSeen">{t('Last Seen')}</SimpleTable.HeaderCell>
+        {onDeleteFlow && (
+          <SimpleTable.HeaderCell name="actions">{t('Actions')}</SimpleTable.HeaderCell>
+        )}
       </SimpleTable.Header>
       {data.map((row, index) => (
         <SimpleTable.Row key={row.id || index} data-test-id={`row-${index}`}>
@@ -45,6 +54,13 @@ export default function FlowsTable({response}: Props) {
           <SimpleTable.RowCell name="lastSeen">
             {new Date(row.lastSeen).toLocaleDateString()}
           </SimpleTable.RowCell>
+          {onDeleteFlow && (
+            <SimpleTable.RowCell name="actions">
+              <Button size="xs" priority="danger" onClick={() => onDeleteFlow(row.id)}>
+                {t('Delete')}
+              </Button>
+            </SimpleTable.RowCell>
+          )}
         </SimpleTable.Row>
       ))}
     </FlowsSimpleTable>
@@ -54,18 +70,18 @@ const FlowsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 80px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 80px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 80px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 2.5fr) 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 2.5fr) 1fr 1fr 1fr 80px;
   }
 `;

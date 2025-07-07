@@ -7,6 +7,20 @@ export type Flow = {
   linkedIssues: string[];
   name: string;
   status: string;
+  metadata?: {
+    endBreadcrumb?: string | null;
+    endBreadcrumbData?: {
+      breadcrumbId: string;
+      offsetMs: number;
+    };
+    orgSlug?: string;
+    replaySlug?: string;
+    startBreadcrumb?: string | null;
+    startBreadcrumbData?: {
+      breadcrumbId: string;
+      offsetMs: number;
+    };
+  };
 };
 
 export enum Status {

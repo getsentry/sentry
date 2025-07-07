@@ -216,10 +216,6 @@ export default function FlowDetail() {
           }}
         >
           <h1 style={{margin: 0, fontSize: '28px', fontWeight: 600}}>{flow.name}</h1>
-          <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-            <StatusBadge status={flow.status}>{flow.status}</StatusBadge>
-            <button>{t('Edit Flow')}</button>
-          </div>
         </div>
         <p style={{color: '#6b7280', margin: 0}}>
           {t('Created by')} {flow.createdBy}

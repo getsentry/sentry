@@ -1,3 +1,5 @@
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -5,31 +7,41 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {FLOWS_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
-import {sampleFlows} from './flowInstances/data/data';
+import {useLocalStorageFlows} from './hooks/useLocalStorageFlows';
 import FlowsTable from './flowsTable';
 import FlowsTabs from './tabs';
 
 export default function FlowsPage() {
-  const replaySlug = 'acd5d72f6ba54385ac80abe9dfadb142';
-  const orgSlug = 'codecov';
+  const {flows, isLoading, deleteFlow, clearAllFlows, resetToSampleData} =
+    useLocalStorageFlows();
 
-  const readerResult = useLoadReplayReader({
-    replaySlug,
-    orgSlug,
-  });
-  const {replay, replayRecord} = readerResult;
+  console.log('FlowsPage - Current flows:', flows);
+  console.log('FlowsPage - Loading state:', isLoading);
 
-  console.log({replay});
-  console.log({replayRecord});
+  const handleDeleteFlow = (flowId: string) => {
+    deleteFlow(flowId);
+    addSuccessMessage(t('Flow deleted successfully.'));
+  };
+
+  const handleClearAll = () => {
+    clearAllFlows();
+    addSuccessMessage(t('All flows cleared.'));
+  };
+
+  const handleResetToSample = () => {
+    resetToSampleData();
+    addSuccessMessage(t('Reset to sample data.'));
+  };
 
   const response = {
-    data: sampleFlows,
-    isLoading: false,
+    data: flows,
+    isLoading,
     error: null,
   };
+
+  console.log('FlowsPage - Response object:', response);
 
   return (
     <SentryDocumentTitle title={FLOWS_PAGE_TITLE}>
@@ -52,7 +64,7 @@ export default function FlowsPage() {
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <FlowsTable response={response} />
+            <FlowsTable response={response} onDeleteFlow={deleteFlow} />
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
@@ -70,11 +82,6 @@ function getWebItems(): MenuItemProps[] {
         const detailUrl = `/codecov/flows/new/`;
         window.location.href = detailUrl;
       },
-    },
-    {
-      key: 'from-production',
-      label: t('From production'),
-      textValue: 'from production',
     },
   ] satisfies MenuItemProps[];
 }
