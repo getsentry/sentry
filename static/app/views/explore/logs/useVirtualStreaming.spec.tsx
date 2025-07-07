@@ -11,7 +11,10 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
+import type {
+  EventsLogsResult,
+  OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
@@ -31,6 +34,7 @@ describe('useVirtualStreaming', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockUseLocation.mockReturnValue(LocationFixture());
 
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -60,12 +64,14 @@ describe('useVirtualStreaming', () => {
     cancelAnimationFrameSpy.mockRestore();
   });
 
-  const createWrapper = () => {
+  const createWrapper = ({autoRefresh}: {autoRefresh?: boolean}) => {
+    const testContext = autoRefresh ? {autoRefresh} : undefined;
     return function ({children}: {children: React.ReactNode}) {
       return (
         <OrganizationContext.Provider value={organization}>
           <LogsPageParamsProvider
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            _testContext={testContext}
           >
             {children}
           </LogsPageParamsProvider>
@@ -74,58 +80,34 @@ describe('useVirtualStreaming', () => {
     };
   };
 
-  it('should initialize virtual timestamp to middle timestamp from first page', async () => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          live: 'true',
-        },
-      })
-    );
-
-    // Use timestamps relative to now for more realistic test data
+  it('should initialize virtual timestamp to the latest timestamp before the ingest delay', async () => {
     const now = Date.now();
-    const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
-      pages: [
-        [
-          {
-            data: [
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '1',
-                // 50 seconds ago in nanoseconds
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(
-                  BigInt(now - 50000) * 1_000_000n
-                ),
-              }),
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '2',
-                // 45 seconds ago in nanoseconds
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(
-                  BigInt(now - 45000) * 1_000_000n
-                ),
-              }),
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '3',
-                // 42 seconds ago in nanoseconds
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(
-                  BigInt(now - 42000) * 1_000_000n
-                ),
-              }),
-            ],
-            meta: {
-              fields: {},
-              units: {},
-            },
-          },
-          '',
-          {} as any,
-        ],
-      ],
-      pageParams: [null],
-    };
+    const mockData = createMockData([
+      // Data should be sorted by timestamp, so the first one should be the latest
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '4',
+        // 42 seconds ago in nanoseconds
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 42000) * 1_000_000n),
+      }),
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '3',
+        // 45 seconds ago in nanoseconds
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 44000) * 1_000_000n),
+      }),
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '2',
+        // 50 seconds ago in nanoseconds
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 46000) * 1_000_000n),
+      }),
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '1',
+        // 55 seconds ago in nanoseconds
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 55000) * 1_000_000n),
+      }),
+    ]);
 
     const {result} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper({autoRefresh: true}),
     });
 
     await waitFor(() => {
@@ -133,80 +115,36 @@ describe('useVirtualStreaming', () => {
     });
 
     // With MAX_LOG_INGEST_DELAY of 40 seconds and default refresh interval of 5 seconds,
-    // the target timestamp would be now - 40000 - 5000 = now - 45000
-    // Since all our timestamps are older than that, it should select the first one (50 seconds ago)
-    expect(result.current.virtualStreamedTimestamp).toBe(now - 50000);
+    // The target timestamp would be now - 40000 - 5000 = now - 45000.
+    // Since there is no row exactly at 45000, it should select the first row before that (46 seconds ago).
+    expect(result.current.virtualStreamedTimestamp).toBe(now - 46000);
   });
 
   it('should not initialize when auto refresh is disabled', () => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {},
-      })
-    );
-
-    const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
-      pages: [
-        [
-          {
-            data: [
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '1',
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
-              }),
-            ],
-            meta: {
-              fields: {},
-              units: {},
-            },
-          },
-          '',
-          {} as any,
-        ],
-      ],
-      pageParams: [null],
-    };
+    const mockData = createMockData([
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
+      }),
+    ]);
 
     const {result} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper({autoRefresh: false}),
     });
 
     expect(result.current.virtualStreamedTimestamp).toBeUndefined();
   });
 
   it('should start RAF when auto refresh is enabled', async () => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          live: 'true',
-        },
-      })
-    );
-
-    const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
-      pages: [
-        [
-          {
-            data: [
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '1',
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
-              }),
-            ],
-            meta: {
-              fields: {},
-              units: {},
-            },
-          },
-          '',
-          {} as any,
-        ],
-      ],
-      pageParams: [null],
-    };
+    const mockData = createMockData([
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
+      }),
+    ]);
 
     renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper({autoRefresh: true}),
     });
 
     await waitFor(() => {
@@ -215,7 +153,6 @@ describe('useVirtualStreaming', () => {
   });
 
   it('should stop RAF when auto refresh is disabled', async () => {
-    // Start with autoRefresh enabled
     mockUseLocation.mockReturnValue(
       LocationFixture({
         query: {
@@ -224,30 +161,15 @@ describe('useVirtualStreaming', () => {
       })
     );
 
-    const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
-      pages: [
-        [
-          {
-            data: [
-              LogFixture({
-                [OurLogKnownFieldKey.ID]: '1',
-                [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
-              }),
-            ],
-            meta: {
-              fields: {},
-              units: {},
-            },
-          },
-          '',
-          {} as any,
-        ],
-      ],
-      pageParams: [null],
-    };
+    const mockData = createMockData([
+      LogFixture({
+        [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
+      }),
+    ]);
 
     const {rerender} = renderHook(() => useVirtualStreaming(mockData), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper({}),
     });
 
     await waitFor(() => {
@@ -260,44 +182,27 @@ describe('useVirtualStreaming', () => {
         query: {},
       })
     );
-    rerender();
+    rerender({});
 
-    expect(cancelAnimationFrameSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(cancelAnimationFrameSpy).toHaveBeenCalled();
+    });
   });
 });
 
 describe('isRowVisibleInVirtualStream', () => {
-  it('should return true when virtual timestamp is undefined', () => {
+  it('should filter based on the milliseconds of the passed timestamp', () => {
     const row = LogFixture({
       [OurLogKnownFieldKey.ID]: '1',
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '2000000000000000000',
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '2000000000',
     });
 
-    const result = isRowVisibleInVirtualStream(row, undefined);
-    expect(result).toBe(true);
-  });
-
-  it('should return true for rows with timestamp <= virtual timestamp', () => {
-    const row = LogFixture({
-      [OurLogKnownFieldKey.ID]: '1',
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '2000000000000000000', // 2 seconds in nanoseconds
-    });
-
-    // 2000000000000000000 nanoseconds / 1000000 = 2000000000000 milliseconds
-    // 2500000 milliseconds is much less than 2000000000000 milliseconds, so the row should be visible
-    const result = isRowVisibleInVirtualStream(row, 2000000000001); // Just slightly more than 2 seconds
-    expect(result).toBe(true);
-  });
-
-  it('should return false for rows with timestamp > virtual timestamp', () => {
-    const row = LogFixture({
-      [OurLogKnownFieldKey.ID]: '1',
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '3000000000000000000', // 3 seconds in nanoseconds
-    });
-
-    // 3000000000000000000 nanoseconds / 1000000 = 3000000000000 milliseconds
-    const result = isRowVisibleInVirtualStream(row, 2000000000000); // 2 seconds in milliseconds
-    expect(result).toBe(false);
+    const undefinedResult = isRowVisibleInVirtualStream(row, undefined);
+    expect(undefinedResult).toBe(true);
+    const lessThan2Seconds = isRowVisibleInVirtualStream(row, 2001);
+    expect(lessThan2Seconds).toBe(true);
+    const moreThan2Seconds = isRowVisibleInVirtualStream(row, 1999);
+    expect(moreThan2Seconds).toBe(false);
   });
 });
 
@@ -369,3 +274,23 @@ describe('updateVirtualStreamingTimestamp', () => {
     expect(result).toBe(7000);
   });
 });
+
+function createMockData(logFixtures: OurLogsResponseItem[]) {
+  const mockData: InfiniteData<ApiResult<EventsLogsResult>> = {
+    pages: [
+      [
+        {
+          data: logFixtures,
+          meta: {
+            fields: {},
+            units: {},
+          },
+        },
+        '',
+        {} as any,
+      ],
+    ],
+    pageParams: [null],
+  };
+  return mockData;
+}

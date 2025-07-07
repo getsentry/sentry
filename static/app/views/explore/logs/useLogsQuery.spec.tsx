@@ -12,7 +12,7 @@ import type {InfiniteData} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import * as logsPageParams from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {
   EventsLogsResult,
@@ -24,8 +24,6 @@ import {
   useInfiniteLogsQuery,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-const {LogsPageParamsProvider} = logsPageParams;
 
 jest.mock('sentry/utils/useLocation');
 const mockedUsedLocation = jest.mocked(useLocation);

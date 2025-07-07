@@ -177,10 +177,6 @@ export function useVirtualStreaming(
 
 /**
  * Checks if a log row should be visible in the virtual stream based on the current virtual timestamp.
- *
- * @param row - The log row to check
- * @param virtualStreamedTimestamp - The current virtual streaming timestamp (in milliseconds)
- * @returns true if the row should be visible, false if it should be filtered out
  */
 export function isRowVisibleInVirtualStream(
   row: OurLogsResponseItem,
