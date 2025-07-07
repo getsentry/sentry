@@ -9,7 +9,6 @@ import SeerAutomationRoot from './index';
 
 describe('SeerAutomation', function () {
   beforeEach(() => {
-    // Mock the seer setup check endpoint for all tests
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
@@ -22,6 +21,13 @@ describe('SeerAutomation', function () {
           hasAutofixQuota: true,
           hasScannerQuota: true,
         },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {
+        repositories: [],
       },
     });
   });

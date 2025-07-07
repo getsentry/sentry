@@ -13,6 +13,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {NoAccess} from 'sentry/components/noAccess';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -20,6 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -247,6 +249,10 @@ function ProjectSeer({project}: ProjectSeerProps) {
     !setupAcknowledgement.orgHasAcknowledged ||
     (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
 
+  if (organization.hideAiFeatures) {
+    return <NoAccess />;
+  }
+
   if (isLoading) {
     return (
       <Fragment>
@@ -281,7 +287,17 @@ function ProjectSeer({project}: ProjectSeerProps) {
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
       />
-      <SettingsPageHeader title={t('Seer')} />
+      <SettingsPageHeader
+        title={tct('Seer Settings for [projectName]', {
+          projectName: (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(`\`${project.slug}\``),
+              }}
+            />
+          ),
+        })}
+      />
       {organization.features.includes('trigger-autofix-on-issue-summary') && (
         <ProjectSeerGeneralForm project={project} />
       )}
