@@ -6,6 +6,7 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.tasks import (
     fetch_event,
@@ -62,6 +63,59 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
         with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
+
+    def test__feature_flag(self):
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_not_called()
+
+    @with_feature("organizations:workflow-engine-process-activity")
+    def test(self):
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=group.id,
+                detector_id=detector.id,
+            )
 
 
 class TestProcessWorkflowActivity(TestCase):
