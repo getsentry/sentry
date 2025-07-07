@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from base64 import b64encode
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, fields
+from dataclasses import asdict, field, fields
 from datetime import datetime as dt
 from typing import Any, ClassVar, Self, cast, dataclass_transform, overload
 from uuid import UUID, uuid1
 
 from django.utils import timezone
 from pydantic import Field
-from pydantic.dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass
 
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
@@ -80,7 +80,7 @@ class Event:
     datetime_: dt = Field(default_factory=timezone.now)
 
     attributes: ClassVar[Sequence[Attribute] | None] = None
-    data: dict[str, Any] | None = field(repr=False, init=False, default=False)
+    data: dict[str, Any] | None = field(repr=False, init=False, default=None)
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event(self)
@@ -109,9 +109,19 @@ class Event:
 
 
 def serialize_event(event: Event) -> dict[str, Any]:
+    # TODO: this is the "old-style" attributes based serializer. Once all events are migrated to the new style,
+    # we can remove this.
+    if event.data is None:
+        data = {
+            k: v
+            for k, v in asdict(event).items()
+            if k not in ("type", "uuid_", "datetime_", "data")
+        }
+    else:
+        data = event.data
     return {
         "type": event.type,
         "uuid": b64encode(event.uuid_.bytes),
         "timestamp": event.datetime_.timestamp(),
-        "data": {k: v for k, v in asdict(event).items() if k not in ("type", "uuid_", "datetime_")},
+        "data": data,
     }
