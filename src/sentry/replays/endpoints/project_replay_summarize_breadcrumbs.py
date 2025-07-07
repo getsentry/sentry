@@ -154,7 +154,7 @@ def parse_timestamp(timestamp_value: Any, unit: str) -> float:
     if timestamp_value is not None:
         if isinstance(timestamp_value, str):
             try:
-                dt = datetime.fromisoformat(timestamp_value)
+                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
                 return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
             except (ValueError, AttributeError):
                 return 0.0
