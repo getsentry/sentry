@@ -38,6 +38,14 @@ class NotificationProviderKey(StrEnum):
     DISCORD = ExternalProviderEnum.DISCORD
 
 
+class NotificationTemplateKey(StrEnum):
+    """
+    The unique keys for each registered notification template.
+    """
+
+    DEBUG = "debug"
+
+
 class NotificationTargetResourceType(StrEnum):
     """
     Avenues for a notification to be sent to that can be understood by a provider.
@@ -77,6 +85,11 @@ class NotificationData(Protocol):
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
+    """
+
+    template_key: NotificationTemplateKey
+    """
+    The key of the template that will be used to render this notification.
     """
 
 
@@ -168,7 +181,7 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         ...
 
     @abc.abstractmethod
-    def render(cls, data: T) -> NotificationRenderedTemplate:
+    def render(self, data: T) -> NotificationRenderedTemplate:
         """
         Produce a rendered template given the notification data. Usually, this will involve
         formatting the data into user-friendly strings of text.
