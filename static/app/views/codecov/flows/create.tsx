@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {
   addErrorMessage,
@@ -12,6 +12,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -126,6 +127,17 @@ export {FlowCreateForm};
 export default function FlowCreatePage() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [replaySlug, setReplaySlug] = useState<string | undefined>();
+
+  // Extract replay slug from URL query parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const replay = searchParams.get('replay');
+    if (replay) {
+      setReplaySlug(replay);
+    }
+  }, [location.search]);
 
   const _handleGoBack = useCallback(() => navigate(`/codecov/flows/`), [navigate]);
 
@@ -139,10 +151,17 @@ export default function FlowCreatePage() {
   return (
     <div>
       <Panel>
-        <PanelHeader>{t('Create New Flow')}</PanelHeader>
+        <PanelHeader>
+          {replaySlug ? t('Create New Flow from Replay') : t('Create New Flow')}
+        </PanelHeader>
 
         <PanelBody>
-          <FlowCreateForm organization={organization} onCreatedFlow={handleCreatedFlow} />
+          <FlowCreateForm
+            organization={organization}
+            onCreatedFlow={handleCreatedFlow}
+            replaySlug={replaySlug}
+            orgSlug={organization.slug}
+          />
         </PanelBody>
       </Panel>
     </div>

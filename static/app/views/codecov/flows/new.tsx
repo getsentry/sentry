@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -10,6 +10,7 @@ import ReplayView from 'sentry/components/replays/replayView';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLocation} from 'sentry/utils/useLocation';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
@@ -17,17 +18,6 @@ import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/rep
 
 import {sampleFlows} from './flowInstances/data/data';
 import {FlowCreateForm} from './create';
-
-const StatusBadge = styled('span')<{status: string}>`
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: ${props => (props.status === 'Active' ? '#ecfdf5' : '#fef2f2')};
-  color: ${props => (props.status === 'Active' ? '#065f46' : '#991b1b')};
-`;
 
 const LayoutContainer = styled('div')`
   display: flex;
@@ -216,6 +206,17 @@ function BreadcrumbsWithFlowButtons({
 
 export default function New() {
   const {flowId} = useParams<{flowId: string}>();
+  const location = useLocation();
+  const [replaySlug, setReplaySlug] = useState<string | undefined>();
+
+  // Extract replay slug from URL query parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const replay = searchParams.get('replay');
+    if (replay) {
+      setReplaySlug(replay);
+    }
+  }, [location.search]);
 
   // For the new flow page, we'll use a default flow or create a new one
   const flow = flowId
@@ -240,15 +241,15 @@ export default function New() {
         linkedIssues: [],
       };
 
-  const replaySlug = '135fc779c3894f5682bf0e3a76060469';
   const orgSlug = 'codecov';
 
+  // Always call useLoadReplayReader to avoid React Hook rule violation
   const readerResult = useLoadReplayReader({
-    replaySlug,
+    replaySlug: replaySlug || '',
     orgSlug,
   });
 
-  const {replay, replayRecord: _replayRecord} = readerResult;
+  const {replay, replayRecord} = readerResult || {};
 
   // State for flow creation
   const [startBreadcrumbId, setStartBreadcrumbId] = useState<string | null>(null);
@@ -339,12 +340,24 @@ export default function New() {
     // Here you would typically make an API call to create the flow
   };
 
-  if (!replay) {
-    return <div>Loading...</div>;
+  // Show loading state while replay is loading
+  if (replaySlug && !replay) {
+    return <div>Loading replay...</div>;
+  }
+
+  // Show message when no replay is selected
+  if (!replaySlug || !replay) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <h2>No Replay Selected</h2>
+        <p>Please select a replay to create a new flow.</p>
+        <Button onClick={() => window.history.back()}>Go Back</Button>
+      </div>
+    );
   }
 
   return (
-    <ReplayDetailsProviders replay={replay} projectSlug="gazebo">
+    <ReplayDetailsProviders replay={replay} projectSlug={replayRecord?.project_id || ''}>
       <div style={{padding: '20px'}}>
         <div style={{marginBottom: '24px'}}>
           <div

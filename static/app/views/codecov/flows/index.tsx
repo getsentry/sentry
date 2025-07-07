@@ -1,4 +1,5 @@
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -7,15 +8,18 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {FLOWS_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
 import {useLocalStorageFlows} from './hooks/useLocalStorageFlows';
+import CreateFlowModal from './createFlowModal';
 import FlowsTable from './flowsTable';
 import FlowsTabs from './tabs';
 
 export default function FlowsPage() {
   const {flows, isLoading, deleteFlow, clearAllFlows, resetToSampleData} =
     useLocalStorageFlows();
+  const navigate = useNavigate();
 
   console.log('FlowsPage - Current flows:', flows);
   console.log('FlowsPage - Loading state:', isLoading);
@@ -35,6 +39,17 @@ export default function FlowsPage() {
     addSuccessMessage(t('Reset to sample data.'));
   };
 
+  const handleReplaySelected = (replaySlug: string) => {
+    // Navigate to the flow creation page with the selected replay
+    navigate(`/codecov/flows/new/?replay=${replaySlug}`);
+  };
+
+  const handleOpenCreateModal = () => {
+    openModal(modalProps => (
+      <CreateFlowModal {...modalProps} onReplaySelected={handleReplaySelected} />
+    ));
+  };
+
   const response = {
     data: flows,
     isLoading,
@@ -51,7 +66,7 @@ export default function FlowsPage() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <DropdownMenu
-            items={getWebItems()}
+            items={getWebItems(handleOpenCreateModal)}
             trigger={(triggerProps, isOpen) => (
               <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
                 {t('Create Flow')}
@@ -72,16 +87,13 @@ export default function FlowsPage() {
   );
 }
 
-function getWebItems(): MenuItemProps[] {
+function getWebItems(handleOpenCreateModal: () => void): MenuItemProps[] {
   return [
     {
       key: 'from-replay',
       label: t('From existing session replay'),
       textValue: 'from existing session replay',
-      onAction: () => {
-        const detailUrl = `/codecov/flows/new/`;
-        window.location.href = detailUrl;
-      },
+      onAction: handleOpenCreateModal,
     },
   ] satisfies MenuItemProps[];
 }
