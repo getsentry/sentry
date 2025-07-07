@@ -170,7 +170,7 @@ def apply_cors_headers(
     # to be sent.
     basehost = options.get("system.base-hostname")
     if basehost and origin:
-        if (
+        if ", " not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
             or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
         ):
