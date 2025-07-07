@@ -203,12 +203,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       <Container>
         <Link
           to={generateLinkToEventInTraceView({
-            projectSlug: project.slug,
             eventId: props.dataRow[key],
             traceSlug: props.dataRow.trace,
             timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
-            transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,
           })}
         >
