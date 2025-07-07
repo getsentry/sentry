@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
-    hashes: list[str],
+    hashes: Sequence[str],
     last_deleted_index: int = 0,
     *args: Any,
     **kwargs: Any,
@@ -54,7 +55,7 @@ def delete_seer_grouping_records_by_hash(
 
 
 def call_delete_seer_grouping_records_by_hash(
-    group_ids: list[int],
+    group_ids: Sequence[int],
 ) -> None:
     project = None
     if group_ids:

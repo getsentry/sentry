@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Sequence
 from typing import NotRequired, TypedDict
 
 from django.conf import settings
@@ -122,7 +125,7 @@ def delete_project_grouping_records(
         return False
 
 
-def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
+def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> bool:
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
