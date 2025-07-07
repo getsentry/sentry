@@ -40,7 +40,7 @@ class DataAccessGrant(DefaultFieldsModel):
     # If the grant is revoked, we store the date and reason
     revocation_date = models.DateTimeField(null=True, blank=True)
     revocation_reason = models.CharField(
-        max_length=20, choices=[(t.value, t.value) for t in RevocationReason]
+        max_length=20, choices=[(t.value, t.value) for t in RevocationReason], null=True, blank=True
     )
 
     # If the grant is manually revoked record the user who revoked it
