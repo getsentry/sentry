@@ -1,5 +1,8 @@
+import styled from '@emotion/styled';
+
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {Flex} from 'sentry/components/core/layout';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,9 +26,14 @@ export default function ReplayPreferenceDropdown({
 
   const SKIP_OPTION_VALUE = 'skip';
 
-  // Calculate adjusted duration for each speed (rounded up)
+  // Calculate adjusted duration for each speed, rounded up to the nearest second.
+  // Returns in seconds
   const calculateAdjustedDuration = (originalDurationMs: number, speed: number) => {
-    return Math.ceil(originalDurationMs / speed);
+    if (speed === 1) {
+      return originalDurationMs / 1000;
+    }
+
+    return Math.ceil(originalDurationMs / speed / 1000);
   };
 
   // Check if we should show duration (data is loaded and duration is available)
@@ -58,12 +66,17 @@ export default function ReplayPreferenceDropdown({
               option
             );
             const durationDisplay = formatDuration({
-              duration: [adjustedDurationMs, 'ms'],
+              duration: [adjustedDurationMs, 'sec'],
               precision: 'sec',
               style: 'h:mm:ss',
             });
             return {
-              label: `${baseLabel} (${durationDisplay})`,
+              label: (
+                <Flex justify="space-between">
+                  <span>{baseLabel}</span>
+                  <DurationDisplay>{durationDisplay}</DurationDisplay>
+                </Flex>
+              ),
               value: option,
             };
           }
@@ -100,3 +113,7 @@ export default function ReplayPreferenceDropdown({
     </CompositeSelect>
   );
 }
+
+const DurationDisplay = styled('span')`
+  color: ${p => p.theme.subText};
+`;
