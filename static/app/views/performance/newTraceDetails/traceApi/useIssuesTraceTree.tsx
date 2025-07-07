@@ -14,7 +14,7 @@ import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
-  meta: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults | null;
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
@@ -22,7 +22,7 @@ type UseTraceTreeParams = {
 
 function getTraceViewQueryStatus(
   traceQueryStatus: QueryStatus,
-  traceMetaQueryStatus: QueryStatus
+  traceMetaQueryStatus?: QueryStatus
 ): QueryStatus {
   if (traceQueryStatus === 'error' || traceMetaQueryStatus === 'error') {
     return 'error';
@@ -37,7 +37,6 @@ function getTraceViewQueryStatus(
 
 export function useIssuesTraceTree({
   trace,
-  meta,
   replay,
   traceSlug,
 }: UseTraceTreeParams): IssuesTraceTree {
@@ -49,7 +48,7 @@ export function useIssuesTraceTree({
   const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
 
   useEffect(() => {
-    const status = getTraceViewQueryStatus(trace.status, meta.status);
+    const status = getTraceViewQueryStatus(trace.status);
 
     if (status === 'error') {
       setTree(t =>
@@ -82,9 +81,9 @@ export function useIssuesTraceTree({
       return;
     }
 
-    if (trace.data && meta.data) {
+    if (trace.data) {
       const newTree = IssuesTraceTree.FromTrace(trace.data, {
-        meta: meta.data,
+        meta: null,
         replay,
         preferences: traceState.preferences,
       });
@@ -95,17 +94,7 @@ export function useIssuesTraceTree({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    api,
-    organization,
-    projects,
-    replay,
-    meta.status,
-    trace.status,
-    trace.data,
-    meta.data,
-    traceSlug,
-  ]);
+  }, [api, organization, projects, replay, trace.status, trace.data, traceSlug]);
 
   return tree;
 }
