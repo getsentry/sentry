@@ -416,8 +416,9 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes}
-                  hiddenAttributes={HiddenLogDetailFields}
+                  attributes={data.attributes.filter(
+                    attribute => !HiddenLogDetailFields.includes(attribute.name)
+                  )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}

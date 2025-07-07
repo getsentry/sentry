@@ -1345,6 +1345,21 @@ const MultilineTextLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex style={{gap: space(0.5)}}>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
 export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1359,6 +1374,7 @@ export const TraceDrawerComponents = {
   NodeActions,
   KeyValueAction,
   Table,
+  SectionTitleWithQuestionTooltip,
   IconTitleWrapper,
   IconBorder,
   TitleText,
