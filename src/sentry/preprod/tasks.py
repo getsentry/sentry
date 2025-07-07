@@ -173,7 +173,7 @@ def assemble_preprod_artifact(
 
     if preprod_artifact:
         produce_preprod_artifact_to_kafka(
-            project_id=project.id,
+            project_id=project_id,
             organization_id=org_id,
             artifact_id=preprod_artifact.id,
         )
