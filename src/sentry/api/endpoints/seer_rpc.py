@@ -533,8 +533,12 @@ def get_github_enterprise_integration_config(
     if not access_token:
         raise RuntimeError("No access token found")
 
-    fernet = Fernet(base64.urlsafe_b64encode(settings.SEER_API_SHARED_SECRET.encode("utf-8")))
-    encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
+    try:
+        fernet = Fernet(base64.urlsafe_b64encode(settings.SEER_API_SHARED_SECRET.encode("utf-8")))
+        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
+    except Exception:
+        sentry_sdk.capture_exception()
+        raise RuntimeError("Failed to encrypt access token")
 
     return {
         "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
