@@ -28,6 +28,8 @@ from sentry.snuba.spans_rpc import run_trace_query
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3)
+# Mostly here for testing
+ERROR_LIMIT = 10_000
 
 
 class SerializedEvent(TypedDict):
@@ -165,30 +167,39 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         else:
             return self.serialize_rpc_issue(event)
 
-    def errors_query(self, snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
+    def errors_query(
+        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None
+    ) -> DiscoverQueryBuilder:
         """Run an error query, getting all the errors for a given trace id"""
         # TODO: replace this with EAP calls, this query is copied from the old trace view
+        columns = [
+            "id",
+            "project.name",
+            "project.id",
+            "timestamp",
+            "timestamp_ms",
+            "trace.span",
+            "transaction",
+            "issue",
+            "title",
+            "message",
+            "tags[level]",
+        ]
+        orderby = ["id"]
+        # If there's an event_id included in the request, bias the orderby to try to return that event_id over others so
+        # that we can render it in the trace view, even if we hit the error_limit
+        if event_id is not None:
+            columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+            orderby.insert(0, "-target")
         return DiscoverQueryBuilder(
             Dataset.Events,
             params={},
             snuba_params=snuba_params,
             query=f"trace:{trace_id}",
-            selected_columns=[
-                "id",
-                "project.name",
-                "project.id",
-                "timestamp",
-                "timestamp_ms",
-                "trace.span",
-                "transaction",
-                "issue",
-                "title",
-                "message",
-                "tags[level]",
-            ],
+            selected_columns=columns,
             # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
-            orderby=["id"],
-            limit=10_000,
+            orderby=orderby,
+            limit=ERROR_LIMIT,
             config=QueryBuilderConfig(
                 auto_fields=True,
             ),
@@ -253,7 +264,9 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         return result
 
     @sentry_sdk.tracing.trace
-    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
+    def query_trace_data(
+        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None
+    ) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
         # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
@@ -263,7 +276,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         # the thread pool, database connections can hang around as the threads are not cleaned
         # up. Because of that, tests can fail during tear down as there are active connections
         # to the database preventing a DROP.
-        errors_query = self.errors_query(snuba_params, trace_id)
+        errors_query = self.errors_query(snuba_params, trace_id, event_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
         spans_future = _query_thread_pool.submit(
@@ -340,10 +353,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
+        event_id = request.GET.get("eventId")
+
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
-                spans = self.query_trace_data(snuba_params, trace_id)
+                spans = self.query_trace_data(snuba_params, trace_id, event_id)
             return spans
 
         return self.paginate(
