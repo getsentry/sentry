@@ -222,4 +222,33 @@ describe('StacktraceLinkModal', () => {
       })
     );
   });
+
+  it('displays nothing for null body', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/derive-code-mappings/`,
+      body: {},
+    });
+
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={filename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
+
+    // Wait for component to render, then check that suggestions text is not present
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Select from one of these suggestions or paste your URL below')
+      ).not.toBeInTheDocument();
+    });
+  });
 });
