@@ -24,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DatasetSource} from 'sentry/utils/discover/types';
@@ -373,7 +374,7 @@ class Dashboard extends Component<Props, State> {
   handleWidgetColumnTableResize(index: number) {
     const {dashboard, onUpdate} = this.props;
     return function (columns: TabularColumn[]) {
-      const widths = columns.map(column => column.width);
+      const widths = columns.map(column => (defined(column.width) ? column.width : -1));
       const widget = dashboard.widgets[index]!;
       const widgetCopy = {
         ...widget,
