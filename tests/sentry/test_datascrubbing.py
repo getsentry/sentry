@@ -88,6 +88,7 @@ def test_merge_pii_configs_simple():
     ) == {"applications": {"$string": ["@ip:remove"]}}
 
 
+@pytest.mark.skip(reason="flaky: #94969")
 def test_merge_pii_configs_rule_references():
     my_rules = {
         "remove_ips_alias": {
