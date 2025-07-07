@@ -176,16 +176,15 @@ def fetch_trace_connected_errors(
         if not trace_ids:
             return []
 
+        if not request or not hasattr(request, "access"):
+            return []
+
+        # Get projects in the organization that the user has access to
+        org_projects = list(Project.objects.filter(organization=project.organization))
+        accessible_projects = [p for p in org_projects if request.access.has_project_access(p)]
+
         queries = []
         for trace_id in trace_ids:
-            # Get projects in the organization that the user has access to
-            if not request or not hasattr(request, "access"):
-                return []
-
-            # Filter projects by user access permissions
-            org_projects = list(Project.objects.filter(organization=project.organization))
-            accessible_projects = [p for p in org_projects if request.access.has_project_access(p)]
-
             snuba_params = SnubaParams(
                 projects=accessible_projects,
                 start=start,
