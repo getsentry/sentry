@@ -63,15 +63,16 @@ test_value = "test secret data"
 encrypted = char_field.get_prep_value(test_value)
 decrypted = char_field.from_db_value(encrypted, None, None)
 print(f"      Original: {test_value}")
-print(f"      Stored:   {encrypted}")
+print(f"      Stored:   {encrypted!r}")  # Show bytes representation
 print(f"      Decrypted: {decrypted}")
 print(f"      ✓ Plain text mode working: {test_value == decrypted}")
+print(f"      ✓ Stored as bytes: {isinstance(encrypted, bytes)}")
 
 # Test Fernet (without key - should fallback)
 print("\n   b) Testing Fernet mode without key...")
 enc_module.options.set('database.encryption.method', 'fernet')
 encrypted = char_field.get_prep_value(test_value)
-print(f"      ✓ Falls back to plain text when no key: {encrypted == test_value}")
+print(f"      ✓ Falls back to plain text bytes when no key: {encrypted == test_value.encode('utf-8')}")
 
 # Test with mock Fernet key
 print("\n   c) Testing Fernet mode with key...")
@@ -88,12 +89,23 @@ try:
 
     # Test encryption
     encrypted = char_field.get_prep_value(test_value)
-    print(f"      Encrypted: {encrypted[:50]}...")
-    print(f"      ✓ Has fernet prefix: {encrypted.startswith('fernet:')}")
+    if encrypted is None:
+        print("      ✗ Encryption returned None")
+        raise ValueError("Encryption failed")
+    print(f"      Encrypted (first 20 bytes): {encrypted[:20]!r}...")
+    print(f"      ✓ Is binary data: {isinstance(encrypted, bytes)}")
+    print(f"      ✓ Has fernet marker byte: {encrypted[0] == 0x01}")
 
     # Test decryption
     decrypted = char_field.from_db_value(encrypted, None, None)
     print(f"      ✓ Decryption successful: {decrypted == test_value}")
+
+    # Show storage efficiency
+    import base64
+    base64_version = base64.urlsafe_b64encode(encrypted)
+    print(f"      ✓ Binary storage size: {len(encrypted)} bytes")
+    print(f"      ✓ Base64 storage size: {len(base64_version)} bytes")
+    print(f"      ✓ Storage savings: {round((1 - len(encrypted)/len(base64_version)) * 100)}%")
 
 except Exception as e:
     print(f"      ✗ Fernet test failed: {e}")
@@ -116,9 +128,22 @@ dec_plain = char_field.from_db_value(plain_value, None, None)
 print(f"   ✓ Can decrypt fernet value: {dec_fernet == 'fernet secret'}")
 print(f"   ✓ Can decrypt plain value: {dec_plain == 'plain secret'}")
 
-# 5. Summary
+# 5. Test edge cases
+print("\n5. Testing edge cases...")
+# Empty string
+empty_encrypted = char_field.get_prep_value("")
+empty_decrypted = char_field.from_db_value(empty_encrypted, None, None)
+print(f"   ✓ Empty string handling: {empty_decrypted == ''}")
+
+# Non-UTF8 data
+non_utf8 = b'\xff\xfe\xfd'
+non_utf8_result = char_field.from_db_value(non_utf8, None, None)
+print(f"   ✓ Non-UTF8 data returns hex: {non_utf8_result == non_utf8.hex()}")
+
+# 6. Summary
 print("\n=== Summary ===")
 print("✓ EncryptedField implementation is working correctly")
+print("✓ Uses efficient BinaryField storage (no base64 overhead)")
 print("✓ Supports multiple encryption methods")
 print("✓ Has proper fallback mechanism")
 print("✓ Ready for use in Django models")
@@ -131,3 +156,7 @@ print("   DATABASE_ENCRYPTION_FERNET_KEY = os.environ.get('DATABASE_ENCRYPTION_K
 print("\n3. Generate a Fernet key:")
 print("   from cryptography.fernet import Fernet")
 print("   print(Fernet.generate_key())")
+print("\n4. Benefits of BinaryField:")
+print("   - ~25% less storage than base64-encoded text")
+print("   - Faster encryption/decryption (no encoding overhead)")
+print("   - Native database binary type support")

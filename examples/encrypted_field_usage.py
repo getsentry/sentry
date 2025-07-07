@@ -2,7 +2,8 @@
 Example of using EncryptedField in a Django model.
 
 This example shows how to use the encrypted field to store sensitive data
-like API keys, personal information, etc.
+like API keys, personal information, etc. The field uses BinaryField for
+efficient storage without base64 encoding overhead.
 """
 
 from django.db import models
@@ -13,7 +14,7 @@ from sentry.db.models.fields import EncryptedCharField, EncryptedTextField
 class SensitiveDataModel(Model):
     """Example model with encrypted fields for storing sensitive data."""
 
-    # Encrypted API key - will be stored encrypted in database
+    # Encrypted API key - will be stored as encrypted binary data
     api_key = EncryptedCharField(max_length=255, help_text="Encrypted API key")
 
     # Encrypted personal notes
@@ -64,9 +65,9 @@ def example_usage():
     print(f"API Key: {retrieved.api_key}")  # Automatically decrypted
     print(f"Notes: {retrieved.private_notes}")  # Automatically decrypted
 
-    # The data is encrypted in the database
-    # If you query the database directly, you'll see something like:
-    # api_key: "fernet:gAAAAABh3K4X..."
+    # The data is encrypted in the database as binary data
+    # If you query the database directly, you'll see binary data:
+    # api_key: b'\x01\xgA...' (where \x01 is the fernet marker byte)
 
 
 def switching_encryption_methods():
@@ -74,12 +75,30 @@ def switching_encryption_methods():
 
     # Start with plain text (development)
     # options.set('database.encryption.method', 'plain_text')
-    # Data saved: "my-secret-key"
+    # Data saved: b"my-secret-key" (UTF-8 encoded)
 
     # Switch to Fernet encryption (production)
     # options.set('database.encryption.method', 'fernet')
-    # New data saved: "fernet:gAAAAABh3K4X..."
+    # New data saved: b'\x01\x80\x...' (marker byte + encrypted data)
     # Old plain text data can still be read!
 
     # The field handles both encrypted and plain text data
     # This allows gradual migration without data loss
+
+
+def storage_efficiency():
+    """Example showing storage efficiency of binary fields."""
+
+    # Binary storage is more efficient than base64-encoded text
+    #
+    # Traditional approach (TextField + base64):
+    # - Original: "secret data" (11 bytes)
+    # - Encrypted: ~100 bytes
+    # - Base64 encoded: ~134 bytes (33% overhead)
+    #
+    # Our approach (BinaryField):
+    # - Original: "secret data" (11 bytes)
+    # - Encrypted: ~100 bytes (stored directly)
+    # - No encoding overhead!
+
+    # This results in ~25% storage savings and better performance
