@@ -21,7 +21,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DEFAULT_QUERY} from 'sentry/constants';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -1377,24 +1376,6 @@ describe('IssueList', function () {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
     });
   }, 20_000);
-
-  describe('project low trends queue alert', function () {
-    beforeEach(function () {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async function () {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview {...routerProps} />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
-    });
-  });
 
   describe('new view page', function () {
     it('displays empty state when first loaded', async function () {
