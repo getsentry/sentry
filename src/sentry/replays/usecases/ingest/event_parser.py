@@ -59,9 +59,52 @@ class ParsedEventMeta:
     request_response_sizes: list[tuple[Any, Any]]
 
 
+class EventContext(TypedDict):
+    organization_id: int
+    project_id: int
+    received: float
+    retention_days: int
+    trace_id: str | None
+    replay_id: str
+    segment_id: int
+
+
 @sentry_sdk.trace
-def parse_events(events: list[dict[str, Any]]) -> ParsedEventMeta:
-    return parse_highlighted_events(events, sampled=random.randint(0, 499) < 1)
+def parse_events(
+    context: EventContext, events: list[dict[str, Any]]
+) -> tuple[ParsedEventMeta, list[TraceItem]]:
+    sampled = random.randint(0, 499) < 1
+
+    eap_items: list[TraceItem] = []
+    hes: HighlightedEvents = {
+        "canvas_sizes": [],
+        "clicks": [],
+        "hydration_errors": [],
+        "mutations": [],
+        "options": [],
+        "request_response_sizes": [],
+    }
+
+    for event_type, event in which_iter(events):
+        highlighted_event = parse_highlighted_event(event_type, event, sampled)
+        for k, v in highlighted_event.items():
+            hes[k].extend(v)
+
+        trace_item = parse_trace_item(context, event_type, event)
+        if trace_item:
+            eap_items.append(trace_item)
+
+    return (
+        ParsedEventMeta(
+            hes["canvas_sizes"],
+            hes["clicks"],
+            hes["hydration_errors"],
+            hes["mutations"],
+            hes["options"],
+            hes["request_response_sizes"],
+        ),
+        eap_items,
+    )
 
 
 class EventType(Enum):
@@ -182,36 +225,24 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
         yield (which(event), event)
 
 
-class MessageContext(TypedDict):
-    organization_id: int
-    project_id: int
-    received: float
-    retention_days: int
-    trace_id: str | None
-    replay_id: str
-    segment_id: int
-
-
 class TraceItemContext(TypedDict):
     attributes: MutableMapping[str, str | int | bool | float]
     event_hash: bytes
     timestamp: float
 
 
-def iter_trace_items(context: MessageContext, events: list[dict[str, Any]]) -> Iterator[TraceItem]:
-    for event_type, event in which_iter(events):
-        try:
-            trace_item = as_trace_item(context, event_type, event)
-        except (KeyError, TypeError, ValueError) as e:
-            logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
-            continue
-
-        if trace_item:
-            yield trace_item
+def parse_trace_item(
+    context: EventContext, event_type: EventType, event: dict[str, Any]
+) -> TraceItem | None:
+    try:
+        return as_trace_item(context, event_type, event)
+    except (AttributeError, KeyError, TypeError, ValueError) as e:
+        logger.warning("Could not transform breadcrumb to trace-item", exc_info=e)
+        return None
 
 
 def as_trace_item(
-    context: MessageContext, event_type: EventType, event: dict[str, Any]
+    context: EventContext, event_type: EventType, event: dict[str, Any]
 ) -> TraceItem | None:
     def _anyvalue(value: bool | str | int | float) -> AnyValue:
         if isinstance(value, bool):
@@ -427,68 +458,28 @@ class HighlightedEvents(TypedDict, total=False):
     options: list[dict[str, Any]]
 
 
-def parse_highlighted_events(events: list[dict[str, Any]], sampled: bool) -> ParsedEventMeta:
-    """Return highlighted events which were parsed from the stream.
-
-    Highlighted events are any event which is notable enough to be logged, used in a metric,
-    emitted to a database, or otherwise emit an effect in some material way.
-    """
-    hes: HighlightedEvents = {
-        "canvas_sizes": [],
-        "clicks": [],
-        "hydration_errors": [],
-        "mutations": [],
-        "options": [],
-        "request_response_sizes": [],
-    }
-
-    for event in events:
-        try:
-            event_type = which(event)
-        except (AssertionError, AttributeError, KeyError, TypeError):
-            continue
-
-        try:
-            highlighted_event = as_highlighted_event(event, event_type)
-        except (AssertionError, AttributeError, KeyError, TypeError):
-            logger.info("Could not parse identified event.", exc_info=True)
-            continue
-
-        if highlighted_event is None:
-            continue
-
-        if "canvas_sizes" in highlighted_event and sampled:
-            hes["canvas_sizes"].extend(highlighted_event["canvas_sizes"])
-        if "hydration_errors" in highlighted_event:
-            hes["hydration_errors"].extend(highlighted_event["hydration_errors"])
-        if "mutations" in highlighted_event and sampled:
-            hes["mutations"].extend(highlighted_event["mutations"])
-        if "clicks" in highlighted_event:
-            hes["clicks"].extend(highlighted_event["clicks"])
-        if "request_response_sizes" in highlighted_event:
-            hes["request_response_sizes"].extend(highlighted_event["request_response_sizes"])
-        if "options" in highlighted_event and sampled:
-            hes["options"].extend(highlighted_event["options"])
-
-    return ParsedEventMeta(
-        hes["canvas_sizes"],
-        hes["clicks"],
-        hes["hydration_errors"],
-        hes["mutations"],
-        hes["options"],
-        hes["request_response_sizes"],
-    )
+def parse_highlighted_event(
+    event_type: EventType, event: dict[str, Any], sampled: bool
+) -> HighlightedEvents:
+    """Attempt to parse an event to a highlighted event."""
+    try:
+        return as_highlighted_event(event, event_type, sampled)
+    except (AssertionError, AttributeError, KeyError, TypeError):
+        logger.warning("Could not parse identified event.", exc_info=True)
+        return None
 
 
-def as_highlighted_event(event: dict[str, Any], event_type: EventType) -> HighlightedEvents | None:
+def as_highlighted_event(
+    event: dict[str, Any], event_type: EventType, sampled: bool
+) -> HighlightedEvents:
     """Transform an event to a HighlightEvent or return None."""
-    if event_type == EventType.CANVAS:
+    if event_type == EventType.CANVAS and sampled:
         return {"canvas_sizes": [len(json.dumps(event))]}
     elif event_type == EventType.HYDRATION_ERROR:
         timestamp = event["data"]["payload"]["timestamp"]
         url = event["data"]["payload"].get("data", {}).get("url")
         return {"hydration_errors": [HydrationError(timestamp=timestamp, url=url)]}
-    elif event_type == EventType.MUTATIONS:
+    elif event_type == EventType.MUTATIONS and sampled:
         return {"mutations": [MutationEvent(event["data"]["payload"])]}
     elif event_type == EventType.CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=False, is_rage=False)
@@ -503,10 +494,10 @@ def as_highlighted_event(event: dict[str, Any], event_type: EventType) -> Highli
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
             return {"request_response_sizes": [lengths]}
-    elif event_type == EventType.OPTIONS:
+    elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
-
-    return None
+    else:
+        return {}
 
 
 def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, int | None]:

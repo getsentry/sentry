@@ -12,6 +12,7 @@ import sentry_sdk.scope
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_sdk import set_tag
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -325,6 +326,7 @@ def _ingest_recording_separated_io_compute(message: RecordingIngestMessage) -> N
 @dataclasses.dataclass
 class ProcessedRecordingMessage:
     actions_event: ParsedEventMeta | None
+    trace_items: list[TraceItem]
     filedata: bytes
     filename: str
     key_id: int | None
@@ -348,7 +350,12 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
     headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
     segment = decompress_segment(segment_bytes)
 
-    replay_events = parse_replay_events(message, headers, segment.decompressed)
+    parsed_output = parse_replay_events(message, headers, segment.decompressed)
+    if parsed_output is not None:
+        replay_events, trace_items = parsed_output
+    else:
+        replay_events = None
+        trace_items = []
 
     with sentry_sdk.start_span(name="Parse replay event"):
         replay_event = json.loads(message.replay_event) if message.replay_event else None
@@ -372,6 +379,7 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
 
     return ProcessedRecordingMessage(
         replay_events,
+        trace_items,
         filedata,
         filename,
         key_id=message.key_id,
@@ -467,10 +475,24 @@ def track_recording_metadata(recording: ProcessedRecordingMessage) -> None:
 
 
 def parse_replay_events(
-    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, segment_bytes: bytes
-) -> ParsedEventMeta | None:
+    message: RecordingIngestMessage,
+    headers: RecordingSegmentHeaders,
+    segment_bytes: bytes,
+):
+    # TODO: Pass the trace_id.
     try:
-        return parse_events(json.loads(segment_bytes))
+        return parse_events(
+            {
+                "organization_id": message.org_id,
+                "project_id": message.project_id,
+                "received": message.received,
+                "replay_id": message.replay_id,
+                "retention_days": message.retention_days,
+                "segment_id": headers["segment_id"],
+                "trace_id": None,
+            },
+            json.loads(segment_bytes),
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",

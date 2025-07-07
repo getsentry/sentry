@@ -3,8 +3,8 @@ from typing import Any
 import pytest
 
 from sentry.replays.usecases.ingest.event_parser import (
+    EventContext,
     EventType,
-    MessageContext,
     _get_testid,
     _parse_classes,
     as_trace_item,
@@ -1052,7 +1052,7 @@ def test_as_trace_item_context_returns_none_for_unsupported_events():
 
 
 def test_as_trace_item():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
@@ -1086,7 +1086,7 @@ def test_as_trace_item():
 
 
 def test_as_trace_item_with_no_trace_id():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
@@ -1111,7 +1111,7 @@ def test_as_trace_item_with_no_trace_id():
 
 
 def test_as_trace_item_returns_none_for_unsupported_event():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
@@ -1126,7 +1126,7 @@ def test_as_trace_item_returns_none_for_unsupported_event():
 
 
 def test_iter_trace_items():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
@@ -1201,7 +1201,7 @@ def test_iter_trace_items():
 
 
 def test_iter_trace_items_handles_exceptions():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
@@ -1231,7 +1231,7 @@ def test_iter_trace_items_handles_exceptions():
 
 
 def test_iter_trace_items_empty_list():
-    context: MessageContext = {
+    context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
         "received": 1674298825.0,
