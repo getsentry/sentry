@@ -21,7 +21,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DEFAULT_QUERY} from 'sentry/constants';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -1377,94 +1376,6 @@ describe('IssueList', function () {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
     });
   }, 20_000);
-
-  describe('project low trends queue alert', function () {
-    beforeEach(function () {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async function () {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview {...routerProps} />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
-    });
-
-    describe('renders alert', function () {
-      it('for one project', async function () {
-        act(() =>
-          ProjectsStore.loadInitialData([
-            {...project, eventProcessing: {symbolicationDegraded: true}},
-          ])
-        );
-
-        render(<IssueListOverview {...routerProps} />, {
-          organization,
-
-          initialRouterConfig,
-        });
-
-        await waitFor(() => {
-          expect(
-            screen.getByText(/Event Processing for this project is currently degraded/i)
-          ).toBeInTheDocument();
-        });
-      });
-
-      it('for multiple projects', async function () {
-        const projectBar = ProjectFixture({
-          id: '3560',
-          name: 'Bar Project',
-          slug: 'project-slug-bar',
-        });
-
-        act(() =>
-          ProjectsStore.loadInitialData([
-            {
-              ...project,
-              slug: 'project-slug',
-              eventProcessing: {symbolicationDegraded: true},
-            },
-            {
-              ...projectBar,
-              slug: 'project-slug-bar',
-              eventProcessing: {symbolicationDegraded: true},
-            },
-          ])
-        );
-
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [Number(project.id), Number(projectBar.id)],
-            environments: [],
-            datetime: {period: '14d', start: null, end: null, utc: null},
-          },
-          new Set()
-        );
-
-        render(<IssueListOverview {...routerProps} />, {
-          organization,
-
-          initialRouterConfig,
-        });
-
-        await waitFor(() => {
-          expect(
-            screen.getByText(
-              textWithMarkupMatcher(
-                'Event Processing for the project-slug, project-slug-bar projects is currently degraded.'
-              )
-            )
-          ).toBeInTheDocument();
-        });
-      });
-    });
-  });
 
   describe('new view page', function () {
     it('displays empty state when first loaded', async function () {

@@ -261,7 +261,6 @@ DETAILED_PROJECT = {
         {"id": "recalibrationRule", "active": True},
     ],
     "dynamicSamplingMinimumSampleRate": True,
-    "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
@@ -309,7 +308,6 @@ PROJECT_SUMMARY = {
     "hasAccess": True,
     "dateCreated": "2023-03-29T15:25:21.344565Z",
     "environments": ["production"],
-    "eventProcessing": {"symbolicationDegraded": False},
     "features": [
         "alert-filters",
         "custom-inbound-filters",
