@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {
   addErrorMessage,
@@ -133,14 +132,10 @@ export function SeerAutomationProjectList() {
     );
   }, [projects, search]);
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((searchQuery: string) => {
-        setSearch(searchQuery);
-        setPage(1); // Reset to first page when search changes
-      }, 300),
-    []
-  );
+  const handleSearchChange = (searchQuery: string) => {
+    setSearch(searchQuery);
+    setPage(1); // Reset to first page when search changes
+  };
 
   if (fetching) {
     return <LoadingIndicator />;
@@ -283,7 +278,7 @@ export function SeerAutomationProjectList() {
       <SearchWrapper>
         <SearchBar
           query={search}
-          onChange={debouncedSearch}
+          onChange={handleSearchChange}
           placeholder={t('Search projects')}
         />
       </SearchWrapper>
