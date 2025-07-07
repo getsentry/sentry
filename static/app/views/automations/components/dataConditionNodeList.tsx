@@ -59,6 +59,7 @@ export default function DataConditionNodeList({
     const issueAttributeOptions: Option[] = [];
     const frequencyOptions: Option[] = [];
     const eventAttributeOptions: Option[] = [];
+    const otherOptions: Option[] = [];
 
     const percentageTypes = [
       DataConditionType.EVENT_FREQUENCY_PERCENT,
@@ -89,6 +90,8 @@ export default function DataConditionNodeList({
         handler.handlerSubgroup === DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES
       ) {
         issueAttributeOptions.push(newDataCondition);
+      } else {
+        otherOptions.push(newDataCondition);
       }
     });
 
@@ -107,6 +110,11 @@ export default function DataConditionNodeList({
         key: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
         label: t('Filter by Event Attributes'),
         options: eventAttributeOptions,
+      },
+      {
+        key: 'other',
+        label: t('Other'),
+        options: otherOptions,
       },
     ];
   }, [dataConditionHandlers, handlerGroup]);
@@ -165,6 +173,7 @@ export default function DataConditionNodeList({
                     <Checkbox
                       checked={!!issuePriorityDeescalatingConditionId}
                       onChange={() => onIssuePriorityDeescalatingChange()}
+                      aria-label={t('Notify on deescalation')}
                     />
                     {t('Notify on deescalation')}
                   </Fragment>
@@ -190,6 +199,7 @@ export default function DataConditionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        aria-label={t('Add condition')}
       />
     </Fragment>
   );
