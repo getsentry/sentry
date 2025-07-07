@@ -179,7 +179,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.25.0
+sentry-arroyo==2.26.0
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.21.0
@@ -240,7 +240,7 @@ uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.26.6
-vroomrs==0.1.6
+vroomrs==0.1.7
 wcwidth==0.2.13
 werkzeug==3.0.6
 wheel==0.38.4

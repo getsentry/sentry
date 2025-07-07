@@ -26,6 +26,7 @@ import {
   AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -97,7 +98,8 @@ export function TracesTable() {
 
   const spansRequest = useEAPSpans(
     {
-      search: `trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
         ...GENERATION_COUNTS,
@@ -221,9 +223,12 @@ const BodyCell = memo(function BodyCell({
     case 'traceId':
       return (
         <span>
-          <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          <TraceIdButton
+            priority="link"
+            onClick={() => openTraceViewDrawer(dataRow.traceId)}
+          >
             {dataRow.traceId.slice(0, 8)}
-          </Button>
+          </TraceIdButton>
         </span>
       );
     case 'transaction':
@@ -299,4 +304,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;
