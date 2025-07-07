@@ -122,7 +122,7 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def get_access_token(self, pipeline: IdentityPipelineT, code: str) -> Response:
+    def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = {
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": self.client_secret,
@@ -232,7 +232,7 @@ class VSTSOAuth2LoginView(OAuth2LoginView):
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def get_access_token(self, pipeline: IdentityPipelineT, code: str) -> Response:
+    def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(
             code=code, redirect_uri=absolute_uri(pipeline.config.get("redirect_url"))
         )

@@ -148,7 +148,7 @@ class OAuth2CallbackViewTest(TestCase):
             json={"token": "a-fake-token"},
             status=401,
         )
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
