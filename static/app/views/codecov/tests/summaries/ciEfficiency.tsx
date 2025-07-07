@@ -86,7 +86,7 @@ function CIEfficiencyBody({
           {t('Total Tests Run Time')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          {formatTimeDuration(totalTestsRunTime, 2)}
+          {totalTestsRunTime ? formatTimeDuration(totalTestsRunTime, 2) : '-'}
           {totalTestsRunTimeChange ? (
             <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
               {formatPercentRate(totalTestsRunTimeChange)}
@@ -106,9 +106,13 @@ function CIEfficiencyBody({
         >
           {t('Slowest Tests (P95)')}
         </SummaryEntryLabel>
-        <SummaryEntryValueLink filterBy="slowestTests">
-          {formatTimeDuration(slowestTestsDuration, 2)}
-        </SummaryEntryValueLink>
+        {slowestTestsDuration ? (
+          <SummaryEntryValueLink filterBy="slowestTests">
+            {formatTimeDuration(slowestTestsDuration, 2)}
+          </SummaryEntryValueLink>
+        ) : (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        )}
       </SummaryEntry>
     </SummaryEntries>
   );

@@ -100,23 +100,27 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="flakyTests">
-            {flakyTests}
-          </SummaryEntryValueLink>
-          {flakyTestsChange ? (
-            <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(flakyTestsChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {flakyTests ? (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="flakyTests">
+              {flakyTests}
+            </SummaryEntryValueLink>
+            {flakyTestsChange && (
+              <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(flakyTestsChange)}
+              </Tag>
+            )}
+          </SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        )}
       </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<AverageFlakeTooltip />}>
           {t('Avg. Flake Rate')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          {`${averageFlakeRate?.toFixed(2)}%`}
+          {averageFlakeRate ? `${averageFlakeRate?.toFixed(2)}%` : '-'}
           {averageFlakeRateChange ? (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
               {formatPercentRate(averageFlakeRateChange)}
@@ -128,31 +132,39 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
           {t('Cumulative Failures')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="failedTests">
-            {cumulativeFailures}
-          </SummaryEntryValueLink>
-          {cumulativeFailuresChange ? (
-            <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(cumulativeFailuresChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {cumulativeFailures ? (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="failedTests">
+              {cumulativeFailures}
+            </SummaryEntryValueLink>
+            {cumulativeFailuresChange && (
+              <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(cumulativeFailuresChange)}
+              </Tag>
+            )}
+          </SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        )}
       </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
           {t('Skipped Tests')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="skippedTests">
-            {skippedTests}
-          </SummaryEntryValueLink>
-          {skippedTestsChange ? (
-            <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(skippedTestsChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {skippedTests ? (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="skippedTests">
+              {skippedTests}
+            </SummaryEntryValueLink>
+            {skippedTestsChange && (
+              <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(skippedTestsChange)}
+              </Tag>
+            )}
+          </SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        )}
       </SummaryEntry>
     </SummaryEntries>
   );

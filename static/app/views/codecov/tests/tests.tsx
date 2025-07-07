@@ -1,10 +1,14 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -16,13 +20,22 @@ import TestAnalyticsTable, {
   isAValidSort,
 } from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
 
+function EmptySelectorsMessage() {
+  return (
+    <MessageContainer>
+      <StyledIconSearch color="subText" size="xl" />
+      <Title>{t('It looks like there is nothing to show right now.')}</Title>
+      <Subtitle>
+        {t('Please select a repository and branch to view Test Analytics data.')}
+      </Subtitle>
+    </MessageContainer>
+  );
+}
+
 export default function TestsPage() {
-  const location = useLocation();
-  const sorts: [ValidSort] = [
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
-  ];
-  // TODO: ensure we call this hook when we have all codecov context values populated. Potentially abstract table + summaries into a new component
-  const response = useInfiniteTestResults();
+  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+
+  const shouldDisplayContent = integratedOrg && repository && branch && codecovPeriod;
 
   return (
     <LayoutGap>
@@ -32,9 +45,7 @@ export default function TestsPage() {
         <BranchSelector />
         <DateSelector />
       </PageFilterBar>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={response} sort={sorts[0]} />
+      {shouldDisplayContent ? <Content /> : <EmptySelectorsMessage />}
     </LayoutGap>
   );
 }
@@ -42,4 +53,45 @@ export default function TestsPage() {
 const LayoutGap = styled('div')`
   display: grid;
   gap: ${space(2)};
+`;
+
+function Content() {
+  const location = useLocation();
+  const sorts: [ValidSort] = [
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+  const response = useInfiniteTestResults();
+
+  return (
+    <Fragment>
+      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+      <Summaries />
+      <TestAnalyticsTable response={response} sort={sorts[0]} />
+    </Fragment>
+  );
+}
+
+const MessageContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  justify-items: center;
+  align-items: center;
+  text-align: center;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(4)};
+`;
+
+const Subtitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const Title = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: 14px;
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin-right: ${space(1)};
 `;
