@@ -101,7 +101,7 @@ def create_replay_actions_event(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": retention_days,
-        "payload": list(json.dumps(payload).encode()),
+        "payload": payload,
     }
 
 

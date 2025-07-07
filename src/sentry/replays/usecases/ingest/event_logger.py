@@ -70,7 +70,7 @@ def emit_click_events(
         "retention_days": retention_days,
         "start_time": start_time,
         "type": "replay_event",
-        "payload": list(json.dumps(payload).encode()),
+        "payload": payload,
     }
 
     publisher = _initialize_publisher()
