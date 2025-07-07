@@ -181,11 +181,13 @@ export function Visualize() {
   const tags = useTags();
 
   const {attributes: numericSpanTags} = useTraceItemNumberAttributes({
-    traceItemType: TraceItemDataset.SPANS,
+    traceItemType:
+      dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS,
     projectIds: [Number(projectId)],
   });
   const {attributes: stringSpanTags} = useTraceItemStringAttributes({
-    traceItemType: TraceItemDataset.SPANS,
+    traceItemType:
+      dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS,
     projectIds: [Number(projectId)],
   });
   const formContext = useContext(FormContext);
