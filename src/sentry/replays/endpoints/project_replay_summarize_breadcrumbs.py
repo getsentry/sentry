@@ -109,6 +109,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 trace_ids=trace_ids,
                 start=filter_params["start"],
                 end=filter_params["end"],
+                request=request,
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -164,7 +165,11 @@ def parse_timestamp(timestamp_value: Any, unit: str) -> float:
 
 
 def fetch_trace_connected_errors(
-    project: Project, trace_ids: list[str], start: datetime | None, end: datetime | None
+    project: Project,
+    trace_ids: list[str],
+    start: datetime | None,
+    end: datetime | None,
+    request: Request | None = None,
 ) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of GroupEvent objects."""
     try:
@@ -173,10 +178,16 @@ def fetch_trace_connected_errors(
 
         queries = []
         for trace_id in trace_ids:
-            # Get all projects in the organization to find trace-connected errors
+            # Get projects in the organization that the user has access to
+            if not request or not hasattr(request, "access"):
+                return []
+
+            # Filter projects by user access permissions
             org_projects = list(Project.objects.filter(organization=project.organization))
+            accessible_projects = [p for p in org_projects if request.access.has_project_access(p)]
+
             snuba_params = SnubaParams(
-                projects=org_projects,
+                projects=accessible_projects,
                 start=start,
                 end=end,
                 organization=project.organization,

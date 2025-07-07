@@ -916,7 +916,7 @@ def test_parse_timestamp():
 
     # Test string input with ISO format with 'Z' timezone suffix
     assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
-    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1
+    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
 
     # Test invalid input
     assert parse_timestamp("invalid timestamp", "ms") == 0.0
