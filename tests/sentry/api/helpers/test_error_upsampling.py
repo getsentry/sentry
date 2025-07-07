@@ -38,18 +38,18 @@ class ErrorUpsamplingTest(TestCase):
     def test_are_all_projects_error_upsampled(self, mock_options: Mock) -> None:
         # Test when all projects are allowlisted
         mock_options.get.return_value = self.project_ids
-        assert are_all_projects_error_upsampled(self.project_ids, self.organization) is True
+        assert are_all_projects_error_upsampled(self.project_ids) is True
 
         # Test when some projects are not allowlisted
         mock_options.get.return_value = self.project_ids[:-1]
-        assert are_all_projects_error_upsampled(self.project_ids, self.organization) is False
+        assert are_all_projects_error_upsampled(self.project_ids) is False
 
         # Test when no projects are allowlisted
         mock_options.get.return_value = []
-        assert are_all_projects_error_upsampled(self.project_ids, self.organization) is False
+        assert are_all_projects_error_upsampled(self.project_ids) is False
 
         # Test when no project IDs provided
-        assert are_all_projects_error_upsampled([], self.organization) is False
+        assert are_all_projects_error_upsampled([]) is False
 
     def test_transform_query_columns_for_error_upsampling(self) -> None:
         # Test count() transformation

@@ -1679,7 +1679,9 @@ def aliased_query_params(
                     selected_columns = []
                 selected_columns.append(
                     get_upsampled_count_snql_with_alias(
-                        aggregation[2] if len(aggregation) > 2 else None
+                        aggregation[2]
+                        if len(aggregation) > 2 and aggregation[2] is not None
+                        else "upsampled_count"
                     )
                 )
             else:

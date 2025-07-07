@@ -247,6 +247,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         conditions=None,
         environment_ids=None,
         user=None,
+        aggregation_override: str | None = None,
         **kwargs,
     ):
         try:

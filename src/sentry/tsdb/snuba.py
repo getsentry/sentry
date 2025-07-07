@@ -384,7 +384,7 @@ class SnubaTSDB(BaseTSDB):
                 get_upsampled_count_snql_with_alias(aggregated_as)
             ]
         else:
-            aggregations: list[SelectableExpression] = [
+            aggregations = [
                 Function(
                     function=aggregation,
                     parameters=[Column(model_aggregate)] if model_aggregate else [],
