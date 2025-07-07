@@ -133,7 +133,7 @@ function rootCategorySort(
   return a[0].localeCompare(b[0]);
 }
 
-function normalizeFilename(filename: string) {
+export function normalizeFilename(filename: string) {
   // Do not uppercase the first three characters of the filename
   if (filename.startsWith('use')) {
     return filename.replace('.stories.tsx', '');

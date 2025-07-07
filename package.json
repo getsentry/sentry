@@ -152,6 +152,7 @@
     "qrcode.react": "^3.1.0",
     "query-string": "7.0.1",
     "react": "19.1.0",
+    "react-aria-components": "^1.10.1",
     "react-date-range": "^1.4.0",
     "react-docgen-typescript": "^2.2.2",
     "react-dom": "19.1.0",
