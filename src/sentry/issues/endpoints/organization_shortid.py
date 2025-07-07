@@ -90,7 +90,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                                 "avatarUrl": None,
                             },
                         },
-                        "count": 1,
+                        "count": "1",
                         "culprit": "raven.scripts.runner in main",
                         "firstSeen": "2018-11-06T21:19:55Z",
                         "hasSeen": False,
