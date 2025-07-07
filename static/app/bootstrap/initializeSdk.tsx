@@ -66,6 +66,7 @@ function getSentryIntegrations() {
       matchRoutes,
       _experiments: {
         enableStandaloneClsSpans: true,
+        enableStandaloneLcpSpans: true,
       },
       linkPreviousTrace: 'session-storage',
     }),
