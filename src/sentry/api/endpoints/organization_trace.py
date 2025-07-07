@@ -54,6 +54,7 @@ class SerializedSpan(SerializedEvent):
     end_timestamp: datetime
     measurements: dict[str, Any]
     op: str
+    name: str
     parent_span_id: str | None
     profile_id: str
     profiler_id: str
@@ -158,6 +159,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 description=event["description"],
                 sdk_name=event["sdk.name"],
                 op=event["span.op"],
+                name=event["span.name"],
                 event_type="span",
             )
         else:
