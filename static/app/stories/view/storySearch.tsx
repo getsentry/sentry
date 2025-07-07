@@ -108,9 +108,7 @@ function SearchComboBox<T extends Record<PropertyKey, unknown>>({
   return (
     <ComboBox {...props} onSelectionChange={handleSelectionChange}>
       <Label className="sr-only">{label}</Label>
-      <div className="my-combobox-container">
-        <SearchInput ref={inputRef} placeholder={label} />
-      </div>
+      <SearchInput ref={inputRef} placeholder={label} />
       <FieldError>{errorMessage}</FieldError>
       <Popover>
         <StorySearchContainer>
