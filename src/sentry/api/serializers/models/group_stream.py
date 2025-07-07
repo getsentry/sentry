@@ -505,15 +505,26 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 result["stats"] = {self.stats_period: attrs["stats"]}
 
             if not self._collapse("lifetime"):
-                lifetime = dict(self._convert_seen_stats(attrs["lifetime"]))
-                result["lifetime"] = lifetime
+                seen_stats = self._convert_seen_stats(attrs["lifetime"])
+                result["lifetime"] = {
+                    "count": seen_stats["count"],
+                    "userCount": seen_stats["userCount"],
+                    "firstSeen": seen_stats["firstSeen"],
+                    "lastSeen": seen_stats["lastSeen"],
+                }
                 if self.stats_period:
                     # Not needed in current implementation
                     result["lifetime"]["stats"] = None
 
             if not self._collapse("filtered"):
                 if self.conditions:
-                    filtered = dict(self._convert_seen_stats(attrs["filtered"]))
+                    seen_stats = self._convert_seen_stats(attrs["filtered"])
+                    filtered = {
+                        "count": seen_stats["count"],
+                        "userCount": seen_stats["userCount"],
+                        "firstSeen": seen_stats["firstSeen"],
+                        "lastSeen": seen_stats["lastSeen"],
+                    }
                     if self.stats_period:
                         filtered["stats"] = {self.stats_period: attrs["filtered_stats"]}
                     result["filtered"] = filtered
