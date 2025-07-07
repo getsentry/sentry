@@ -131,13 +131,17 @@ class SQLInjectionDetector(PerformanceDetector):
             comment_index = description_after_where.find("--")
             if comment_index != -1:
                 description_to_search = description_after_where[:comment_index]
+                description_after_comment = description_after_where[comment_index:]
             else:
                 description_to_search = description_after_where
+                description_after_comment = ""
             if re.search(regex_key, description_to_search) and re.search(
                 regex_value, description_to_search
             ):
-                description = description[:where_index] + re.sub(
-                    regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
+                description = (
+                    description[:where_index]
+                    + re.sub(regex_value, "[UNTRUSTED_INPUT]", description_to_search)
+                    + description_after_comment
                 )
                 vulnerable_parameters.append((key, value))
 
