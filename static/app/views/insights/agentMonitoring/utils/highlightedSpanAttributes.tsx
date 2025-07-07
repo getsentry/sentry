@@ -6,9 +6,9 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
   getIsAiRunSpan,
   getIsAiSpan,
@@ -62,17 +62,14 @@ function getAttribute(attributeObject: Record<string, string>, key: string) {
 
 export function getHighlightedSpanAttributes({
   op,
-  description,
   attributes = {},
   organization,
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  description: string | undefined;
   op: string | undefined;
-
   organization: Organization;
 }) {
-  if (!hasAgentInsightsFeature(organization) || !getIsAiSpan({op, description})) {
+  if (!hasAgentInsightsFeature(organization) || !getIsAiSpan({op})) {
     return [];
   }
 
@@ -110,7 +107,7 @@ export function getHighlightedSpanAttributes({
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
-      value: formatLLMCosts(totalCosts),
+      value: <LLMCosts cost={totalCosts} />,
     });
   }
 
@@ -151,33 +148,16 @@ export function getTraceNodeAttribute(
   return undefined;
 }
 
-export function getIsAiNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is AITraceSpanNode {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return false;
-  }
+function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
+  return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
+    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+      return false;
+    }
 
-  if (isTransactionNode(node)) {
-    return getIsAiSpan({
-      op: node.value['transaction.op'],
-      description: node.value.transaction,
-    });
-  }
-
-  return getIsAiSpan(node.value);
+    const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
+    return predicate({op});
+  };
 }
 
-export function getIsAiRunNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is AITraceSpanNode {
-  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-    return false;
-  }
-
-  if (isTransactionNode(node)) {
-    return getIsAiRunSpan({op: node.value['transaction.op']});
-  }
-
-  return getIsAiRunSpan({op: node.value.op});
-}
+export const getIsAiNode = createGetIsAiNode(getIsAiSpan);
+export const getIsAiRunNode = createGetIsAiNode(getIsAiRunSpan);

@@ -2,9 +2,9 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
@@ -99,7 +99,7 @@ function AggregatesTable({
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
+  const {initialTableStyles} = useTableStyles(fields.length, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
@@ -191,7 +191,7 @@ function AggregatesTable({
                       <TableBodyCell key={j}>
                         <MultiQueryFieldRenderer
                           index={index}
-                          column={columns[j]!}
+                          column={columns[j]}
                           data={row}
                           unit={meta?.units?.[field]}
                           meta={meta}
@@ -235,7 +235,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
+  const {initialTableStyles} = useTableStyles(visibleFields.length, tableRef, {
     minimumColumnWidth: 50,
   });
 
@@ -298,7 +298,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     <TableBodyCell key={j}>
                       <MultiQueryFieldRenderer
                         index={index}
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

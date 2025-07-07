@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

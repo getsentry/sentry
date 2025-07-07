@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import Link from 'sentry/components/links/link';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
@@ -25,7 +25,10 @@ function SeerAutomationRoot() {
   const organization = useOrganization();
   const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
 
-  if (!organization.features.includes('trigger-autofix-on-issue-summary')) {
+  if (
+    !organization.features.includes('trigger-autofix-on-issue-summary') ||
+    organization.hideAiFeatures
+  ) {
     return <NoAccess />;
   }
 
@@ -44,12 +47,11 @@ function SeerAutomationRoot() {
   }
 
   // Check if setup is needed
-  const needsUserAcknowledgement = !setupAcknowledgement.userHasAcknowledged;
   const needsOrgAcknowledgement = !setupAcknowledgement.orgHasAcknowledged;
   const needsBilling =
     !billing.hasAutofixQuota && organization.features.includes('seer-billing');
 
-  const needsSetup = needsUserAcknowledgement || needsOrgAcknowledgement || needsBilling;
+  const needsSetup = needsOrgAcknowledgement || needsBilling;
 
   // Show setup screen if needed
   if (needsSetup) {
