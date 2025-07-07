@@ -1195,7 +1195,7 @@ def test_generate_feedback_title():
 def test_create_feedback_issue_uses_generated_title(
     default_project, mock_produce_occurrence_to_kafka
 ):
-    """Test that create_feedback_issue uses the generated title instead of hardcoded 'User Feedback'."""
+    """Test that create_feedback_issue uses the generated title."""
 
     # Test with a simple message
     event = mock_feedback_event(default_project.id)
