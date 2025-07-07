@@ -1203,7 +1203,6 @@ def test_create_feedback_issue_uses_generated_title(
 
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    # Verify the occurrence was created with the right title
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
     # Get the occurrence from the call
