@@ -3,7 +3,7 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
-from typing import Deque, Self
+from typing import Deque
 
 from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -21,7 +21,7 @@ class SingletonProducer:
     producer on process shutdown.
     """
 
-    __active_producers: set[Self] = set()
+    __active_producers: set[SingletonProducer] = set()
 
     def __init__(
         self, kafka_producer_factory: Callable[[], KafkaProducer], max_futures: int = 1000
