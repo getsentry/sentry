@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0941_create_temporary_verification_code_table"),
+        ("sentry", "0942_dashboard_remove_extra_user_org_position_constraint"),
     ]
 
     operations = [
