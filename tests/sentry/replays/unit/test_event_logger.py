@@ -33,7 +33,7 @@ def test_gen_rage_clicks():
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
-@pytest.mark.parametrize("test_environment", [("production",), ("dev",), ("",), (None,)])
+@pytest.mark.parametrize("test_environment", ["production", "dev", "", None])
 def test_emit_click_events_environment_handling(test_environment):
     click_events = [
         ClickEvent(
