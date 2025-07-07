@@ -41,6 +41,8 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
+# Prevent flakiness from timestamp mismatch when building linking URL
+@freeze_time()
 class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
@@ -229,10 +231,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert start_2.args[0] == EventLifecycleOutcome.STARTED
             assert success_2.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
-        """Freezing time to prevent flakiness from timestamp mismatch."""
-
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
         associate_url = build_linking_url(
             self.integration, "invalid-id", "C065W1189", self.response_url
@@ -990,7 +989,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.UNRESOLVED
 
         associate_url = build_unlinking_url(
-            self.integration.id, "slack_id2", "C065W1189", self.response_url
+            integration_id=self.integration.id,
+            slack_id=user2_identity.external_id,
+            channel_id="C065W1189",
+            response_url=self.response_url,
         )
 
         assert resp.data["response_type"] == "ephemeral"
@@ -1060,7 +1062,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
         )
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
         "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
@@ -1118,7 +1119,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             org_name=self.organization.name,
         )
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
         "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(

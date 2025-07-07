@@ -24,9 +24,6 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_replay_actions
-from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
-from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
@@ -156,49 +153,6 @@ def _report_size_metrics(
 
 
 @sentry_sdk.trace
-def recording_post_processor(
-    message: RecordingIngestMessage,
-    headers: RecordingSegmentHeaders,
-    segment_bytes: bytes,
-    replay_event_bytes: bytes | None,
-) -> None:
-    try:
-        segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
-
-        actions_event = try_get_replay_actions(message, segment, replay_event)
-        if actions_event:
-            emit_replay_actions(actions_event)
-
-        # Log canvas mutations to bigquery.
-        log_canvas_size_old(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            segment,
-        )
-
-        # Log # of rrweb events to bigquery.
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "rrweb_event_count",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "replay_id": message.replay_id,
-                "size": len(segment),
-            },
-        )
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            headers["segment_id"],
-        )
-
-
-@sentry_sdk.trace
 def parse_recording_message(message: bytes) -> RecordingIngestMessage:
     try:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message)
@@ -256,24 +210,6 @@ def parse_segment_and_replay_data(segment: bytes, replay_event: bytes | None) ->
     parsed_segment_data = json.loads(segment)
     parsed_replay_event = json.loads(replay_event) if replay_event else None
     return parsed_segment_data, parsed_replay_event
-
-
-@sentry_sdk.trace
-def try_get_replay_actions(
-    message: RecordingIngestMessage,
-    parsed_segment_data: Any,
-    parsed_replay_event: Any | None,
-) -> ReplayActionsEvent | None:
-    project = Project.objects.get_from_cache(id=message.project_id)
-
-    return parse_replay_actions(
-        project=project,
-        replay_id=message.replay_id,
-        retention_days=message.retention_days,
-        segment_data=parsed_segment_data,
-        replay_event=parsed_replay_event,
-        org_id=message.org_id,
-    )
 
 
 @sentry_sdk.trace
