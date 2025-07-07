@@ -142,7 +142,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

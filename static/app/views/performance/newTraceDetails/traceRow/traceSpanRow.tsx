@@ -1,6 +1,7 @@
 import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -79,7 +80,11 @@ export function TraceSpanRow(
           />
           {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
             <React.Fragment>
-              <span className="TraceName">{props.node.value.name}</span>
+              <span className="TraceName">
+                {props.node.value.name
+                  ? ellipsize(props.node.value.name, 100)
+                  : (spanId ?? 'unknown')}
+              </span>
             </React.Fragment>
           ) : (
             <React.Fragment>
@@ -92,9 +97,7 @@ export function TraceSpanRow(
               <span className="TraceDescription" title={props.node.value.description}>
                 {getNodeDescriptionPrefix(props.node)}
                 {props.node.value.description
-                  ? props.node.value.description.length > 100
-                    ? props.node.value.description.slice(0, 100).trim() + '\u2026'
-                    : props.node.value.description
+                  ? ellipsize(props.node.value.description, 100)
                   : (spanId ?? 'unknown')}
               </span>
             </React.Fragment>
