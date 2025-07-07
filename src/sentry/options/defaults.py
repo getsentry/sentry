@@ -1102,6 +1102,10 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
+# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
+register("ai-agent-monitoring.custom-model-mapping", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -3111,18 +3115,6 @@ register(
 register(
     "demo-mode.users",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "demo-mode.disable-sandbox-redirect",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "demo-mode.sandbox-redirect-logout",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

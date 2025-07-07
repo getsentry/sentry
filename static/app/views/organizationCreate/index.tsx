@@ -16,6 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
@@ -98,7 +99,7 @@ function OrganizationCreate() {
             }
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
             // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-            window.location.assign(nextUrl);
+            testableWindowLocation.assign(nextUrl);
           }}
           onSubmitError={error => {
             addErrorMessage(

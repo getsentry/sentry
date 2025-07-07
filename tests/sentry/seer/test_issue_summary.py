@@ -361,8 +361,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         mock_blocking_acquire.assert_called_once()
         # Ensure generation was NOT called
         mock_generate_summary_core.assert_not_called()
-        # Ensure cache was checked twice (once initially, once after lock failure)
-        assert mock_cache_get.call_count == 2
+        # Ensure cache was checked three times (once initially, once after lock failure, and once for hideAiFeatures check)
+        assert mock_cache_get.call_count == 3
         mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
     @patch("sentry.seer.issue_summary.Project.objects.filter")
