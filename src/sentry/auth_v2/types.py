@@ -18,7 +18,7 @@ class SessionData(TypedDict, total=False):
     _auth_user_hash: str  # Hash of user's authentication data
 
     # Sentry-specific session data
-    org_sessions: list[str] | None  # List of org IDs
+    session_orgs: list[str] | None  # List of org IDs
 
     # Any other custom session data
     # [key: str]: Union[str, int, bool, Dict, list, None]
