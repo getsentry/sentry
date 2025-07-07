@@ -155,18 +155,20 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
-  const numColumns = Math.max(
-    Object.keys(columns || {}).length,
-    Object.keys(meta.fields).length
-  );
+  const numColumns = Math.max(columns?.length ?? 0, Object.keys(meta.fields).length);
 
   let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
-    widths = columns.map(column => column.width ?? COL_WIDTH_UNDEFINED);
+    widths = columns.map(column =>
+      defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
+    );
   } else if (resizable && Array.isArray(locationWidths)) {
-    widths = locationWidths.map(width => parseInt(width, 10));
+    widths = locationWidths.map(width => {
+      const val = parseInt(width, 10);
+      return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
+    });
   }
 
   // Fallback to extracting fields from the tableData if no columns are provided
