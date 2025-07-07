@@ -3,16 +3,17 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
+from concurrent.futures import Future
 from typing import Deque
 
-from arroyo.backends.abstract import ProducerFuture
+from arroyo.backends.abstract import Producer, ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
 
 
-class SingletonProducer:
+class SingletonProducer(Producer[KafkaPayload]):
     """
     A Kafka producer that can be instantiated as a global
     variable/singleton/service.
@@ -31,6 +32,7 @@ class SingletonProducer:
         self._futures: Deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
         self.__active_producers.add(self)
+        self.__result: Future[None] | None = None
 
     def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
@@ -53,6 +55,15 @@ class SingletonProducer:
             else:
                 future.result()
 
+    def close(self) -> Future[None]:
+        if self.__result is None:
+            if self._producer:
+                self.__result = self._producer.close()
+            else:
+                self.__result = Future()
+                self.__result.set_result(None)
+        return self.__result
+
     def _shutdown(self) -> None:
         """Shut down any background producer. Synchronous."""
         for future in self._futures:
@@ -62,7 +73,7 @@ class SingletonProducer:
                 pass
 
         if self._producer:
-            self._producer.close().result()
+            self.close().result()
 
         self.__active_producers.remove(self)
 
