@@ -177,7 +177,7 @@ def fetch_trace_connected_errors(
 
         # Get projects in the organization that the user has access to
         org_projects = list(
-            Project.objects.filter(organization=project.organization), status=ObjectStatus.ACTIVE
+            Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
         )
 
         queries = []
