@@ -10,6 +10,7 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -128,9 +129,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
               <span>{node.value.op ?? '<unknown>'}</span> —{' '}
               <span className="TraceDescription" title={node.value.description}>
                 {node.value.description
-                  ? node.value.description.length > 100
-                    ? node.value.description.slice(0, 100).trim() + '\u2026'
-                    : node.value.description
+                  ? ellipsize(node.value.description, 100)
                   : (spanId ?? 'unknown')}
               </span>
             </Fragment>
