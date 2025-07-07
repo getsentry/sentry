@@ -5,7 +5,7 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -573,6 +573,158 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard A",
             "Dashboard C",
         ]
+
+    def test_get_owned_dashboards(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard User 1"]
+
+        self.login_as(user_2)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard User 2"]
+
+    def test_get_owned_dashboards_across_organizations(self):
+        user_1 = self.create_user(username="user_1")
+
+        # The test user is a member of both orgs.
+        other_org = self.create_organization(name="Other Org")
+        self.create_member(organization=other_org, user=user_1)
+        self.create_member(organization=self.organization, user=user_1)
+
+        Dashboard.objects.create(
+            title="Initial dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Other org dashboard",
+            created_by_id=user_1.id,
+            organization=other_org,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Initial dashboard"]
+
+    def test_get_owned_dashboards_can_pin_starred_at_top(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        starred_dashboard = Dashboard.objects.create(
+            title="Starred dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        # Add the starred dashboard to the user's favorites.
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=user_1.id,
+            dashboard=starred_dashboard,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Starred dashboard", "Dashboard User 1"]
+
+    def test_get_shared_dashboards(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        # Clean up existing dashboards setup.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard User 2"]
+
+        self.login_as(user_2)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard User 1"]
+
+    def test_get_shared_dashboards_across_organizations(self):
+        # The test user is a member of just the single org.
+        test_user = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=test_user)
+
+        # The other test user is a member of both orgs.
+        other_user = self.create_user(username="other_user")
+        other_org = self.create_organization(name="Other Org")
+        self.create_member(organization=other_org, user=other_user)
+        self.create_member(organization=self.organization, user=other_user)
+
+        # Clean up existing dashboards setup.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Initial dashboard",
+            created_by_id=other_user.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Other org dashboard",
+            created_by_id=other_user.id,
+            organization=other_org,
+        )
+
+        self.login_as(test_user)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Initial dashboard"]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
