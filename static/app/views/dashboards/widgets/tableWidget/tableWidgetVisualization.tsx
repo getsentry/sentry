@@ -155,9 +155,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
-  const numColumns = Math.max(columns?.length ?? 0, Object.keys(meta.fields).length);
 
-  let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
+  let widths = new Array(columns?.length ?? Object.keys(meta.fields).length).fill(
+    COL_WIDTH_UNDEFINED
+  );
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
@@ -165,9 +166,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
     );
   } else if (resizable && Array.isArray(locationWidths)) {
-    widths = locationWidths.map(width => {
+    locationWidths.forEach((width, index) => {
+      if (index >= widths.length) return;
       const val = parseInt(width, 10);
-      return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
+      widths[index] = isNaN(val) ? COL_WIDTH_UNDEFINED : val;
     });
   }
 
