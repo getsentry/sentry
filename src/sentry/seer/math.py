@@ -124,6 +124,8 @@ def boxcox_llf(lambda_param: float, values: list[float]) -> float:
     """
     Compute the Box-Cox log-likelihood function.
 
+    Uses numerically stable log-space arithmetic following scipy's implementation.
+
     Parameters:
         lambda_param: BoxCox lambda parameter
         values: List of positive values
@@ -135,25 +137,28 @@ def boxcox_llf(lambda_param: float, values: list[float]) -> float:
     if n == 0:
         return 0.0
 
-    # Transform the data
+    log_values = [math.log(max(v, 1e-10)) for v in values]
+    log_sum = sum(log_values)
+
     if lambda_param == 0.0:
-        y = [math.log(max(v, 1e-10)) for v in values]
+        log_mean = log_sum / n
+        log_var = sum((lv - log_mean) ** 2 for lv in log_values) / n
+        logvar = math.log(max(log_var, 1e-10))
     else:
-        y = [(pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in values]
+        # For λ≠0: Use log-space arithmetic for numerical stability
+        # This avoids computing (x^λ - 1)/λ directly which can overflow
+        # Uses identity: var((x^λ - 1)/λ) = var(x^λ)/λ²
+        logx = [lambda_param * lv for lv in log_values]  # log(x^λ) = λ*log(x)
+        logx_mean = sum(logx) / n
+        logx_var = sum((lx - logx_mean) ** 2 for lx in logx) / n
+        # log(var(y)) = log(var(x^λ)) - 2*log(|λ|)
+        logvar = math.log(max(logx_var, 1e-10)) - 2 * math.log(abs(lambda_param))
 
-    # Calculate mean and sum of squares
-    y_mean = sum(y) / n
-    sum_sq = sum((yi - y_mean) ** 2 for yi in y)
-
-    # Log-likelihood calculation
-    # llf = (lambda - 1) * sum(log(x)) - n/2 * log(sum_sq)
-    log_sum = sum(math.log(max(v, 1e-10)) for v in values)
-    llf = (lambda_param - 1) * log_sum - (n / 2) * math.log(max(sum_sq, 1e-10))
-
-    return llf
+    # Box-Cox log-likelihood: (λ-1)*Σlog(x) - n/2*log(var(y))
+    return (lambda_param - 1) * log_sum - (n / 2) * logvar
 
 
-def boxcox_normmax(values: list[float]) -> float:
+def boxcox_normmax(values: list[float], max_iters: int = 100) -> float:
     """
     Calculate the approximate optimal lambda parameter for BoxCox transformation that maximizes the log-likelihood.
 
@@ -161,6 +166,7 @@ def boxcox_normmax(values: list[float]) -> float:
 
     Parameters:
         values: List of positive values
+        max_iters: Maximum number of iterations to run for ternary search
 
     Returns:
         Approximate optimal lambda parameter
@@ -174,7 +180,6 @@ def boxcox_normmax(values: list[float]) -> float:
     left = -2.0
     right = 2.0
     tolerance = 1e-6
-    max_iters = 50
     iters = 0
 
     while right - left > tolerance and iters < max_iters:
