@@ -8,8 +8,8 @@ from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.tasks import (
-    fetch_event,
+from sentry.workflow_engine.tasks.utils import fetch_event
+from sentry.workflow_engine.tasks.workflows import (
     process_workflow_activity,
     workflow_status_update_handler,
 )

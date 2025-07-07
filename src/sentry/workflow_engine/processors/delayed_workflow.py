@@ -61,7 +61,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.tasks import build_trigger_action_task_params, trigger_action
+from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
