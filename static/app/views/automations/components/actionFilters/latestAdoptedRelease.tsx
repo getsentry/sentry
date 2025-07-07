@@ -46,6 +46,7 @@ function ReleaseAgeTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.release_age_type`}
+      aria-label={t('Release age type')}
       value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
       onChange={(option: SelectValue<ModelAge>) => {
@@ -60,6 +61,7 @@ function AgeComparisonField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.age_comparison`}
+      aria-label={t('Age comparison')}
       value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
@@ -81,6 +83,7 @@ function EnvironmentField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.environment`}
+      aria-label={t('Environment')}
       value={condition.comparison.environment}
       options={environmentOptions}
       placeholder={t('environment')}

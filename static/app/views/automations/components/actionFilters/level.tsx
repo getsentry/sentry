@@ -1,5 +1,5 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -33,6 +33,7 @@ function MatchField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
+      aria-label={t('Match type')}
       value={condition.comparison.match}
       options={LEVEL_MATCH_CHOICES}
       onChange={(option: SelectValue<MatchType>) => {
@@ -47,6 +48,7 @@ function LevelField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.level`}
+      aria-label={t('Level')}
       value={condition.comparison.level}
       options={LEVEL_CHOICES}
       onChange={(option: SelectValue<Level>) => {
