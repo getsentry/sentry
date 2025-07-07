@@ -1209,6 +1209,19 @@ USER_ROLE_URLS = [
     ),
 ]
 
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
+        TestResultsAggregatesEndpoint.as_view(),
+        name="sentry-api-0-test-results-aggregates",
+    ),
+]
+
 ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^$",
@@ -2390,6 +2403,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-insights-tree",
     ),
     *workflow_urls.organization_urlpatterns,
+    # Prevent
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)prevent/",
+        include(PREVENT_URLS),
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -3288,19 +3306,6 @@ INTERNAL_URLS = [
         name="sentry-demo-mode-email-capture",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
-]
-
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
 ]
 
 urlpatterns = [
