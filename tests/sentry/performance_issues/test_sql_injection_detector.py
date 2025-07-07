@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import QueryInjectionVulnerabilityExperimentalGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.performance_issues.detectors.sql_injection_detector import SQLInjectionDetector
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
@@ -32,7 +32,7 @@ class SQLInjectionDetectorTest(TestCase):
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem.type == QueryInjectionVulnerabilityExperimentalGroupType
+        assert problem.type == QueryInjectionVulnerabilityGroupType
         assert problem.fingerprint == "1-1020-d9460b7b6c17b64a51f0390b53390cb1b4c39662"
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?' ORDER BY username ASC"
@@ -46,7 +46,7 @@ class SQLInjectionDetectorTest(TestCase):
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem.type == QueryInjectionVulnerabilityExperimentalGroupType
+        assert problem.type == QueryInjectionVulnerabilityGroupType
         assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?'"

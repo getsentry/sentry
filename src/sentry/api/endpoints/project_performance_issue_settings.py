@@ -25,7 +25,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
     ProfileFunctionRegressionType,
-    QueryInjectionVulnerabilityExperimentalGroupType,
+    QueryInjectionVulnerabilityGroupType,
 )
 from sentry.performance_issues.performance_detection import get_merged_settings
 
@@ -91,7 +91,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     ConfigurableThresholds.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
-    ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityExperimentalGroupType,
+    ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
