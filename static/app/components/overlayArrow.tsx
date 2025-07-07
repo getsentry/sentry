@@ -24,24 +24,36 @@ function ChonkOverlayArrow({
   size = 16,
   background,
   border,
+  ...props
 }: OverlayArrowProps) {
   const theme = useTheme();
 
   const offset = placement?.startsWith('top') ? 3 : 1.5;
-  const topOffset = placement?.startsWith('top') ? 3 : 1.5;
+  const topOffset = placement?.startsWith('top') ? 3 : 1;
   const sizeRatio = 0.5;
   const heightRatio = 0.3;
 
   return (
-    <ChonkWrap size={size} ref={ref} placement={placement}>
+    <ChonkWrap size={size} ref={ref} placement={placement} {...props}>
       <svg
         width={size * sizeRatio}
         height={size * sizeRatio}
         viewBox={`0 0 ${size} ${size}`}
         fill="none"
       >
+        {placement?.startsWith('left') || placement?.startsWith('right') ? (
+          <polygon
+            transform={`translate(${placement?.startsWith('right') ? 2 : 0}, 0)`}
+            points={`
+              -2,0
+              ${size},0
+              ${size / 2},${size * heightRatio + topOffset}
+              ${size / 2 - 2},${size * heightRatio + topOffset}`}
+            fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+          />
+        ) : null}
         <polygon
-          points={`0,0 ${size}, 0 ${size / 2},${size * heightRatio + topOffset}`}
+          points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
           fill={border ? (theme[border] as string) : theme.tokens.border.primary}
         />
         <polygon
@@ -65,13 +77,12 @@ const ChonkWrap = chonkStyled('div')<{
   transform-origin: center;
 
   ${p =>
-    p.placement?.startsWith('top') &&
-    `top: 100%; left: 50%; transform: translateX(-50%) rotate(0deg);`}
-  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: translateX(-50%) rotate(180deg);`}
-  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: translateY(-50%) rotate(-90deg);`}
+    p.placement?.startsWith('top') && `top: 100%; left: 50%; transform: rotate(0deg);`}
+  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: rotate(180deg);`}
+  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
   ${p =>
     p.placement?.startsWith('right') &&
-    `right: 100%; top: 50%; transform: translateY(-50%) rotate(90deg);`}
+    `right: 100%; top: 50%; transform: rotate(90deg);`}
 
   > svg {
     width: ${p => p.size}px;
