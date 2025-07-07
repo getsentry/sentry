@@ -136,7 +136,6 @@ export function SpanSamplesTable({
               targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
-              projectSlug: row.project,
               organization,
               location: {
                 ...location,
@@ -170,7 +169,6 @@ export function SpanSamplesTable({
               targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
-              projectSlug: row.project,
               organization,
               location: {
                 ...location,

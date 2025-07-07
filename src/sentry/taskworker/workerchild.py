@@ -160,7 +160,7 @@ def child_process(
                 f"execution deadline of {deadline} seconds exceeded by {taskname}"
             )
 
-        while True:
+        while not shutdown_event.is_set():
             if max_task_count and processed_task_count >= max_task_count:
                 metrics.incr(
                     "taskworker.worker.max_task_count_reached",
@@ -169,10 +169,6 @@ def child_process(
                 logger.info(
                     "taskworker.max_task_count_reached", extra={"count": processed_task_count}
                 )
-                break
-
-            if shutdown_event.is_set():
-                logger.info("taskworker.worker.shutdown_event")
                 break
 
             child_tasks_get_start = time.monotonic()
