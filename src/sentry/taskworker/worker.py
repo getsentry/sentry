@@ -153,6 +153,14 @@ class TaskWorker:
         Add a task to child tasks queue. Returns False if no new task was fetched.
         """
         if self._child_tasks.full():
+            # I want to see how this differs between pools that operate well,
+            # and those that are not as effective. I suspect that with a consistent
+            # load of slowish tasks (like 5-15 seconds) that this will happen
+            # infrequently, resulting in the child tasks queue being full
+            # causing processing deadline expiration.
+            # Whereas in pools that have consistent short tasks, this happens
+            # more frequently, allowing workers to run more smoothly.
+            metrics.incr("taskworker.worker.add_tasks.child_tasks_full")
             return False
 
         inflight = self.fetch_task()
@@ -344,6 +352,7 @@ class TaskWorker:
                 extra={"processing_pool": self._processing_pool_name},
             )
 
+            # TODO cap backoff to 5 seconds instead?
             self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
             return None
 
