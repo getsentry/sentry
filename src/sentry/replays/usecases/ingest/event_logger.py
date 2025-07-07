@@ -48,7 +48,7 @@ class ReplayActionsEventPayload(TypedDict):
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: list[int]
+    payload: ReplayActionsEventPayload
     project_id: int
     replay_id: str
     retention_days: int
