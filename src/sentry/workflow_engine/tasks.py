@@ -1,4 +1,7 @@
-from sentry import nodestore
+from django.db import router, transaction
+from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
+
+from sentry import features, nodestore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -7,12 +10,13 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
-from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker import config, namespaces, retry
+from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker import config, namespaces
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
@@ -34,23 +38,45 @@ logger = log_context.get_logger(__name__)
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
     ),
 )
-def process_workflow_activity(activity_id: int, detector_id: int) -> None:
+def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
     """
-    Process a workflow task identified by the given Activity ID and Detector ID.
+    Process a workflow task identified by the given activity, group, and detector.
 
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    # TODO - @saponifi3d - implement this in a follow-up PR. This update will require WorkflowEventData
-    # to allow for an activity in the `event` attribute. That refactor is a bit noisy
-    # and will be done in a subsequent pr.
-    pass
+    with transaction.atomic(router.db_for_write(Detector)):
+        try:
+            activity = Activity.objects.get(id=activity_id)
+            group = Group.objects.get(id=group_id)
+            detector = Detector.objects.get(id=detector_id)
+        except (Activity.DoesNotExist, Group.DoesNotExist, Detector.DoesNotExist):
+            logger.exception(
+                "Unable to fetch data to process workflow activity",
+                extra={
+                    "activity_id": activity_id,
+                    "group_id": group_id,
+                    "detector_id": detector_id,
+                },
+            )
+            return  # Exit execution that we cannot recover from
+
+    event_data = WorkflowEventData(
+        event=activity,
+        group=group,
+    )
+
+    process_workflows(event_data, detector)
+    metrics.incr(
+        "workflow_engine.process_workflow.activity_update.executed",
+        tags={"activity_type": activity.type},
+    )
 
 
 @group_status_update_registry.register("workflow_status_update")
@@ -61,8 +87,10 @@ def workflow_status_update_handler(
     Hook the process_workflow_task into the activity creation registry.
 
     Since this handler is called in process for the activity, we want
-    to queue a task to process workflows asynchronously.
-    """
+    to queue a task to process workflows asynchronously."""
+    metrics.incr(
+        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+    )
     if activity.type not in SUPPORTED_ACTIVITIES:
         # If the activity type is not supported, we do not need to process it.
         return
@@ -75,10 +103,20 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.error.tasks.no_detector_id")
         return
 
-    # TODO - implement in follow-up PR for now, just track a metric that we are seeing the activities.
-    # process_workflow_task.delay(activity.id, detector_id)
-    metrics.incr(
-        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+    if features.has("organizations:workflow-engine-process-activity", group.organization):
+        process_workflow_activity.delay(
+            activity_id=activity.id,
+            group_id=group.id,
+            detector_id=detector_id,
+        )
+
+
+def _should_retry_nodestore_fetch(attempt: int, e: Exception) -> bool:
+    return not attempt > 3 and (
+        # ServiceUnavailable and DeadlineExceeded are generally retriable;
+        # we also include RetryError because the nodestore interface doesn't let
+        # us specify a timeout to BigTable and the default is 5s; see c5e2b40.
+        isinstance(e, (ServiceUnavailable, RetryError, DeadlineExceeded))
     )
 
 
@@ -87,7 +125,9 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     Fetch a single Event, with retries.
     """
     node_id = Event.generate_node_id(project_id, event_id)
-    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+    fetch_retry_policy = ConditionalRetryPolicy(
+        _should_retry_nodestore_fetch, exponential_delay(1.00)
+    )
     data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
@@ -110,12 +150,13 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     taskworker_config=config.TaskworkerConfig(
         namespace=namespaces.workflow_engine_tasks,
         processing_deadline_duration=60,
-        retry=retry.Retry(
+        retry=Retry(
             times=3,
             delay=5,
         ),
     ),
 )
+@retry
 def process_workflows_event(
     project_id: int,
     event_id: str,
@@ -140,6 +181,7 @@ def process_workflows_event(
         has_escalated=has_escalated,
         group_state=group_state,
         event=group_event,
+        group=group,
     )
     process_workflows(event_data)
 

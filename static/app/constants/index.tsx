@@ -352,6 +352,21 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
     },
   },
+  [DataCategoryExact.USER_REPORT_V2]: {
+    name: DataCategoryExact.USER_REPORT_V2,
+    apiName: 'feedback',
+    plural: DataCategory.USER_REPORT_V2,
+    displayName: 'user feedback',
+    titleName: t('User Feedback'),
+    productName: t('User Feedback'),
+    uid: 14,
+    isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/user-feedback/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',

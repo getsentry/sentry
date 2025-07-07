@@ -92,10 +92,10 @@ function NotesField() {
     <AutomationBuilderInput
       name={`${actionId}.data.notes`}
       placeholder={t('example notes')}
-      value={action.data.tags}
+      value={action.data.notes}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          data: {tags: e.target.value},
+          data: {...action.data, notes: e.target.value},
         });
       }}
     />

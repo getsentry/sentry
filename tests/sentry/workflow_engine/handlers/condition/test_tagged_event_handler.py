@@ -33,7 +33,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         self.event = self.get_event()
         self.group = self.create_group(project=self.project)
         self.group_event = self.event.for_group(self.group)
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},

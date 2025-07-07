@@ -173,8 +173,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
-    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
-    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
     API_PERFORMANCE_EVENTS_FACETS_STATS = (
         "api.organization-events-facets-stats-performance.top-tags"
     )
@@ -206,6 +204,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
         "api.performance.browser.web-vitals.project-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
     )
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
         "api.performance.browser.web-vitals.transaction"
@@ -488,6 +489,7 @@ class Referrer(StrEnum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
     API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
     API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
@@ -692,6 +694,29 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
         "api.performance.backend.overview.web-vitals-chart"
     )
+    API_PERFORMANCE_BACKEND_OVERVIEW_NEXTJS_API_TREE = "api.performance.nextjs.overview.api-tree"
+
+    # Performance Agent Monitoring Module
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOOLS_TABLE = "api.performance.agent-monitoring.tools-table"
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_TRACES_TABLE = "api.performance.agent-monitoring.traces-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOKEN_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.token-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_TOOL_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.tool-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_LLM_GENERATIONS_WIDGET = (
+        "api.performance.agent-monitoring.llm-generations-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_RUNS_WIDGET = (
+        "api.performance.agent-monitoring.agent-runs-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_DURATION_WIDGET = (
+        "api.performance.agent-monitoring.agent-duration-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_ONBOARDING = "api.performance.agent-monitoring.onboarding"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"

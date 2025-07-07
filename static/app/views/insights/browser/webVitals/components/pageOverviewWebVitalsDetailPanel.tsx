@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import Link from 'sentry/components/links/link';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -226,7 +226,6 @@ export function PageOverviewWebVitalsDetailPanel({
         eventId: row.id,
         traceSlug: row.trace,
         timestamp: row.timestamp,
-        projectSlug,
         organization,
         location,
         view: domainViewFilters.view,
@@ -396,7 +395,6 @@ export function PageOverviewWebVitalsDetailPanel({
           eventId: row.id,
           traceSlug: row.trace,
           timestamp: row.timestamp,
-          projectSlug: project.slug,
           organization,
           location,
           view: domainViewFilters.view,

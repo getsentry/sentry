@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -38,7 +39,6 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
 from sentry.api.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
-from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
@@ -74,6 +74,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -929,6 +930,11 @@ AUTH_URLS = [
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
     ),
+    re_path(
+        r"^merge-accounts/$",
+        AuthMergeUserAccountsEndpoint.as_view(),
+        name="sentry-api-0-auth-merge-accounts",
+    ),
 ]
 
 BROADCAST_URLS = [
@@ -1688,11 +1694,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-trends-stats/$",
         OrganizationEventsTrendsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans-aggregation/$",
-        OrganizationSpansAggregationEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-aggregation",
     ),
     # This endpoint is for experimentation only
     # Once this feature is developed, the endpoint will replace /events-trends-stats
@@ -3362,6 +3363,11 @@ urlpatterns = [
     re_path(
         r"^auth/",
         include(AUTH_URLS),
+    ),
+    # Auth
+    re_path(
+        r"^auth-v2/",
+        include(AUTH_V2_URLS),
     ),
     # Broadcasts
     re_path(

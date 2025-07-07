@@ -694,7 +694,7 @@ def should_create_group(
     )
 
     if over_threshold:
-        client.delete(grouphash)
+        client.delete(key)
         return True
     else:
         client.expire(key, noise_config.expiry_seconds)

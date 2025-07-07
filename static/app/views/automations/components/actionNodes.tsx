@@ -68,6 +68,7 @@ export function useActionNodeContext(): ActionNodeProps {
 
 type ActionNode = {
   action: React.ComponentType<any>;
+  defaultData?: Record<string, any>;
   details?: React.ComponentType<any>;
   label?: string;
   link?: string;
@@ -87,7 +88,12 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   ],
   [
     ActionType.EMAIL,
-    {label: t('Notify on preferred channel'), action: EmailNode, details: EmailDetails},
+    {
+      label: t('Notify on preferred channel'),
+      action: EmailNode,
+      details: EmailDetails,
+      defaultData: {fallthroughType: 'ActiveMembers'},
+    },
   ],
   [
     ActionType.DISCORD,
@@ -145,7 +151,12 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   ],
   [
     ActionType.OPSGENIE,
-    {label: t('Opsgenie'), action: OpsgenieNode, details: OpsgenieDetails},
+    {
+      label: t('Opsgenie'),
+      action: OpsgenieNode,
+      details: OpsgenieDetails,
+      defaultData: {priority: 'P1'},
+    },
   ],
   [
     ActionType.PAGERDUTY,
@@ -153,6 +164,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Pagerduty'),
       action: PagerdutyNode,
       details: PagerdutyDetails,
+      defaultData: {priority: 'default'},
     },
   ],
   [
