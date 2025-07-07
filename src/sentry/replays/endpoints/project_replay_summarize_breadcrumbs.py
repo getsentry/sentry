@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
@@ -109,7 +110,6 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 trace_ids=trace_ids,
                 start=filter_params["start"],
                 end=filter_params["end"],
-                request=request,
             )
             error_events = replay_errors + trace_connected_errors
         return self.paginate(
@@ -169,24 +169,21 @@ def fetch_trace_connected_errors(
     trace_ids: list[str],
     start: datetime | None,
     end: datetime | None,
-    request: Request | None = None,
 ) -> list[GroupEvent]:
     """Fetch error details given trace IDs and return a list of GroupEvent objects."""
     try:
         if not trace_ids:
             return []
 
-        if not request or not hasattr(request, "access"):
-            return []
-
         # Get projects in the organization that the user has access to
-        org_projects = list(Project.objects.filter(organization=project.organization))
-        accessible_projects = [p for p in org_projects if request.access.has_project_access(p)]
+        org_projects = list(
+            Project.objects.filter(organization=project.organization), status=ObjectStatus.ACTIVE
+        )
 
         queries = []
         for trace_id in trace_ids:
             snuba_params = SnubaParams(
-                projects=accessible_projects,
+                projects=org_projects,
                 start=start,
                 end=end,
                 organization=project.organization,
