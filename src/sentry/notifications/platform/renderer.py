@@ -3,7 +3,7 @@ from typing import Protocol
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
-    NotificationTemplate,
+    NotificationRenderedTemplate,
 )
 
 
@@ -22,7 +22,7 @@ class NotificationRenderer[RenderableT](Protocol):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate) -> RenderableT:
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> RenderableT:
         """
         Convert a loader, and data into a renderable object.
         The loader is run

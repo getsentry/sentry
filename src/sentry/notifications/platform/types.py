@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+import abc
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Protocol, TypedDict
@@ -73,8 +73,11 @@ class NotificationData(Protocol):
     All data passing through the notification platform must adhere to this protocol.
     """
 
-    category: NotificationCategory
     source: NotificationSource
+    """
+    The source is uniquely attributable to the way this notification was sent. It will be tracked in
+    metrics/analytics to determine the egress from a given code-path or service.
+    """
 
 
 class EmailRenderedTemplate(TypedDict):
@@ -98,26 +101,28 @@ class NotificationRenderedAction(TypedDict):
 
     label: str
     """
-    The text content of the action (usually appears as a button)
+    The text content of the action (usually appears as a button).
+    This string should not contain any formatting, and will be displayed as is.
     """
     link: str
     """
-    The underlying link of the action
+    The underlying link of the action.
     """
 
 
 @dataclass(frozen=True)
-class NotificationTemplate:
+class NotificationRenderedTemplate:
     subject: str
     """
     The subject or title of the notification. It's expected that the receiver understand the
     expected content of the notification based on this alone, and it will be the first thing
-    they see.
+    they see. This string should not contain any formatting, and will be displayed as is.
     """
     body: str
     """
     The full contents of the notification. Put the details of the notification here, but consider
-    keeping it concise and useful to the receiver.
+    keeping it concise and useful to the receiver. This string should not contain any formatting,
+    and will be displayed as is.
     """
     actions: list[NotificationRenderedAction]
     """
@@ -125,12 +130,13 @@ class NotificationTemplate:
     """
     chart: str | None = None
     """
-    A chart that will be displayed in the notification.
+    The accessible URL of a chart that will be displayed in the notification.
     """
     footer: str | None = None
     """
     Extra notification content that will appear after any actions, separate from the body. Optional,
     and consider omitting if the extra data is not necessary for your notification to be useful.
+    This string should not contain any formatting, and will be displayed as is.
     """
 
     # The following are optional, as omitting them will use a default email template which expects
@@ -151,7 +157,20 @@ class NotificationTemplate:
     """
 
 
-type NotificationTemplateLoader[DataT: NotificationData] = Callable[[DataT], NotificationTemplate]
-"""
-A loader is a function which takes in NotificationData and returns a valid NotificationTemplate.
-"""
+class NotificationTemplate[T: NotificationData](abc.ABC):
+    @property
+    @abc.abstractmethod
+    def category(self) -> NotificationCategory:
+        """
+        The category that a notification belongs to. This will be used to determine which settings a
+        user needs to modify to manage receipt of these notifications (if applicable).
+        """
+        ...
+
+    @abc.abstractmethod
+    def render(cls, data: T) -> NotificationRenderedTemplate:
+        """
+        Produce a rendered template given the notification data. Usually, this will involve
+        formatting the data into user-friendly strings of text.
+        """
+        ...

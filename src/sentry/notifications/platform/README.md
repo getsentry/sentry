@@ -8,8 +8,8 @@ A quick glossary overview:
 
 - **Notification Service** - the interface to actually send your notifications
 - **Notification Data** - the raw data which is necessary for your notification
-- **Notification Loader** - the function to format your raw data in a readable, user-friendly template
-- **Notification Template** - the standardized format all notifications adhere to prior to being sent
+- **Notification Template** - the class which is responsible for processing your raw Notification Data into a user readable format
+- **Notification Rendered Template** - the standardized format all notifications adhere to prior to being sent
 - **Notification Provider** - the medium to which a notification is sent (e.g. slack, discord)
 - **Notification Provider Renderer** - the adapter to convert templates to provider specific formats (e.g. Slack's BlockKit, HTML for emails)
 - **Notification Target** - the intended recipients of a notification
@@ -24,7 +24,7 @@ For wholly new notifications, you'll have to set up the following:
 
 1. Decide on a `NotificationCategory` (for opt-out) and assign a `NotificationSource` (for logs/metrics) in [types.py](./types.py).
 2. Use the above to create a dataclass (following the `NotificationData` protocol in [types.py](./types.py))
-3. Create a loader (`NotificationTemplateLoader` type) to convert your `NotificationData` to a `NotificationTemplate`.
+3. Create a template (`NotificationTemplate` subclass) to convert your `NotificationData` to a `NotificationRenderedTemplate`.
 4. Create targets from the intended recipients (preferably with a `NotificationStrategy`)
 5. Import the `NotificationService` into your app code, and call `notify()`!
 

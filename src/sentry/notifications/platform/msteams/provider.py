@@ -7,9 +7,9 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationTarget,
     NotificationTargetResourceType,
-    NotificationTemplate,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -23,7 +23,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate) -> MSTeamsRenderable:
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> MSTeamsRenderable:
         return {}
 
 

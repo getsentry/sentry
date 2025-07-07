@@ -12,8 +12,8 @@ from sentry.notifications.platform.types import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import (
     MockNotification,
+    MockNotificationTemplate,
     MockStrategy,
-    mock_notification_loader,
 )
 
 
@@ -24,11 +24,11 @@ class NotificationServiceTest(TestCase):
             resource_type=NotificationTargetResourceType.EMAIL,
             resource_id="test@example.com",
         )
-        self.loader = mock_notification_loader
+        self.template = MockNotificationTemplate()
 
     def test_basic_notify(self):
         service = NotificationService(data=MockNotification(message="this is a test notification"))
-        service.notify(targets=[self.target], loader=self.loader)
+        service.notify(targets=[self.target], template=self.template)
 
     @mock.patch("sentry.notifications.platform.service.logger")
     def test_validation_on_notify(self, mock_logger):
@@ -37,16 +37,16 @@ class NotificationServiceTest(TestCase):
             NotificationServiceError,
             match="Must provide either a strategy or targets. Strategy is preferred.",
         ):
-            service.notify(loader=self.loader)
+            service.notify(template=self.template)
 
         strategy = MockStrategy(targets=[])
         with pytest.raises(
             NotificationServiceError,
             match="Cannot provide both strategy and targets, only one is permitted. Strategy is preferred.",
         ):
-            service.notify(strategy=strategy, targets=[self.target], loader=self.loader)
+            service.notify(strategy=strategy, targets=[self.target], template=self.template)
 
-        service.notify(strategy=strategy, loader=self.loader)
+        service.notify(strategy=strategy, template=self.template)
         mock_logger.info.assert_called_once_with(
             "Strategy '%s' did not yield targets", strategy.__class__.__name__
         )
@@ -54,7 +54,7 @@ class NotificationServiceTest(TestCase):
     def test_basic_notify_prepared_target(self):
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         prepare_targets([self.target])
-        service.notify_prepared_target(target=self.target, loader=self.loader)
+        service.notify_prepared_target(target=self.target, template=self.template)
 
     def test_validation_on_notify_prepared_target(self):
         empty_data_service: NotificationService[Any] = NotificationService(data=None)
@@ -62,11 +62,11 @@ class NotificationServiceTest(TestCase):
             NotificationServiceError,
             match="Notification service must be initialized with data before sending!",
         ):
-            empty_data_service.notify_prepared_target(target=self.target, loader=self.loader)
+            empty_data_service.notify_prepared_target(target=self.target, template=self.template)
 
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with pytest.raises(
             NotificationServiceError,
             match="Target must have `prepare_targets` called prior to sending",
         ):
-            service.notify_prepared_target(target=self.target, loader=self.loader)
+            service.notify_prepared_target(target=self.target, template=self.template)

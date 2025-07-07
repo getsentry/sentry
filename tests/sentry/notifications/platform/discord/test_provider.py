@@ -6,15 +6,16 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.notifications.platform import MockNotification, mock_notification_loader
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 class DiscordRendererTest(TestCase):
     def test_default_renderer(self):
         renderer = DiscordNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
         data = MockNotification(message="test")
-        template = mock_notification_loader(data)
-        assert renderer.render(data=data, template=template) == {}
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
 class DiscordNotificationProviderTest(TestCase):

@@ -7,7 +7,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationStrategy,
     NotificationTarget,
-    NotificationTemplateLoader,
+    NotificationTemplate,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class NotificationService[T: NotificationData]:
         self,
         *,
         target: NotificationTarget,
-        loader: NotificationTemplateLoader[T],
+        template: NotificationTemplate[T],
     ) -> None:
         """
         Send a notification directly to a prepared target.
@@ -49,9 +49,9 @@ class NotificationService[T: NotificationData]:
         provider.validate_target(target=target)
 
         # Step 4: Render the template
-        renderer = provider.get_renderer(category=self.data.category)
-        template = loader(self.data)
-        renderable = renderer.render(data=self.data, template=template)
+        rendered_template = template.render(data=self.data)
+        renderer = provider.get_renderer(category=template.category)
+        renderable = renderer.render(data=self.data, rendered_template=rendered_template)
 
         # Step 5: Send the notification
         provider.send(target=target, renderable=renderable)
@@ -61,9 +61,8 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
-        loader: NotificationTemplateLoader[T],
+        template: NotificationTemplate[T],
     ) -> None:
-
         if not strategy and not targets:
             raise NotificationServiceError(
                 "Must provide either a strategy or targets. Strategy is preferred."
@@ -82,4 +81,4 @@ class NotificationService[T: NotificationData]:
         prepare_targets(targets=targets)
 
         for target in targets:
-            self.notify_prepared_target(target=target, loader=loader)
+            self.notify_prepared_target(target=target, template=template)

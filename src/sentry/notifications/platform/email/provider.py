@@ -7,9 +7,9 @@ from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationTarget,
     NotificationTargetResourceType,
-    NotificationTemplate,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -23,7 +23,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
     @classmethod
     def render[
         DataT: NotificationData
-    ](cls, *, data: DataT, template: NotificationTemplate) -> EmailRenderable:
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> EmailRenderable:
         return {}
 
 
