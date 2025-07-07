@@ -1,42 +1,33 @@
-import {useCallback, useMemo, useRef} from 'react';
-import type {
-  ComboBoxProps,
-  InputProps,
-  ListBoxItemProps,
-  ValidationResult,
-} from 'react-aria-components';
-import {
-  ComboBox,
-  FieldError,
-  InputContext,
-  Label,
-  ListBox,
-  ListBoxItem,
-  Popover,
-  Text,
-  useContextProps,
-} from 'react-aria-components';
-import {useTheme} from '@emotion/react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {useComboBox} from '@react-aria/combobox';
+import {useComboBoxState} from '@react-stately/combobox';
+import {useListState} from '@react-stately/list';
 
 import {Badge} from 'sentry/components/core/badge';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Overlay} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {normalizeFilename, useStoryTree} from 'sentry/stories/view/storyTree';
+import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import {useStoryTree} from 'sentry/stories/view/storyTree';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySearch() {
-  const searchInput = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const listBoxRef = useRef<HTMLElement | null>(null);
+  const popoverRef = useRef<HTMLElement | null>(null);
+  const labelRef = useRef<HTMLElement | null>(null);
   const files = useStoryBookFiles();
   const tree = useStoryTree(files, {query: '', representation: 'category', type: 'flat'});
   const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
+    return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
   useHotkeys(storiesSearchHotkeys);
   const location = useLocation();
@@ -45,24 +36,23 @@ export function StorySearch() {
   return (
     <SearchComboBox
       label={t('Search stories')}
-      defaultItems={tree.map(node => {
-        return {id: node.filesystemPath, name: normalizeFilename(node.name)};
-      })}
+      defaultItems={tree}
       defaultSelectedKey={defaultSelectedKey}
       menuTrigger="focus"
-      inputRef={searchInput}
+      listBoxRef={listBoxRef}
+      labelRef={labelRef}
+      inputRef={inputRef}
+      popoverRef={popoverRef}
+      items={tree}
     >
-      {item => (
-        <SearchItem key={item.id} textValue={item.name}>
-          <Text slot="label">{item.name}</Text>
-        </SearchItem>
-      )}
+      {tree}
     </SearchComboBox>
   );
 }
 
-function SearchInput(props: InputProps & React.RefAttributes<HTMLInputElement>) {
-  [props, props.ref] = useContextProps(props, props.ref ?? {current: null}, InputContext);
+function SearchInput(
+  props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
+) {
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
 
   return (
@@ -78,121 +68,73 @@ function SearchInput(props: InputProps & React.RefAttributes<HTMLInputElement>) 
   );
 }
 
-interface SearchComboBoxProps<T extends Record<PropertyKey, unknown>>
-  extends Omit<ComboBoxProps<T>, 'children'> {
-  children: React.ReactNode | ((item: T) => React.ReactNode);
+interface SearchComboBoxProps<T extends StoryTreeNode>
+  extends Omit<AriaComboBoxProps<T>, 'children'> {
+  children: Iterable<T>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  labelRef: React.RefObject<HTMLElement | null>;
+  listBoxRef: React.RefObject<HTMLElement | null>;
+  popoverRef: React.RefObject<HTMLElement | null>;
   description?: string | null;
-  errorMessage?: string | ((validation: ValidationResult) => string);
-  inputRef?: React.RefObject<HTMLInputElement | null>;
   label?: string;
 }
 
-function SearchComboBox<T extends Record<PropertyKey, unknown>>({
+function SearchComboBox<T extends StoryTreeNode>({
   label,
-  errorMessage,
-  children,
   inputRef,
+  listBoxRef,
+  popoverRef,
+  children,
+  defaultItems,
   ...props
 }: SearchComboBoxProps<T>) {
-  const navigate = useNavigate();
-  const handleSelectionChange = useCallback(
-    (key: string | number | boolean | null) => {
-      if (!key) {
+  // const navigate = useNavigate();
+  const state = useComboBoxState(props);
+  const listState = useListState<StoryTreeNode>({
+    items: defaultItems,
+    selectionMode: 'single',
+    selectionBehavior: 'replace',
+    disallowEmptySelection: true,
+    *filter(nodes) {
+      if (!state.inputValue) {
+        yield* nodes;
         return;
       }
-      navigate(`/stories?name=${encodeURIComponent(key)}`, {replace: true});
+      for (const node of nodes) {
+        if (node.textValue.includes(state.inputValue)) {
+          yield node;
+        }
+      }
     },
-    [navigate]
+  });
+  const {labelProps, inputProps, listBoxProps} = useComboBox(
+    {...props, items: children, inputRef, popoverRef, listBoxRef},
+    state
   );
+  // const handleAction = useCallback(
+  //   (key: string | number | boolean | null) => {
+  //     if (!key) {
+  //       return;
+  //     }
+  //     navigate(`/stories?name=${encodeURIComponent(key)}`, {replace: true});
+  //   },
+  //   [navigate]
+  // );
 
   return (
-    <ComboBox {...props} onSelectionChange={handleSelectionChange}>
-      <Label className="sr-only">{label}</Label>
-      <SearchInput ref={inputRef} placeholder={label} />
-      <FieldError>{errorMessage}</FieldError>
-      <Popover>
+    <div {...props}>
+      <label {...labelProps} className="sr-only">
+        {label}
+      </label>
+      <SearchInput ref={inputRef} placeholder={label} {...inputProps} />
+      <Overlay>
         <StorySearchContainer>
-          <ListBox
-            selectionBehavior="replace"
-            disallowEmptySelection
-            selectionMode="single"
-          >
-            {children}
-          </ListBox>
+          <ListBox listState={listState} keyDownHandler={() => false} {...listBoxProps} />
         </StorySearchContainer>
-      </Popover>
-    </ComboBox>
+      </Overlay>
+    </div>
   );
 }
-
-function SearchItem(props: ListBoxItemProps) {
-  const theme = useTheme();
-
-  return (
-    <StyledItem
-      {...props}
-      style={({isFocused, isSelected}) => ({
-        color: isSelected
-          ? theme.tokens.content.accent
-          : isFocused
-            ? theme.tokens.content.primary
-            : undefined,
-        '--selection-opacity': isFocused ? 1 : 0,
-        '--bar-opacity': isFocused || isSelected ? 1 : 0,
-        '--bar-color': isSelected
-          ? theme.tokens.graphics.accent
-          : isFocused
-            ? theme.tokens.graphics.muted
-            : undefined,
-      })}
-    >
-      {props.children}
-    </StyledItem>
-  );
-}
-
-const StyledItem = styled(ListBoxItem)`
-  display: flex;
-  flex-direction: column;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.75)};
-  color: ${p => p.theme.tokens.content.muted};
-  position: relative;
-  transition: none;
-  --selection-opacity: 0;
-  --bar-opacity: 0;
-  --bar-color: ${p => p.theme.tokens.graphics.muted};
-
-  &:before {
-    background: ${p => p.theme.gray100};
-    content: '';
-    inset: 0 ${space(0.25)} 0 -${space(0.25)};
-    position: absolute;
-    z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
-    opacity: var(--selection-opacity, 0);
-  }
-
-  &:after {
-    content: '';
-    position: absolute;
-    left: -8px;
-    height: 20px;
-    background: var(--bar-color);
-    width: 4px;
-    border-radius: ${p => p.theme.borderRadius};
-    opacity: var(--bar-opacity, 0);
-    transition: none;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-    --selection-opacity: 1;
-
-    &:before {
-      opacity: 1;
-    }
-  }
-`;
 
 const StorySearchContainer = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
