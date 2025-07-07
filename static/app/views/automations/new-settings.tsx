@@ -123,7 +123,7 @@ export default function AutomationNewSettings() {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      if (!errors) {
+      if (Object.keys(errors).length === 0) {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
