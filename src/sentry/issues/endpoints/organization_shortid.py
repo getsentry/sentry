@@ -1,5 +1,6 @@
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, inline_serializer
-from rest_framework import serializers
+from typing import TypedDict
+
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -15,7 +17,16 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.group import Group
+
+
+class ShortIdLookupResponse(TypedDict):
+    organizationSlug: str
+    projectSlug: str
+    groupId: str
+    group: BaseGroupSerializerResponse
+    shortId: str
 
 
 @extend_schema(tags=["Organizations"])
@@ -39,15 +50,9 @@ class ShortIdLookupEndpoint(GroupEndpoint):
             ),
         ],
         responses={
-            200: inline_serializer(
-                name="ShortIdLookupResponse",
-                fields={
-                    "organizationSlug": serializers.CharField(),
-                    "projectSlug": serializers.CharField(),
-                    "groupId": serializers.CharField(),
-                    "group": serializers.DictField(),
-                    "shortId": serializers.CharField(),
-                },
+            200: inline_sentry_response_serializer(
+                "ShortIdLookupResponse",
+                ShortIdLookupResponse,
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
