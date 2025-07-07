@@ -294,10 +294,10 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     annotations: NotRequired[list[GroupAnnotation]]
     # from base response optional
     isUnhandled: NotRequired[bool]
-    count: NotRequired[int]
+    count: NotRequired[str]
     userCount: NotRequired[int]
-    firstSeen: NotRequired[datetime]
-    lastSeen: NotRequired[datetime]
+    firstSeen: NotRequired[datetime | None]
+    lastSeen: NotRequired[datetime | None]
 
     # from the serializer itself
     stats: NotRequired[dict[str, Any]]
@@ -505,14 +505,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 result["stats"] = {self.stats_period: attrs["stats"]}
 
             if not self._collapse("lifetime"):
-                result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+                lifetime = dict(self._convert_seen_stats(attrs["lifetime"]))
+                result["lifetime"] = lifetime
                 if self.stats_period:
                     # Not needed in current implementation
                     result["lifetime"]["stats"] = None
 
             if not self._collapse("filtered"):
                 if self.conditions:
-                    filtered = self._convert_seen_stats(attrs["filtered"])
+                    filtered = dict(self._convert_seen_stats(attrs["filtered"]))
                     if self.stats_period:
                         filtered["stats"] = {self.stats_period: attrs["filtered_stats"]}
                     result["filtered"] = filtered
