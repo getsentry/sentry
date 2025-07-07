@@ -1,6 +1,6 @@
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import type {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
@@ -47,12 +47,11 @@ function ComparisonField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.comparison_type`}
+      aria-label={t('Comparison')}
       value={condition.comparison.comparison_type}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({
-          comparison_type: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, comparison_type: option.value}});
       }}
     />
   );
@@ -63,13 +62,12 @@ function ValueField() {
   return (
     <AutomationBuilderNumberInput
       name={`${condition_id}.comparison.value`}
+      aria-label={t('Value')}
       value={condition.comparison.value}
       min={0}
       step={1}
       onChange={(value: number) => {
-        onUpdate({
-          value,
-        });
+        onUpdate({comparison: {...condition.comparison, value}});
       }}
       placeholder={'10'}
     />
@@ -81,12 +79,11 @@ function TimeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.time`}
+      aria-label={t('Time unit')}
       value={condition.comparison.time}
       options={TIME_CHOICES}
       onChange={(option: SelectValue<TimeUnit>) => {
-        onUpdate({
-          time: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, time: option.value}});
       }}
     />
   );

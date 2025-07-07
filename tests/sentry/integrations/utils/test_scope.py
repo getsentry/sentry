@@ -75,9 +75,10 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
         bind_org_context_from_integration(integration.id)
 
-        mock_bind_ambiguous_org_context.assert_called_with(
-            [maisey_org.slug, charlie_org.slug], f"integration (id={integration.id})"
-        )
+        call_orgs, call_source = mock_bind_ambiguous_org_context.call_args[0]
+        # Prevent flakiness from random ordering of the org slugs
+        self.assertListEqual(sorted(call_orgs), sorted([maisey_org.slug, charlie_org.slug]))
+        assert call_source == f"integration (id={integration.id})"
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
     @patch("sentry.integrations.utils.scope.bind_organization_context")

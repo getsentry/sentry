@@ -114,6 +114,59 @@ class DiscoverQueryBuilderTest(TestCase):
             )
             bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
 
+    def test_multiple_wildcards(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover, self.params, query='title:["*A", "*B", "C", "D"]'
+        )
+
+        expected = Or(
+            [
+                Condition(
+                    Function("match", [Column("title"), "(?i)^.*A$"]),
+                    Op.EQ,
+                    1,
+                ),
+                Condition(
+                    Function("match", [Column("title"), "(?i)^.*B$"]),
+                    Op.EQ,
+                    1,
+                ),
+                Condition(Column("title"), Op.IN, ["C", "D"]),
+            ]
+        )
+
+        self.assertCountEqual(query.where[0].conditions, expected.conditions)
+
+    def test_single_wildcard_set(self):
+        query = DiscoverQueryBuilder(Dataset.Discover, self.params, query='title:["*A", "D"]')
+
+        expected = Or(
+            [
+                Condition(
+                    Function("match", [Column("title"), "(?i)^.*A$"]),
+                    Op.EQ,
+                    1,
+                ),
+                Condition(Column("title"), Op.IN, ["D"]),
+            ]
+        )
+
+        self.assertCountEqual(query.where[0].conditions, expected.conditions)
+
+    def test_single_wildcard(self):
+        query = DiscoverQueryBuilder(Dataset.Discover, self.params, query='title:["*A"]')
+
+        expected = [
+            Condition(
+                Function("match", [Column("title"), "(?i)^.*A$"]),
+                Op.EQ,
+                1,
+            ),
+            *self.default_conditions,
+        ]
+
+        self.assertCountEqual(query.where, expected)
+
     def test_simple_orderby(self):
         query = DiscoverQueryBuilder(
             Dataset.Discover,

@@ -113,7 +113,6 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             "preprod_artifact.api.update",
             organization_id=project.organization_id,
             project_id=project.id,
-            user_id=request.user.id,
         )
 
         # Validate request data
@@ -179,6 +178,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
 
         # Save the artifact if any fields were updated
         if updated_fields:
+            if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
+                preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+                updated_fields.append("state")
+
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
 
         return Response(

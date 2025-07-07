@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconArrow} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

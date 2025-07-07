@@ -60,12 +60,12 @@ class TestUpdater(TestCase):
         # SLO assertions
         assert_success_metric(mock_record=mock_record)
 
-        # CREATE (success) -> UPDATE (success)
+        # CREATE (success) -> INSTALLATION_CREATE (success) -> UPDATE (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     def test_updates_unpublished_app_scopes(self):
@@ -213,7 +213,8 @@ class TestUpdater(TestCase):
         self.updater.run(self.user)
         assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
 
-    def test_create_service_hook_on_update(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_service_hook_on_update(self, mock_record):
         self.create_project(organization=self.org)
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)
@@ -228,6 +229,17 @@ class TestUpdater(TestCase):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
         assert service_hook.events == expand_events(["issue"])
+
+        # SLO assertions
+        assert_success_metric(mock_record=mock_record)
+
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> WEBHOOK_UPDATE (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
 
     def test_delete_service_hook_on_update(self):
         self.create_project(organization=self.org)

@@ -15,8 +15,13 @@ export function IntegrationField() {
         value: team.id,
       }))}
       onChange={(option: SelectValue<string>) => {
+        const integration = handler.integrations?.find(i => i.id === option.value);
+        const defaultService = integration?.services?.[0]?.id;
         onUpdate({
           integrationId: option.value,
+          ...(defaultService && {
+            config: {...action.config, target_identifier: defaultService},
+          }),
         });
       }}
     />

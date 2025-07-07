@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {getShortEventId} from 'sentry/utils/events';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
