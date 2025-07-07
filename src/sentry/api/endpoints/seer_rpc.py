@@ -449,11 +449,6 @@ def get_attributes_and_values(
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
     )
-    if not sampled:
-        meta.downsampled_storage_config = DownsampledStorageConfig(
-            mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
-        )
-
     filter = TraceItemFilter()
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
