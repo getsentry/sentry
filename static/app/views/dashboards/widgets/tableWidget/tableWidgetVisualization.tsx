@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -158,7 +159,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   let widths = new Array(Object.keys(meta.fields).length).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
-  if (columns?.some(column => Object.hasOwn(column, 'width') && column.width)) {
+  if (columns?.some(column => defined(column.width))) {
     widths = columns.map(column => column.width ?? COL_WIDTH_UNDEFINED);
   } else if (resizable && Array.isArray(locationWidths)) {
     widths = locationWidths.map(width => parseInt(width, 10));
