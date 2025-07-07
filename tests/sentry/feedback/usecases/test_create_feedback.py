@@ -1205,7 +1205,6 @@ def test_create_feedback_issue_uses_generated_title(
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
-    # Get the occurrence from the call
     call_args = mock_produce_occurrence_to_kafka.call_args
     occurrence = call_args[1]["occurrence"]
 
