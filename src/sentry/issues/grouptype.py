@@ -504,7 +504,7 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
 
 # 1020 was DBQueryInjectionVulnerabilityGroupType, which was experimental
 @dataclass(frozen=True)
-class QueryInjectionVulnerabilityGroupType(GroupType):
+class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1021
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
