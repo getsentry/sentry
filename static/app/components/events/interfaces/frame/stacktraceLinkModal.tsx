@@ -59,7 +59,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
+  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
@@ -82,13 +82,11 @@ function StacktraceLinkModal({
 
   const suggestions = uniq(
     Array.isArray(suggestedCodeMappings)
-      ? suggestedCodeMappings
-          .map(suggestion => {
-            return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
-          })
-          .slice(0, 2)
+      ? suggestedCodeMappings.map(suggestion => {
+          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+        })
       : []
-  );
+  ).slice(0, 2);
 
   const onHandleChange = (input: string) => {
     setSourceCodeInput(input);
