@@ -192,7 +192,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.OTHER}
-        projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row.span_id}

@@ -392,7 +392,6 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
@@ -401,7 +400,6 @@ interface SpanIdRendererProps {
 }
 
 export function SpanIdRenderer({
-  projectSlug,
   spanId,
   timestamp,
   traceId,
@@ -412,7 +410,6 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    projectSlug,
     traceSlug: traceId,
     timestamp,
     eventId: transactionId,

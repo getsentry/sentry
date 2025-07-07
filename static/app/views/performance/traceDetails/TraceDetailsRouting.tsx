@@ -25,10 +25,7 @@ function TraceDetailsRouting(props: Props) {
     return children;
   }
 
-  if (
-    organization.features.includes('trace-view-v1') &&
-    !shouldForceRouteToOldView(organization, getEventTimestamp(event))
-  ) {
+  if (!shouldForceRouteToOldView(organization, getEventTimestamp(event))) {
     if (event?.groupID && event?.eventID) {
       const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
       browserHistory.replace({

@@ -16,7 +16,7 @@ import {PlanTier} from 'getsentry/types';
 describe('hookIntegrationFeatures', function () {
   const {FeatureList, IntegrationFeatures} = hookIntegrationFeatures();
 
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
 
   ConfigStore.set('user', UserFixture({isSuperuser: true}));
   beforeEach(() => {

@@ -197,7 +197,6 @@ function EventDisplay({
   const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
   const fullEventTarget = generateLinkToEventInTraceView({
     eventId: eventData.id,
-    projectSlug: project.slug,
     traceSlug,
     timestamp: eventData.endTimestamp,
     location,

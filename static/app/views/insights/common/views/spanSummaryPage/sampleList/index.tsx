@@ -131,7 +131,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
       router.push(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
-          projectSlug: span.project,
           spanId: span.span_id,
           location,
           organization,

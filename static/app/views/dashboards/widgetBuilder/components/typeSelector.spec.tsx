@@ -18,7 +18,7 @@ describe('TypeSelector', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture();
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
   });
 
   it('changes the visualization type', async function () {

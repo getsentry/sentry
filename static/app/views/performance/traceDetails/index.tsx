@@ -1,10 +1,7 @@
 import {Component} from 'react';
 
 import type {Client} from 'sentry/api';
-import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -37,6 +34,8 @@ type State = {
   limit: number;
 };
 
+// TODO Abdullah Khan: Remove all of the old trace details code before and the embedded components
+// Leaving them here for now to make sure we don't miss anything, during cleanup.
 class TraceSummary extends Component<Props> {
   state: State = {
     limit: DEFAULT_TRACE_ROWS_LIMIT,
@@ -181,21 +180,7 @@ class TraceSummary extends Component<Props> {
   }
 
   render() {
-    const {organization} = this.props;
-
-    if (organization.features.includes('trace-view-v1')) {
-      return <TraceViewV1 />;
-    }
-
-    return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            {this.renderContent()}
-          </NoProjectMessage>
-        </Layout.Page>
-      </SentryDocumentTitle>
-    );
+    return <TraceViewV1 />;
   }
 }
 

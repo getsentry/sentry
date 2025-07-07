@@ -18,7 +18,7 @@ describe('DatasetSelector', function () {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture();
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
   });
 
   it('changes the dataset', async function () {

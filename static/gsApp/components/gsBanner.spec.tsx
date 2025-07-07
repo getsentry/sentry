@@ -197,7 +197,7 @@ describe('GSBanner', function () {
 
   it('does not display trial ending modal more than 3 days', async function () {
     const now = moment();
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -217,7 +217,7 @@ describe('GSBanner', function () {
   });
 
   it('does not display trial ending modal to free plan', async function () {
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -237,7 +237,7 @@ describe('GSBanner', function () {
 
   it('does not display trial ending modal to plan trial', async function () {
     const now = moment();
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
