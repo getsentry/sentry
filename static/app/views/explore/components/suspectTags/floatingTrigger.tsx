@@ -21,7 +21,7 @@ type Props = {
 
 export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}: Props) {
   const router = useRouter();
-  const pageCoords = boxSelectOptions.pageCoords;
+  const triggerPosition = boxSelectOptions.floatingTriggerPosition;
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const {openDrawer} = useDrawer();
@@ -73,15 +73,15 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}
     }
   }, [boxSelectOptions, chartInfo, isDrawerOpen, openDrawer]);
 
-  if (!pageCoords) return null;
+  if (!triggerPosition) return null;
 
   return createPortal(
     <div
       ref={triggerWrapperRef}
       style={{
         position: 'absolute',
-        top: pageCoords.y,
-        left: pageCoords.x,
+        top: triggerPosition.top,
+        left: triggerPosition.left,
       }}
     >
       <List>
