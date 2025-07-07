@@ -1212,7 +1212,6 @@ def test_create_feedback_issue_uses_generated_title(
 
     # Check that the title is generated, not hardcoded
     assert occurrence.issue_title == "User Feedback: Login button is broken"
-    assert occurrence.issue_title != "User Feedback"
 
 
 @django_db_all
