@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -928,6 +929,11 @@ AUTH_URLS = [
         r"^validate/$",
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
+    ),
+    re_path(
+        r"^merge-accounts/$",
+        AuthMergeUserAccountsEndpoint.as_view(),
+        name="sentry-api-0-auth-merge-accounts",
     ),
 ]
 
