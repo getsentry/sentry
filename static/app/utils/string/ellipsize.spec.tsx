@@ -14,21 +14,27 @@ describe('ellipsize', () => {
     ['hello', 1, 'h…'],
     ['ab', 1, 'a…'],
     ['abc', 1, 'a…'],
-    ['hello', 0, '…'],
     ['hello there', 6, 'hello…'],
     ['  hello there', 6, '  hell…'],
-    ['', 0, ''],
-    ['hello', -1, ''],
-    ['hello', -5, ''],
     ['hello@world.com', 10, 'hello@worl…'],
     ['line1\nline2\nline3', 12, 'line1\nline2…'],
     ['café', 3, 'caf…'],
     ['résumé', 5, 'résum…'],
     ['👋 hello world', 8, '👋 hello…'],
-    ['   ', 2, ''],
+    ['   ', 7, '   '],
+    ['   ', 2, '  …'],
     ['  hello  ', 6, '  hell…'],
-    ['\t\n\r', 2, ''],
+    ['\t\n\r', 2, '\t\n…'],
   ])('should truncate "%s" with maxLength %d to "%s"', (input, maxLength, expected) => {
     expect(ellipsize(input, maxLength)).toBe(expected);
   });
+
+  it.each([[NaN, 0, -Infinity, -5, Infinity]])(
+    'throws an error if the input is %s',
+    input => {
+      expect(() => {
+        ellipsize('string', input);
+      }).toThrow();
+    }
+  );
 });
