@@ -78,16 +78,16 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
-   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL
-   * @param widths an array of numbers containing the widths by column order
-   */
-  onChangeResizeColumn?: (widths: number[]) => void;
-
-  /**
    * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
    * @param sort `Sort` object contain the `field` and `kind` ('asc' or 'desc')
    */
   onChangeSort?: (sort: Sort) => void;
+
+  /**
+   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL
+   * @param columns an array of columns with the updated widths
+   */
+  onResizeColumn?: (columns: TabularColumn[]) => void;
   /**
    * If true, will allow table columns to be resized, otherwise no resizing. By default this is true
    */
@@ -124,7 +124,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     aliases,
     onChangeSort,
     sort,
-    onChangeResizeColumn,
+    onResizeColumn,
     resizable = true,
   } = props;
 
@@ -155,21 +155,23 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
+  const numColumns = columns?.length ?? Object.keys(meta.fields).length;
 
-  let widths = new Array(columns?.length ?? Object.keys(meta.fields).length).fill(
-    COL_WIDTH_UNDEFINED
-  );
+  let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
     widths = columns.map(column =>
       defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
     );
-  } else if (resizable && Array.isArray(locationWidths)) {
-    locationWidths.forEach((width, index) => {
-      if (index >= widths.length) return;
+  } else if (
+    resizable &&
+    Array.isArray(locationWidths) &&
+    locationWidths.length === numColumns
+  ) {
+    widths = locationWidths.map(width => {
       const val = parseInt(width, 10);
-      widths[index] = isNaN(val) ? COL_WIDTH_UNDEFINED : val;
+      return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
     });
   }
 
@@ -182,30 +184,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       width: widths[index],
       type: meta.fields[key],
     }));
-
-  const onResizeColumn = (columnIndex: number, nextColumn: TabularColumn) => {
-    const newWidths: number[] = [...widths];
-    newWidths[columnIndex] = defined(nextColumn.width)
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-
-    if (onChangeResizeColumn) {
-      onChangeResizeColumn(newWidths);
-      return;
-    }
-
-    // Default is to fallback to location query
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          width: newWidths,
-        },
-      },
-      {replace: true}
-    );
-  };
 
   return (
     <GridEditable
@@ -264,7 +242,32 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
         },
-        onResizeColumn,
+        onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
+          widths[columnIndex] = defined(nextColumn.width)
+            ? nextColumn.width
+            : COL_WIDTH_UNDEFINED;
+          columnOrder[columnIndex] = {
+            ...nextColumn,
+            width: widths[columnIndex],
+          };
+
+          if (onResizeColumn) {
+            onResizeColumn(columnOrder);
+            return;
+          }
+
+          // Default is to fallback to location query
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                width: widths,
+              },
+            },
+            {replace: true}
+          );
+        },
       }}
       stickyHeader={scrollable}
       scrollable={scrollable}

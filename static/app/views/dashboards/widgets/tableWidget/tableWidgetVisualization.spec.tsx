@@ -199,7 +199,12 @@ describe('TableWidgetVisualization', function () {
       );
       const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
       await userEvent.click($header);
-      await waitFor(() => expect(onChangeSortMock).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(onChangeSortMock).toHaveBeenCalledWith({
+          field: 'count(span.duration)',
+          kind: 'desc',
+        })
+      );
     });
   });
 
@@ -221,15 +226,17 @@ describe('TableWidgetVisualization', function () {
         {target: $gridResizer, coords: {x: 100}},
         {keys: '[/MouseLeft]'},
       ]);
-      await waitFor(() => expect(testRouter.location.query.width).toBeDefined());
+      await waitFor(() =>
+        expect(testRouter.location.query.width).toStrictEqual(['100', '-1'])
+      );
     });
 
     it('Uses onChangeResizeColumn if supplied on column resize', async function () {
-      const onChangeResizeColumnMock = jest.fn((_widths: number[]) => {});
+      const onResizeColumnMock = jest.fn((_columns: TabularColumn[]) => {});
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          onChangeResizeColumn={onChangeResizeColumnMock}
+          onResizeColumn={onResizeColumnMock}
         />
       );
 
@@ -239,7 +246,22 @@ describe('TableWidgetVisualization', function () {
         {target: $gridResizer, coords: {x: 100}},
         {keys: '[/MouseLeft]'},
       ]);
-      await waitFor(() => expect(onChangeResizeColumnMock).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(onResizeColumnMock).toHaveBeenCalledWith([
+          {
+            key: 'http.request_method',
+            name: 'http.request_method',
+            type: 'string',
+            width: 100,
+          },
+          {
+            key: 'count(span.duration)',
+            name: 'count(span.duration)',
+            type: 'integer',
+            width: -1,
+          },
+        ])
+      );
     });
   });
 });
