@@ -39,7 +39,7 @@ export function PagerdutyNode() {
     {
       logo: ActionMetadata[ActionType.PAGERDUTY]?.icon,
       account: <IntegrationField />,
-      service: <ServiceField aria-label={t('Service')} />,
+      service: <ServiceField />,
       severity: <SeverityField />,
     }
   );

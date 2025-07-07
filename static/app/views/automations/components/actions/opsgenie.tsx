@@ -39,7 +39,7 @@ export function OpsgenieNode() {
     {
       logo: ActionMetadata[ActionType.OPSGENIE]?.icon,
       account: <IntegrationField />,
-      team: <ServiceField aria-label={t('Team')} />,
+      team: <ServiceField />,
       priority: <PriorityField />,
     }
   );
