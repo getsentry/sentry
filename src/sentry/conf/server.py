@@ -3396,6 +3396,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-dlq": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
+    "taskworker-buffer": "default",
+    "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
     "taskworker-cutover": "default",
