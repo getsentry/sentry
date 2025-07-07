@@ -34,5 +34,5 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
             code.regenerate_token()
         except UserMergeVerificationCode.DoesNotExist:
             code = UserMergeVerificationCode.objects.create(user_id=user.id)
-        code.send_email(user.id, code.token)
+        code.send_email()
         return Response(status=status.HTTP_201_CREATED)

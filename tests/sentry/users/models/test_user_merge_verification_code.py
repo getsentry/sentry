@@ -36,7 +36,7 @@ class TestUserMergeVerificationCode(TestCase):
     def test_send_email(self):
         code = UserMergeVerificationCode(user=self.user)
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
-            code.send_email(self.user.id, code.token)
+            code.send_email()
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]

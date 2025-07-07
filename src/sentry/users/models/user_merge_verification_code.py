@@ -53,21 +53,20 @@ class UserMergeVerificationCode(DefaultFieldsModel):
     def is_valid(self) -> bool:
         return timezone.now() < self.expires_at
 
-    @classmethod
-    def send_email(cls, user_id: int, token: str) -> None:
+    def send_email(self) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(id=self.user.id)
         except User.DoesNotExist:
             return
 
         context = {
             "user": user,
             "domain": get_server_hostname(),
-            "code": token,
+            "code": self.token,
             "mins_valid": TOKEN_MINUTES_VALID,
             "datetime": timezone.now(),
         }
