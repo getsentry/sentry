@@ -7,7 +7,7 @@ from sentry.api.event_search import event_search_grammar
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 
-APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\(([^)]+)\)"
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
 
 class QueryParts(TypedDict):
