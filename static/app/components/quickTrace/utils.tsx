@@ -31,8 +31,6 @@ export function isQuickTraceEvent(
 
 export type ErrorDestination = 'discover' | 'issue';
 
-export type TransactionDestination = 'discover' | 'performance';
-
 export function generateIssueEventTarget(
   event: TraceError | TracePerformanceIssue | TraceTree.EAPError,
   organization: Organization,

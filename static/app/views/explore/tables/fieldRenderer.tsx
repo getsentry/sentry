@@ -152,7 +152,6 @@ function BaseExploreFieldRenderer({
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
     const target = generateLinkToEventInTraceView({
-      projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
       targetId: data['transaction.span_id'],
