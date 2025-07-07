@@ -74,6 +74,7 @@ describe('tokenizeExpression', function () {
       'avg(   tags[foo,  number]   )',
       [s(0, ''), f(0, 'avg', [a(0, 'foo', 'number')]), s(1, '')],
     ],
+    ['epm()', [s(0, ''), f(0, 'epm', []), s(1, '')]],
   ])('tokenizes function `%s`', function (expression, expected) {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
