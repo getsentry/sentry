@@ -74,6 +74,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             stats_period="7d",
+            sampled=False,
         )
 
         assert result == {
@@ -122,6 +123,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "substring": "b",
                 },
             ],
+            sampled=False,
         )
 
         assert result == {
@@ -164,6 +166,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             stats_period="7d",
+            sampled=False,
         )
 
         assert result == {
