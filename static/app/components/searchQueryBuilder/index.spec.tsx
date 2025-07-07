@@ -31,6 +31,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import {TraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -936,6 +937,23 @@ describe('SearchQueryBuilder', function () {
 
       // Should have a filter token "browser.name:foo"
       expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+    });
+
+    it('displays ask seer button when searching free text', async function () {
+      const mockOnSearch = jest.fn();
+      render(
+        <TraceExploreAiQueryContext.Provider value={{}}>
+          <SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />
+        </TraceExploreAiQueryContext.Provider>,
+        {
+          organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {

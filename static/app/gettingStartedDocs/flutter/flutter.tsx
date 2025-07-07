@@ -77,6 +77,13 @@ Future<void> main() async {
       // Setting to 1.0 will profile 100% of sampled transactions:
       options.profilesSampleRate = 1.0;`
           : ''
+      }${
+        params.isReplaySelected
+          ? `
+      // Set sessionSampleRate to 0.1 to capture 10% of sessions and onErrorSampleRate to 1.0 to capture 100% of errors.
+      options.replay.sessionSampleRate = 0.1;
+      options.replay.onErrorSampleRate = 1.0;`
+          : ''
       }
     },
     appRunner: () => runApp(
@@ -168,8 +175,8 @@ const getInstallReplaySnippet = () => `
 await SentryFlutter.init(
   (options) {
     ...
-    options.experimental.replay.sessionSampleRate = 1.0;
-    options.experimental.replay.onErrorSampleRate = 1.0;
+    options.replay.sessionSampleRate = 1.0;
+    options.replay.onErrorSampleRate = 1.0;
   },
   appRunner: () => runApp(
       SentryWidget(
@@ -180,8 +187,8 @@ await SentryFlutter.init(
 `;
 
 const getConfigureReplaySnippet = () => `
-options.experimental.replay.maskAllText = true;
-options.experimental.replay.maskAllImages = true;`;
+options.replay.maskAllText = true;
+options.replay.maskAllImages = true;`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -452,10 +459,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.replay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.replay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

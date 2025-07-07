@@ -25,6 +25,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -351,6 +352,23 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
+  handleWidgetTableSort(index: number) {
+    const {dashboard, onUpdate} = this.props;
+    return function (sort: Sort) {
+      const widget = dashboard.widgets[index]!;
+      const widgetCopy = cloneDeep(widget);
+      if (widgetCopy.queries[0]) {
+        const direction = sort.kind === 'desc' ? '-' : '';
+        widgetCopy.queries[0].orderby = `${direction}${sort.field}`;
+      }
+
+      const nextList = [...dashboard.widgets];
+      nextList[index] = widgetCopy;
+
+      onUpdate(nextList);
+    };
+  }
+
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {
@@ -391,6 +409,7 @@ class Dashboard extends Component<Props, State> {
           index={String(index)}
           newlyAddedWidget={newlyAddedWidget}
           onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+          onWidgetTableSort={this.handleWidgetTableSort(index)}
         />
       </div>
     );

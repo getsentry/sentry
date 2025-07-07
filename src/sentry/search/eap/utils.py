@@ -108,7 +108,7 @@ def transform_column_to_expression(column: Column) -> Expression:
 
 def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorageConfig:
     if sampling_mode is None:
-        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY)
+        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_NORMAL)
     if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:

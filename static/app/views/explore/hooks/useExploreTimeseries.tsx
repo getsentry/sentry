@@ -7,13 +7,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
+  useExploreAggregateSortBys,
   useExploreDataset,
   useExploreGroupBys,
-  useExploreMode,
-  useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -71,8 +69,7 @@ function useExploreTimeseriesImpl({
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
-  const mode = useExploreMode();
-  const sortBys = useExploreSortBys();
+  const sortBys = useExploreAggregateSortBys();
   const visualizes = useExploreVisualizes({validate: true});
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
@@ -82,12 +79,8 @@ function useExploreTimeseriesImpl({
   }, [visualizes]);
 
   const fields: string[] = useMemo(() => {
-    if (mode === Mode.SAMPLES) {
-      return [];
-    }
-
     return [...groupBys, ...validYAxes].filter(Boolean);
-  }, [mode, groupBys, validYAxes]);
+  }, [groupBys, validYAxes]);
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {

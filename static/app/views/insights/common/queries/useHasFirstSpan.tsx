@@ -7,7 +7,6 @@ import {ModuleName} from 'sentry/views/insights/types';
 const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
-  ModuleName.MOBILE_VITALS,
   ModuleName.SESSIONS,
   ModuleName.AGENTS,
 ] as const;
@@ -29,6 +28,7 @@ const modulePropertyMap: Record<
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
+  [ModuleName.MOBILE_VITALS]: 'hasInsightsScreenLoad',
 };
 
 /**
