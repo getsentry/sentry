@@ -318,7 +318,6 @@ class BitbucketServerIntegration(RepositoryIntegration):
             organization_id=self.organization_id,
             providers=[
                 IntegrationProviderSlug.BITBUCKET_SERVER.value,
-                f"integrations:{IntegrationProviderSlug.BITBUCKET_SERVER.value}",
             ],
         )
 
