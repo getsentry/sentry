@@ -6,6 +6,7 @@ describe('ellipsize', () => {
     ['test', 5, 'test'],
     ['a', 2, 'a'],
     ['hello', 5, 'hello'],
+    ['hello', Infinity, 'hello'],
     ['test', 4, 'test'],
     ['a', 1, 'a'],
     ['hello world', 8, 'hello wo…'],
@@ -14,6 +15,7 @@ describe('ellipsize', () => {
     ['hello', 1, 'h…'],
     ['ab', 1, 'a…'],
     ['abc', 1, 'a…'],
+    ['abc', 0, '…'],
     ['hello there', 6, 'hello…'],
     ['  hello there', 6, '  hell…'],
     ['hello@world.com', 10, 'hello@worl…'],
@@ -29,12 +31,9 @@ describe('ellipsize', () => {
     expect(ellipsize(input, maxLength)).toBe(expected);
   });
 
-  it.each([[NaN, 0, -Infinity, -5, Infinity]])(
-    'throws an error if the input is %s',
-    input => {
-      expect(() => {
-        ellipsize('string', input);
-      }).toThrow();
-    }
-  );
+  it.each([[NaN], [-Infinity], [-5]])('throws an error if the input is %s', input => {
+    expect(() => {
+      ellipsize('string', input);
+    }).toThrow();
+  });
 });
