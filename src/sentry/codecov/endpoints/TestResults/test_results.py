@@ -56,9 +56,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(
-        self, request: Request, organization_id_or_slug: str, owner: str, repository: str, **kwargs
-    ) -> Response:
+    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
         sort_by = request.query_params.get(

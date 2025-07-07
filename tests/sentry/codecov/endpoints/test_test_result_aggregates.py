@@ -10,6 +10,13 @@ class TestResultsAggregatesEndpointTest(APITestCase):
 
     def setUp(self):
         super().setUp()
+        self.user = self.create_user(email="user@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="testowner",
+            provider="github",
+        )
         self.login_as(user=self.user)
 
     def reverse_url(self, owner="testowner", repository="testrepo"):

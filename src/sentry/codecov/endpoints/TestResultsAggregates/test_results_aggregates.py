@@ -42,9 +42,7 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(
-        self, request: Request, organization_id_or_slug: str, owner: str, repository: str, **kwargs
-    ) -> Response:
+    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """
         Retrieves aggregated test result metrics for a given repository and owner.
         Also accepts a query parameter to specify the time period for the metrics.
