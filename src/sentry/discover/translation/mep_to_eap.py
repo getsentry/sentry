@@ -84,8 +84,6 @@ def function_switcheroo(term):
         swapped_term = "apdex(span.duration,300)"
     elif term == "user_misery()":
         swapped_term = "user_misery(span.duration,300)"
-    elif term == "apdex()":
-        swapped_term = "apdex(span.duration,300)"
 
     match = re.match(APDEX_USER_MISERY_PATTERN, term)
     if match:
