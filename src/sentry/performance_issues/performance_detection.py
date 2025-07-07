@@ -8,7 +8,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -366,11 +366,12 @@ def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
+    organization = project.organization
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
-    if standalone:
+    if standalone or features.has("organizations:issue-detection-sort-spans", organization):
         # The performance detectors expect the span list to be ordered/flattened in the way they
         # are structured in the tree. This is an implicit assumption in the performance detectors.
         # So we build a tree and flatten it depth first.
@@ -399,11 +400,9 @@ def _detect_performance_problems(
             event_id,
             detectors,
             sdk_span,
-            project.organization,
+            organization,
             standalone=standalone,
         )
-
-    organization = project.organization
 
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
