@@ -10,6 +10,7 @@ import {StoryFooter} from 'sentry/stories/view/storyFooter';
 import {StoryTableOfContents} from 'sentry/stories/view/storyTableOfContents';
 import {space} from 'sentry/styles/space';
 
+import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
 import type {StoryDescriptor} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
@@ -142,12 +143,6 @@ function StoryUsage() {
       })}
     </Fragment>
   );
-}
-
-function StoryResources() {
-  const {story} = useStory();
-  if (!story.exports.frontmatter?.resources) return null;
-  return <Storybook.Section>{/* TODO */}</Storybook.Section>;
 }
 
 function StoryAPI() {
