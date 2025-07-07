@@ -6,17 +6,17 @@ import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/ac
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Input} from 'sentry/components/core/input';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 interface ArithmeticBuilderProps {
-  aggregateFunctions: AggregateFunction[];
+  aggregations: string[];
   expression: string;
   functionArguments: FunctionArgument[];
+  getFieldDefinition: (key: string) => FieldDefinition | null;
   className?: string;
   disabled?: boolean;
   setExpression?: (expression: Expression) => void;
@@ -25,8 +25,9 @@ interface ArithmeticBuilderProps {
 export function ArithmeticBuilder({
   expression,
   setExpression,
-  aggregateFunctions,
+  aggregations,
   functionArguments,
+  getFieldDefinition,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
@@ -39,10 +40,13 @@ export function ArithmeticBuilder({
     return {
       dispatch,
       focusOverride: state.focusOverride,
-      aggregateFunctions,
+      aggregations: aggregations.filter(aggregation => {
+        return getFieldDefinition(aggregation)?.kind === FieldKind.FUNCTION;
+      }),
       functionArguments,
+      getFieldDefinition,
     };
-  }, [state, dispatch, aggregateFunctions, functionArguments]);
+  }, [state, dispatch, aggregations, functionArguments, getFieldDefinition]);
 
   return (
     <PanelProvider>

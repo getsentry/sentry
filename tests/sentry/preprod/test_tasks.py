@@ -262,7 +262,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         with (
             patch("sentry.preprod.tasks.assemble_file", return_value=MockAssembleResult()),
             patch.object(
-                PreprodArtifact.objects, "create", side_effect=Exception("Simulated failure")
+                PreprodArtifact.objects, "get_or_create", side_effect=Exception("Simulated failure")
             ),
         ):
 
@@ -328,9 +328,9 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert details is None
 
         # Verify size analysis file and size metrics creation
-        size_files = File.objects.filter(type="preprod.size_analysis")
+        size_files = File.objects.filter(type="preprod.file")
         assert len(size_files) == 1
-        assert size_files[0].name.startswith("preprod-size-analysis-")
+        assert size_files[0].name.startswith("preprod-file-")
 
         # Verify PreprodArtifactSizeMetrics record was created
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
@@ -357,9 +357,9 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert details is None
 
         # Verify size analysis file was created
-        size_files = File.objects.filter(type="preprod.size_analysis")
+        size_files = File.objects.filter(type="preprod.file")
         assert len(size_files) == 1
-        assert size_files[0].name.startswith("preprod-size-analysis-")
+        assert size_files[0].name.startswith("preprod-file-")
 
         # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(

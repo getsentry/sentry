@@ -21,13 +21,13 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0009_drop_preprod_artifact_analysis_file_id_col
+preprod: 0010_actual_drop_preprod_artifact_analysis_file_id_col
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0939_rm_eventattachment_fileid_part2
+sentry: 0942_dashboard_remove_extra_user_org_position_constraint
 
-social_auth: 0001_squashed_0002_default_auto_field
+social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 

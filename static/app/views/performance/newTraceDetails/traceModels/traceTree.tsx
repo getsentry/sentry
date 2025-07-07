@@ -162,6 +162,7 @@ export declare namespace TraceTree {
     errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
+    name: string;
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
@@ -888,7 +889,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         } else {
           const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            Sentry.captureException('Detecting missing instrumentation failed');
+            Sentry.logger.error('Detecting missing instrumentation failed');
             return;
           }
 

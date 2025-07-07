@@ -649,6 +649,9 @@ SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 
 INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 
+# Protect login/registration endpoints during development phase
+AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
@@ -3388,11 +3391,14 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "snuba-ourlogs": "default",
+    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
+    "taskworker-buffer": "default",
+    "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
     "taskworker-cutover": "default",
@@ -3710,6 +3716,8 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
+
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = None
 
@@ -3729,11 +3737,11 @@ SHOW_LOGIN_BANNER = False
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
 # Example:
 # SLICED_KAFKA_TOPICS = {
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#   ("snuba-generic-metrics", 0): {
 #       "topic": "generic_metrics_0",
 #       "cluster": "cluster_1",
 #   },
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#   ("snuba-generic-metrics", 1): {
 #       "topic": "generic_metrics_1",
 #       "cluster": "cluster_2",
 # }
@@ -3953,6 +3961,9 @@ if ngrok_host:
     CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
+if SILO_DEVSERVER or IS_DEV:
+    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
@@ -3983,7 +3994,6 @@ if SILO_DEVSERVER:
     ]
     RPC_TIMEOUT = 15.0
     SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
-    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"

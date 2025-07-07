@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
@@ -81,7 +81,6 @@ export function EventSamplesTable({
         <Link
           to={generateLinkToEventInTraceView({
             eventId: row[eventIdKey],
-            projectSlug: row.project,
             traceSlug: row.trace,
             timestamp: row.timestamp,
             organization,

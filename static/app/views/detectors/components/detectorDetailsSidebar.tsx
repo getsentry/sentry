@@ -23,6 +23,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function getDetectorEnvironment(detector: Detector) {
   return (
@@ -66,6 +67,11 @@ function AssignToUser({userId}: {userId: string}) {
 }
 
 function DetectorPriorities({detector}: {detector: Detector}) {
+  // TODO: Add support for other detector types
+  if (!('detection_type' in detector.config)) {
+    return null;
+  }
+
   const detectionType = detector.config?.detection_type || 'static';
 
   // For dynamic detectors, show the automatic priority message
@@ -93,7 +99,7 @@ function DetectorPriorities({detector}: {detector: Detector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
-    const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
+    const thresholdSuffix = getMetricDetectorSuffix(detector);
 
     return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
@@ -119,6 +125,11 @@ function DetectorPriorities({detector}: {detector: Detector}) {
 }
 
 function DetectorResolve({detector}: {detector: Detector}) {
+  // TODO: Add support for other detector types
+  if (!('detection_type' in detector.config)) {
+    return null;
+  }
+
   const detectionType = detector.config?.detection_type || 'static';
   const conditions = detector.conditionGroup?.conditions || [];
 
@@ -126,8 +137,7 @@ function DetectorResolve({detector}: {detector: Detector}) {
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
-
-  const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
+  const thresholdSuffix = getMetricDetectorSuffix(detector);
 
   const description = getResolutionDescription({
     detectionType,

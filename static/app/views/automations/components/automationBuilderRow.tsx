@@ -21,12 +21,12 @@ export default function AutomationBuilderRow({
     <RowContainer incompatible={isConflicting}>
       <RowLine>{children}</RowLine>
       <DeleteButton
-        aria-label={t('Delete Condition')}
+        aria-label={t('Delete row')}
         size="sm"
         icon={<IconDelete />}
         borderless
         onClick={onDelete}
-        className={'delete-condition'}
+        className={'delete-row'}
       />
     </RowContainer>
   );
@@ -43,10 +43,10 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   min-height: 46px;
   align-items: center;
 
-  .delete-condition {
+  .delete-row {
     opacity: 0;
   }
-  :hover .delete-condition {
+  :hover .delete-row {
     opacity: 1;
   }
 `;

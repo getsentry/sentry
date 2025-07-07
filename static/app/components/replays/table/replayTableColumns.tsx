@@ -8,10 +8,10 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
@@ -54,7 +54,7 @@ interface RenderProps {
   showDropdownFilters: boolean;
 }
 
-interface ReplayTableColumn {
+export interface ReplayTableColumn {
   Component: (props: RenderProps) => ReactNode;
   name: string;
   sortKey: undefined | ReplayRecordNestedFieldName;
@@ -183,7 +183,10 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       return null;
     }
     return (
-      <DropdownContainer key="countErrors">
+      <DropdownContainer
+        key="countErrors"
+        data-test-id="replay-table-column-count-errors"
+      >
         <TabularNumber>
           {replay.count_errors ? (
             <Flex gap={space(0.5)}>
@@ -401,7 +404,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       <Flex key="session" align="center" gap={space(1)}>
         <UserAvatar user={getUserBadgeUser(replay)} size={24} />
         <SubText>
-          <Flex gap={space(0.5)}>
+          <Flex gap={space(0.5)} align="flex-start">
             <DisplayNameLink
               to={
                 isIssuesReplayList
@@ -484,7 +487,6 @@ function getUserBadgeUser(replay: ListRecord) {
 }
 
 const DropdownContainer = styled(Flex)`
-  position: relative;
   flex-direction: column;
   justify-content: center;
 `;
@@ -505,6 +507,7 @@ const SubText = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
+  align-items: flex-start;
 `;
 
 const DisplayNameLink = styled(Link)`
@@ -523,7 +526,7 @@ const PlayPauseButtonContainer = styled(Flex)`
   flex-direction: column;
   justify-content: center;
 
-  margin-inline: -${space(1)};
+  margin: 0 -${space(2)} 0 -${space(1)};
 `;
 
 const SpanOperationBreakdown = styled('div')`

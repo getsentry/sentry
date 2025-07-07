@@ -18,7 +18,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 100
+CHUNK_SIZE = 20
 
 
 # copied constants and enums
@@ -139,15 +139,23 @@ def _backfill_group_open_periods(
     # but we don't create an entry for that.
 
     activities = defaultdict(list)
-    for activity in Activity.objects.filter(
-        group_id__in=group_ids,
-        type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
-    ).order_by("datetime"):
-        # Skip activities before the group's first_seen date
-        if activity.datetime < activity.group.first_seen:
-            continue
 
-        activities[activity.group_id].append(activity)
+    try:
+        for activity in Activity.objects.filter(
+            group_id__in=group_ids,
+            type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
+        ).order_by("datetime"):
+            # Skip activities before the group's first_seen date
+            if activity.datetime < activity.group.first_seen:
+                continue
+
+            activities[activity.group_id].append(activity)
+    except Exception as e:
+        logger.exception(
+            "Error getting activities",
+            extra={"group_ids": group_ids, "error": e},
+        )
+        return
 
     open_periods = []
     for group_id, first_seen, status, project_id in group_data:
@@ -180,7 +188,7 @@ def _backfill_group_open_periods(
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
-    backfill_key = "backfill_group_open_periods_from_activity_0630_1"
+    backfill_key = "backfill_group_open_periods_from_activity_0702_1"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
