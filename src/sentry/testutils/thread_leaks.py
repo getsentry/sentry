@@ -6,30 +6,41 @@ does a bit of work to record and show exactly where the Thread came from, which
 proved essential when working to fix these things.
 """
 
+import os
 import sys
 import threading
 import traceback
 from contextlib import contextmanager
+from traceback import StackSummary
 from typing import Any
 from unittest import mock
 
+_CWD = os.getcwd() + "/"
 
-def _get_irrelevant_frame_paths() -> tuple[str, ...]:
-    result = (
+
+def _get_third_party_frame_paths() -> frozenset[str]:
+    """Get all path prefixes that indicate stdlib or third-party code."""
+    return frozenset(
         path + "/"
         for path in (sys.prefix, sys.exec_prefix, getattr(sys, "_stdlib_dir", None))
         if isinstance(path, str)
     )
 
-    return tuple(sorted(set(result)))
-
 
 # a set of "not our code" directories, suitable for str.startswith()
-_IRRELEVANT_FRAME_PATHS = _get_irrelevant_frame_paths()
+_THIRD_PARTY_FRAME_PATHS = tuple(_get_third_party_frame_paths())
 
 
-def _relevant_frames(stack: traceback.StackSummary):
-    return [frame for frame in stack[:-1] if not frame.filename.startswith(_IRRELEVANT_FRAME_PATHS)]
+def _relevant_frames(stack: StackSummary) -> StackSummary:
+    return StackSummary.from_list(
+        traceback.FrameSummary(frame.filename.replace(_CWD, "./"), frame.lineno, frame.name)
+        for frame in stack
+        if (
+            not frame.filename.startswith(_THIRD_PARTY_FRAME_PATHS)
+            and not frame.filename == __file__
+            and frame.line is not None  # e.g. "frozen" modules
+        )
+    )
 
 
 def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
@@ -49,7 +60,6 @@ def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
             where = "\n"
         result.append(
             f"""
-Thread ID: {thread.ident}
 {thread!r}@{func_fqname}{where}"""
         )
     return "".join(result)
@@ -57,14 +67,16 @@ Thread ID: {thread.ident}
 
 @contextmanager
 def threading_remembers_where():
-    orig = threading.Thread.__init__
+    """Smuggle a ._where string attribute onto each Thread construction."""
+    __init__ = threading.Thread.__init__
 
-    def new(self: threading.Thread, *a: Any, **k: Any) -> None:
+    def patched__init__(self: threading.Thread, *a: Any, **k: Any) -> None:
         frames = _relevant_frames(traceback.extract_stack())
-        setattr(self, "_where", "".join(traceback.format_list(frames)))
-        orig(self, *a, **k)
+        where = "".join(frames.format())
+        setattr(self, "_where", where)
+        __init__(self, *a, **k)
 
-    with mock.patch.object(threading.Thread, "__init__", new):
+    with mock.patch.object(threading.Thread, "__init__", patched__init__):
         yield
 
 
