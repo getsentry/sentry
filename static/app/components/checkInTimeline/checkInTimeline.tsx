@@ -152,6 +152,8 @@ const TimelineContainer = styled('div')`
   height: 14px;
   width: 100%;
   overflow: hidden;
+  /* TimelineContainer should be above the GridLineContainer */
+  z-index: 2;
 `;
 
 const JobTick = styled('div')<{
