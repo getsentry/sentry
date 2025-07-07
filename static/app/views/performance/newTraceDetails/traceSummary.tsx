@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';

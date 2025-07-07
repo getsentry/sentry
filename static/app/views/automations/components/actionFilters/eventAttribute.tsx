@@ -32,6 +32,7 @@ function AttributeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.attribute`}
+      aria-label={t('Attribute')}
       placeholder={t('attribute')}
       value={condition.comparison.attribute}
       options={Object.values(Attributes).map(attribute => ({
@@ -39,9 +40,7 @@ function AttributeField() {
         label: attribute,
       }))}
       onChange={(value: Attributes) => {
-        onUpdate({
-          attribute: value,
-        });
+        onUpdate({comparison: {...condition.comparison, attribute: value}});
       }}
     />
   );
@@ -52,12 +51,11 @@ function MatchField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
+      aria-label={t('Match type')}
       value={condition.comparison.match}
       options={MATCH_CHOICES}
       onChange={(value: MatchType) => {
-        onUpdate({
-          match: value,
-        });
+        onUpdate({comparison: {...condition.comparison, match: value}});
       }}
     />
   );
@@ -68,12 +66,11 @@ function ValueField() {
   return (
     <AutomationBuilderInput
       name={`${condition_id}.comparison.value`}
+      aria-label={t('Value')}
       placeholder={t('value')}
       value={condition.comparison.value}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          value: e.target.value,
-        });
+        onUpdate({comparison: {...condition.comparison, value: e.target.value}});
       }}
     />
   );
