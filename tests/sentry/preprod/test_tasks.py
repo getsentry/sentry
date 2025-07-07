@@ -262,7 +262,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         with (
             patch("sentry.preprod.tasks.assemble_file", return_value=MockAssembleResult()),
             patch.object(
-                PreprodArtifact.objects, "create", side_effect=Exception("Simulated failure")
+                PreprodArtifact.objects, "get_or_create", side_effect=Exception("Simulated failure")
             ),
         ):
 
