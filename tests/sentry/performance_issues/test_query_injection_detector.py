@@ -34,7 +34,7 @@ class QueryInjectionDetectorTest(TestCase):
         problem = problems[0]
 
         assert problem.type == QueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-1c333b3c472df81fde8a61cdfae24c86676bd582"
+        assert problem.fingerprint == "1-1021-1c333b3c472df81fde8a61cdfae24c86676bd582"
         assert problem.op == "db"
         assert (
             problem.desc
