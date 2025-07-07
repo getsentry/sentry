@@ -116,6 +116,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/auth/config/$'),
   new RegExp('^api/0/auth/login/$'),
   new RegExp('^api/0/auth/validate/$'),
+  new RegExp('^api/0/auth/user-merge-verification-codes/$'),
   new RegExp('^api/0/auth-v2/login/$'),
   new RegExp('^api/0/broadcasts/$'),
   new RegExp('^api/0/broadcasts/[^/]+/$'),
