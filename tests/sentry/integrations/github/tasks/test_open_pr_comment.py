@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.utils import timezone
@@ -1008,11 +1009,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     def setUp(self):
         self.user_id = "user_1"
         self.app_id = "app_1"
-
-        self.group_id_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
+        self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
             0
-        ].group.id
-        self.group_id_2 = [
+        ].group
+        self.group_id_1 = self.group_1.id
+        self.group_2 = [
             self._create_event(
                 culprit="issue2",
                 filenames=["foo.py", "bar.py"],
@@ -1020,7 +1021,8 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 user_id=str(i),
             )
             for i in range(6)
-        ][0].group.id
+        ][0].group
+        self.group_id_2 = self.group_2.id
 
         self.gh_repo = self.create_repo(
             name="getsentry/sentry",
@@ -1040,7 +1042,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 "event_count": 1000 * (i + 1),
                 "function_name": "function_" + str(i),
             }
-            for i, g in enumerate(Group.objects.all())
+            for i, g in enumerate([self.group_1, self.group_2])
         ]
         self.groups.reverse()
 
@@ -1073,14 +1075,28 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             json={"id": 1},
             headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
         )
-
         open_pr_comment_workflow(self.pr.id)
 
-        assert (
-            f'"body": "## \\ud83d\\udd0d Existing Issues For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
-            in responses.calls[0].request.body
+        expected_body = (
+            "## 🔍 Existing Issues For Review\n"
+            "Your pull request is modifying functions with the following pre-existing issues:\n\n"
+            "📄 File: **foo.py**\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "<details>\n"
+            "<summary><b>📄 File: bar.py (Click to Expand)</b></summary>\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "</details>\n"
+            "---\n\n"
+            "<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         )
 
+        assert orjson.loads(responses.calls[0].request.body.decode())["body"] == expected_body
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         comment = pull_request_comment_query[0]

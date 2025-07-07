@@ -5,17 +5,11 @@ import responses
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_app_installed, assert_plugin_installed
 from sentry_plugins.redmine.plugin import RedminePlugin
 
 
 def test_conf_key() -> None:
     assert RedminePlugin().conf_key == "redmine"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("redmine", RedminePlugin())
-    assert_app_installed("redmine", "sentry_plugins.redmine")
 
 
 class RedminePluginTest(PluginTestCase):

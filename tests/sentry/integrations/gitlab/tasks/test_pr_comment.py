@@ -434,7 +434,7 @@ This merge request was deployed and Sentry observed the following issues:
         }
 
         pull_request_comment.refresh_from_db()
-        assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
+        assert pull_request_comment.group_ids == groups
         assert pull_request_comment.updated_at == timezone.now()
         mock_metrics.incr.assert_called_with("gitlab.pr_comment.comment_updated")
 

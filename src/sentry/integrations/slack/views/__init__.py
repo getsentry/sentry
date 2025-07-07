@@ -11,7 +11,6 @@ SALT = "sentry-slack-integration"
 
 
 def build_linking_url(endpoint: str, **kwargs: Any) -> str:
-    """TODO(mgaeta): Remove cast once sentry/utils/http.py is typed."""
     url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
     return url
 
