@@ -108,12 +108,6 @@ def assemble_preprod_artifact(
                 )
 
                 if assemble_result is None:
-                    set_assemble_status(
-                        AssembleTask.PREPROD_ARTIFACT,
-                        project_id,
-                        checksum,
-                        ChunkFileState.NOT_FOUND,
-                    )
                     logger.warning(
                         "Assemble result is None, returning early",
                         extra={
