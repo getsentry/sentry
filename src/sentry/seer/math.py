@@ -173,8 +173,9 @@ def _boxcox_normmax(values: list[float], max_iters: int = 100) -> float:
     if not values:
         return 0.0
 
-    if any(v <= 0 for v in values):
-        raise ValueError("All values must be positive for BoxCox transformation")
+    min_value = min(values)
+    if min_value <= 0:
+        values = [v - min_value + 1 for v in values]
 
     left = -2.0
     right = 2.0
