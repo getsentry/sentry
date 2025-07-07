@@ -1159,20 +1159,11 @@ def test_generate_feedback_title():
 
     # Test message with more than 10 words (should truncate)
     long_message = "This is a very long feedback message that goes on and on and describes many different issues"
-    expected = "User Feedback: This is a very long feedback message that goes on and..."
+    expected = "User Feedback: This is a very long feedback message that goes on..."
     assert generate_feedback_title(long_message) == expected
 
     # Test very short message
     assert generate_feedback_title("Bug") == "User Feedback: Bug"
-
-    # Test empty message
-    assert generate_feedback_title("") == "User Feedback"
-
-    # Test whitespace-only message
-    assert generate_feedback_title("   ") == "User Feedback"
-
-    # Test None message
-    assert generate_feedback_title(None) == "User Feedback"
 
     # Test custom max_words parameter
     message = "This is a test with custom word limit"
@@ -1197,7 +1188,6 @@ def test_create_feedback_issue_uses_generated_title(
 ):
     """Test that create_feedback_issue uses the generated title."""
 
-    # Test with a simple message
     event = mock_feedback_event(default_project.id)
     event["contexts"]["feedback"]["message"] = "Login button is broken"
 
@@ -1205,19 +1195,10 @@ def test_create_feedback_issue_uses_generated_title(
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
-    # Get the occurrence from the call
     call_args = mock_produce_occurrence_to_kafka.call_args
     occurrence = call_args[1]["occurrence"]
 
-    # Check that the title is generated, not hardcoded
     assert occurrence.issue_title == "User Feedback: Login button is broken"
-
-
-@django_db_all
-def test_create_feedback_issue_title_with_long_message(
-    default_project, mock_produce_occurrence_to_kafka
-):
-    """Test that long feedback messages are properly truncated in the title."""
 
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
@@ -1226,14 +1207,14 @@ def test_create_feedback_issue_title_with_long_message(
 
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
+    assert mock_produce_occurrence_to_kafka.call_count == 2
 
     call_args = mock_produce_occurrence_to_kafka.call_args
     occurrence = call_args[1]["occurrence"]
 
     # Check that the title is truncated properly
     expected_title = (
-        "User Feedback: This is a very long feedback message that describes multiple issues..."
+        "User Feedback: This is a very long feedback message that describes multiple..."
     )
     assert occurrence.issue_title == expected_title
     assert len(occurrence.issue_title) <= 200

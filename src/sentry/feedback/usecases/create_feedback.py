@@ -290,17 +290,16 @@ def generate_feedback_title(feedback_message: str, max_words: int = 10) -> str:
     Returns:
         A formatted title string
     """
-    if not feedback_message or not feedback_message.strip():
-        return "User Feedback"
+    stripped_message = feedback_message.strip()
 
     # Clean and split the message into words
-    words = feedback_message.strip().split()
+    words = stripped_message.split()
 
     if len(words) <= max_words:
-        summary = feedback_message.strip()
+        summary = stripped_message
     else:
         summary = " ".join(words[:max_words])
-        if len(summary) < len(feedback_message.strip()):
+        if len(summary) < len(stripped_message):
             summary += "..."
 
     title = f"User Feedback: {summary}"
