@@ -415,7 +415,10 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (organization.features.includes('performance-trace-explorer')) {
+  if (
+    organization.features.includes('performance-trace-explorer') ||
+    organization.features.includes('visibility-explore-view')
+  ) {
     return 'traces';
   }
 
