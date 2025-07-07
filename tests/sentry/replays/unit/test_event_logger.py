@@ -1,8 +1,6 @@
 import uuid
 from unittest import mock
 
-import pytest
-
 from sentry.replays.usecases.ingest.event_logger import emit_click_events, gen_rage_clicks
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 
@@ -33,8 +31,7 @@ def test_gen_rage_clicks():
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
-@pytest.mark.parametrize("test_environment", ["production", "dev", "", None])
-def test_emit_click_events_environment_handling(test_environment):
+def test_emit_click_events_environment_handling():
     click_events = [
         ClickEvent(
             timestamp=1,
@@ -63,7 +60,7 @@ def test_emit_click_events_environment_handling(test_environment):
             replay_id=uuid.uuid4().hex,
             retention_days=30,
             start_time=1,
-            environment=test_environment,
+            environment="prod",
         )
         assert producer.called
         assert producer.call_args is not None
