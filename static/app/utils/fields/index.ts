@@ -867,6 +867,19 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.MIN]: {
     ...AGGREGATION_FIELDS[AggregationKey.MIN],
     parameters: [

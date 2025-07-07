@@ -1,10 +1,16 @@
 import {useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
+import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import type {EchartBrushAreas, EChartBrushEndHandler} from 'sentry/types/echarts';
+import type {
+  EchartBrushAreas,
+  EChartBrushEndHandler,
+  EChartBrushStartHandler,
+} from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 
 type Props = {
   chartRef: React.RefObject<EChartsReact | null>;
@@ -20,6 +26,7 @@ export type BoxSelectOptions = {
   brush: EChartsOption['brush'];
   clearSelection: () => void;
   onBrushEnd: EChartBrushEndHandler;
+  onBrushStart: EChartBrushStartHandler;
   pageCoords: {x: number; y: number} | null;
   reActivateSelection: () => void;
   toolBox: ToolboxComponentOption | undefined;
@@ -44,6 +51,9 @@ export function useChartBoxSelect({
   triggerWrapperRef,
 }: Props): BoxSelectOptions {
   const organization = useOrganization();
+
+  const {groupName} = useWidgetSyncContext();
+
   const enabledBoxSelect = organization.features.includes(
     'performance-spans-suspect-attributes'
   );
@@ -63,6 +73,14 @@ export function useChartBoxSelect({
     x => (x + 1) % Number.MAX_SAFE_INTEGER,
     0
   );
+
+  const onBrushStart = useCallback<EChartBrushStartHandler>(() => {
+    // Echarts either lets us connect all interactivity of the charts in a group or none of them.
+    // We need connectivity for cursor syncing, but having that enabled while drawing, leads to a
+    // box drawn for all of the charts in the group. We are going for chart specific box selections,
+    // so we disconnect the group while drawing.
+    echarts?.disconnect(groupName);
+  }, [groupName]);
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt: any, chart: any) => {
@@ -102,7 +120,7 @@ export function useChartBoxSelect({
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
       if (brushArea) {
-        setPageCoords({x: e.clientX, y: e.clientY});
+        setPageCoords({x: e.clientX, y: e.clientY + window.scrollY});
       } else {
         setPageCoords(null);
       }
@@ -157,6 +175,10 @@ export function useChartBoxSelect({
         type: 'brush',
         areas: brushArea,
       });
+
+      // We re-connect the group after drawing the box, so that the cursor is synced across all charts again.
+      // Check the onBrushStart handler for more details.
+      echarts?.connect(groupName);
     }
 
     // Activate brush mode on load and when we re-draw the box/clear the selection
@@ -164,11 +186,11 @@ export function useChartBoxSelect({
       enableBrushMode();
     });
 
-    window.addEventListener('click', handleOutsideClick);
+    window.addEventListener('click', handleOutsideClick, {capture: true});
 
     // eslint-disable-next-line consistent-return
     return () => {
-      window.removeEventListener('click', handleOutsideClick);
+      window.removeEventListener('click', handleOutsideClick, {capture: true});
       cancelAnimationFrame(frame);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,6 +235,7 @@ export function useChartBoxSelect({
           }
         : null,
       onBrushEnd,
+      onBrushStart,
       toolBox,
       pageCoords,
       reActivateSelection,
@@ -223,6 +246,7 @@ export function useChartBoxSelect({
     onBrushEnd,
     brush,
     toolBox,
+    onBrushStart,
     pageCoords,
     reActivateSelection,
     clearSelection,

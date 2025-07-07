@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -784,7 +784,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const HeadCellContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
@@ -797,7 +797,7 @@ const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.border}`)};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }
 `;

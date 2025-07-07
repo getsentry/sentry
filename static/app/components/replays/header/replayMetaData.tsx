@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import ReplayViewers from 'sentry/components/replays/header/replayViewers';
@@ -119,18 +119,18 @@ const KeyMetrics = styled('dl')`
   color: ${p => p.theme.subText};
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     justify-self: flex-end;
   }
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   gap: ${space(1)};

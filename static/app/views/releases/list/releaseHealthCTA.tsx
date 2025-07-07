@@ -86,7 +86,7 @@ const AlertText = styled('div')`
     flex: 1;
   }
   flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;

@@ -331,6 +331,31 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             )
         )
 
+        # Create a group with invalid date range that would cause DataError
+        # This tests the DataError exception handling
+        group_with_invalid_dates = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            first_seen=self.now - timedelta(days=1),  # Start after the resolution
+        )
+        Activity.objects.create(
+            group=group_with_invalid_dates,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=self.now - timedelta(days=2),  # Resolution before first_seen
+        )
+        # This group should be skipped due to invalid date range
+        self.test_cases.append(
+            (
+                "group_with_invalid_date_range",
+                group_with_invalid_dates,
+                [],  # No open periods expected due to invalid dates
+                [],
+                [],
+            )
+        )
+
     def test(self):
         for description, group, starts, ends, activities in self.test_cases:
             group.refresh_from_db()

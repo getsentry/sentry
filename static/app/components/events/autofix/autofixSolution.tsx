@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
@@ -23,7 +24,6 @@ import {
   makeAutofixQueryKey,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import Link from 'sentry/components/links/link';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -647,14 +647,14 @@ const HeaderWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-top: ${space(0.5)};
 `;
 

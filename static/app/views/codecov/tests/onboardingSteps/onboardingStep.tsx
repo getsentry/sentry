@@ -13,7 +13,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.gray300};
   margin-bottom: 0;
   line-height: 31px;

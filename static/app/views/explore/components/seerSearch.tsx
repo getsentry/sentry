@@ -337,7 +337,7 @@ const SearchInputContainer = styled('div')<{isDropdownOpen: boolean}>`
 `;
 
 const SearchInput = styled(Input)<{isDropdownOpen: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1rem;
   border: none;
   background: transparent;
@@ -411,8 +411,8 @@ const QueryResultsHeader = styled('div')`
 `;
 
 const QueryResultsTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
   margin: 0;
 `;
@@ -439,7 +439,7 @@ const NoneOfTheseItem = styled('div')`
   transition: background-color 0.2s ease;
   user-select: none;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

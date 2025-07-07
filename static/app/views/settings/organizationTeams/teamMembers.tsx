@@ -12,8 +12,8 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -402,7 +402,7 @@ const StyledUserListElement = styled('div')`
 `;
 
 const StyledNameOrEmail = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis};
 `;
 

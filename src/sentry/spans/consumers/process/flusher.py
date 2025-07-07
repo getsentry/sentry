@@ -3,15 +3,17 @@ import multiprocessing
 import multiprocessing.context
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 
 import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
+from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
+from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -24,6 +26,86 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 MAX_PROCESS_RESTARTS = 10
 
 logger = logging.getLogger(__name__)
+
+
+class MultiProducer:
+    """
+    Manages multiple Kafka producers for load balancing across brokers/topics.
+
+    Configure multiple producers using SLICED_KAFKA_TOPICS in settings.py:
+
+    SLICED_KAFKA_TOPICS = {
+        ("buffered-segments", 0): {"cluster": "default", "topic": "buffered-segments-1"},
+        ("buffered-segments", 1): {"cluster": "secondary", "topic": "buffered-segments-2"}
+    }
+    """
+
+    def __init__(
+        self,
+        topic: Topic,
+        producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None,
+    ):
+        self.topic = topic
+        self.producers: list[Producer[KafkaPayload]] = []
+        self.topics: list[ArroyoTopic] = []
+        self.current_index = 0
+        self.producer_factory = producer_factory or self._default_producer_factory
+        self._setup_producers()
+
+    def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
+        """Default factory that creates real KafkaProducers."""
+        return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    def _setup_producers(self):
+        """Setup producers based on SLICED_KAFKA_TOPICS configuration."""
+        # Get sliced Kafka topics configuration
+        sliced_configs = []
+        for (topic_name, slice_id), config in settings.SLICED_KAFKA_TOPICS.items():
+            if topic_name == self.topic.value:
+                sliced_configs.append(config)
+
+        if sliced_configs:
+            # Multiple producers configured via SLICED_KAFKA_TOPICS
+            for config in sliced_configs:
+                cluster_name = config["cluster"]
+                topic_name = config["topic"]
+
+                producer_config = get_kafka_producer_cluster_options(cluster_name)
+                producer = self.producer_factory(producer_config)
+                topic = ArroyoTopic(topic_name)
+
+                self.producers.append(producer)
+                self.topics.append(topic)
+        else:
+            # Single producer (backward compatibility)
+            cluster_name = get_topic_definition(self.topic)["cluster"]
+            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            producer = self.producer_factory(producer_config)
+            topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
+
+            self.producers.append(producer)
+            self.topics.append(topic)
+
+        # Validate that we have at least one producer
+        if not self.producers:
+            raise ValueError(f"No producers configured for topic {self.topic.value}")
+
+    def produce(self, payload: KafkaPayload):
+        """Produce message with load balancing."""
+        if len(self.producers) == 1:
+            # Single producer - no load balancing needed
+            return self.producers[0].produce(self.topics[0], payload)
+
+        # Round-robin load balancing
+        producer_index = self.current_index % len(self.producers)
+        self.current_index += 1
+
+        return self.producers[producer_index].produce(self.topics[producer_index], payload)
+
+    def close(self):
+        """Close all producers."""
+        for producer in self.producers:
+            producer.close()
 
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
@@ -141,6 +223,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        # TODO: remove once span buffer is live in all regions
+        scope = sentry_sdk.get_isolation_scope()
+        scope.level = "warning"
+
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
@@ -150,18 +236,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             if produce_to_pipe is not None:
                 produce = produce_to_pipe
-                producer = None
+                producer_manager = None
             else:
-                cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
-
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-                )
+                producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
 
                 def produce(payload: KafkaPayload) -> None:
-                    producer_futures.append(producer.produce(topic, payload))
+                    producer_futures.append(producer_manager.produce(payload))
 
             while not stopped.value:
                 system_now = int(time.time())
@@ -204,8 +284,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                 buffer.done_flush_segments(flushed_segments)
 
-            if producer is not None:
-                producer.close()
+            if producer_manager is not None:
+                producer_manager.close()
         except KeyboardInterrupt:
             pass
         except Exception:

@@ -11,13 +11,13 @@ import {
   type SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
@@ -349,7 +349,7 @@ const AlertNameAndStatus = styled('div')`
 
 const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const AlertIncidentDate = styled('div')`

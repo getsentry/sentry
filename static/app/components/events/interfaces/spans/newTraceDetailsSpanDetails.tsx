@@ -673,7 +673,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} 0;
 `;
 

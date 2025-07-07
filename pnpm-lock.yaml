@@ -345,9 +345,6 @@ importers:
       esbuild:
         specifier: 0.25.3
         version: 0.25.3
-      flattie:
-        specifier: ^1.1.1
-        version: 1.1.1
       focus-trap:
         specifier: ^7.3.1
         version: 7.3.1
@@ -421,8 +418,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       platformicons:
-        specifier: ^8.0.7
-        version: 8.0.7(react@19.1.0)
+        specifier: ^8.0.8
+        version: 8.0.8(react@19.1.0)
       po-catalog-loader:
         specifier: 2.1.0
         version: 2.1.0(gettext-parser@7.0.1)
@@ -4864,10 +4861,6 @@ packages:
   flatted@3.3.2:
     resolution: {integrity: sha512-AiwGJM8YcNOaobumgtng+6NHuOqC3A7MixFeDafM3X9cIUM+xUXoS5Vfgf+OihAYe20fxqNM9yPBXJzRtZ/4eA==}
 
-  flattie@1.1.1:
-    resolution: {integrity: sha512-9UbaD6XdAL97+k/n+N7JwX46K/M6Zc6KcFYskrYL8wbBV/Uyk0CTAMY0VT+qiK5PM7AIc9aTWYtq65U7T+aCNQ==}
-    engines: {node: '>=8'}
-
   focus-trap@7.3.1:
     resolution: {integrity: sha512-bX/u4FJ+F0Pp6b/8Q9W8Br/JaLJ7rrhOJAzai9JU8bh4BPdOjEATy4pxHcbBBxFjPN4d1oHy7/KqknEdOetm9w==}
 
@@ -6564,8 +6557,8 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  platformicons@8.0.7:
-    resolution: {integrity: sha512-bPHbplANd/UWn9PVETPnHRTWS1Bfxo6vhKI1UF+N6EKbTfU6ZdBmbVI1L9Jj1eB31HsNnpLv2cT6UCGs0CrUUA==}
+  platformicons@8.0.8:
+    resolution: {integrity: sha512-FPZAxLqt+k61tHTFUbGeUt86Am4q5cJoFUq4zIFVyvf+FJDwz6OYGxH9QnhP9l425059Mw7FSUnctX9ES6sEzQ==}
     peerDependencies:
       react: '*'
 
@@ -13640,8 +13633,6 @@ snapshots:
 
   flatted@3.3.2: {}
 
-  flattie@1.1.1: {}
-
   focus-trap@7.3.1:
     dependencies:
       tabbable: 6.1.1
@@ -15757,7 +15748,7 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  platformicons@8.0.7(react@19.1.0):
+  platformicons@8.0.8(react@19.1.0):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.0

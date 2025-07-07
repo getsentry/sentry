@@ -25,6 +25,8 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
@@ -54,6 +56,8 @@ type Query = {
 type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const moduleTitle = useModuleTitle(ModuleName.DB);
+  const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
 
   const {groupId} = params;
@@ -167,10 +171,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         headerTitle={t('Query Summary')}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: t('Query Summary'),
           },
         ]}
         module={ModuleName.DB}
+        hideDefaultTabs
       />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
@@ -279,7 +288,7 @@ const ChartContainer = styled('div')`
   gap: 0;
   grid-template-columns: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
     gap: ${space(2)};
   }

@@ -1,7 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Storybook from 'sentry/stories';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {
   TabularColumn,
   TabularData,
@@ -11,6 +18,21 @@ import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableW
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
+  const customColumns: TabularColumn[] = [
+    {
+      key: 'count(span.duration)',
+      name: 'count(span.duration)',
+      type: 'number',
+      width: 200,
+    },
+    {
+      key: 'http.request_method',
+      name: 'http.request_method',
+      type: 'string',
+      width: -1,
+    },
+  ];
+
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -37,20 +59,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
       ...sampleHTTPRequestTableData,
       data: [],
     };
-    const customColumns: TabularColumn[] = [
-      {
-        key: 'count(span.duration)',
-        name: 'Count of Span Duration',
-        type: 'number',
-        width: -1,
-      },
-      {
-        key: 'http.request_method',
-        name: 'HTTP Request Method',
-        type: 'string',
-        width: -1,
-      },
-    ];
+    const aliases = {
+      'count(span.duration)': 'Count of Span Duration',
+      'http.request_method': 'HTTP Request Method',
+    };
     return (
       <Fragment>
         <p>
@@ -71,58 +83,245 @@ ${JSON.stringify(tableWithEmptyData)}
           The prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
-        <p>
-          This prop is useful for reordering and giving custom display names to columns:
-        </p>
+        <p>This prop is used for reordering columns and setting column widths:</p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={customColumns}
+        />
         <CodeSnippet language="json">
           {`
 ${JSON.stringify(customColumns)}
           `}
         </CodeSnippet>
-        <p>Resulting table:</p>
+        <p>
+          To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
+          which maps column key to the alias. In some cases you may have both field
+          aliases set by user (e.g., in dashboards) as well as a static mapping. The util
+          function <code>decodeColumnAliases</code> is provided to consolidate them, with
+          priority given to user field aliases.
+        </p>
+        <p>
+          Below is an example of setting aliases to make column headers more human
+          readable.
+        </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          columns={customColumns}
+          aliases={aliases}
         />
+        <CodeSnippet language="json">
+          {`
+${JSON.stringify(aliases)}
+          `}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Sorting', () => {
+    const location = useLocation();
+    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [sort, setSort] = useState<Sort>();
+    function onChangeSort(newSort: Sort) {
+      const sortedData: Array<TabularRow<string>> = Object.entries(
+        sampleHTTPRequestTableData.data
+      )
+        .sort(([, a], [, b]) => {
+          const aField = a?.[newSort.field] ?? 0;
+          const bField = b?.[newSort.field] ?? 0;
+          const value = newSort.kind === 'asc' ? 1 : -1;
+
+          if (aField < bField) return -value;
+          if (aField > bField) return value;
+          return 0;
+        })
+        .map(result => result[1]);
+      setSort(newSort);
+      setData({data: sortedData, meta: data.meta});
+    }
+
+    const sortableColumns = customColumns.map(column => ({
+      ...column,
+      sortable: true,
+      width: -1,
+    }));
+    return (
+      <Fragment>
+        <p>
+          By default, column fields are assumed to be not sortable. To enable sorting,
+          pass the
+          <code>columns</code> prop with the field <code>sortable</code> set to true.
+          e.g.,
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+columns={[{
+  key: 'count(span.duration)',
+  name: 'count(span.duration)',
+  type: 'number',
+  sortable: true
+},
+{
+  key: 'http.request_method',
+  name: 'http.request_method',
+  type: 'string',
+}]}
+          `}
+        </CodeSnippet>
+        <p>
+          This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
+          <code>sort</code> URL query parameter as a reference for sorting, which is why
+          most of the default behavior in this section is to fallback to the URL
+          parameter.{' '}
+          <i>
+            The table displays the rows in the order the data is provided and you are
+            responsible for ensuring the data is sorted.
+          </i>
+        </p>
+        <p>
+          Sorting may require the display of a directional arrow. The table will try to
+          automatically determine the direction based on the <code>sort</code> URL query
+          parameter. Note that the table only supports sorting by one column at a time, so
+          if multiple <code>sort</code> parameters are provided, it will choose the first
+          one.
+        </p>
+        <p>
+          For an interactive example, click column headers below and pay attention to the
+          parameter in the URL. Use the button to reset the parameter.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={{...location, query: {...location.query, sort: undefined}}}>
+            Clear sort parameter
+          </LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={sortableColumns}
+        />
+        <p>
+          If the sort is not stored in the parameter, then pass the <code>sort</code> prop
+          to correctly display the sort arrow direction. Similarly to the default
+          behavior, only one sort is allowed. If both the prop and parameter are defined,
+          the table will prioritize the prop. You can test this by clicking column headers
+          and note how the arrow doesn't change in the table below.
+        </p>
+        <br />
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          sort={{field: 'http.request_method', kind: 'desc'}}
+          columns={sortableColumns}
+        />
+
+        <p>
+          The default action when a sortable column header is clicked is to update the
+          <code>sort</code> URL query parameter. If you wish to override the URL update,
+          you can pass <code>onChangeSort</code> which accepts a<code>Sort</code>
+          object that represents the newly selected sort. This and the <code>sort</code>
+          prop are useful if you need to manage internal state or perform custom sorting.
+        </p>
+        <p>
+          Try clicking the column headers below!{' '}
+          <b>
+            Current sort is
+            <code>{sort?.field ?? 'undefined'}</code> by
+            <code>{sort?.kind ?? 'undefined'}</code> order
+          </b>
+        </p>
+        <TableWidgetVisualization
+          columns={sortableColumns}
+          tableData={data}
+          sort={sort}
+          onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
+        />
+        <CodeSnippet language="tsx">
+          {`
+const [data, setData] = useState<TabularData>(...);
+const [sort, setSort] = useState<Sort>();
+
+// Performs sorting and updates internal state
+function onChangeSort(newSort: Sort) {
+  const sortedData: Array<TabularRow<string>> = Object.entries(
+    sampleHTTPRequestTableData.data
+  )
+    .sort(([, a], [, b]) => {
+      const aField = a?.[newSort.field] ?? 0;
+      const bField = b?.[newSort.field] ?? 0;
+      const value = newSort.kind === 'asc' ? 1 : -1;
+
+      if (aField < bField) return -value;
+      if (aField > bField) return value;
+      return 0;
+    })
+    .map(result => result[1]);
+  setSort(newSort);
+  setData({data: sortedData, meta: data.meta});
+}
+        `}
+        </CodeSnippet>
       </Fragment>
     );
   });
 
   story('Using Custom Cell Rendering', () => {
-    function customHeadRenderer(column: TabularColumn, _columnIndex: number) {
-      return <div>{column.name + ' column'}</div>;
-    }
-    function customBodyRenderer(
-      column: TabularColumn,
-      dataRow: TabularRow,
-      _rowIndex: number,
-      _columnIndex: number
-    ) {
-      if (column.key === 'http.request_method') {
-        return undefined;
+    function getRenderer(fieldName: string) {
+      if (fieldName === 'http.request_method') {
+        return function (dataRow: TabularRow) {
+          return <Tag>{dataRow[fieldName]}</Tag>;
+        };
       }
-      return <div>{dataRow[column.key]}</div>;
+
+      return getFieldRenderer(
+        fieldName,
+        sampleHTTPRequestTableData.meta as MetaType,
+        false
+      );
     }
     return (
       <Fragment>
-        <p>By default, the table falls back on predefined default rendering functions.</p>
         <p>
-          If custom cell rendering is required, pass the functions
-          <code>renderTableBodyCell</code> and <code>renderTableHeadCell</code>
-          which replace the rendering of table body cells and table headers respectively.
-          If the function returns <code>undefined</code>, fallback renderer will run
-          allowing for partial custom rendering
+          By default, the table uses the default field renderers. These renderers are
+          aware of special fields like projects and assignees, as well as common typed
+          numeric fields like durations and sizes. In most cases, you should use the
+          default renderers. If you are adding a new common field that should render the
+          same in all tables, please add it to the default renderers.
         </p>
         <p>
-          In the below example, a custom header renderer is passed which adds the word
-          "column" to each head cell. A custom body renderer is also provided which only
-          affects the second column:
+          If you need custom rendering, you can pass a <code>getRenderer</code> prop.{' '}
+          <code>getRenderer</code> is a function that accepts the name of a field, the
+          current data row, and the current table meta. It should return a renderer
+          function. A renderer function takes the current data row and a "baggage" object,
+          and returns a React node. If you need custom baggage, you can pass the{' '}
+          <code>makeBaggage</code> prop.{' '}
+          <em>
+            If you provide a custom renderer, you are fully responsible for rendering all
+            columns!{' '}
+          </em>{' '}
+          we suggest adding a fallback via the <code>getFieldRenderer</code> function.
+        </p>
+        <p>
+          In the below example, a custom renderer is used to wrap HTTP methods in a{' '}
+          <code>Tag</code> element.
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          renderTableHeadCell={customHeadRenderer}
-          renderTableBodyCell={customBodyRenderer}
+          getRenderer={getRenderer}
         />
+        <CodeSnippet language="tsx">
+          {`
+function getRenderer(fieldName: string) {
+  if (fieldName === 'http.request_method') {
+    return function (dataRow: TabularRow) {
+      return <Tag>{dataRow[fieldName]}</Tag>;
+    };
+  }
+
+  return getFieldRenderer(
+    fieldName,
+    sampleHTTPRequestTableData.meta as MetaType,
+    false
+  );
+}
+          `}
+        </CodeSnippet>
       </Fragment>
     );
   });
@@ -139,3 +338,9 @@ ${JSON.stringify(customColumns)}
     );
   });
 });
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+`;

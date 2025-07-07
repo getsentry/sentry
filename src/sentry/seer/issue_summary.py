@@ -23,11 +23,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.seer_utils import FixabilityScoreThresholds
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings, FixabilityScoreThresholds
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -173,31 +174,29 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-def _generate_fixability_score(group: Group):
-    path = "/v1/automation/summarize/fixability"
-    body = orjson.dumps(
-        {
-            "group_id": group.id,
-            "organization_slug": group.organization.slug,
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
+fixability_connection_pool = connection_from_url(
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
 
-    response = requests.post(
-        f"{settings.SEER_SEVERITY_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+
+def _generate_fixability_score(group: Group):
+    payload = {
+        "group_id": group.id,
+        "organization_slug": group.organization.slug,
+        "organization_id": group.organization.id,
+        "project_id": group.project.id,
+    }
+    response = make_signed_seer_api_request(
+        fixability_connection_pool,
+        "/v1/automation/summarize/fixability",
+        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
-
-    response.raise_for_status()
-
-    return SummarizeIssueResponse.validate(response.json())
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
+    response_data = orjson.loads(response.data)
+    return SummarizeIssueResponse.validate(response_data)
 
 
 def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
@@ -251,17 +250,17 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
-    if option == "off":
+    if option == AutofixAutomationTuningSettings.OFF:
         return False
-    elif option == "super_low":
+    elif option == AutofixAutomationTuningSettings.SUPER_LOW:
         return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
-    elif option == "low":
+    elif option == AutofixAutomationTuningSettings.LOW:
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
-    elif option == "medium":
+    elif option == AutofixAutomationTuningSettings.MEDIUM:
         return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
-    elif option == "high":
+    elif option == AutofixAutomationTuningSettings.HIGH:
         return fixability_score >= FixabilityScoreThresholds.LOW.value
-    elif option == "always":
+    elif option == AutofixAutomationTuningSettings.ALWAYS:
         return True
     return False
 
@@ -318,20 +317,8 @@ def _run_automation(
     if autofix_state:
         return  # already have an autofix on this issue
 
-    is_rate_limited, current, limit = is_seer_autotriggered_autofix_rate_limited(
-        group.project, group.organization
-    )
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
     if is_rate_limited:
-        logger.warning(
-            "Autofix auto-trigger rate limit hit",
-            extra={
-                "group_id": group.id,
-                "auto_run_count": current,
-                "auto_run_limit": limit,
-                "org_slug": group.organization.slug,
-                "project_slug": group.project.slug,
-            },
-        )
         return
 
     _trigger_autofix_task.delay(
@@ -428,6 +415,9 @@ def get_issue_summary(
         user = AnonymousUser()
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
+
+    if group.organization.get_option("sentry:hide_ai_features"):
+        return {"detail": "AI features are disabled for this organization."}, 403
 
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403

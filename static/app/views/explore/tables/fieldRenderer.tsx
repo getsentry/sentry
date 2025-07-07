@@ -2,13 +2,14 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -37,9 +38,9 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface FieldProps {
-  column: TableColumn<keyof TableDataRow>;
   data: EventData;
   meta: MetaType;
+  column?: TableColumn<keyof TableDataRow>;
   unit?: string;
 }
 
@@ -104,7 +105,6 @@ function BaseExploreFieldRenderer({
   const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
-  const field = column.name;
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
     return projects.reduce(
@@ -115,6 +115,12 @@ function BaseExploreFieldRenderer({
       {} as Record<string, Project>
     );
   }, [projects]);
+
+  if (!defined(column)) {
+    return nullableValue(null);
+  }
+
+  const field = String(column.key);
 
   const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 

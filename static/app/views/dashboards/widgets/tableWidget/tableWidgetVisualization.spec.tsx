@@ -1,7 +1,13 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IconArrow} from 'sentry/icons';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import type {
   TabularColumn,
@@ -9,28 +15,36 @@ import type {
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
+import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
+jest.mock('sentry/icons/iconArrow', () => ({
+  IconArrow: jest.fn(() => <div />),
+}));
+
 describe('TableWidgetVisualization', function () {
+  const columns: Array<Partial<TabularColumn>> = [
+    {
+      key: 'count(span.duration)',
+      name: 'Count of Span Duration',
+    },
+    {
+      key: 'http.request_method',
+      name: 'HTTP Request Method',
+    },
+  ];
+  const sortableColumns = columns.map(column => ({...column, sortable: true}));
+
   it('Basic table renders correctly', async function () {
     render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
     expect(await screen.findByText('http.request_method')).toBeInTheDocument();
     expect(await screen.findByText('count(span.duration)')).toBeInTheDocument();
+    expect(await screen.findByText('PATCH')).toBeInTheDocument();
+    expect(await screen.findByText('14k')).toBeInTheDocument();
   });
 
   it('Table applies custom order and column name if provided', function () {
-    const columns: Array<Partial<TabularColumn>> = [
-      {
-        key: 'count(span.duration)',
-        name: 'Count of Span Duration',
-      },
-      {
-        key: 'http.request_method',
-        name: 'HTTP Request Method',
-      },
-    ];
-
     render(
       <TableWidgetVisualization
         tableData={sampleHTTPRequestTableData}
@@ -38,9 +52,9 @@ describe('TableWidgetVisualization', function () {
       />
     );
 
-    const headers = screen.getAllByTestId('grid-head-cell');
-    expect(headers[0]?.children[0]?.textContent).toEqual(columns[0]?.name);
-    expect(headers[1]?.children[0]?.textContent).toEqual(columns[1]?.name);
+    const $headers = screen.getAllByRole('columnheader');
+    expect($headers[0]).toHaveTextContent(columns[0]!.name!);
+    expect($headers[1]).toHaveTextContent(columns[1]!.name!);
   });
 
   it('Table renders unique number fields correctly', async function () {
@@ -66,7 +80,7 @@ describe('TableWidgetVisualization', function () {
     expect(await screen.findByText('6.00/min')).toBeInTheDocument();
   });
 
-  it('Table uses custom renderer over fallback renderer correctly', async function () {
+  it('Uses custom renderer over fallback renderer', async function () {
     const tableData: TabularData = {
       data: [{date: '2025-06-20T15:14:52+00:00'}],
       meta: {
@@ -77,31 +91,111 @@ describe('TableWidgetVisualization', function () {
       },
     };
 
-    function customDateHeadRenderer(
-      column: TabularColumn<keyof TabularRow>,
-      _columnIndex: number
-    ) {
-      return <div>{column.name + ' column'}</div>;
+    function getRenderer(fieldName: string): FieldRenderer {
+      if (fieldName === 'date') {
+        return (_dataRow: TabularRow, baggage: RenderFunctionBaggage) => {
+          if (baggage.projectSlug === 'sentry') {
+            return 'relax, soon';
+          }
+
+          return 'soon';
+        };
+      }
+
+      return dataRow => dataRow[fieldName];
     }
 
-    function customDateBodyRenderer(
-      column: TabularColumn,
-      dataRow: TabularRow,
-      _rowIndex: number,
-      _columnIndex: number
-    ) {
-      return <div>{dataRow[column.key]}</div>;
+    function makeBaggage(): RenderFunctionBaggage {
+      return {
+        location: LocationFixture(),
+        organization: OrganizationFixture(),
+        theme: ThemeFixture(),
+        projectSlug: 'sentry',
+      };
     }
 
     render(
       <TableWidgetVisualization
         tableData={tableData}
-        renderTableHeadCell={customDateHeadRenderer}
-        renderTableBodyCell={customDateBodyRenderer}
+        makeBaggage={makeBaggage}
+        getRenderer={getRenderer}
       />
     );
 
-    expect(await screen.findByText('date column')).toBeInTheDocument();
-    expect(await screen.findByText('2025-06-20T15:14:52+00:00')).toBeInTheDocument();
+    const $cells = await screen.findAllByRole('cell');
+    expect($cells[0]).toHaveTextContent('relax, soon');
+  });
+
+  it('Uses aliases for column names if supplied', function () {
+    const aliases = {
+      'count(span.duration)': 'span duration count',
+      'http.request_method': 'request method http',
+    };
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        aliases={aliases}
+        columns={TabularColumnsFixture(columns)}
+      />
+    );
+
+    const $headers = screen.getAllByRole('columnheader');
+    expect($headers[0]).toHaveTextContent(aliases['count(span.duration)']);
+    expect($headers[1]).toHaveTextContent(aliases['http.request_method']);
+  });
+
+  it('Sort URL parameter is set and correct arrow direction appears on column header click', async function () {
+    const {router: testRouter} = render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />,
+      {
+        initialRouterConfig: {},
+      }
+    );
+
+    const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
+    await userEvent.click($header);
+    await waitFor(() =>
+      expect(IconArrow).toHaveBeenCalledWith(
+        expect.objectContaining({direction: 'down'}),
+        undefined
+      )
+    );
+    await waitFor(() =>
+      expect(testRouter.location.query.sort).toBe('-count(span.duration)')
+    );
+  });
+
+  it('Sort arrow appears and has correct direction if sort is provided', async function () {
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        sort={{field: 'count(span.duration)', kind: 'asc'}}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />
+    );
+
+    await waitFor(() =>
+      expect(IconArrow).toHaveBeenCalledWith(
+        expect.objectContaining({direction: 'up'}),
+        undefined
+      )
+    );
+  });
+
+  it('Uses onChangeSort if supplied on column header click', async function () {
+    const onChangeSortMock = jest.fn((_sort: Sort) => {});
+    render(
+      <TableWidgetVisualization
+        tableData={sampleHTTPRequestTableData}
+        onChangeSort={onChangeSortMock}
+        columns={TabularColumnsFixture(sortableColumns)}
+      />
+    );
+    const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
+    await userEvent.click($header);
+    await waitFor(() => expect(onChangeSortMock).toHaveBeenCalled());
   });
 });

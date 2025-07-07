@@ -44,7 +44,7 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
 
 const ProjectContainer = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledPage = styled(Layout.Page)`

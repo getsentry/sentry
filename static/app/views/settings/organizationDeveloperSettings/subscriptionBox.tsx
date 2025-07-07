@@ -102,13 +102,13 @@ const SubscriptionInfo = styled('div')`
 `;
 
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   color: ${p => p.theme.subText};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
   color: ${p => p.theme.textColor};
   white-space: nowrap;

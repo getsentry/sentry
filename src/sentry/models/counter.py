@@ -2,7 +2,6 @@ import sentry_sdk
 from django.conf import settings
 from django.db import connections, transaction
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -45,7 +44,7 @@ class Counter(Model):
     @classmethod
     def increment(cls, project, delta=1) -> int:
         """Increments a counter.  This can never decrement."""
-        if features.has("projects:short-id-pre-allocation-counter", project) and delta == 1:
+        if delta == 1:
             # only use the cache path if delta is 1, as in other cases we're trying to resolve
             # a stuck counter
             return increment_project_counter_in_cache(project)

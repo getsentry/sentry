@@ -259,7 +259,7 @@ const StepMessage = styled('div')`
   overflow: hidden;
   padding: ${space(1)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   justify-content: flex-start;
   text-align: left;
 `;

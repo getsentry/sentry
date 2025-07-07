@@ -441,7 +441,7 @@ const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(0.5)};
   margin-left: 1px;
 `;
@@ -462,7 +462,7 @@ const CollapsedSummaryCard = styled('div')`
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
   color: ${p => p.theme.textColor};
   transition: box-shadow 0.2s;

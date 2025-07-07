@@ -7,7 +7,7 @@ import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions'
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {
@@ -23,7 +23,7 @@ describe('PriorityControl', function () {
       </Form>
     );
 
-    expect(await screen.findByText('Above 0s')).toBeInTheDocument();
+    expect(await screen.findByText('Above 0ms')).toBeInTheDocument();
     expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
     expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });

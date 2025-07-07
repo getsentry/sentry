@@ -75,7 +75,7 @@ def strategy(
         in the event, only exception will be used for hash
     """
 
-    name = interface.path
+    name = interface.external_type
 
     if not ids:
         raise TypeError("no ids given")

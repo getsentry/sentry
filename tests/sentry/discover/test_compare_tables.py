@@ -362,3 +362,25 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["passed"] is False
         # assert that both queries don't fail due to the environment filter
         assert comparison_result["reason"] != CompareTableResult.BOTH_FAILED
+
+    def test_compare_widget_query_with_no_metrics_data(self):
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard_2,
+            title="Test No Metrics Data Widget",
+            order=1,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            order=0,
+            conditions="",
+            aggregates=["p75(measurements.app_start_warm)"],
+            columns=["p75(measurements.app_start_warm)"],
+            fields=["p75(measurements.app_start_warm)"],
+        )
+
+        comparison_result = compare_tables_for_dashboard_widget_queries(widget_query)
+        assert comparison_result["passed"] is True

@@ -116,7 +116,7 @@ const TooltipContent = styled(Overlay, {
   overflow-wrap: break-word;
   max-width: ${p => p.maxWidth ?? 225}px;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   text-align: center;
 `;

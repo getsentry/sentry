@@ -830,7 +830,7 @@ const CheckoutContainer = styled('div')`
   gap: ${space(3)};
   grid-template-columns: 58% auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -847,7 +847,7 @@ const SidePanel = styled('div')`
  * but keep cancel subscription button
  */
 const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -858,7 +858,7 @@ const SupportPrompt = styled(Panel)`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
 `;
@@ -870,7 +870,7 @@ const CancelSubscription = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
   margin-bottom: ${space(1)};
@@ -882,13 +882,13 @@ const PartnerAlertContent = styled('div')`
 `;
 
 const PartnerAlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
 const AnnualTerms = styled(TextBlock)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const CheckoutMain = styled('div')``;

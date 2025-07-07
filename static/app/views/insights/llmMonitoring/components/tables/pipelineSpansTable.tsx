@@ -1,11 +1,11 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
