@@ -75,36 +75,14 @@ def parse_events(
 ) -> tuple[ParsedEventMeta, list[TraceItem]]:
     sampled = random.randint(0, 499) < 1
 
-    eap_items: list[TraceItem] = []
-    hes: HighlightedEvents = {
-        "canvas_sizes": [],
-        "clicks": [],
-        "hydration_errors": [],
-        "mutations": [],
-        "options": [],
-        "request_response_sizes": [],
-    }
+    eap_builder = EAPEventsBuilder(context)
+    hev_builder = HighlightedEventsBuilder()
 
     for event_type, event in which_iter(events):
-        highlighted_event = parse_highlighted_event(event_type, event, sampled)
-        for k, v in highlighted_event.items():
-            hes[k].extend(v)
+        eap_builder.add(event_type, event)
+        hev_builder.add(event_type, event, sampled)
 
-        trace_item = parse_trace_item(context, event_type, event)
-        if trace_item:
-            eap_items.append(trace_item)
-
-    return (
-        ParsedEventMeta(
-            hes["canvas_sizes"],
-            hes["clicks"],
-            hes["hydration_errors"],
-            hes["mutations"],
-            hes["options"],
-            hes["request_response_sizes"],
-        ),
-        eap_items,
-    )
+    return (hev_builder.result, eap_builder.result)
 
 
 class EventType(Enum):
@@ -225,10 +203,25 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
         yield (which(event), event)
 
 
-class TraceItemContext(TypedDict):
-    attributes: MutableMapping[str, str | int | bool | float]
-    event_hash: bytes
-    timestamp: float
+#
+# EAP Trace Item Processor
+#
+
+
+class EAPEventsBuilder:
+
+    def __init__(self, context: EventContext):
+        self.context = context
+        self.events: list[TraceItem] = []
+
+    def add(self, event_type: EventType, event: dict[str, Any]) -> None:
+        trace_item = parse_trace_item(self.context, event_type, event)
+        if trace_item:
+            self.events.append(trace_item)
+
+    @property
+    def result(self) -> list[TraceItem]:
+        return self.events
 
 
 def parse_trace_item(
@@ -285,6 +278,12 @@ def as_trace_item(
         retention_days=context["retention_days"],
         received=received,
     )
+
+
+class TraceItemContext(TypedDict):
+    attributes: MutableMapping[str, str | int | bool | float]
+    event_hash: bytes
+    timestamp: float
 
 
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
@@ -449,6 +448,11 @@ def to_string(value: Any) -> str:
     raise ValueError("Value was not a string.")
 
 
+#
+# Highlighted Event Processor
+#
+
+
 class HighlightedEvents(TypedDict, total=False):
     canvas_sizes: list[int]
     hydration_errors: list[HydrationError]
@@ -456,6 +460,34 @@ class HighlightedEvents(TypedDict, total=False):
     clicks: list[ClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
+
+
+class HighlightedEventsBuilder:
+
+    def __init__(self):
+        self.events: HighlightedEvents = {
+            "canvas_sizes": [],
+            "clicks": [],
+            "hydration_errors": [],
+            "mutations": [],
+            "options": [],
+            "request_response_sizes": [],
+        }
+
+    def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
+        for k, v in parse_highlighted_event(event_type, event, sampled).items():
+            self.events[k].extend(v)
+
+    @property
+    def result(self) -> ParsedEventMeta:
+        return ParsedEventMeta(
+            self.events["canvas_sizes"],
+            self.events["clicks"],
+            self.events["hydration_errors"],
+            self.events["mutations"],
+            self.events["options"],
+            self.events["request_response_sizes"],
+        )
 
 
 def parse_highlighted_event(
@@ -466,7 +498,7 @@ def parse_highlighted_event(
         return as_highlighted_event(event, event_type, sampled)
     except (AssertionError, AttributeError, KeyError, TypeError):
         logger.warning("Could not parse identified event.", exc_info=True)
-        return None
+        return {}
 
 
 def as_highlighted_event(
@@ -494,6 +526,8 @@ def as_highlighted_event(
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
             return {"request_response_sizes": [lengths]}
+        else:
+            return {}
     elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
     else:
