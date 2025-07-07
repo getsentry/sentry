@@ -161,7 +161,7 @@ def _boxcox_normmax(values: list[float], max_iters: int = 100) -> float:
     """
     Calculate the approximate optimal lambda parameter for BoxCox transformation that maximizes the log-likelihood.
 
-    Uses MLE method with ternary search rather than Brent's methodfor efficient optimization.
+    Uses MLE method with ternary search rather than Brent's method for efficient optimization.
 
     Parameters:
         values: List of positive values
