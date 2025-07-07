@@ -126,8 +126,13 @@ class SQLInjectionDetector(PerformanceDetector):
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
             where_index = description.upper().find("WHERE")
-            if re.search(regex_key, description[where_index:]) and re.search(
-                regex_value, description[where_index:]
+            comment_index = description.find("--")
+            if comment_index != -1:
+                description_to_search = description[where_index:comment_index]
+            else:
+                description_to_search = description[where_index:]
+            if re.search(regex_key, description_to_search) and re.search(
+                regex_value, description_to_search
             ):
                 description = description[:where_index] + re.sub(
                     regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
