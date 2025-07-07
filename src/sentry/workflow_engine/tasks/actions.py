@@ -76,9 +76,12 @@ def trigger_action(
 ) -> None:
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
-    assert (event_id is not None) != (
-        activity_id is not None
-    ), "Exactly one of event_id or activity_id must be provided"
+    if (event_id is not None) != (activity_id is not None):
+        logger.error(
+            "Exactly one of event_id or activity_id must be provided",
+            extra={"event_id": event_id, "activity_id": activity_id},
+        )
+        raise ValueError("Exactly one of event_id or activity_id must be provided")
 
     # Fetch the action and detector
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
