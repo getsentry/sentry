@@ -22,6 +22,6 @@ export const StickyFooter = styled('div')`
 export const StickyFooterLabel = styled('p')`
   margin: 0;
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
 `;

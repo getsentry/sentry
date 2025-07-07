@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -92,7 +92,6 @@ export function TransactionHighlights(props: HighlightProps) {
         organization: props.organization,
         attributes: props.event.contexts.trace?.data,
         op: props.node.value['transaction.op'],
-        description: props.node.value.transaction,
       })}
     />
   );
@@ -109,7 +108,7 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
 `;

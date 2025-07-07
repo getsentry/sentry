@@ -3,13 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
-import {IconSentry} from 'sentry/icons';
+import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {DataSource, Detector} from 'sentry/types/workflowEngine/detectors';
@@ -20,22 +19,12 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
 };
-
-function formatConditionPriority(condition: DataCondition) {
-  switch (condition.conditionResult) {
-    case DetectorPriorityLevel.HIGH:
-      return 'high';
-    case DetectorPriorityLevel.MEDIUM:
-      return 'medium';
-    default:
-      return 'low';
-  }
-}
 
 function formatConditionType(condition: DataCondition) {
   switch (condition.type) {
@@ -66,7 +55,10 @@ function formatCondition({condition, unit}: {condition: DataCondition; unit: str
 
   const comparison = formatConditionType(condition);
   const threshold = `${condition.comparison}${unit}`;
-  const priority = formatConditionPriority(condition);
+  const priority =
+    DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
+      condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
+    ];
 
   return `${comparison}${threshold} ${priority}`;
 }
@@ -85,16 +77,22 @@ function DetailItem({children}: {children: React.ReactNode}) {
 }
 
 function ConfigDetails({detector}: {detector: Detector}) {
+  // TODO: Use a MetricDetector type to avoid checking for this
+  if (!('detection_type' in detector.config)) {
+    return null;
+  }
+
   const type = detector.config.detection_type;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
     return null;
   }
 
+  const unit = getMetricDetectorSuffix(detector);
   switch (type) {
     case 'static': {
       const text = conditions
-        .map(condition => formatCondition({condition, unit: 's'}))
+        .map(condition => formatCondition({condition, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {
@@ -104,7 +102,7 @@ function ConfigDetails({detector}: {detector: Detector}) {
     }
     case 'percent': {
       const text = conditions
-        .map(condition => formatCondition({condition, unit: '%'}))
+        .map(condition => formatCondition({condition, unit}))
         .filter(defined)
         .join(', ');
       if (!text) {
@@ -124,6 +122,9 @@ function DataSourceDetails({dataSource}: {dataSource: DataSource}) {
   const type = dataSource.type;
   switch (type) {
     case 'snuba_query_subscription':
+      if (!dataSource.queryObj) {
+        return <DetailItem>{t('Query not found.')}</DetailItem>;
+      }
       return (
         <Fragment>
           <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
@@ -170,80 +171,31 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
   const project = useProjectFromId({project_id: detector.projectId});
 
   return (
-    <StyledLink
-      to={makeMonitorDetailsPathname(org.slug, detector.id)}
+    <TitleCell
       className={className}
-    >
-      <Name>
-        <NameText>{detector.name}</NameText>
-        {!detector.createdBy && <CreatedBySentryIcon size="xs" color="subText" />}
-        {detector.disabled && <span>&mdash; Disabled</span>}
-      </Name>
-      <DetailsWrapper>
-        {project && (
-          <StyledProjectBadge
-            css={css`
-              && img {
-                box-shadow: none;
-              }
-            `}
-            project={project}
-            avatarSize={16}
-            disableLink
-          />
-        )}
-        <Details detector={detector} />
-      </DetailsWrapper>
-    </StyledLink>
+      name={detector.name}
+      link={makeMonitorDetailsPathname(org.slug, detector.id)}
+      systemCreated={!detector.createdBy}
+      details={
+        <Fragment>
+          {project && (
+            <StyledProjectBadge
+              css={css`
+                && img {
+                  box-shadow: none;
+                }
+              `}
+              project={project}
+              avatarSize={16}
+              disableLink
+            />
+          )}
+          <Details detector={detector} />
+        </Fragment>
+      }
+    />
   );
 }
-
-const Name = styled('div')`
-  color: ${p => p.theme.textColor};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.theme.overflowEllipsis};
-  width: auto;
-`;
-
-const CreatedBySentryIcon = styled(IconSentry)`
-  flex-shrink: 0;
-`;
-
-const StyledLink = styled(Link)`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${space(0.5)};
-  flex: 1;
-  overflow: hidden;
-
-  &:hover {
-    ${Name} {
-      text-decoration: underline;
-    }
-  }
-`;
-
-const DetailsWrapper = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column dense;
-  gap: ${space(0.75)};
-  justify-content: start;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  white-space: nowrap;
-  line-height: 1.2;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    line-height: 1;
-  }
-`;
 
 const StyledProjectBadge = styled(ProjectBadge)`
   color: ${p => p.theme.subText};

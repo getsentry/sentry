@@ -74,7 +74,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     alignItems: 'center',
     justifyContent: 'center',
 
-    fontWeight: p.theme.fontWeightBold,
+    fontWeight: p.theme.fontWeight.bold,
 
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,

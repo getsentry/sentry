@@ -295,6 +295,7 @@ interface AutofixInsightCardsProps {
   insights: AutofixInsight[];
   runId: string;
   stepIndex: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface CollapsibleChainLinkProps {
@@ -455,8 +456,9 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(shouldCollapseByDefault ?? false);
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
@@ -654,9 +656,9 @@ const CardsStack = styled('div')`
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   code {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 
@@ -837,7 +839,7 @@ const CollapseIconChevron = styled(IconChevron)`
 
 const CollapsedCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const AddEditContainer = styled('div')`
@@ -874,7 +876,7 @@ const CheckpointIcon = styled('span')`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 `;

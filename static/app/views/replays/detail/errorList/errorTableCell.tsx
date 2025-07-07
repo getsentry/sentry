@@ -4,7 +4,7 @@ import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {
   AvatarWrapper,
   ButtonWrapper,

@@ -676,7 +676,7 @@ const ResolvedWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.green400};
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ResolvedActionWapper = styled('div')`
@@ -688,5 +688,5 @@ const ResolvedActionWapper = styled('div')`
 const ReasonBanner = styled('div')`
   font-weight: normal;
   color: ${p => p.theme.green400};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

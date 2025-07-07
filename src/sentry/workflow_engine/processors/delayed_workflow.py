@@ -28,7 +28,7 @@ from sentry.rules.processing.buffer_processing import (
     delayed_processing_registry,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -443,6 +443,12 @@ def get_condition_group_results(
             comparison_interval=comparison_interval,
             filters=unique_condition.filters,
         )
+        absent_group_ids = group_ids - set(result.keys())
+        if absent_group_ids:
+            logger.warning(
+                "workflow_engine.delayed_workflow.absent_group_ids",
+                extra={"group_ids": absent_group_ids, "unique_condition": unique_condition},
+            )
         condition_group_results[unique_condition] = result
 
     return condition_group_results
@@ -565,6 +571,7 @@ def fire_actions_for_groups(
         },
     )
 
+    total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
         logger,
@@ -572,7 +579,7 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
-                workflow_event_data = WorkflowEventData(event=group_event)
+                workflow_event_data = WorkflowEventData(event=group_event, group=group)
                 detector = get_detector_by_event(workflow_event_data)
 
                 workflow_triggers: set[DataConditionGroup] = set()
@@ -618,15 +625,21 @@ def fire_actions_for_groups(
                     tags={"event_type": group_event.group.type},
                 )
 
-                logger.info(
+                event_id = (
+                    workflow_event_data.event.event_id
+                    if isinstance(workflow_event_data.event, GroupEvent)
+                    else workflow_event_data.event.id
+                )
+                logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
                         "workflow_ids": [workflow.id for workflow in workflows],
                         "actions": [action.id for action in filtered_actions],
                         "event_data": workflow_event_data,
-                        "event_id": workflow_event_data.event.event_id,
+                        "event_id": event_id,
                     },
                 )
+                total_actions += len(filtered_actions)
 
                 if features.has(
                     "organizations:workflow-engine-trigger-actions",
@@ -634,6 +647,11 @@ def fire_actions_for_groups(
                 ):
                     for action in filtered_actions:
                         action.trigger(workflow_event_data, detector)
+
+    logger.info(
+        "workflow_engine.delayed_workflow.triggered_actions_summary",
+        extra={"total_actions": total_actions},
+    )
 
 
 @sentry_sdk.trace
@@ -669,6 +687,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
         ),
     ),
 )
+@retry
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any

@@ -1,22 +1,30 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
+import type {ChartInfo} from 'sentry/views/explore/charts';
+import {Drawer} from 'sentry/views/explore/components/suspectTags/drawer';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
 type Props = {
   boxSelectOptions: BoxSelectOptions;
+  chartInfo: ChartInfo;
   triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
+export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}: Props) {
   const router = useRouter();
   const pageCoords = boxSelectOptions.pageCoords;
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const {openDrawer} = useDrawer();
 
   const handleZoomIn = useCallback(() => {
     const coordRange = boxSelectOptions.boxCoordRange;
@@ -46,8 +54,24 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef}: Props) {
   }, [boxSelectOptions, router]);
 
   const handleFindSuspectAttributes = useCallback(() => {
-    // TODO Abdullah Khan: Implement find suspect attributes
-  }, []);
+    if (!isDrawerOpen) {
+      setIsDrawerOpen(true);
+      openDrawer(
+        () => <Drawer chartInfo={chartInfo} boxSelectOptions={boxSelectOptions} />,
+        {
+          ariaLabel: t('Suspect Attributes Drawer'),
+          drawerKey: 'suspect-attributes-drawer',
+          resizable: true,
+          drawerCss: css`
+            height: calc(100% - ${space(4)});
+          `,
+          onClose: () => {
+            setIsDrawerOpen(false);
+          },
+        }
+      );
+    }
+  }, [boxSelectOptions, chartInfo, isDrawerOpen, openDrawer]);
 
   if (!pageCoords) return null;
 
@@ -84,7 +108,7 @@ const List = styled('ul')`
 `;
 
 const ListItem = styled('li')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: pointer;

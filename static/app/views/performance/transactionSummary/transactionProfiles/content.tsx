@@ -94,9 +94,9 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const [visualization, setVisualization] = useLocalStorageState<
@@ -166,7 +166,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   <RequestStateMessageContainer>
                     {t('There was an error loading the flamegraph.')}
                   </RequestStateMessageContainer>
-                ) : isEmpty(data) ? (
+                ) : isEmpty(data) && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>
@@ -329,7 +329,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)};
-  background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header

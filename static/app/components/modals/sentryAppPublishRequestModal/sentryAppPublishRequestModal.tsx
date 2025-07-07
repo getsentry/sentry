@@ -214,11 +214,11 @@ export function SentryAppPublishRequestModal(props: Props) {
 
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Footer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const FooterParagraph = styled(`p`)`

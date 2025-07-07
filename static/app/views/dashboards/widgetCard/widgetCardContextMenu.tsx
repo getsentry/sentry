@@ -37,8 +37,12 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetLogURL,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -356,7 +360,21 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        Mode.SAMPLES
+      ),
+    });
+  }
+
+  if (widget.widgetType === WidgetType.LOGS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
     });
   }
 
@@ -452,13 +470,13 @@ const SampledTag = styled(Tag)`
 
 const WidgetTooltipTitle = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: left;
 `;
 
 const WidgetTooltipDescription = styled('div')`
   margin-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 

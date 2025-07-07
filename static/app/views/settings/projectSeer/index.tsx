@@ -5,18 +5,23 @@ import {useQueryClient} from '@tanstack/react-query';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import Link from 'sentry/components/links/link';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {NoAccess} from 'sentry/components/noAccess';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +30,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {AutofixRepositories} from './autofixRepositories';
+
+const AiSetupDataConsent = HookOrDefault({
+  hookName: 'component:ai-setup-data-consent',
+  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+});
 
 interface ProjectSeerProps {
   project: Project;
@@ -232,13 +242,62 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
 function ProjectSeer({project}: ProjectSeerProps) {
   const organization = useOrganization();
+  const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
+
+  const needsSetup =
+    !setupAcknowledgement.userHasAcknowledged ||
+    !setupAcknowledgement.orgHasAcknowledged ||
+    (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
+
+  if (organization.hideAiFeatures) {
+    return <NoAccess />;
+  }
+
+  if (isLoading) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <Placeholder height="60px" />
+        <br />
+        <Placeholder height="200px" />
+        <br />
+        <Placeholder height="200px" />
+      </Fragment>
+    );
+  }
+
+  if (needsSetup) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <AiSetupDataConsent />
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
       />
-      <SettingsPageHeader title={t('Seer')} />
+      <SettingsPageHeader
+        title={tct('Seer Settings for [projectName]', {
+          projectName: (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(`\`${project.slug}\``),
+              }}
+            />
+          ),
+        })}
+      />
       {organization.features.includes('trigger-autofix-on-issue-summary') && (
         <ProjectSeerGeneralForm project={project} />
       )}

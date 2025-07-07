@@ -148,9 +148,9 @@ const StyledScrubber = styled('div')`
 
 const Numeric = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-inline: ${space(1.5)};
 `;
 

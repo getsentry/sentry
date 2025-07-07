@@ -126,6 +126,7 @@ class TestDetectorSerializer(TestCase):
                             "id": str(snuba_query.id),
                             "query": "hello",
                             "timeWindow": 60,
+                            "eventTypes": ["error"],
                         },
                         "status": 1,
                         "subscription": None,
@@ -214,6 +215,7 @@ class TestDataSourceSerializer(TestCase):
                     "id": str(snuba_query.id),
                     "query": "hello",
                     "timeWindow": 60,
+                    "eventTypes": ["error"],
                 },
                 "status": 1,
                 "subscription": None,
@@ -387,6 +389,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": None,
             "detectorIds": [],
             "enabled": workflow.enabled,
+            "lastTriggered": None,
         }
 
     def test_serialize_full(self):
@@ -438,6 +441,12 @@ class TestWorkflowSerializer(TestCase):
         self.create_detector_workflow(
             detector=detector,
             workflow=workflow,
+        )
+        history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            date_added=workflow.date_added + timedelta(seconds=1),
         )
 
         result = serialize(workflow)
@@ -491,6 +500,7 @@ class TestWorkflowSerializer(TestCase):
             "environment": self.environment.name,
             "detectorIds": [str(detector.id)],
             "enabled": workflow.enabled,
+            "lastTriggered": history.date_added,
         }
 
 
@@ -517,26 +527,60 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
         self.history: list[WorkflowFireHistory] = []
         self.workflow = self.create_workflow(organization=self.organization)
+
+        self.detector_1 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
         for i in range(3):
             self.history.append(
-                WorkflowFireHistory(workflow=self.workflow, group=self.group, event_id=uuid4().hex)
+                WorkflowFireHistory(
+                    detector=self.detector_1,
+                    workflow=self.workflow,
+                    group=self.group,
+                    event_id=uuid4().hex,
+                )
             )
         self.group_2 = self.create_group()
+        self.detector_2 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
         self.history.append(
-            WorkflowFireHistory(workflow=self.workflow, group=self.group_2, event_id=uuid4().hex)
+            WorkflowFireHistory(
+                detector=self.detector_2,
+                workflow=self.workflow,
+                group=self.group_2,
+                event_id=uuid4().hex,
+            )
         )
         self.group_3 = self.create_group()
+        self.detector_3 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
         for i in range(2):
             self.history.append(
                 WorkflowFireHistory(
+                    detector=self.detector_3,
                     workflow=self.workflow,
                     group=self.group_3,
                     event_id=uuid4().hex,
                 )
             )
+        # this will be ordered after the WFH with self.detector_1
+        self.detector_4 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
         self.workflow_2 = self.create_workflow(organization=self.organization)
         self.history.append(
-            WorkflowFireHistory(workflow=self.workflow_2, group=self.group, event_id=uuid4().hex)
+            WorkflowFireHistory(
+                detector=self.detector_4,
+                workflow=self.workflow_2,
+                group=self.group,
+                event_id=uuid4().hex,
+            )
         )
 
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
@@ -571,18 +615,21 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=3,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[0].event_id,
+                    detector=self.detector_1,
                 ),
                 WorkflowGroupHistory(
                     self.group_3,
                     count=2,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[4].event_id,
+                    detector=self.detector_3,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     count=1,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[3].event_id,
+                    detector=self.detector_2,
                 ),
             ],
         )
@@ -598,6 +645,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=3,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[0].event_id,
+                    detector=self.detector_1,
                 ),
             ],
             per_page=1,
@@ -613,6 +661,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=2,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[4].event_id,
+                    detector=self.detector_3,
                 ),
             ],
             cursor=result.next,
@@ -629,6 +678,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=1,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[3].event_id,
+                    detector=self.detector_2,
                 ),
             ],
             cursor=result.next,
@@ -647,18 +697,21 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=1,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[0].event_id,
+                    detector=self.detector_1,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     count=1,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[3].event_id,
+                    detector=self.detector_2,
                 ),
                 WorkflowGroupHistory(
                     self.group_3,
                     count=1,
                     last_triggered=self.base_triggered_date,
                     event_id=self.history[4].event_id,
+                    detector=self.detector_3,
                 ),
             ],
         )
@@ -674,6 +727,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     count=1,
                     last_triggered=self.base_triggered_date - timedelta(days=2),
                     event_id=self.history[2].event_id,
+                    detector=self.detector_1,
                 ),
             ],
         )

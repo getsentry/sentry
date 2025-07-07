@@ -6,9 +6,9 @@ import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import Link from 'sentry/components/links/link';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChat, IconEllipsis} from 'sentry/icons';
@@ -392,7 +392,7 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 `;
 
 const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
@@ -402,11 +402,11 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
 
 const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const CommentsLink = styled(Link)`

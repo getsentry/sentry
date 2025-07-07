@@ -1102,6 +1102,10 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
+# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
+register("ai-agent-monitoring.custom-model-mapping", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -1801,6 +1805,11 @@ register(
     default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
+register(
+    "performance.issues.sql_injection.query_value_length_threshold",
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -3109,12 +3118,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "demo-mode.disable-sandbox-redirect",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3176,11 +3179,6 @@ register(
 register(
     "sentry.demo_mode.sync_debug_artifacts.source_org_id",
     type=Int,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry.demo_mode.sync_debug_artifacts.lookback_days",
-    default=3,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3274,6 +3272,11 @@ register(
 )
 register(
     "taskworker.selfhosted.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.workflow_engine.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

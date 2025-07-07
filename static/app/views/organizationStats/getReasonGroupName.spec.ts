@@ -108,4 +108,12 @@ describe('getReasonGroupName', function () {
       expect(getReasonGroupName(Outcome.FILTERED, input)).toBe(expected);
     });
   });
+  it('handles invalid signature types', function () {
+    expect(getReasonGroupName(Outcome.INVALID, 'invalid_signature')).toBe(
+      'invalid_signature'
+    );
+    expect(getReasonGroupName(Outcome.INVALID, 'missing_signature')).toBe(
+      'invalid_signature'
+    );
+  });
 });

@@ -888,7 +888,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         } else {
           const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            Sentry.captureException('Detecting missing instrumentation failed');
+            Sentry.logger.error('Detecting missing instrumentation failed');
             return;
           }
 
@@ -1489,6 +1489,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+
         if (spanId === eventId) {
           return true;
         }

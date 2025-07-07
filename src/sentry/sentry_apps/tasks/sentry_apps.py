@@ -489,6 +489,7 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
             times=3,
             delay=60 * 5,
         ),
+        processing_deadline_duration=30,
     ),
     **CONTROL_TASK_OPTIONS,
 )
@@ -780,16 +781,24 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.create_or_update_service_hooks_for_sentry_app",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
-    installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
-    for installation in installations:
-        create_or_update_service_hooks_for_installation(
-            installation=installation,
-            events=events,
-            webhook_url=webhook_url,
-        )
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.MANAGEMENT,
+        event_type=SentryAppEventType.WEBHOOK_UPDATE,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"sentry_app_id": sentry_app_id, "events": events})
+        installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
+
+        for installation in installations:
+            create_or_update_service_hooks_for_installation(
+                installation=installation,
+                events=events,
+                webhook_url=webhook_url,
+            )

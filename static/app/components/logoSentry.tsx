@@ -19,6 +19,7 @@ function LogoSentry({showWordmark = true, height = '32px', className}: Props) {
       viewBox="0 0 200 44"
       height={height}
       className={className}
+      fill="currentColor"
     >
       {showWordmark ? wordmarkSvg : glyphSvg}
     </svg>

@@ -214,7 +214,7 @@ const LoadingBox = styled('div')`
 `;
 
 const PagesTooltip = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.gray300};
 `;

@@ -148,10 +148,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     reservedAttachments: 1,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
-    hasReservedBudgets: false, // false because we don't have a PAID reserved budget
-    reservedBudgetCategories: hasSeer
-      ? [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER]
-      : [],
     reservedBudgets,
     categories: {
       errors: MetricHistoryFixture({
@@ -271,12 +267,7 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
       order: 28,
     }),
   };
-  subscription.reservedBudgetCategories = [
-    DataCategory.SEER_AUTOFIX,
-    DataCategory.SEER_SCANNER,
-  ];
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
-  subscription.hasReservedBudgets = true;
   return subscription;
 }
 
@@ -307,12 +298,6 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     plan: planData.plan,
     planTier: planData.planTier,
   });
-  subscription.hasReservedBudgets = true;
-  subscription.reservedBudgetCategories = [
-    ...(subscription.reservedBudgetCategories || []),
-    DataCategory.SPANS,
-    DataCategory.SPANS_INDEXED,
-  ];
   subscription.reservedBudgets = [
     ...(subscription.reservedBudgets || []),
     DynamicSamplingReservedBudgetFixture({

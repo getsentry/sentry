@@ -62,11 +62,8 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {
-    preference,
-    codeMappingRepos,
-    isLoading: isLoadingPreferences,
-  } = useProjectSeerPreferences(project);
+  const {preference, isLoading: isLoadingPreferences} =
+    useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -88,8 +85,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
-  const needsRepoSelection =
-    repos.length === 0 && !preference?.repositories?.length && !codeMappingRepos?.length;
+  const needsRepoSelection = repos.length === 0 && !preference?.repositories?.length;
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
@@ -441,7 +437,7 @@ const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(0.5)};
   margin-left: 1px;
 `;
@@ -462,7 +458,7 @@ const CollapsedSummaryCard = styled('div')`
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 500;
   color: ${p => p.theme.textColor};
   transition: box-shadow 0.2s;

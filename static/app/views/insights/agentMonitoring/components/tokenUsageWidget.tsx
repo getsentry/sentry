@@ -12,16 +12,17 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -31,18 +32,16 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function TokenUsageWidget() {
   const theme = useTheme();
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
-  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
   const tokensRequest = useEAPSpans(
     {
@@ -51,7 +50,7 @@ export default function TokenUsageWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOKEN_USAGE_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -64,7 +63,7 @@ export default function TokenUsageWidget() {
       topN: 3,
       enabled: !!tokensRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOKEN_USAGE_WIDGET
   );
 
   const timeSeries = timeSeriesRequest.data;
@@ -145,6 +144,7 @@ export default function TokenUsageWidget() {
         timeSeries && (
           <Toolbar
             showCreateAlert
+            referrer={Referrer.TOKEN_USAGE_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
@@ -180,7 +180,7 @@ export default function TokenUsageWidget() {
 
 const ModelText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

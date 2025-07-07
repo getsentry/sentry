@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -13,7 +14,6 @@ import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {LazyRender} from 'sentry/components/lazyRender';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -171,7 +171,7 @@ const StyledCard = styled(Card)`
 
 const AttachmentName = styled('span')`
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
 `;
 

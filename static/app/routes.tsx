@@ -12,6 +12,7 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import AuthLayout from 'sentry/views/auth/layout';
+import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -1566,13 +1567,6 @@ function buildRoutes() {
           () => import('sentry/views/performance/transactionSummary/transactionProfiles')
         )}
       />
-      <Route
-        path="aggregateWaterfall/"
-        component={make(
-          () =>
-            import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
-        )}
-      />
       <Route path="spans/">
         <IndexRoute
           component={make(
@@ -1707,6 +1701,7 @@ function buildRoutes() {
 
   const domainViewRoutes = (
     <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/insights/index'))} />
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
@@ -1777,7 +1772,7 @@ function buildRoutes() {
       component={make(() => import('sentry/views/performance'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <IndexRedirect to="/insights/frontend/" />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -2568,6 +2563,7 @@ function buildRoutes() {
         {experimentalSpaRoutes}
         <Route path="/" component={errorHandler(App)}>
           {rootRoutes}
+          {authV2Routes}
           {organizationRoutes}
           {legacyRedirectRoutes}
           <Route path="*" component={errorHandler(RouteNotFound)} />

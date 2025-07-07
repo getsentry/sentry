@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -15,7 +17,12 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -333,7 +340,7 @@ export function viewSamplesTarget({
     mode: Mode.SAMPLES,
     fields: newFields,
     query: search.formatString(),
-    sortBys: [sortBy],
+    sampleSortBys: [sortBy],
   });
 }
 
@@ -656,4 +663,28 @@ function formatToken(token: string): string {
   }
 
   return token;
+}
+
+export function prettifyAggregation(aggregation: string): string | null {
+  if (isEquation(aggregation)) {
+    const expression = new Expression(stripEquationPrefix(aggregation));
+    return expression.tokens
+      .map(token => {
+        if (isTokenFunction(token)) {
+          const func = parseFunction(token.text);
+          if (func) {
+            return prettifyParsedFunction(func);
+          }
+        }
+        return token.text;
+      })
+      .join(' ');
+  }
+
+  const func = parseFunction(aggregation);
+  if (func) {
+    return prettifyParsedFunction(func);
+  }
+
+  return null;
 }

@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
+from itertools import cycle
 from unittest import mock
 
 import pytest
 from jsonschema import ValidationError
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+    CheckResult,
+    CheckStatus,
+)
 
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase, UptimeTestCase
@@ -18,7 +24,7 @@ from sentry.uptime.grouptype import (
     build_fingerprint,
 )
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -217,6 +223,41 @@ class TestUptimeHandler(UptimeTestCase):
             )
             assert evaluation is None
 
+    def test_flapping_evaluate(self):
+        """
+        Test that a uptime monitor that flaps between failure, success success,
+        failure, etc does not produce any evaluations.
+        """
+        project_subscription = self.create_project_uptime_subscription()
+        uptime_subscription = project_subscription.uptime_subscription
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+
+        assert uptime_subscription.uptime_status == UptimeStatus.OK
+
+        now = datetime.now()
+
+        features = [
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-create-issues",
+        ]
+
+        with (
+            self.feature(features),
+            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=3),
+        ):
+            status_cycle: cycle[CheckStatus] = cycle(
+                [CHECKSTATUS_FAILURE, CHECKSTATUS_SUCCESS, CHECKSTATUS_SUCCESS]
+            )
+
+            for idx in range(12, 0, -1):
+                result = self.create_uptime_result(
+                    status=next(status_cycle),
+                    scheduled_check_time=now - timedelta(minutes=idx),
+                )
+                evaluation = self.handle_result(detector, uptime_subscription, result)
+                assert evaluation is None
+
 
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
     def setUp(self):
@@ -229,7 +270,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
             project_id=self.project.id,
             type=UptimeDomainCheckFailure.slug,
             config={
-                "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                "mode": UptimeMonitorMode.MANUAL,
                 "environment": "hi",
             },
         )
@@ -260,7 +301,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": 1,
                 },
             )
@@ -281,7 +322,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "bad_mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "bad_mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                 },
             )
@@ -291,7 +332,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                     "junk": "hi",
                 },
@@ -319,7 +360,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                 },
             )
 
