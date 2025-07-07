@@ -113,6 +113,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
+  _testContext?: Partial<LogsPageParams>;
   blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
@@ -128,6 +129,7 @@ export function LogsPageParamsProvider({
   blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
+  _testContext,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
@@ -207,6 +209,7 @@ export function LogsPageParamsProvider({
         groupBy,
         aggregateFn,
         aggregateParam,
+        ..._testContext,
       }}
     >
       {children}
@@ -511,14 +514,17 @@ export function useLogsAutoRefresh() {
 
 export function useSetLogsAutoRefresh() {
   const setPageParams = useSetLogsPageParams();
-  const {queryKey} = useLogsQueryKeyWithInfinite({referrer: 'api.explore.logs-table'});
+  const {queryKey} = useLogsQueryKeyWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+  });
   const queryClient = useQueryClient();
   return useCallback(
     (autoRefresh: boolean) => {
-      setPageParams({autoRefresh});
       if (autoRefresh) {
         queryClient.removeQueries({queryKey});
       }
+      setPageParams({autoRefresh});
     },
     [setPageParams, queryClient, queryKey]
   );
