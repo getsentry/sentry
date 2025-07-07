@@ -3,13 +3,23 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
+from collections.abc import Callable
+from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
-from sentry.tasks.assemble import AssembleTask, ChunkFileState, assemble_file, set_assemble_status
+from sentry.tasks.assemble import (
+    AssembleResult,
+    AssembleTask,
+    ChunkFileState,
+    assemble_file,
+    set_assemble_status,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
@@ -125,16 +135,6 @@ def assemble_preprod_artifact(
             },
         )
 
-        logger.info(
-            "Finished preprod artifact assembly",
-            extra={
-                "timestamp": datetime.datetime.now().isoformat(),
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
-        )
-
         # where next set of changes will happen
         # TODO: Trigger artifact processing (size analysis, etc.)
         # This is where you'd add logic to:
@@ -144,11 +144,13 @@ def assemble_preprod_artifact(
         # 4. Update state to PROCESSED when done (also update the date_built value to reflect when the artifact was built, among other fields)
 
     except Exception as e:
+        sentry_sdk.capture_exception(e)
         logger.exception(
             "Failed to assemble preprod artifact",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
+                "checksum": checksum,
             },
         )
         set_assemble_status(
@@ -158,8 +160,146 @@ def assemble_preprod_artifact(
             ChunkFileState.ERROR,
             detail=str(e),
         )
+        return
+
+    # Mark assembly as successful since the artifact was created successfully
+    set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+
+    produce_preprod_artifact_to_kafka(
+        project_id=project_id,
+        organization_id=org_id,
+        artifact_id=preprod_artifact.id,
+        checksum=checksum,
+        git_sha=git_sha,
+        build_configuration=build_configuration,
+    )
+
+    logger.info(
+        "Finished preprod artifact assembly and Kafka dispatch",
+        extra={
+            "preprod_artifact_id": preprod_artifact.id,
+            "project_id": project_id,
+            "organization_id": org_id,
+            "checksum": checksum,
+        },
+    )
+
+
+def _assemble_preprod_artifact(
+    assemble_task: str,
+    project_id: int,
+    org_id: int,
+    checksum: str,
+    chunks: Any,
+    callback: Callable[[AssembleResult, Any], None],
+):
+    logger.info(
+        "Starting preprod artifact assembly",
+        extra={
+            "timestamp": datetime.datetime.now().isoformat(),
+            "project_id": project_id,
+            "organization_id": org_id,
+            "assemble_task": assemble_task,
+        },
+    )
+
+    try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        project = Project.objects.get(id=project_id, organization=organization)
+        bind_organization_context(organization)
+
+        set_assemble_status(
+            assemble_task,
+            project_id,
+            checksum,
+            ChunkFileState.ASSEMBLING,
+        )
+
+        assemble_result = assemble_file(
+            task=assemble_task,
+            org_or_project=project,
+            name=f"preprod-file-{assemble_task}-{uuid.uuid4().hex}",
+            checksum=checksum,
+            chunks=chunks,
+            file_type="preprod.file",
+        )
+        if assemble_result is None:
+            return
+
+        callback(assemble_result, project)
+    except Exception as e:
+        logger.exception(
+            "Failed to assemble preprod artifact",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "assemble_task": assemble_task,
+            },
+        )
+        set_assemble_status(
+            assemble_task,
+            project_id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail=str(e),
+        )
     else:
-        set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+        set_assemble_status(assemble_task, project_id, checksum, ChunkFileState.OK)
+
+
+def _assemble_preprod_artifact_size_analysis(
+    assemble_result: AssembleResult, project, artifact_id, org_id
+):
+    from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+
+    try:
+        preprod_artifact = PreprodArtifact.objects.get(
+            project=project,
+            id=artifact_id,
+        )
+    except PreprodArtifact.DoesNotExist:
+        # Ideally this should never happen
+        logger.exception(
+            "PreprodArtifact not found during size analysis assembly",
+            extra={
+                "artifact_id": artifact_id,
+                "project_id": project.id,
+                "organization_id": org_id,
+            },
+        )
+        # Clean up the assembled file since we can't associate it with an artifact
+        try:
+            # Close the temporary file handle first
+            if hasattr(assemble_result, "bundle_temp_file") and assemble_result.bundle_temp_file:
+                assemble_result.bundle_temp_file.close()
+            # Then delete the file object
+            assemble_result.bundle.delete()
+        except Exception:
+            pass  # Ignore cleanup errors
+        raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
+
+    # Update size metrics in its own transaction
+    with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+        size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+            preprod_artifact=preprod_artifact,
+            defaults={
+                "analysis_file_id": assemble_result.bundle.id,
+                "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
+                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            },
+        )
+
+    logger.info(
+        "Created or updated preprod artifact size metrics with analysis file",
+        extra={
+            "preprod_artifact_id": preprod_artifact.id,
+            "size_metrics_id": size_metrics.id,
+            "analysis_file_id": assemble_result.bundle.id,
+            "was_created": created,
+            "project_id": project.id,
+            "organization_id": org_id,
+        },
+    )
 
 
 @instrumented_task(
@@ -182,120 +322,13 @@ def assemble_preprod_artifact_size_analysis(
     """
     Creates a size analysis file for a preprod artifact from uploaded chunks.
     """
-    from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-
-    logger.info(
-        "Starting preprod artifact size analysis assembly",
-        extra={
-            "timestamp": datetime.datetime.now().isoformat(),
-            "project_id": project_id,
-            "organization_id": org_id,
-        },
+    _assemble_preprod_artifact(
+        AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
+        project_id,
+        org_id,
+        checksum,
+        chunks,
+        lambda assemble_result, project: _assemble_preprod_artifact_size_analysis(
+            assemble_result, project, artifact_id, org_id
+        ),
     )
-
-    try:
-        organization = Organization.objects.get_from_cache(pk=org_id)
-        project = Project.objects.get(id=project_id, organization=organization)
-        bind_organization_context(organization)
-
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
-            project_id,
-            checksum,
-            ChunkFileState.ASSEMBLING,
-        )
-
-        assemble_result = assemble_file(
-            task=AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
-            org_or_project=project,
-            name=f"preprod-size-analysis-{uuid.uuid4().hex}",
-            checksum=checksum,
-            chunks=chunks,
-            file_type="preprod.size_analysis",
-        )
-
-        if assemble_result is None:
-            return
-
-        try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id,
-            )
-        except PreprodArtifact.DoesNotExist:
-            # Ideally this should never happen
-            logger.exception(
-                "PreprodArtifact not found during size analysis assembly",
-                extra={
-                    "artifact_id": artifact_id,
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                },
-            )
-            # Clean up the assembled file since we can't associate it with an artifact
-            try:
-                # Close the temporary file handle first
-                if (
-                    hasattr(assemble_result, "bundle_temp_file")
-                    and assemble_result.bundle_temp_file
-                ):
-                    assemble_result.bundle_temp_file.close()
-                # Then delete the file object
-                assemble_result.bundle.delete()
-            except Exception:
-                pass  # Ignore cleanup errors
-            raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
-
-        # Update size metrics in its own transaction
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
-                preprod_artifact=preprod_artifact,
-                defaults={
-                    "analysis_file_id": assemble_result.bundle.id,
-                    "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                },
-            )
-
-        logger.info(
-            "Created or updated preprod artifact size metrics with analysis file",
-            extra={
-                "preprod_artifact_id": preprod_artifact.id,
-                "size_metrics_id": size_metrics.id,
-                "analysis_file_id": assemble_result.bundle.id,
-                "was_created": created,
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-
-        logger.info(
-            "Finished preprod artifact size analysis assembly",
-            extra={
-                "timestamp": datetime.datetime.now().isoformat(),
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-
-        # TODO: Trigger size related actions like notifications, etc.
-
-    except Exception as e:
-        logger.exception(
-            "Failed to assemble preprod artifact size analysis",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-            },
-        )
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
-            project_id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail=str(e),
-        )
-    else:
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS, project_id, checksum, ChunkFileState.OK
-        )

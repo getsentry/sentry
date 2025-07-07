@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
@@ -47,6 +46,7 @@ import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
@@ -155,7 +155,7 @@ function AgentsMonitoringPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <ProjectPageFilter resetParamsOnChange={['starred']} />
+                    <InsightsProjectSelector />
                     <EnvironmentPageFilter />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>

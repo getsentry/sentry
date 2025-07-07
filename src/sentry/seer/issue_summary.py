@@ -416,6 +416,9 @@ def get_issue_summary(
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
 
+    if group.organization.get_option("sentry:hide_ai_features"):
+        return {"detail": "AI features are disabled for this organization."}, 403
+
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 

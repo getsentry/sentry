@@ -14,13 +14,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {extendWithLegacyAttributeKeys} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SectionTitleWithQuestionTooltip} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
@@ -29,6 +30,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
@@ -94,6 +96,8 @@ export function Attributes({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const traceState = useTraceState();
+  const isSentryEmployee = useIsSentryEmployee();
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -101,17 +105,41 @@ export function Attributes({
       : undefined;
 
   const sortedAndFilteredAttributes = useMemo(() => {
-    const sorted = sortAttributes(attributes);
+    const sortedAttributes = sortAttributes(attributes);
+
+    const onlyVisibleAttributes = sortedAttributes.filter(
+      attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
+    );
+
+    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
+    const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
+      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const filteredByOTelMode = onlyAllowedAttributes.filter(attribute => {
+      if (shouldUseOTelFriendlyUI) {
+        return !['span.description', 'span.op'].includes(attribute.name);
+      }
+
+      return attribute.name !== 'span.name';
+    });
+
     if (!searchQuery.trim()) {
-      return sorted;
+      return filteredByOTelMode;
     }
 
-    return sorted.filter(
-      attribute =>
-        !HIDDEN_ATTRIBUTES.includes(attribute.name) &&
-        attribute.name.toLowerCase().trim().includes(searchQuery.toLowerCase().trim())
-    );
-  }, [attributes, searchQuery]);
+    const normalizedSearchQuery = searchQuery.toLowerCase().trim();
+
+    const onlyMatchingAttributes = filteredByOTelMode.filter(attribute => {
+      return attribute.name.toLowerCase().trim().includes(normalizedSearchQuery);
+    });
+
+    return onlyMatchingAttributes;
+  }, [attributes, searchQuery, isSentryEmployee, shouldUseOTelFriendlyUI]);
 
   const customRenderers: Record<
     string,
@@ -171,7 +199,7 @@ export function Attributes({
     <FoldSection
       sectionKey={SectionKey.SPAN_ATTRIBUTES}
       title={
-        <SectionTitleWithQuestionTooltip
+        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
           title={t('Attributes')}
           tooltipText={t(
             'These attributes are indexed and can be queried in the Trace Explorer.'
@@ -190,7 +218,6 @@ export function Attributes({
         {sortedAndFilteredAttributes.length > 0 ? (
           <AttributesTreeWrapper>
             <AttributesTree
-              hiddenAttributes={HIDDEN_ATTRIBUTES}
               columnCount={columnCount}
               attributes={sortedAndFilteredAttributes}
               renderers={customRenderers}

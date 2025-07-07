@@ -2,6 +2,7 @@ import datetime
 import logging
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
 
 from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -63,10 +64,21 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 status=400,
             )
 
+        use_eap_results = features.has(
+            "organizations:uptime-eap-uptime-results-query", organization, actor=request.user
+        )
+
         try:
+            # XXX: We need to query these using hex, since we store them without dashes.
+            # We remove this once we remove the old uptime checks
+            if use_eap_results:
+                subscription_id_formatter = lambda sub_id: uuid.UUID(sub_id).hex
+            else:
+                subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
+
             subscription_id_to_project_uptime_subscription_id, subscription_ids = (
                 self._authorize_and_map_project_uptime_subscription_ids(
-                    project_uptime_subscription_ids, projects
+                    project_uptime_subscription_ids, projects, subscription_id_formatter
                 )
             )
         except ValueError:
@@ -78,7 +90,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         try:
-            if features.has("organizations:uptime-eap-uptime-results-query", organization):
+            if use_eap_results:
                 eap_response = self._make_eap_request(
                     organization,
                     projects,
@@ -123,7 +135,10 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         return self.respond(response_with_extra_buckets)
 
     def _authorize_and_map_project_uptime_subscription_ids(
-        self, project_uptime_subscription_ids: list[str], projects: list[Project]
+        self,
+        project_uptime_subscription_ids: list[str],
+        projects: list[Project],
+        sub_id_formatter: Callable[[str], str],
     ) -> tuple[dict[str, int], list[str]]:
         """
         Authorize the project uptime subscription ids and return their corresponding subscription ids
@@ -144,14 +159,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             raise ValueError("Invalid project uptime subscription ids provided")
 
         subscription_id_to_project_uptime_subscription_id = {
-            str(uuid.UUID(project_uptime_subscription[1])): project_uptime_subscription[0]
+            sub_id_formatter(project_uptime_subscription[1]): project_uptime_subscription[0]
             for project_uptime_subscription in project_uptime_subscriptions
             if project_uptime_subscription[0] is not None
             and project_uptime_subscription[1] is not None
         }
 
         validated_subscription_ids = [
-            str(uuid.UUID(project_uptime_subscription[1]))
+            sub_id_formatter(project_uptime_subscription[1])
             for project_uptime_subscription in project_uptime_subscriptions
             if project_uptime_subscription[1] is not None
         ]

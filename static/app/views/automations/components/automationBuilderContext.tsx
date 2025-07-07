@@ -1,9 +1,12 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 import {uuid4} from '@sentry/core';
 
+import type {
+  Action,
+  ActionConfig,
+  ActionHandler,
+} from 'sentry/types/workflowEngine/actions';
 import {
-  type ActionConfig,
-  type ActionHandler,
   ActionTarget,
   ActionType,
   SentryAppIdentifier,
@@ -117,15 +120,8 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       [dispatch]
     ),
     updateIfAction: useCallback(
-      (
-        groupId: string,
-        actionId: string,
-        params: {
-          config?: Record<string, any>;
-          data?: Record<string, any>;
-          integrationId?: string;
-        }
-      ) => dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
+      (groupId: string, actionId: string, params: Partial<Omit<Action, 'id' | 'type'>>) =>
+        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
@@ -159,11 +155,7 @@ interface AutomationActions {
   updateIfAction: (
     groupId: string,
     actionId: string,
-    params: {
-      config?: Record<string, any>;
-      data?: Record<string, any>;
-      integrationId?: string;
-    }
+    params: Partial<Omit<Action, 'id' | 'type'>>
   ) => void;
   updateIfCondition: (
     groupId: string,
@@ -276,11 +268,7 @@ type RemoveIfActionAction = {
 type UpdateIfActionAction = {
   actionId: string;
   groupId: string;
-  params: {
-    config?: Record<string, any>;
-    data?: Record<string, any>;
-    integrationId?: string;
-  };
+  params: Partial<Omit<Action, 'id' | 'type'>>;
   type: 'UPDATE_IF_ACTION';
 };
 
@@ -558,7 +546,6 @@ function updateIfAction(
   action: UpdateIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, params} = action;
-  const {integrationId, config, data} = params;
 
   return {
     ...state,
@@ -572,9 +559,7 @@ function updateIfAction(
           a.id === actionId
             ? {
                 ...a,
-                ...(integrationId && {integrationId}),
-                ...(config && {config: {...a.config, ...config}}),
-                ...(data && {data: {...a.data, ...data}}),
+                ...params,
               }
             : a
         ),

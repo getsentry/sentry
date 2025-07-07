@@ -226,7 +226,6 @@ describe('Dashboards > Detail', function () {
       ...RouteComponentPropsFixture(),
       organization: {
         ...mockAuthorizedOrg,
-        features: [...FEATURES, 'dashboards-table-view'],
       },
     });
 

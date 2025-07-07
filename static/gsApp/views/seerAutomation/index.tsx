@@ -25,7 +25,10 @@ function SeerAutomationRoot() {
   const organization = useOrganization();
   const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
 
-  if (!organization.features.includes('trigger-autofix-on-issue-summary')) {
+  if (
+    !organization.features.includes('trigger-autofix-on-issue-summary') ||
+    organization.hideAiFeatures
+  ) {
     return <NoAccess />;
   }
 
@@ -44,12 +47,11 @@ function SeerAutomationRoot() {
   }
 
   // Check if setup is needed
-  const needsUserAcknowledgement = !setupAcknowledgement.userHasAcknowledged;
   const needsOrgAcknowledgement = !setupAcknowledgement.orgHasAcknowledged;
   const needsBilling =
     !billing.hasAutofixQuota && organization.features.includes('seer-billing');
 
-  const needsSetup = needsUserAcknowledgement || needsOrgAcknowledgement || needsBilling;
+  const needsSetup = needsOrgAcknowledgement || needsBilling;
 
   // Show setup screen if needed
   if (needsSetup) {

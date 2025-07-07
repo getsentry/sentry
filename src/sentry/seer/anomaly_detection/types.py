@@ -18,7 +18,7 @@ class DataSourceType(IntEnum):
 
 
 class AlertInSeer(TypedDict):
-    id: NotRequired[int]
+    id: int | None
     source_id: NotRequired[
         int
     ]  # during our dual processing rollout, some requests will be sending ID and some will send source_id/source_type

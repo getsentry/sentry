@@ -25,6 +25,8 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
@@ -54,6 +56,8 @@ type Query = {
 type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const moduleTitle = useModuleTitle(ModuleName.DB);
+  const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
 
   const {groupId} = params;
@@ -167,10 +171,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         headerTitle={t('Query Summary')}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: t('Query Summary'),
           },
         ]}
         module={ModuleName.DB}
+        hideDefaultTabs
       />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>

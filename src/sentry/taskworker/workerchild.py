@@ -160,9 +160,8 @@ def child_process(
                 f"execution deadline of {deadline} seconds exceeded by {taskname}"
             )
 
-        while True:
+        while not shutdown_event.is_set():
             if max_task_count and processed_task_count >= max_task_count:
-
                 metrics.incr(
                     "taskworker.worker.max_task_count_reached",
                     tags={"count": processed_task_count, "processing_pool": processing_pool_name},
@@ -172,13 +171,16 @@ def child_process(
                 )
                 break
 
-            if shutdown_event.is_set():
-                logger.info("taskworker.worker.shutdown_event")
-                break
-
+            child_tasks_get_start = time.monotonic()
             try:
+                # If the queue is empty, this could block for a second.
                 inflight = child_tasks.get(timeout=1.0)
             except queue.Empty:
+                metrics.distribution(
+                    "taskworker.worker.child_task_queue_empty.wait_duration",
+                    time.monotonic() - child_tasks_get_start,
+                    tags={"processing_pool": processing_pool_name},
+                )
                 metrics.incr(
                     "taskworker.worker.child_task_queue_empty",
                     tags={"processing_pool": processing_pool_name},
