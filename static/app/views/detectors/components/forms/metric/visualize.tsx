@@ -218,7 +218,6 @@ export function Visualize() {
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
 
-    // For other datasets, use the table field options
     return Object.values(aggregateOptions)
       .filter(
         option =>
