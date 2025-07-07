@@ -123,7 +123,6 @@ class _Links(TypedDict):
 class OnboardingTasksSerializerResponse(TypedDict):
     task: str | None  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime | None
     dateCompleted: datetime
     data: Any  # JSON objec
