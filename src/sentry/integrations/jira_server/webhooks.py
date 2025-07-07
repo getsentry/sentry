@@ -58,9 +58,9 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
 
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=100, window=1),
+            RateLimitCategory.USER: RateLimit(limit=100, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
         },
     }
 
