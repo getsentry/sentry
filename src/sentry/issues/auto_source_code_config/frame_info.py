@@ -25,23 +25,21 @@ UNSUPPORTED_NORMALIZED_PATH_PATTERN = re.compile(r"^[^/]*$")
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
     """Factory function to create the appropriate FrameInfo instance."""
-    frame_info: FrameInfo | None = None
     if platform:
         platform_config = PlatformConfig(platform)
         if platform_config.extracts_filename_from_module():
-            frame_info = ModuleBasedFrameInfo()
-            frame_info.process_frame(frame)
-            return frame_info
+            return ModuleBasedFrameInfo(frame)
 
-    frame_info = PathBasedFrameInfo()
-    frame_info.process_frame(frame)
-    return frame_info
+    return PathBasedFrameInfo(frame)
 
 
 class FrameInfo(ABC):
     raw_path: str
     normalized_path: str
     stack_root: str
+
+    def __init__(self, frame: Mapping[str, Any]) -> None:
+        self.process_frame(frame)
 
     def __repr__(self) -> str:
         return f"FrameInfo: {self.raw_path}"
