@@ -7,18 +7,11 @@
  * ellipsize('    ', 6) // returns ''
  * ellipsize('short', 10) // returns 'short'
  */
-export function ellipsize(str: string, maxLength: number): string {
-  if (maxLength < 0) {
-    return '';
-  }
-
-  if (str.trim().length === 0) {
-    return '';
-  }
-
-  if (str.length > maxLength) {
-    return str.slice(0, maxLength).trimRight() + '\u2026';
-  }
+export function ellipsize(str: string, length: number): string {
+  if(length < 0 || isNaN(length)) throw new TypeError('Invalid string length argument value of ${length} provided to ellipsize');
+   
+  if (str.length < length) return str;
+  return str.slice(0, maxLength).trimRight() + '\u2026';
 
   return str;
 }
