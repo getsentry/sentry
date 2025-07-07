@@ -8,18 +8,15 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useProjects from 'sentry/utils/useProjects';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import type {QueryCounts} from './utils';
@@ -86,9 +83,7 @@ function IssueListHeader({
   onRealtimeChange,
   router,
   displayReprocessingTab,
-  selectedProjectIds,
 }: IssueListHeaderProps) {
-  const {projects} = useProjects();
   const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
     ? tabs
@@ -99,9 +94,6 @@ function IssueListHeader({
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
 
-  const selectedProjects = projects.filter(({id}) =>
-    selectedProjectIds.includes(Number(id))
-  );
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -134,7 +126,6 @@ function IssueListHeader({
           </DisableInDemoMode>
         </ButtonBar>
       </Layout.HeaderActions>
-      <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>
         <TabList hideBorder>
           {visibleTabs.map(
@@ -183,17 +174,6 @@ function IssueListHeader({
 }
 
 export default IssueListHeader;
-
-const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  grid-column: 1/-1;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin-top: ${space(2)};
-    margin-bottom: 0;
-  }
-`;
 
 const StyledTabs = styled(Tabs)`
   grid-column: 1/-1;
