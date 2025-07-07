@@ -175,7 +175,7 @@ export enum IssueType {
 
   // Detectors
   DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
-  QUERY_INJECTION_VULNERABILITY_EXPERIMENTAL = 'query_injection_vulnerability_experimental',
+  QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -257,7 +257,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
-  1920: IssueType.QUERY_INJECTION_VULNERABILITY_EXPERIMENTAL,
+  1021: IssueType.QUERY_INJECTION_VULNERABILITY,
   1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,

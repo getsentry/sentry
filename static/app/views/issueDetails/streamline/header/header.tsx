@@ -87,7 +87,7 @@ export default function StreamlinedGroupHeader({
 
   const isQueryInjection =
     group.issueType === IssueType.DB_QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY_EXPERIMENTAL;
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
