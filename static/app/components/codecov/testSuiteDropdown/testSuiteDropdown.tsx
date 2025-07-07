@@ -18,6 +18,7 @@ const PLACEHOLDER_TEST_SUITES = [
 ];
 
 const TEST_SUITE = 'testSuite';
+const MAX_SUITE_UI_LENGTH = 22;
 
 export function TestSuiteDropdown() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,7 +64,7 @@ export function TestSuiteDropdown() {
       onChange={handleChange}
       // TODO: Add the disabled and emptyMessage when connected to backend hook
       menuTitle={t('Filter Test Suites')}
-      menuWidth={'22em'}
+      menuWidth={`${MAX_SUITE_UI_LENGTH}em`}
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 ||
@@ -72,8 +73,11 @@ export function TestSuiteDropdown() {
         // Otherwise show only 1 test suite.
         const totalLength =
           (value[0]?.length ?? 0) + (value[1]?.length ?? 0) + (value[1] ? 2 : 0);
-        const suitesToShow = totalLength < 22 ? value.slice(0, 2) : value.slice(0, 1);
-        const enumeratedLabel = suitesToShow.map(env => trimSlug(env, 22)).join(', ');
+        const suitesToShow =
+          totalLength < MAX_SUITE_UI_LENGTH ? value.slice(0, 2) : value.slice(0, 1);
+        const enumeratedLabel = suitesToShow
+          .map(env => trimSlug(env, MAX_SUITE_UI_LENGTH))
+          .join(', ');
 
         const label = areAllSuitesSelected ? t('All Test Suites') : enumeratedLabel;
         const remainingCount = areAllSuitesSelected
