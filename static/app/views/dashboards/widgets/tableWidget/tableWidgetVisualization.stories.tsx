@@ -277,8 +277,8 @@ function onChangeSort(newSort: Sort) {
     return (
       <Fragment>
         <p>
-          By default, table column widths are assumed to be resizable, mainly because most
-          use cases allow for this. If no resizing is required, pass the
+          By default, table column widths are assumed to be resizable as most use cases
+          utilize this. If no resizing is required, pass the
           <code>{'resizable={false}'}</code> to disable it. As a side note, resizing
           requires at least two columns to take effect. Having only one column means{' '}
           <code>resizable</code>prop does nothing. Widths are represented with numbers
@@ -314,7 +314,8 @@ function onChangeSort(newSort: Sort) {
           To elaborate on point two, if you want to use the default url parameters and
           need to pass <code>columns</code>prop, then do not add the <code>width</code>
           field to all columns or set the field to be <code>undefined</code>
-          for all columns.
+          for all columns. If you need to set initial widths as well, then add them to the
+          URL parameters directly.
         </p>
         <p>
           Try interacting with the columns and making note of the url parameter. Use the

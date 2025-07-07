@@ -78,7 +78,7 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
-   * A callback function on column resize that is invoked when a user resizes a column. If omitted, resizing will update the width in the URL
+   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL
    * @param widths an array of numbers containing the widths by column order
    */
   onChangeResizeColumn?: (widths: number[]) => void;
@@ -155,8 +155,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
+  const numColumns = Math.max(
+    Object.keys(columns || {}).length,
+    Object.keys(meta.fields).length
+  );
 
-  let widths = new Array(Object.keys(meta.fields).length).fill(COL_WIDTH_UNDEFINED);
+  let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
