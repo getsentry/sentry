@@ -10,11 +10,16 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_consumer import update_status
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.tasks.post_process import post_process_group
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import Feature
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
@@ -103,6 +108,15 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
             project_id=occurrence.project_id,
             eventstream_type=EventStreamEventType.Generic.value,
         )
+
+    def get_group(self, occurrence):
+        stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
+        assert stored_occurrence
+        event = eventstore.backend.get_event_by_id(
+            occurrence.project_id, stored_occurrence.event_id
+        )
+        assert event
+        return Group.objects.get(id=event.group_id)
 
     def setUp(self):
         super().setUp()
@@ -273,3 +287,83 @@ class MetricIssueIntegrationTest(BaseWorkflowTest):
         occurrence.save()
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # both actions
+
+    @with_feature("organizations:workflow-engine-process-activity")
+    def test_resolution_from_critical(self, mock_trigger):
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        group = self.get_group(occurrence)
+        self.call_post_process_group(occurrence)
+
+        assert mock_trigger.call_count == 2  # both actions
+
+        mock_trigger.reset_mock()
+
+        value = 0
+        data_packet = self.create_data_packet(value, 30)
+        result = self.handler.evaluate(data_packet)
+        evaluation_result = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, StatusChangeMessage)
+        message = evaluation_result.result.to_dict()
+        # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
+        with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+            update_status(group, message)
+            mock_incr.assert_called_with(
+                "workflow_engine.process_workflow.activity_update",
+                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+            )
+
+    @with_feature("organizations:workflow-engine-process-activity")
+    def test_resolution_from_warning(self, mock_trigger):
+        value = self.warning_detector_trigger.comparison + 1
+        data_packet = self.create_data_packet(value)
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence is not None
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=evaluation_result.event_data,
+        )
+        occurrence.save()
+        group = self.get_group(occurrence)
+        self.call_post_process_group(occurrence)
+
+        assert mock_trigger.call_count == 1  # warning action
+
+        mock_trigger.reset_mock()
+
+        value = 0
+        data_packet = self.create_data_packet(value, 30)
+        result = self.handler.evaluate(data_packet)
+        evaluation_result = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, StatusChangeMessage)
+        message = evaluation_result.result.to_dict()
+        # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
+        with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+            update_status(group, message)
+            mock_incr.assert_called_with(
+                "workflow_engine.process_workflow.activity_update",
+                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+            )
