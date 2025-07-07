@@ -3,6 +3,7 @@ from collections.abc import Callable, Generator, Mapping, Sequence
 from typing import TypeVar
 
 from sentry.seer.math import (
+    boxcox_transform,
     entropy,
     filter_by_z_score_threshold,
     kl_divergence,
@@ -20,7 +21,7 @@ Score = tuple[str, float]
 
 
 def filter_by_z_score(
-    data: Sequence[KeyedValueCount], z_threshold: float = 1.5, lambda_param: float = 0.0
+    data: Sequence[KeyedValueCount], z_threshold: float = 1.5, lambda_param: float | None = None
 ) -> list[KeyedValueCount]:
     """
     Filter data by applying BoxCox transformation and z-score filtering.
@@ -31,7 +32,7 @@ def filter_by_z_score(
     Parameters:
         data: Sequence of (key, value, count) tuples
         z_threshold: Minimum z-score threshold for inclusion
-        lambda_param: BoxCox lambda parameter (0 for log transformation)
+        lambda_param: BoxCox lambda parameter (None for automatic selection)
 
     Returns:
         Filtered list of (key, value, count) tuples
@@ -39,13 +40,9 @@ def filter_by_z_score(
     if not data:
         return []
 
-    # Extract counts (the third element of each tuple)
     counts = [count for _, _, count in data]
-
-    # Get indices that pass the filtering criteria
     passing_indices = filter_by_z_score_threshold(counts, z_threshold, lambda_param)
 
-    # Filter data based on passing indices
     return [data[i] for i in passing_indices]
 
 
@@ -83,6 +80,8 @@ def keyed_rrf_score(
     entropy_alpha: float = 0.2,
     kl_alpha: float = 0.8,
     offset: int = 60,
+    filter_rrf: bool = False,
+    z_threshold: float = 1.5,
 ) -> list[tuple[str, float]]:
     """
     RRF score a multi-dimensional distribution of values. Returns a list of key, score pairs.
@@ -111,6 +110,26 @@ def keyed_rrf_score(
         keys.append(key)
         entropy_scores.append(entropy_score)
         kl_scores.append(kl_score)
+
+    if filter_rrf:
+        normalized_entropy_scores, _ = boxcox_transform(entropy_scores)
+        normalized_kl_scores, _ = boxcox_transform(kl_scores)
+
+        filtered_keys = []
+        filtered_entropy_scores = []
+        filtered_kl_scores = []
+
+        for i, (key, normalized_entropy_score, normalized_kl_score) in enumerate(
+            zip(keys, normalized_entropy_scores, normalized_kl_scores)
+        ):
+            if normalized_entropy_score > z_threshold or normalized_kl_score > z_threshold:
+                filtered_keys.append(key)
+                filtered_entropy_scores.append(entropy_scores[i])
+                filtered_kl_scores.append(kl_scores[i])
+
+        keys = filtered_keys
+        entropy_scores = filtered_entropy_scores
+        kl_scores = filtered_kl_scores
 
     return sorted(
         zip(keys, rrf_score(entropy_scores, kl_scores, entropy_alpha, kl_alpha, offset)),
@@ -224,7 +243,7 @@ def _smooth_distribution(dist: Distribution) -> Distribution:
     return dict(zip(dist.keys(), laplace_smooth(list(dist.values()))))
 
 
-def keyed_rrf_score_with_filtering(
+def keyed_rrf_score_with_filter(
     baseline: Sequence[KeyedValueCount],
     outliers: Sequence[KeyedValueCount],
     total_baseline: int,
@@ -232,53 +251,56 @@ def keyed_rrf_score_with_filtering(
     entropy_alpha: float = 0.2,
     kl_alpha: float = 0.8,
     offset: int = 60,
-    apply_filtering: bool = True,
     z_threshold: float = 1.5,
-    lambda_param: float = 0.0,
-    filter_baseline: bool = False,
-    filter_outliers: bool = True,
-) -> tuple[list[tuple[str, float]], list[KeyedValueCount], list[KeyedValueCount]]:
+) -> list[tuple[str, float, bool]]:
     """
-    RRF score a multi-dimensional distribution with optional BoxCox + z-score filtering.
+    RRF score a multi-dimensional distribution of values. Returns a list of key, score pairs, and a mapping of if the key was filtered.
+    Duplicates are not tolerated.
 
-    This function demonstrates how to apply filtering as an independent step before RRF scoring.
+    Sample distribution:
+        [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
 
-    Parameters:
-        baseline: Baseline distribution data
-        outliers: Outliers distribution data
-        total_baseline: Total count for baseline
-        total_outliers: Total count for outliers
-        entropy_alpha: Weight for entropy in RRF
-        kl_alpha: Weight for KL divergence in RRF
-        offset: RRF offset parameter
-        apply_filtering: Whether to apply BoxCox + z-score filtering
-        z_threshold: Z-score threshold for filtering
-        lambda_param: BoxCox lambda parameter
-        filter_baseline: Whether to filter baseline data
-        filter_outliers: Whether to filter outliers data
-
-    Returns:
-        Tuple of (scores, filtered_baseline, filtered_outliers)
-        This allows you to inspect the intermediary filtering results
+    Sample output:
+        [("key", 0.5, True), ("key", 0.3, False), ("other", 0.1, False)]
     """
-    filtered_baseline = list(baseline)
-    filtered_outliers = list(outliers)
 
-    if apply_filtering:
-        if filter_baseline:
-            filtered_baseline = filter_by_z_score(baseline, z_threshold, lambda_param)
-        if filter_outliers:
-            filtered_outliers = filter_by_z_score(outliers, z_threshold, lambda_param)
+    def _scoring_fn(baseline: list[float], outliers: list[float]):
+        return (entropy(outliers), kl_divergence(baseline, outliers))
 
-    # Apply RRF scoring to the filtered data
-    scores = keyed_rrf_score(
-        filtered_baseline,
-        filtered_outliers,
+    scored_keys = _score_each_key(
+        baseline,
+        outliers,
         total_baseline,
         total_outliers,
-        entropy_alpha,
-        kl_alpha,
-        offset,
+        scoring_fn=_scoring_fn,
     )
 
-    return scores, filtered_baseline, filtered_outliers
+    keys = []
+    entropy_scores = []
+    kl_scores = []
+
+    for key, (entropy_score, kl_score) in scored_keys:
+        keys.append(key)
+        entropy_scores.append(entropy_score)
+        kl_scores.append(kl_score)
+
+    normalized_entropy_scores, _ = boxcox_transform(entropy_scores)
+    normalized_kl_scores, _ = boxcox_transform(kl_scores)
+
+    filtered_keys = [False] * len(keys)
+
+    for i, (key, normalized_entropy_score, normalized_kl_score) in enumerate(
+        zip(keys, normalized_entropy_scores, normalized_kl_scores)
+    ):
+        if normalized_entropy_score > z_threshold or normalized_kl_score > z_threshold:
+            filtered_keys[i] = True
+
+    return sorted(
+        zip(
+            keys,
+            rrf_score(entropy_scores, kl_scores, entropy_alpha, kl_alpha, offset),
+            filtered_keys,
+        ),
+        key=lambda k: k[1],
+        reverse=True,
+    )

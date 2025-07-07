@@ -223,7 +223,7 @@ def calculate_z_scores(values: list[float]) -> list[float]:
 
 
 def filter_by_z_score_threshold(
-    values: list[float], z_threshold: float = 1.5, lambda_param: float = 0.0
+    values: list[float], z_threshold: float = 1.5, lambda_param: float | None = None
 ) -> list[int]:
     """
     Get indices of values that pass BoxCox + z-score filtering.
@@ -234,7 +234,7 @@ def filter_by_z_score_threshold(
     Parameters:
         values: List of numerical values to filter
         z_threshold: Minimum z-score threshold for inclusion
-        lambda_param: BoxCox lambda parameter (0 for log transformation)
+        lambda_param: BoxCox lambda parameter (None for automatic selection)
 
     Returns:
         List of indices that pass the filtering criteria
@@ -242,11 +242,7 @@ def filter_by_z_score_threshold(
     if not values:
         return []
 
-    # Apply BoxCox transformation - unpack the tuple to get just the transformed values
     transformed_values, _ = boxcox_transform(values, lambda_param)
-
-    # Calculate z-scores on transformed data
     z_scores = calculate_z_scores(transformed_values)
 
-    # Return indices that meet the threshold
     return [i for i, z_score in enumerate(z_scores) if z_score >= z_threshold]
