@@ -89,11 +89,12 @@ function CIEfficiencyBody({
           {totalTestsRunTime === undefined
             ? '-'
             : formatTimeDuration(totalTestsRunTime, 2)}
-          {totalTestsRunTimeChange ? (
-            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(totalTestsRunTimeChange)}
-            </Tag>
-          ) : null}
+          {typeof totalTestsRunTimeChange === 'number' &&
+            totalTestsRunTimeChange !== 0 && (
+              <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(totalTestsRunTimeChange)}
+              </Tag>
+            )}
         </SummaryEntryValue>
       </SummaryEntry>
       <SummaryEntry columns={3}>

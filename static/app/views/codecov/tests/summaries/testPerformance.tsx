@@ -107,7 +107,7 @@ function TestPerformanceBody({
             <SummaryEntryValueLink filterBy="flakyTests">
               {flakyTests}
             </SummaryEntryValueLink>
-            {flakyTestsChange && (
+            {typeof flakyTestsChange === 'number' && flakyTestsChange !== 0 && (
               <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
                 {formatPercentRate(flakyTestsChange)}
               </Tag>
@@ -121,11 +121,11 @@ function TestPerformanceBody({
         </SummaryEntryLabel>
         <SummaryEntryValue>
           {averageFlakeRate === undefined ? '-' : `${averageFlakeRate?.toFixed(2)}%`}
-          {averageFlakeRateChange ? (
+          {typeof averageFlakeRateChange === 'number' && averageFlakeRateChange !== 0 && (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
               {formatPercentRate(averageFlakeRateChange)}
             </Tag>
-          ) : null}
+          )}
         </SummaryEntryValue>
       </SummaryEntry>
       <SummaryEntry>
@@ -158,7 +158,7 @@ function TestPerformanceBody({
             <SummaryEntryValueLink filterBy="skippedTests">
               {skippedTests}
             </SummaryEntryValueLink>
-            {skippedTestsChange && (
+            {typeof skippedTestsChange === 'number' && skippedTestsChange !== 0 && (
               <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
                 {formatPercentRate(skippedTestsChange)}
               </Tag>
