@@ -599,9 +599,11 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per minute)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per 10 seconds)
 register(
-    "seer.max_num_scanner_autotriggered_per_minute", default=50, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_ten_seconds",
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -1101,6 +1103,10 @@ register(
     default=100,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
+# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
+register("ai-agent-monitoring.custom-model-mapping", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # ## sentry.killswitches
 #
@@ -3027,7 +3033,7 @@ register(
 register(
     "uptime.snuba_uptime_results.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3111,18 +3117,6 @@ register(
 register(
     "demo-mode.users",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "demo-mode.disable-sandbox-redirect",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "demo-mode.sandbox-redirect-logout",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

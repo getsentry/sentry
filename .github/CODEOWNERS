@@ -146,6 +146,12 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
+## Auth v2
+/static/app/views/authV2                                 @getsentry/owners-auth @getsentry/security
+/src/sentry/auth_v2                                      @getsentry/owners-auth @getsentry/security
+/tests/sentry/auth_v2                                    @getsentry/owners-auth @getsentry/security
+## End of Auth v2
+
 ## Crons
 /static/app/views/monitors                               @getsentry/crons
 /src/sentry/monitors                                     @getsentry/crons
@@ -664,12 +670,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/invite_missing_org_members.py                         @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
+/src/sentry/data_secrecy/                                             @getsentry/ecosystem
+/tests/sentry/data_secrecy/                                           @getsentry/ecosystem
 ## End of Ecosystem
 
-## Core Product Foundations
-/src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
-/tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
-## End of Core Product Foundations
 
 # Taskbroker workers
 /src/sentry/taskworker/                                       @getsentry/taskbroker

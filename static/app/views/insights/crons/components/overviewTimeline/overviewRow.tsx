@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -10,10 +10,10 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -59,6 +59,7 @@ export function OverviewRow({
   onToggleStatus,
 }: Props) {
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
@@ -199,7 +200,7 @@ export function OverviewRow({
                   <EnvActionButton
                     {...triggerProps}
                     aria-label={t('Monitor environment actions')}
-                    size="xs"
+                    size={theme.isChonk ? 'zero' : 'xs'}
                     icon={<IconEllipsis />}
                   />
                 )}
@@ -384,11 +385,8 @@ const EnvRow = styled('div')`
 `;
 
 const EnvActionButton = styled(Button)`
-  padding: ${space(0.5)} ${space(1)};
-  display: none;
-
-  ${EnvRow}:hover & {
-    display: block;
+  ${EnvRow}:not(:hover) & {
+    display: none;
   }
 `;
 

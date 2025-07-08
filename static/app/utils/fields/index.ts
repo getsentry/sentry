@@ -867,6 +867,19 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.MIN]: {
     ...AGGREGATION_FIELDS[AggregationKey.MIN],
     parameters: [
@@ -1916,6 +1929,13 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
   [SpanFields.STATUS]: {
     desc: t('Span status. Indicates whether the span operation was successful.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS_MESSAGE]: {
+    desc: t(
+      'Span status message. If the span operation was not successful, this contains an error message.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

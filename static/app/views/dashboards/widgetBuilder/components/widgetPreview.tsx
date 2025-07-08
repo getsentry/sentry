@@ -1,6 +1,7 @@
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,6 +13,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -39,7 +41,7 @@ function WidgetPreview({
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
 
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
 
   const widget = convertBuilderStateToWidget(state);
 
@@ -74,6 +76,13 @@ function WidgetPreview({
       };
     }),
   };
+
+  function handleWidgetTableSort(sort: Sort) {
+    dispatch({
+      payload: [sort],
+      type: BuilderStateAction.SET_SORT,
+    });
+  }
 
   return (
     <WidgetCard
@@ -117,6 +126,7 @@ function WidgetPreview({
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}
       disableZoom
       showLoadingText
+      onWidgetTableSort={handleWidgetTableSort}
     />
   );
 }
