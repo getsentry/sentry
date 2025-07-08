@@ -13,9 +13,6 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   // Decode from series name disambiguation
   seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
 
-  // Check if it's a release version
-  seriesName = formatVersion(seriesName);
-
   // Check for special-case measurement formatting
   const arg = getAggregateArg(seriesName);
   if (arg) {
@@ -29,6 +26,18 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   // Strip equation prefix
   if (maybeEquationAlias(seriesName)) {
     seriesName = stripEquationPrefix(seriesName);
+  }
+
+  if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
+    seriesName += ` : ${timeSeries.groupBy
+      ?.map(groupBy => {
+        if (groupBy.key === 'release') {
+          return formatVersion(groupBy.value);
+        }
+
+        return groupBy.value;
+      })
+      .join(',')}`;
   }
 
   return seriesName;
