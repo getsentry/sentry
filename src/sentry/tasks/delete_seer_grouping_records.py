@@ -78,6 +78,12 @@ def call_delete_seer_grouping_records_by_hash(
         ):
             group_hashes.append(group_hash.hash)
 
+            # Schedule task when we reach BATCH_SIZE
+            if len(group_hashes) >= BATCH_SIZE:
+                delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+                group_hashes = []
+
+        # Handle any remaining hashes
         if group_hashes:
             delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
 
