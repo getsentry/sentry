@@ -20,7 +20,7 @@ export function useCustomMeasurements(selection?: PageFilters) {
     query.project = selection.projects.map(String);
   }
 
-  const {data, isLoading, isError} = useApiQuery<MeasurementsMetaResponse>(
+  const {data, isPending, isError} = useApiQuery<MeasurementsMetaResponse>(
     [`/organizations/${organization.slug}/measurements-meta/`, {query}],
     {
       staleTime: Infinity,
@@ -49,7 +49,7 @@ export function useCustomMeasurements(selection?: PageFilters) {
 
   return {
     customMeasurements,
-    isLoading,
+    isPending,
     isError,
   };
 }

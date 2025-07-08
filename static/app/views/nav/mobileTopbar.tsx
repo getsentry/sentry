@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,6 +13,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
@@ -48,7 +49,7 @@ function MobileTopbar() {
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
       <Left>
-        <OrgDropdown />
+        <OrgDropdown onClick={() => setView('closed')} />
         {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
@@ -63,6 +64,7 @@ function MobileTopbar() {
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
+          setView={setView}
         >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
           {view === 'secondary' ? (
@@ -97,12 +99,18 @@ function updateNavStyleAttributes(view: ActiveView) {
 function NavigationOverlayPortal({
   children,
   label,
+  setView,
 }: {
   children: React.ReactNode;
   label: string;
+  setView: (view: ActiveView) => void;
 }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useOnClickOutside(ref, () => setView('closed'));
   return createPortal(
-    <NavigationOverlay aria-label={label}>{children}</NavigationOverlay>,
+    <NavigationOverlay ref={ref} aria-label={label}>
+      {children}
+    </NavigationOverlay>,
     document.body
   );
 }

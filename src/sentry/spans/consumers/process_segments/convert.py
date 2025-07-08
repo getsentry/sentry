@@ -31,6 +31,7 @@ FIELD_TO_ATTRIBUTE = {
     "origin": "sentry.origin",
     "kind": "sentry.kind",
     "hash": "sentry.hash",
+    "event_id": "sentry.event_id",
 }
 
 

@@ -19,6 +19,7 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
@@ -286,6 +287,7 @@ def get_attribute_values(
     project_ids: list[int],
     stats_period: str,
     limit: int = 100,
+    sampled: bool = True,
 ) -> dict:
     period = parse_stats_period(stats_period)
     if period is None:
@@ -298,6 +300,12 @@ def get_attribute_values(
     start_time_proto.FromDatetime(start)
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
+
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
 
     values = {}
     resolver = SearchResolver(
@@ -322,6 +330,7 @@ def get_attribute_values(
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
                     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
                 ),
                 key=resolved_field.proto_definition,
                 limit=limit,
@@ -340,6 +349,7 @@ def get_attribute_values_with_substring(
     fields_with_substrings: list[dict[str, str]],
     stats_period: str = "48h",
     limit: int = 100,
+    sampled: bool = True,
 ) -> dict:
     """
     Get attribute values with substring.
@@ -360,6 +370,12 @@ def get_attribute_values_with_substring(
     start_time_proto.FromDatetime(start)
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
+
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
 
     resolver = SearchResolver(
         params=SnubaParams(
@@ -385,6 +401,7 @@ def get_attribute_values_with_substring(
                     start_timestamp=start_time_proto,
                     end_timestamp=end_time_proto,
                     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
                 ),
                 key=resolved_field.proto_definition,
                 limit=limit,
@@ -407,6 +424,7 @@ def get_attributes_and_values(
     stats_period: str,
     max_values: int = 100,
     max_attributes: int = 1000,
+    sampled: bool = True,
 ) -> dict:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
@@ -423,6 +441,12 @@ def get_attributes_and_values(
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
+    sampling_mode = (
+        DownsampledStorageConfig.MODE_NORMAL
+        if sampled
+        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
+
     meta = RequestMeta(
         organization_id=org_id,
         cogs_category="events_analytics_platform",
@@ -431,8 +455,8 @@ def get_attributes_and_values(
         start_timestamp=start_time_proto,
         end_timestamp=end_time_proto,
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
     )
-
     filter = TraceItemFilter()
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
