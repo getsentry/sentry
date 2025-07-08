@@ -51,7 +51,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -316,12 +315,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu?: CustomComboboxMenu<T>;
   portalTarget?: HTMLElement | null;
 }) {
-  const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  const showAskSeerOption = !!(traceExploreAiQueryContext && areAiFeaturesAllowed);
+  const {enableAISearch} = useSearchQueryBuilder();
 
   if (customMenu) {
     return customMenu({
@@ -350,7 +344,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           overlayIsOpen={isOpen}
           size="sm"
         />
-        {showAskSeerOption ? (
+        {enableAISearch ? (
           <Feature features="organizations:gen-ai-explore-traces">
             <AskSeerPane>
               <AskSeerOption state={state} />
@@ -398,26 +392,18 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget} = useSearchQueryBuilder();
+  const {disabled, portalTarget, enableAISearch} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-
-  const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  const showAskSeerOption = Boolean(traceExploreAiQueryContext && areAiFeaturesAllowed);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
     filterValue,
     maxOptions,
     shouldFilterResults,
-    showAskSeerOption,
+    showAskSeerOption: enableAISearch,
   });
 
   const onSelectionChange = useCallback(

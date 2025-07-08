@@ -33,7 +33,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
 const MAX_OPTIONS_WITH_SEARCH = 8;
@@ -163,7 +162,8 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
-  const {filterKeys, getFieldDefinition, setDisplaySeerResults} = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition, setDisplaySeerResults, enableAISearch} =
+    useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -172,15 +172,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   });
 
   const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
-    const askSeerItem =
-      traceExploreAiQueryContext && areAiFeaturesAllowed ? [createAskSeerItem()] : [];
+    const askSeerItem = enableAISearch ? [createAskSeerItem()] : [];
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
@@ -207,14 +203,13 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
 
     return [...askSeerItem, ...recentFilterItems, ...filteredByCategory];
   }, [
+    enableAISearch,
     filterKeys,
     getFieldDefinition,
     recentFilters,
     recentSearches,
     sectionedItems,
     selectedSection,
-    traceExploreAiQueryContext,
-    areAiFeaturesAllowed,
   ]);
 
   const customMenu: CustomComboboxMenu<FilterKeyItem> = props => {
