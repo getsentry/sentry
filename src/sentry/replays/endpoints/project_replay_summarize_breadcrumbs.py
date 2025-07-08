@@ -410,7 +410,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             method = payload["data"].get("method")
             status_code = payload["data"].get("statusCode")
             description = payload.get("description")
-            duration = payload.get("endTimestamp", 0) - payload.get("startTimestamp", 0)
+
+            if payload.get("endTimestamp") and payload.get("startTimestamp"):
+                duration = payload.get("endTimestamp") - payload.get("startTimestamp")
+            else:
+                duration = None
 
             # Parse URL path
             parsed_url = urlparse(description) if description else None
@@ -436,7 +440,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 parts.append(f" with status code {status_code}")
             if response_size:
                 parts.append(f" and response size {response_size}")
-            parts.append(f"; took {duration} milliseconds at {timestamp_ms}")
+            if duration:
+                parts.append(f"; took {duration} milliseconds")
+            parts.append(f" at {timestamp_ms}")
 
             return "".join(parts)
         case EventType.LCP:
