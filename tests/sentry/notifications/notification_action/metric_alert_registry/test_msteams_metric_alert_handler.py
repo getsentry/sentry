@@ -1,6 +1,8 @@
 import uuid
 from unittest import mock
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -73,6 +75,55 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             open_period_context=open_period_context,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
             incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            notification_uuid=notification_uuid,
+        )
+
+    @mock.patch("sentry.integrations.msteams.utils.send_incident_alert_notification")
+    @mock.patch(
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.msteams_metric_alert_handler.logger"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.msteams_metric_alert_handler.get_alert_rule_serializer",
+        side_effect=SoftTimeLimitExceeded(),
+    )
+    @freeze_time("2021-01-01 00:00:00")
+    def test_send_alert_with_soft_time_limit_exceeded(
+        self, mock_get_alert_rule_serializer, mock_logger, mock_send_incident_alert_notification
+    ):
+        notification_context = NotificationContext.from_action_model(self.action)
+        assert self.group_event.occurrence is not None
+        alert_context = AlertContext.from_workflow_engine_models(
+            self.detector,
+            self.evidence_data,
+            self.group_event.group.status,
+            self.group_event.occurrence.priority,
+        )
+        metric_issue_context = MetricIssueContext.from_group_event(
+            self.group, self.evidence_data, self.group_event.occurrence.priority
+        )
+        open_period_context = OpenPeriodContext.from_group(self.group)
+        notification_uuid = str(uuid.uuid4())
+
+        self.handler.send_alert(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.project,
+            organization=self.detector.project.organization,
+            notification_uuid=notification_uuid,
+        )
+
+        # Verify send_incident_alert_notification was still called with None values for serialized responses
+        mock_send_incident_alert_notification.assert_called_once_with(
+            organization=self.detector.project.organization,
+            alert_context=alert_context,
+            notification_context=notification_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            alert_rule_serialized_response=None,
+            incident_serialized_response=None,
             notification_uuid=notification_uuid,
         )
 
