@@ -638,7 +638,12 @@ def basic_consumer(
         kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
     )
     processor = get_stream_processor(
-        consumer_name, consumer_args, topic=topic, kafka_slice_id=kafka_slice_id, **options
+        consumer_name,
+        consumer_args,
+        topic=topic,
+        kafka_slice_id=kafka_slice_id,
+        add_global_tags=True,
+        **options,
     )
 
     # for backwards compat: should eventually be removed
