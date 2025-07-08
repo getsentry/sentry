@@ -1,7 +1,6 @@
 from typing import Any
 from unittest import mock
 
-import pytest
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
@@ -404,14 +403,3 @@ class FeatureManagerTest(TestCase):
 
         assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
         assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
-
-    def test_option_features(self):
-        manager = features.FeatureManager()
-        manager.add("organizations:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-        manager.add("projects:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-        assert manager.option_features == {"organizations:some-test", "projects:some-test"}
-
-    def test_invalid_option_features(self):
-        manager = features.FeatureManager()
-        with pytest.raises(NotImplementedError):
-            manager.add("users:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
