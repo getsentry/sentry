@@ -152,7 +152,7 @@ export default function StreamlinedGroupHeader({
               </LinkButton>
             )}
             {isQueryInjection ? (
-              <ButtonBar>
+              <ButtonBar gap={0.5}>
                 <LinkButton
                   size="xs"
                   external
