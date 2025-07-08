@@ -13,6 +13,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
@@ -138,6 +139,23 @@ class OAuth2CallbackViewTest(TestCase):
         assert "JSON" in result["error_description"]
 
         assert_failure_metric(mock_record, "json_error")
+
+    @responses.activate
+    def test_api_error(self, mock_record):
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"token": "a-fake-token"},
+            status=401,
+        )
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        code = "auth-code"
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" not in result
+        assert "error" in result
+        assert "401" in result["error"]
+
+        assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
 
 @control_silo_test
