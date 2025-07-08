@@ -76,6 +76,7 @@ function TargetTypeField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelect
+      aria-label={t('Notification target type')}
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
@@ -103,6 +104,7 @@ function IdentifierField() {
     return (
       <SelectWrapper>
         <TeamSelector
+          aria-label={t('Team')}
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) => {
@@ -121,6 +123,7 @@ function IdentifierField() {
     return (
       <SelectWrapper>
         <SelectMembers
+          aria-label={t('User')}
           organization={organization}
           key={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
@@ -145,6 +148,7 @@ function FallthroughField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.data.fallthroughType`}
+      aria-label={t('Fallthrough type')}
       value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
       onChange={(option: SelectValue<string>) =>
