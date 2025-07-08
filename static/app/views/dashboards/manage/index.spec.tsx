@@ -66,7 +66,7 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
