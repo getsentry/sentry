@@ -376,15 +376,28 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
     match event_type:
         case EventType.CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
+            message = event["data"]["payload"].get("message", None)
+            return f"User clicked on {message} at {timestamp}" if message else None
         case EventType.DEAD_CLICK:
-            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+            message = event["data"]["payload"].get("message", None)
+            return (
+                f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
+                if message
+                else None
+            )
         case EventType.RAGE_CLICK:
-            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
+            message = event["data"]["payload"].get("message", None)
+            return (
+                f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
+                if message
+                else None
+            )
         case EventType.NAVIGATION:
-            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
+            to = event["data"]["payload"]["data"].get("to", None)
+            return f"User navigated to: {to} at {timestamp}" if to else None
         case EventType.CONSOLE:
-            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
+            message = event["data"]["payload"].get("message", None)
+            return f"Logged: {message} at {timestamp}" if message else None
         case EventType.UI_BLUR:
             timestamp_ms = timestamp * 1000
             return f"User looked away from the tab at {timestamp_ms}"
@@ -394,9 +407,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.RESOURCE_FETCH:
             timestamp_ms = timestamp * 1000
             payload = event["data"]["payload"]
-            parsed_url = urlparse(payload["description"])
+            description = payload.get("description", None)
+            parsed_url = urlparse(description) if description else None
 
-            path = f"{parsed_url.path}?{parsed_url.query}"
+            path = f"{parsed_url.path}?{parsed_url.query}" if parsed_url else ""
 
             # Safely get (request_size, response_size)
             sizes_tuple = parse_network_content_lengths(event)
@@ -406,9 +420,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             if sizes_tuple and sizes_tuple[1] is not None:
                 response_size = str(sizes_tuple[1])
 
-            status_code = payload["data"]["statusCode"]
-            duration = payload["endTimestamp"] - payload["startTimestamp"]
-            method = payload["data"]["method"]
+            status_code = payload["data"].get("statusCode", "unknown")
+            duration = payload.get("endTimestamp", 0) - payload.get("startTimestamp", 0)
+            method = payload["data"].get("method", "unknown")
 
             # if status code is successful, ignore it
             if str(status_code).startswith("2"):
@@ -418,20 +432,20 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
             else:
                 return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
-        case EventType.RESOURCE_XHR:
-            return None
         case EventType.LCP:
             timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
+            duration = event["data"]["payload"]["data"].get("size", "unknown")
+            rating = event["data"]["payload"]["data"].get("rating", "unknown")
             return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
         case EventType.FCP:
             timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"]["size"]
-            rating = event["data"]["payload"]["data"]["rating"]
+            duration = event["data"]["payload"]["data"].get("size", "unknown")
+            rating = event["data"]["payload"]["data"].get("rating", "unknown")
             return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
         case EventType.HYDRATION_ERROR:
             return f"There was a hydration error on the page at {timestamp}"
+        case EventType.RESOURCE_XHR:
+            return None
         case EventType.MUTATIONS:
             return None
         case EventType.UNKNOWN:
