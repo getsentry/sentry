@@ -34,6 +34,7 @@ import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import type {AggregateParameter} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFreeTextProps {
@@ -56,6 +57,7 @@ export function ArithmeticTokenFreeText({
     item,
     ref,
     state,
+    focusable: true,
   });
 
   return (
@@ -118,6 +120,23 @@ function InternalInput({
 
   const {dispatch, aggregations, getFieldDefinition} = useArithmeticBuilder();
 
+  const getNextFocusOverride = useCallback(
+    (func?: string): string => {
+      if (defined(func)) {
+        const definition = getFieldDefinition(func);
+        const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+        if (parameterDefinitions.length > 0) {
+          // if they selected a function with arguments, move focus into the function argument
+          return nextTokenKeyOfKind(state, token, TokenKind.FUNCTION);
+        }
+      }
+
+      // if they selected a function without arguments/parenthesis/operator, move focus into next free text
+      return nextSimilarTokenKey(token.key);
+    },
+    [getFieldDefinition, state, token]
+  );
+
   const getFunctionDefault = useCallback(
     (func: string): string => {
       const definition = getFieldDefinition(func);
@@ -166,7 +185,11 @@ function InternalInput({
             type: 'REPLACE_TOKEN',
             token,
             text,
-            focusOverride: {itemKey: nextSimilarTokenKey(token.key)},
+            focusOverride: {
+              itemKey: getNextFocusOverride(
+                isTokenFunction(tok) ? tok.function : undefined
+              ),
+            },
           });
           resetInputValue();
           return;
@@ -182,9 +205,7 @@ function InternalInput({
                 type: 'REPLACE_TOKEN',
                 token,
                 text: `${input.substring(0, pos + 1)}${getFunctionDefault(maybeFunc)}`,
-                focusOverride: {
-                  itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION),
-                },
+                focusOverride: {itemKey: getNextFocusOverride(maybeFunc)},
               });
               resetInputValue();
               return;
@@ -199,10 +220,10 @@ function InternalInput({
     [
       aggregations,
       dispatch,
+      getNextFocusOverride,
       getFunctionDefault,
       resetInputValue,
       setInputValue,
-      state,
       token,
     ]
   );
@@ -286,21 +307,17 @@ function InternalInput({
       const isFunction =
         typeof option.key === 'string' && option.key.startsWith(`${TokenKind.FUNCTION}:`);
 
-      const itemKey = isFunction
-        ? // if they selected a function, move focus into the function argument
-          nextTokenKeyOfKind(state, token, TokenKind.FUNCTION)
-        : // if they selected a parenthesis/operator, move focus into next free text
-          nextSimilarTokenKey(token.key);
-
       dispatch({
         type: 'REPLACE_TOKEN',
         token,
         text: isFunction ? getFunctionDefault(option.value) : option.value,
-        focusOverride: {itemKey},
+        focusOverride: {
+          itemKey: getNextFocusOverride(isFunction ? option.value : undefined),
+        },
       });
       resetInputValue();
     },
-    [dispatch, getFunctionDefault, state, token, resetInputValue]
+    [dispatch, getNextFocusOverride, getFunctionDefault, token, resetInputValue]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
