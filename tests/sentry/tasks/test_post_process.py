@@ -2575,6 +2575,277 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
         mock_start_seer_automation.assert_not_called()
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_skips_existing_fixability_score(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set seer_fixability_score on the group
+        group = event.group
+        group.seer_fixability_score = 0.75
+        group.save()
+
+        self.call_post_process_group(
+            is_new=False,  # Not a new group
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_runs_with_missing_fixability_score(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Group has no seer_fixability_score (None by default)
+        group = event.group
+        assert group.seer_fixability_score is None
+
+        self.call_post_process_group(
+            is_new=False,  # Not a new group
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_called_once_with(group.id)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_skips_with_existing_fixability_score(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        from sentry.seer.issue_summary import get_issue_summary_cache_key
+
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set seer_fixability_score on the group
+        group = event.group
+        group.seer_fixability_score = 0.75
+        group.save()
+
+        # No cached issue summary (cache.get will return None)
+        cache_key = get_issue_summary_cache_key(group.id)
+        assert cache.get(cache_key) is None
+
+        self.call_post_process_group(
+            is_new=False,  # Not a new group
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch("sentry.autofix.utils.is_seer_scanner_rate_limited")
+    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_rate_limit_only_checked_after_all_other_checks_pass(
+        self,
+        mock_start_seer_automation,
+        mock_get_seer_org_acknowledgement,
+        mock_has_budget,
+        mock_is_rate_limited,
+    ):
+        """Test that rate limit check only happens after all other checks pass"""
+        mock_get_seer_org_acknowledgement.return_value = True
+        mock_has_budget.return_value = True
+        mock_is_rate_limited.return_value = False
+
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Test 1: When all checks pass, rate limit should be checked
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        mock_is_rate_limited.assert_called_once_with(event.project, event.group.organization)
+        mock_start_seer_automation.assert_called_once_with(event.group.id)
+
+        mock_is_rate_limited.reset_mock()
+        mock_start_seer_automation.reset_mock()
+
+        # Test 2: When seer org acknowledgement fails, rate limit should NOT be checked
+        mock_get_seer_org_acknowledgement.return_value = False
+
+        event2 = self.create_event(
+            data={"message": "testing 2"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event2,
+        )
+        mock_is_rate_limited.assert_not_called()
+        mock_start_seer_automation.assert_not_called()
+
+        mock_is_rate_limited.reset_mock()
+        mock_start_seer_automation.reset_mock()
+        mock_get_seer_org_acknowledgement.return_value = True  # Reset to success
+
+        # Test 3: When budget check fails, rate limit should NOT be checked
+        mock_has_budget.return_value = False
+
+        event3 = self.create_event(
+            data={"message": "testing 3"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event3,
+        )
+        mock_is_rate_limited.assert_not_called()
+        mock_start_seer_automation.assert_not_called()
+
+        mock_is_rate_limited.reset_mock()
+        mock_start_seer_automation.reset_mock()
+        mock_has_budget.return_value = True  # Reset to success
+
+        # Test 4: When project option is disabled, rate limit should NOT be checked
+        self.project.update_option("sentry:seer_scanner_automation", False)
+
+        event4 = self.create_event(
+            data={"message": "testing 4"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event4,
+        )
+        mock_is_rate_limited.assert_not_called()
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_skips_when_lock_held(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that seer automation is skipped when another task is already processing the same issue"""
+        from sentry.seer.issue_summary import get_issue_summary_lock_key
+        from sentry.tasks.post_process import locks
+
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Acquire the lock manually to simulate another task in progress
+        lock_key, lock_name = get_issue_summary_lock_key(event.group.id)
+        lock = locks.get(lock_key, duration=10, name=lock_name)
+
+        with lock.acquire():
+            # Call post process group while lock is held
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+        # Verify that seer automation was NOT started due to the lock
+        mock_start_seer_automation.assert_not_called()
+
+        # Test that it works normally when lock is not held
+        event2 = self.create_event(
+            data={"message": "testing 2"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event2,
+        )
+
+        # Now it should be called since no lock is held
+        mock_start_seer_automation.assert_called_once_with(event2.group.id)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_kick_off_seer_automation_with_hide_ai_features_enabled(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that seer automation is not started when organization has hideAiFeatures set to True"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
 
 class PostProcessGroupErrorTest(
     TestCase,

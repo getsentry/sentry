@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import orjson
@@ -8,8 +7,6 @@ import sentry_sdk
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.lang.java.proguard import open_proguard_mapper
-from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
@@ -54,28 +51,6 @@ def get_jvm_images(event: dict[str, Any]) -> set[str]:
     for image in get_path(event, "debug_meta", "images", filter=is_valid_jvm_image, default=()):
         images.add(str(image["debug_id"]).lower())
     return images
-
-
-def get_proguard_mapper(uuid: str, project: Project):
-    with sentry_sdk.start_span(op="proguard.fetch_debug_files") as span:
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
-        debug_file_path = dif_paths.get(uuid)
-        if debug_file_path is None:
-            return
-
-        try:
-            proguard_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-            span.set_tag("proguard_file_size_in_mb", proguard_file_size_in_mb)
-        except OSError as exc:
-            sentry_sdk.capture_exception(exc)
-            return
-
-    mapper = open_proguard_mapper(debug_file_path)
-
-    if not mapper.has_line_info:
-        return
-
-    return mapper
 
 
 @sentry_sdk.trace

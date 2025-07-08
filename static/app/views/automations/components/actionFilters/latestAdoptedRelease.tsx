@@ -1,5 +1,6 @@
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Environment} from 'sentry/types/project';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -43,14 +44,13 @@ export function LatestAdoptedReleaseNode() {
 function ReleaseAgeTypeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.release_age_type`}
+      aria-label={t('Release age type')}
       value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
-      onChange={(value: ModelAge) => {
-        onUpdate({
-          match: value,
-        });
+      onChange={(option: SelectValue<ModelAge>) => {
+        onUpdate({comparison: {...condition.comparison, release_age_type: option.value}});
       }}
     />
   );
@@ -59,14 +59,13 @@ function ReleaseAgeTypeField() {
 function AgeComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.age_comparison`}
+      aria-label={t('Age comparison')}
       value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
-      onChange={(value: AgeComparison) => {
-        onUpdate({
-          match: value,
-        });
+      onChange={(option: SelectValue<AgeComparison>) => {
+        onUpdate({comparison: {...condition.comparison, age_comparison: option.value}});
       }}
     />
   );
@@ -82,15 +81,14 @@ function EnvironmentField() {
   }));
 
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${condition_id}.comparison.environment`}
+      aria-label={t('Environment')}
       value={condition.comparison.environment}
       options={environmentOptions}
       placeholder={t('environment')}
-      onChange={(value: string) => {
-        onUpdate({
-          environment: value,
-        });
+      onChange={(option: SelectValue<string>) => {
+        onUpdate({comparison: {...condition.comparison, environment: option.value}});
       }}
     />
   );

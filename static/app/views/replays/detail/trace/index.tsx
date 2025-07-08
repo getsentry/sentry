@@ -2,15 +2,11 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-interface Props {
-  replayRecord: ReplayRecord | undefined;
-}
 
 const features = ['organizations:performance-view'];
 
@@ -25,8 +21,9 @@ function PerfDisabled() {
   );
 }
 
-export default function TraceFeature({replayRecord}: Props) {
+export default function TraceFeature() {
   const organization = useOrganization();
+  const {replay} = useReplayContext();
 
   return (
     <Feature
@@ -36,7 +33,7 @@ export default function TraceFeature({replayRecord}: Props) {
       renderDisabled={PerfDisabled}
     >
       <TraceWrapper>
-        <NewTraceView replay={replayRecord} />
+        <NewTraceView replay={replay?.getReplay()} />
       </TraceWrapper>
     </Feature>
   );

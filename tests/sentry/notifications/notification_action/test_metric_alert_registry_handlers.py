@@ -8,6 +8,8 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.db.models import NodeData
+from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssue, MetricIssueEvidenceData
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -62,7 +64,11 @@ class TestHandler(BaseMetricAlertHandler):
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
+        self.detector = self.create_detector(
+            project=self.project,
+            config={"detection_type": "static", "threshold_period": 1},
+            type="metric_issue",
+        )
 
         with self.tasks():
             self.snuba_query = create_snuba_query(
@@ -134,7 +140,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             date_started=self.group_event.group.first_seen,
         )
         self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
+            event=self.group_event,
+            workflow_env=self.workflow.environment,
+            group=self.group,
         )
 
     def setUp(self):
@@ -276,7 +284,10 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.event_data.event._occurrence = None
+        self.event_data = WorkflowEventData(
+            event=GroupEvent(self.project.id, "test", self.group, NodeData("test-id")),
+            group=self.group,
+        )
 
         with pytest.raises(ValueError):
             self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
@@ -406,7 +417,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             name=self.detector.name,
             action_identifier_id=self.detector.id,
             threshold_type=AlertRuleThresholdType.ABOVE,
-            detection_type=None,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,

@@ -255,40 +255,38 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
+      <StyledActions>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
-        <Feature features={'organizations:dashboards-table-view'}>
-          <SegmentedControl<DashboardsLayout>
-            onChange={newValue => {
-              setDashboardsLayout(newValue);
-              trackAnalytics('dashboards_manage.change_view_type', {
-                organization,
-                view_type: newValue,
-              });
-            }}
-            size="md"
-            value={dashboardsLayout}
-            aria-label={t('Layout Control')}
-          >
-            <SegmentedControl.Item
-              key="grid"
-              textValue="grid"
-              aria-label={t('Grid View')}
-              icon={<IconGrid />}
-            />
-            <SegmentedControl.Item
-              key="list"
-              textValue="list"
-              aria-label={t('List View')}
-              icon={<IconList />}
-            />
-          </SegmentedControl>
-        </Feature>
+        <SegmentedControl<DashboardsLayout>
+          onChange={newValue => {
+            setDashboardsLayout(newValue);
+            trackAnalytics('dashboards_manage.change_view_type', {
+              organization,
+              view_type: newValue,
+            });
+          }}
+          size="md"
+          value={dashboardsLayout}
+          aria-label={t('Layout Control')}
+        >
+          <SegmentedControl.Item
+            key="grid"
+            textValue="grid"
+            aria-label={t('Grid View')}
+            icon={<IconGrid />}
+          />
+          <SegmentedControl.Item
+            key="list"
+            textValue="list"
+            aria-label={t('List View')}
+            icon={<IconList />}
+          />
+        </SegmentedControl>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort!.value}
@@ -506,21 +504,20 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')<{listView: boolean}>`
+const StyledActions = styled('div')`
   display: grid;
-  grid-template-columns: ${p =>
-    p.listView ? 'auto max-content max-content' : 'auto max-content'};
+  grid-template-columns: auto max-content max-content;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -533,11 +530,11 @@ const TemplateContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(0.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;

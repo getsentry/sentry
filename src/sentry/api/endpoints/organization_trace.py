@@ -54,6 +54,7 @@ class SerializedSpan(SerializedEvent):
     end_timestamp: datetime
     measurements: dict[str, Any]
     op: str
+    name: str
     parent_span_id: str | None
     profile_id: str
     profiler_id: str
@@ -158,6 +159,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 description=event["description"],
                 sdk_name=event["sdk.name"],
                 op=event["span.op"],
+                name=event["span.name"],
                 event_type="span",
             )
         else:
@@ -286,11 +288,17 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         result = []
         id_to_span = {event["id"]: event for event in spans_data}
-        id_to_error = {event["trace.span"]: event for event in errors_data}
+        id_to_error: dict[str, Any] = {}
+        for event in errors_data:
+            id_to_error.setdefault(event["trace.span"], []).append(event)
         id_to_occurrence = defaultdict(list)
-        for event in occurrence_data:
-            for span_id in event["occurrence"].evidence_data["offender_span_ids"]:
-                id_to_occurrence[span_id].append(event)
+        with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
+            for event in occurrence_data:
+                offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
+                if len(offender_span_ids) == 0:
+                    sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
+                for span_id in offender_span_ids:
+                    id_to_occurrence[span_id].append(event)
         for span in spans_data:
             if span["parent_span"] in id_to_span:
                 parent = id_to_span[span["parent_span"]]
@@ -298,8 +306,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             else:
                 result.append(span)
             if span["id"] in id_to_error:
-                error = id_to_error.pop(span["id"])
-                span["errors"].append(error)
+                errors = id_to_error.pop(span["id"])
+                span["errors"].extend(errors)
             if span["id"] in id_to_occurrence:
                 span["occurrences"].extend(
                     [
@@ -311,8 +319,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                         for occurrence in id_to_occurrence[span["id"]]
                     ]
                 )
-        for error in id_to_error.values():
-            result.append(error)
+        for errors in id_to_error.values():
+            result.extend(errors)
         return [self.serialize_rpc_event(root) for root in result]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:

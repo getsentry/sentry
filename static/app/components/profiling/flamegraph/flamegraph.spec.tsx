@@ -2,6 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
@@ -109,6 +110,7 @@ describe('Flamegraph', function () {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
     act(() => void ProjectsStore.loadInitialData([project]));
+    setWindowLocation('http://localhost/');
   });
   it('renders a missing profile', async function () {
     MockApiClient.addMockResponse({
@@ -185,8 +187,9 @@ describe('Flamegraph', function () {
       eventId: 'profile-id',
     });
 
-    window.location.search =
-      '?colorCoding=by+library&query=&sorting=alphabetical&tid=0&view=bottom+up';
+    setWindowLocation(
+      'http://localhost/?colorCoding=by+library&query=&sorting=alphabetical&tid=0&view=bottom+up'
+    );
 
     render(
       <ProfilesAndTransactionProvider>
@@ -222,7 +225,7 @@ describe('Flamegraph', function () {
       eventId: 'profile-id',
     });
 
-    window.location.search = '?query=profiling+transaction';
+    setWindowLocation('http://localhost/?query=profiling+transaction');
 
     render(
       <ProfilesAndTransactionProvider>

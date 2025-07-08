@@ -1,25 +1,28 @@
-from typing import Any, Protocol
+from typing import Protocol
 
-from sentry.notifications.platform.types import NotificationProviderKey
-
-type NotificationTemplate = Any
-type NotificationData = Any
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
+    NotificationTemplate,
+)
 
 
 # TODO(ecosystem): Evaluate whether or not this even makes sense as a protocol, or we can just use a typed Callable.
 # If there is only one method, and the class usage is just to call a method, the Callable route might make more sense.
 # The typing T is also sketchy being in only the return position, and not inherently connected to the provider class.
 # The concept of renderers could just be a subset of functionality on the base provider class.
-class NotificationRenderer[T](Protocol):
+class NotificationRenderer[RenderableT](Protocol):
     """
     A protocol metaclass for all notification renderers.
-    Accepts the renderable object type that matches the connected provider.
+    RenderableT is a type that matches the connected provider.
     """
 
     provider_key: NotificationProviderKey
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> T:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, template: NotificationTemplate[DataT]) -> RenderableT:
         """
         Convert template, and data into a renderable object.
         The form of the renderable object is defined by the provider.

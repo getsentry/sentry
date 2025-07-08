@@ -2,8 +2,6 @@ from django.urls import re_path
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
-from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
-from sentry.sentry_apps.web.debug_sentry_app_notify_disable import DebugSentryAppNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -150,12 +148,14 @@ urlpatterns = [
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
     re_path(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
     re_path(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
-    re_path(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
+    re_path(
+        r"^debug/sudo/$",
+        TemplateView.as_view(template_name="sentry/account/sudo.html"),
+        name="debug-sudo",
+    ),
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
-    re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
-    re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
 ]

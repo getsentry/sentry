@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
-import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -100,13 +100,9 @@ function Onboarding(props: Props) {
       props.location.query?.platform &&
       onboardingContext.selectedPlatform === undefined
     ) {
-      const platformKey = Object.keys(platforms).find(
-        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-        key => platforms[key].id === props.location.query.platform
+      const platform = Object.values(platforms).find(
+        p => p.id === props.location.query.platform
       );
-
-      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-      const platform = platformKey ? platforms[platformKey] : undefined;
 
       // if no platform found, we redirect the user to the platform select page
       if (!platform) {
@@ -248,13 +244,11 @@ function Onboarding(props: Props) {
             currentStepIndex={stepIndex}
             onClick={i => {
               if ((i as number) < stepIndex && shallProjectBeDeleted) {
-                // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
-                handleGoBack(i);
+                handleGoBack(i as number);
                 return;
               }
 
-              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]);
+              goToStep(onboardingSteps[i as number]!);
             }}
           />
         )}
@@ -375,14 +369,14 @@ const OnboardingStep = styled(motion.div)`
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     --corner-scale: 0.5;
   }
 `;
 
 const StyledStepper = styled(Stepper)`
   justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;
@@ -393,7 +387,7 @@ const BackMotionDiv = styled(motion.div)`
   left: 20px;
 
   button {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 

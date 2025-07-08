@@ -49,7 +49,9 @@ export function PrimaryButtonOverlay({
   );
 }
 
-const ScrollableOverlay = styled(Overlay)<{
+const ScrollableOverlay = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{
   isMobile: boolean;
 }>`
   min-height: 150px;

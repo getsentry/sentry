@@ -261,6 +261,20 @@ def should_filter_feedback(
             )
         return True, "Too Large"
 
+    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
+    if associated_event_id:
+        try:
+            UUID(str(associated_event_id))
+        except ValueError:
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={
+                    "reason": "invalid_associated_event_id",
+                    "referrer": source.value,
+                },
+            )
+            return True, "Invalid Event ID"
+
     return False, None
 
 
@@ -316,16 +330,6 @@ def create_feedback_issue(
             sample_rate=1.0,
         )
 
-    # Removes associated_event_id from event if it is invalid
-    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
-
-    if associated_event_id:
-        try:
-            UUID(str(associated_event_id))
-        except ValueError:
-            associated_event_id = None
-            event["contexts"]["feedback"].pop("associated_event_id", "")
-
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -366,6 +370,7 @@ def create_feedback_issue(
         event_fixed["tags"]["user.email"] = user_email
 
     # add the associated_event_id and has_linked_error to tags
+    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
     if associated_event_id:
         event_fixed["tags"]["associated_event_id"] = associated_event_id
         event_fixed["tags"]["has_linked_error"] = "true"

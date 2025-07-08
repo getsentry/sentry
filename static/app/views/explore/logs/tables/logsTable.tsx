@@ -2,10 +2,10 @@ import {Fragment, useMemo, useRef} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {GridResizer} from 'sentry/components/gridEditable/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -64,13 +64,17 @@ export function LogsTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-    staticColumnWidths: {
-      [OurLogKnownFieldKey.MESSAGE]: '1fr',
-    },
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.length,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+      },
+    }
+  );
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
   const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
@@ -158,10 +162,8 @@ export function LogsTable({
           {isEmpty && (
             <TableStatus>
               <EmptyStateWarning withIcon>
-                <EmptyStateText size="fontSizeExtraLarge">
-                  {t('No logs found')}
-                </EmptyStateText>
-                <EmptyStateText size="fontSizeMedium">
+                <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
+                <EmptyStateText size="md">
                   {tct(
                     'Try adjusting your filters or get started with sending logs by checking these [instructions]',
                     {

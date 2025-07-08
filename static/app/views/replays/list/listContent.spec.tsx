@@ -55,7 +55,7 @@ describe('ReplayList', () => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
-    // mockUseAllMobileProj.mockClear();
+    mockUseAllMobileProj.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',

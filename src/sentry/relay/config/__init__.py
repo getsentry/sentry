@@ -51,7 +51,6 @@ EXPOSABLE_FEATURES = [
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
@@ -65,6 +64,7 @@ EXPOSABLE_FEATURES = [
     "projects:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:ourlogs-calculated-byte-count",
     "organizations:view-hierarchy-scrubbing",
     "projects:ourlogs-breadcrumb-extraction",
     "organizations:performance-issues-spans",
@@ -210,6 +210,16 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
+    if cardinality_limits := get_cardinality_limits(timeout, project):
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    return metrics_config or None
+
+
+def get_cardinality_limits(timeout: TimeChecker, project: Project) -> list[CardinalityLimit] | None:
+    if options.get("relay.cardinality-limiter.mode") == "disabled":
+        return None
+
     passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
         str(project.organization.id), []
     )
@@ -248,7 +258,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         "relay.cardinality-limiter.limits", []
     )
     option_limit_options: list[CardinalityLimitOption] = options.get(
-        "relay.cardinality-limiter.limits", []
+        "relay.cardinality-limiter.limits"
     )
 
     for clo in project_limit_options + organization_limit_options + option_limit_options:
@@ -271,9 +281,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         except KeyError:
             pass
 
-    metrics_config["cardinalityLimits"] = cardinality_limits
-
-    return metrics_config or None
+    return cardinality_limits
 
 
 def get_project_config(

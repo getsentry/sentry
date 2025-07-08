@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
 import {Button} from 'sentry/components/core/button';
-import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
-import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   Attributes,
@@ -47,14 +48,14 @@ export function SubfiltersList() {
         match: MatchType.EQUAL,
       },
     ];
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   function removeSubfilter(id: string) {
     const newSubfilters = subfilters.filter(
       (subfilter: Record<string, any>) => subfilter.id !== id
     );
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   function updateSubfilter(id: string, comparison: Record<string, any>) {
@@ -67,7 +68,7 @@ export function SubfiltersList() {
       }
       return subfilter;
     });
-    onUpdate({filters: newSubfilters});
+    onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
   return (
@@ -150,8 +151,9 @@ function ComparisonTypeField() {
 
   if (!type) {
     return (
-      <AutomationBuilderSelectField
+      <AutomationBuilderSelect
         name={`${subfilter_id}.type`}
+        aria-label={t('Comparison type')}
         value={subfilter.type}
         placeholder={t('Select value type')}
         options={[
@@ -164,8 +166,8 @@ function ComparisonTypeField() {
             value: DataConditionType.TAGGED_EVENT,
           },
         ]}
-        onChange={(value: DataConditionType) => {
-          setType(value);
+        onChange={(option: SelectValue<DataConditionType>) => {
+          setType(option.value);
         }}
       />
     );
@@ -183,17 +185,18 @@ function ComparisonTypeField() {
 function AttributeField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${subfilter_id}.attribute`}
+      aria-label={t('Attribute')}
       placeholder={t('Select attribute')}
       value={subfilter.attribute}
       options={Object.values(Attributes).map(attribute => ({
         value: attribute,
         label: attribute,
       }))}
-      onChange={(value: string) => {
+      onChange={(option: SelectValue<string>) => {
         onUpdate({
-          attribute: value,
+          attribute: option.value,
         });
       }}
     />
@@ -203,13 +206,14 @@ function AttributeField() {
 function KeyField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${subfilter_id}.key`}
+      aria-label={t('Tag')}
       placeholder={t('Enter tag')}
       value={subfilter.key}
-      onChange={(value: string) => {
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          key: value,
+          key: e.target.value,
         });
       }}
     />
@@ -219,8 +223,9 @@ function KeyField() {
 function MatchField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${subfilter_id}.match`}
+      aria-label={t('Match type')}
       value={subfilter.match}
       options={[
         {
@@ -232,8 +237,8 @@ function MatchField() {
           value: MatchType.NOT_EQUAL,
         },
       ]}
-      onChange={(value: MatchType) => {
-        onUpdate({match: value});
+      onChange={(option: SelectValue<MatchType>) => {
+        onUpdate({match: option.value});
       }}
     />
   );
@@ -242,13 +247,14 @@ function MatchField() {
 function ValueField() {
   const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${subfilter_id}.value`}
+      aria-label={t('Value')}
       placeholder={t('value')}
       value={`${subfilter.value}`}
-      onChange={(value: string) => {
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          value,
+          value: e.target.value,
         });
       }}
     />

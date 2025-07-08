@@ -103,7 +103,7 @@ jobs:
 
   assemble:
     needs: [self-hosted]
-    if: ${{ github.ref_name == 'master' && github.event_name != 'pull_request' }}
+    if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

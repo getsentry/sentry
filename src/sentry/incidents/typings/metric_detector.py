@@ -120,7 +120,7 @@ class AlertContext:
             name=detector.name,
             action_identifier_id=detector.id,
             threshold_type=threshold_type,
-            detection_type=detector.config.get("detection_type"),
+            detection_type=AlertRuleDetectionType(detector.config.get("detection_type")),
             comparison_delta=detector.config.get("comparison_delta"),
             sensitivity=sensitivity,
             resolve_threshold=resolve_threshold,

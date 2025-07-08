@@ -20,6 +20,7 @@ from sentry.models.apikey import ApiKey
 from sentry.silo.base import FunctionSiloLimit, SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.response import close_streaming_response, is_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import subdomain_is_region
@@ -237,6 +238,20 @@ class EndpointTest(APITestCase):
             response = _dummy_endpoint(request)
             response.render()
             assert "Access-Control-Allow-Credentials" not in response
+
+    @override_options({"system.base-hostname": "acme.com"})
+    def test_disallow_credentials_when_two_origins(self):
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        request.META["HTTP_ORIGIN"] = "http://evil.com, http://acme.com"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+        assert "Access-Control-Allow-Credentials" not in response
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
@@ -492,8 +507,9 @@ class PaginateTest(APITestCase):
     def test_custom_response_type(self):
         response = _dummy_streaming_endpoint(self.make_request())
         assert response.status_code == 200
-        assert isinstance(response, StreamingHttpResponse)
+        assert is_streaming_response(response)
         assert response.has_header("content-type")
+        close_streaming_response(response)
 
 
 @all_silo_test(regions=create_test_regions("us", "eu"))

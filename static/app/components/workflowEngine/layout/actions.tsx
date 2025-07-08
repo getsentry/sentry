@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 

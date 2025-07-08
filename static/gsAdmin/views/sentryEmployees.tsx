@@ -1,7 +1,7 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
 import ConfigStore from 'sentry/stores/configStore';
@@ -124,7 +124,7 @@ function SentryEmployees(props: Props) {
               ['false', 'False'],
             ],
           },
-          isMember: {
+          isEmployee: {
             name: 'Employee',
             options: [
               ['true', 'True'],

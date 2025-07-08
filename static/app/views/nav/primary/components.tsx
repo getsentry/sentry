@@ -6,10 +6,10 @@ import {useHover} from '@react-aria/interactions';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -21,6 +21,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
   NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
@@ -217,6 +218,9 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      {...{
+        [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
       {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (
@@ -338,8 +342,8 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   align-items: center;
   padding: ${space(1.5)} ${space(3)};
   color: ${p.theme.textColor};
-  font-size: ${p.theme.fontSizeMedium};
-  font-weight: ${p.theme.fontWeightNormal};
+  font-size: ${p.theme.fontSize.md};
+  font-weight: ${p.theme.fontWeight.normal};
   line-height: 1;
   width: 100%;
 
@@ -406,8 +410,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
   letter-spacing: -0.05em;
 `;
 
@@ -593,7 +597,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   display: block;
   text-align: center;
   color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   background: ${p => p.theme.purple400};
   width: 10px;
   height: 10px;

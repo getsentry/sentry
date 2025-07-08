@@ -15,7 +15,10 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
-import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import CellAction, {
+  Actions,
+  copyToClipBoard,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
@@ -74,7 +77,11 @@ type LogsRowProps = {
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 };
 
-const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+const ALLOWED_CELL_ACTIONS: Actions[] = [
+  Actions.ADD,
+  Actions.EXCLUDE,
+  Actions.COPY_TO_CLIPBOARD,
+];
 
 function isInsideButton(element: Element | null): boolean {
   let i = 10;
@@ -298,6 +305,9 @@ export const LogRowContent = memo(function LogRowContent({
                           negated: true,
                         });
                         break;
+                      case Actions.COPY_TO_CLIPBOARD:
+                        copyToClipBoard(cellValue);
+                        break;
                       default:
                         break;
                     }
@@ -406,8 +416,9 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes}
-                  hiddenAttributes={HiddenLogDetailFields}
+                  attributes={data.attributes.filter(
+                    attribute => !HiddenLogDetailFields.includes(attribute.name)
+                  )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}

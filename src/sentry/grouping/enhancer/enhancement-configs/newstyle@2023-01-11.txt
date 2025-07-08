@@ -86,9 +86,12 @@ family:native function:"__*[[]Sentry*"                            -app -group
 # own grouping enhancers.
 family:native function:"?[[]Sentry*"                              -app -group
 
+# Mark Dart Flutter Android stacktraces in-app by default, further not in-app rules are applied afterwards below
+family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
 # Dart/Flutter stacktraces that are not in-app
 family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
 family:javascript module:**/packages/flutter/** -app
+family:native stack.abs_path:**/packages/flutter/** -app
 # sentry-dart SDK frames are not in app
 stack.abs_path:package:sentry/** -app -group
 stack.abs_path:package:sentry_flutter/** -app -group
@@ -100,6 +103,11 @@ stack.abs_path:package:sentry_hive/** -app -group
 stack.abs_path:package:sentry_isar/** -app -group
 stack.abs_path:package:sentry_sqflite/** -app -group
 stack.abs_path:package:sentry_drift/** -app -group
+stack.abs_path:package:sentry_isar/** -app
+stack.abs_path:package:sentry_link/** -app
+stack.abs_path:package:sentry_firebase_remote_config/** -app
+# .pub-cache is the node_modules equivalent for Dart
+family:native stack.abs_path:**/.pub-cache/** -app
 
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system

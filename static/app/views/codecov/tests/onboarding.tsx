@@ -5,10 +5,12 @@ import styled from '@emotion/styled';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AddPermissionsBlock} from 'sentry/views/codecov/tests/onboardingSteps/addPermissionsBlock';
+import {AddScriptToYaml} from 'sentry/views/codecov/tests/onboardingSteps/addScriptToYaml';
 import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
 import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
 import {ChooseUploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
+import {EditGHAWorkflow} from 'sentry/views/codecov/tests/onboardingSteps/editGHAWorkflow';
+import {InstallPreventCLI} from 'sentry/views/codecov/tests/onboardingSteps/installPreventCLI';
 import {OutputCoverageFile} from 'sentry/views/codecov/tests/onboardingSteps/outputCoverageFile';
 import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
@@ -26,6 +28,8 @@ export default function TestsOnboardingPage() {
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>('oidc');
+
+  // TODO: modify to designate full scenario for GHAction vs CLI
 
   return (
     <LayoutGap>
@@ -58,7 +62,9 @@ export default function TestsOnboardingPage() {
             setSelectedUploadPermission={setSelectedUploadPermission}
           />
           <AddUploadToken step="2b" />
-          <AddPermissionsBlock step="2b" />
+          <AddScriptToYaml step="3" />
+          <InstallPreventCLI step="3" />
+          <EditGHAWorkflow step="3" />
         </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
@@ -89,12 +95,12 @@ const GetStartedHeader = styled('h2')`
 `;
 
 const TAValueText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const SelectOptionHeader = styled('h5')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(3)};
 `;

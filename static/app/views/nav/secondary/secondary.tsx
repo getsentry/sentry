@@ -5,9 +5,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link, type LinkProps} from 'sentry/components/core/link';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {type LinkProps} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -260,8 +260,8 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -306,7 +306,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.fontWeightBold};
+  font-weight: ${p.theme.fontWeight.bold};
   color: ${p.theme.textColor};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
@@ -328,7 +328,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   & > span:last-child {
     flex: 1;
@@ -420,8 +420,8 @@ const StyledNavItem = styled(Link)<ItemProps>`
   height: 34px;
   align-items: center;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
   gap: ${space(0.75)};
@@ -433,7 +433,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
 
   &[aria-selected='true'] {
     color: ${p => p.theme.purple400};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
 
     &:hover {
       color: ${p => p.theme.purple400};

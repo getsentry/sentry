@@ -81,6 +81,7 @@ export function ResponseCodeCountChart({
 
   const exploreUrl = getExploreUrl({
     organization,
+    selection,
     visualize: [
       {
         chartType: ChartType.LINE,
@@ -92,6 +93,7 @@ export function ResponseCodeCountChart({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    referrer,
   });
 
   const extraActions = [
@@ -109,6 +111,7 @@ export function ResponseCodeCountChart({
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,

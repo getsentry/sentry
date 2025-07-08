@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -48,15 +49,8 @@ describe('PendingChanges', function () {
         }),
         plan: 'am1_team_ent',
         planName: 'Team (Enterprise)',
-        reservedEvents: 15000000,
-        reservedErrors: 15000000,
-        reservedTransactions: 20000000,
-        reservedAttachments: 25,
         reserved: {errors: 15000000, transactions: 20000000, attachments: 25},
         customPrice: 5000000,
-        customPriceErrors: 2000000,
-        customPriceTransactions: 2900000,
-        customPriceAttachments: 50000,
         customPrices: {errors: 2000000, transactions: 2900000, attachments: 50000},
         customPricePcss: 50000,
         onDemandMaxSpend: 50000,
@@ -109,15 +103,8 @@ describe('PendingChanges', function () {
         }),
         plan: 'am3_team_ent',
         planName: 'Team (Enterprise)',
-        reservedEvents: 15000000,
-        reservedErrors: 15000000,
-        reservedTransactions: 0,
-        reservedAttachments: 25,
         reserved: {errors: 15000000, spans: 20000000, attachments: 25},
         customPrice: 5000000,
-        customPriceErrors: 2000000,
-        customPriceTransactions: 0,
-        customPriceAttachments: 50000,
         customPrices: {errors: 2000000, spans: 200000, attachments: 50000},
         customPricePcss: 50000,
         onDemandMaxSpend: 50000,
@@ -286,7 +273,6 @@ describe('PendingChanges', function () {
             DataCategory.MONITOR_SEATS,
           ],
         }),
-        reservedEvents: 50_000,
         reserved: {
           errors: 50_000,
           spans: 10_000_000,
@@ -347,8 +333,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -372,7 +364,40 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget, $50,000.00 for spans budget'
+    );
+  });
+
+  it('does not render reserved budgets with mocked values', function () {
+    const subscription = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      reservedBudgets: [
+        SeerReservedBudgetFixture({
+          id: '0',
+          reservedBudget: 0,
+        }),
+      ],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business_ent'),
+        plan: 'am3_business_ent',
+        planName: 'Business',
+        reserved: {
+          spans: 0,
+          spansIndexed: 0,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
+        ],
+      }),
+    });
+
+    const {container} = render(<PendingChanges subscription={subscription} />);
+
+    expect(container).not.toHaveTextContent(
+      'Reserved budgets — $0.00 for seer budget → $0.00 for seer budget'
     );
   });
 
@@ -391,8 +416,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -420,7 +451,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget → $0.00 for seer budget, $50,000.00 for spans budget'
     );
   });
 
@@ -433,6 +464,16 @@ describe('PendingChanges', function () {
         reserved: {
           spans: 10_000_000,
         },
+        reservedCpe: {
+          seerAutofix: 1_00,
+          seerScanner: 1,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
+        ],
       }),
     });
 
@@ -457,7 +498,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → None'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget'
     );
   });
 

@@ -8,6 +8,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -37,6 +38,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-trace-explorer',
   'profiling',
   'enforce-stacked-navigation',
+  'visibility-explore-view',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -56,6 +58,7 @@ describe('Nav', function () {
   beforeEach(() => {
     localStorage.clear();
     MockApiClient.clearMockResponses();
+    ConfigStore.set('user', UserFixture());
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
@@ -429,6 +432,30 @@ describe('Nav', function () {
 
       // Shows the reminder on help menu
       await screen.findByText('Come back anytime');
+    });
+
+    it('does not show the tour modal for new users who are forced into the new stacked navigation', async function () {
+      ConfigStore.set('user', {
+        ...ConfigStore.get('user'),
+        dateJoined: '2025-06-20',
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/assistant/`,
+        body: [{guide: 'tour.stacked_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/assistant/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderGlobalModal();
+      renderNav({
+        features: ALL_AVAILABLE_FEATURES.concat('enforce-stacked-navigation'),
+      });
+      await screen.findByRole('navigation', {name: 'Primary Navigation'});
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 

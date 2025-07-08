@@ -15,6 +15,7 @@ import {
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
@@ -55,11 +56,7 @@ export default function BreadcrumbItemContent({
         />
       ) : (
         <StructuredData
-          value={
-            bc.message.length > MESSAGE_PREVIEW_CHAR_LIMIT
-              ? bc.message.substring(0, MESSAGE_PREVIEW_CHAR_LIMIT) + '\u2026'
-              : bc.message
-          }
+          value={ellipsize(bc.message, MESSAGE_PREVIEW_CHAR_LIMIT)}
           // Note: Annotations applying to trimmed content will not be applied.
           meta={meta?.message}
           {...structuredDataProps}
@@ -192,6 +189,20 @@ function SQLCrumbContent({
   );
 }
 
+const formatValue = (val: unknown): string => {
+  if (val === null || val === undefined) {
+    return '';
+  }
+  if (Array.isArray(val)) {
+    // Array might contain objects
+    return val.map(item => formatValue(item)).join(', ');
+  }
+  if (typeof val === 'object') {
+    return JSON.stringify(val);
+  }
+  return `${val as string | number}`;
+};
+
 function ExceptionCrumbContent({
   breadcrumb,
   meta,
@@ -204,11 +215,15 @@ function ExceptionCrumbContent({
   meta?: Record<string, any>;
 }) {
   const {type, value, ...otherData} = breadcrumb?.data ?? {};
+
+  const hasValue = value !== null && value !== undefined && value !== '';
+  const formattedValue = hasValue ? formatValue(value) : '';
+
   return (
     <Fragment>
       <BreadcrumbText>
-        {type && type}
-        {type ? value && `: ${value}` : value && value}
+        {type ? type : null}
+        {type && hasValue ? `: ${formattedValue}` : hasValue ? formattedValue : null}
       </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (
@@ -251,7 +266,7 @@ const SQLText = styled('pre')`
   &.language-sql {
     margin: 0;
     padding: ${space(0.25)} 0;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     white-space: pre-wrap;
   }
 `;

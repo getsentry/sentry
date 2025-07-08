@@ -16,9 +16,9 @@ import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -611,7 +611,7 @@ function GraphButton({
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex column>
+      <Flex direction="column">
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>
@@ -631,7 +631,7 @@ const SummaryContainer = styled('div')`
   margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     margin: ${space(1)} ${space(1)} ${space(1)} 0;
   }
 `;
@@ -660,7 +660,7 @@ const CalloutButton = withChonk(
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 
@@ -668,7 +668,7 @@ const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
   margin-top: ${space(0.5)};
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
 `;
 
@@ -677,7 +677,7 @@ const ChartContainer = styled('div')`
   padding: ${space(0.75)} 0 ${space(0.75)} 0;
   margin-right: -2px;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
   }
 `;

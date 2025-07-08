@@ -101,12 +101,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="span.name",
-            internal_name="sentry.op",
-            search_type="string",
-            secondary_alias=True,
-        ),
-        ResolvedAttribute(
             public_alias="span.category",
             internal_name="sentry.category",
             search_type="string",
@@ -129,6 +123,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="span.status_code",
             internal_name="sentry.status_code",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="span.status.message",
+            internal_name="sentry.status.message",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -195,6 +194,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_cost",
             internal_name="ai.total_cost",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.input_tokens",
+            internal_name="gen_ai.usage.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.output_tokens",
+            internal_name="gen_ai.usage.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_tokens",
+            internal_name="gen_ai.usage.total_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_cost",
+            internal_name="gen_ai.usage.total_cost",
             search_type="number",
         ),
         ResolvedAttribute(

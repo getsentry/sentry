@@ -3,6 +3,7 @@ import {DetectorFixture, SnubaQueryDataSourceFixture} from 'sentry-fixture/detec
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,9 +18,9 @@ describe('DetectorDetails', function () {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj,
+      ...defaultDataSource.queryObj!,
       snubaQuery: {
-        ...defaultDataSource.queryObj.snubaQuery,
+        ...defaultDataSource.queryObj!.snubaQuery,
         query: 'test',
         environment: 'test-environment',
       },
@@ -53,6 +54,10 @@ describe('DetectorDetails', function () {
       ],
       match: [MockApiClient.matchQuery({id: ['1', '2']})],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/1/`,
+      body: UserFixture(),
+    });
   });
 
   it('renders the detector details and snuba query', async function () {
@@ -65,10 +70,10 @@ describe('DetectorDetails', function () {
       await screen.findByRole('heading', {name: snubaQueryDetector.name})
     ).toBeInTheDocument();
     // Displays the snuba query
-    expect(screen.getByText(dataSource.queryObj.snubaQuery.query)).toBeInTheDocument();
+    expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
     // Displays the environment
     expect(
-      screen.getByText(dataSource.queryObj.snubaQuery.environment!)
+      screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
     ).toBeInTheDocument();
     // Displays the owner team
     expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();

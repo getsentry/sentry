@@ -44,7 +44,7 @@ def sync_debug_artifacts():
 
     target_org = get_demo_org()
 
-    lookback_days = options.get("sentry.demo_mode.sync_debug_artifacts.lookback_days")
+    lookback_days = 3
     cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     _sync_artifact_bundles(source_org, target_org, cutoff_date)

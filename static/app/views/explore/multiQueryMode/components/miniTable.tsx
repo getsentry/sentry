@@ -2,7 +2,7 @@ import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Body, Grid} from 'sentry/components/gridEditable/styles';
+import {Body, Grid} from 'sentry/components/tables/gridEditable/styles';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   height?: string | number;

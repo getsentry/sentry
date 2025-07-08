@@ -904,7 +904,9 @@ export function SearchQueryBuilderValueCombobox({
       ? prettifyTagKey(token.value.text)
       : canSelectMultipleValues
         ? ''
-        : formatFilterValue(token.value);
+        : formatFilterValue({
+            token: token.value,
+          });
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

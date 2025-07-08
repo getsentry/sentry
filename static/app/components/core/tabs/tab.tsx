@@ -7,8 +7,8 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -191,7 +191,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='true'] {
     ${p => css`
       color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeightBold};
+      font-weight: ${p.theme.fontWeight.bold};
       background-color: ${p.theme.purple100};
     `}
   }

@@ -14,6 +14,7 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 - **Task Queue**: Celery 5.5+
 - **Databases**: PostgreSQL (primary), Redis, ClickHouse (via Snuba)
 - **Message Queue**: Kafka, RabbitMQ
+- **Stream Processing**: Arroyo (Kafka consumer/producer framework)
 - **Cloud Services**: Google Cloud Platform (Bigtable, Pub/Sub, Storage, KMS)
 
 ### Frontend
@@ -320,6 +321,7 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 - Mock external services
 - Test database isolation with transactions
 - Use factories for test data
+- For Kafka/Arroyo components: Use `LocalProducer` with `MemoryMessageStorage` instead of mocks
 
 ### JavaScript Tests
 
@@ -404,6 +406,35 @@ analytics.record(
 )
 ```
 
+### Arroyo Stream Processing
+
+```python
+# Using Arroyo for Kafka producers with dependency injection for testing
+from arroyo.backends.abstract import Producer
+from arroyo.backends.kafka import KafkaProducer, KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+
+# Production producer
+def create_kafka_producer(config):
+    return KafkaProducer(build_kafka_configuration(default_config=config))
+
+# Test producer using Arroyo's LocalProducer
+def create_test_producer_factory():
+    storage = MemoryMessageStorage()
+    broker = LocalBroker(storage)
+    return lambda config: broker.get_producer(), storage
+
+# Dependency injection pattern for testable Kafka producers
+class MultiProducer:
+    def __init__(self, topic: Topic, producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None):
+        self.producer_factory = producer_factory or self._default_producer_factory
+        # ... setup code
+
+    def _default_producer_factory(self, config) -> KafkaProducer:
+        return KafkaProducer(build_kafka_configuration(default_config=config))
+```
+
 ## Architecture Rules
 
 ### Silo Mode
@@ -445,6 +476,17 @@ for org in organizations:
 
 # RIGHT: Use prefetch_related
 organizations.prefetch_related('projects')
+
+# WRONG: Use hasattr() for unions
+x: str | None = "hello"
+if hasattr(x, "replace"):
+    x = x.replace("e", "a")
+
+# RIGHT: Use isinstance()
+x: str | None = "hello"
+if isinstance(x, str):
+    x = x.replace("e", "a")
+
 ```
 
 ### Frontend

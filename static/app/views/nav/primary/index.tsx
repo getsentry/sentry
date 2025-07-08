@@ -32,7 +32,11 @@ import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
-  return <SidebarList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarList>;
+  return (
+    <SidebarList isMobile={layout === NavLayout.MOBILE} data-primary-list-container>
+      {children}
+    </SidebarList>
+  );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
@@ -109,7 +113,7 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             <SidebarLink
-              to={`/${prefix}/insights/frontend/`}
+              to={`/${prefix}/insights/`}
               activeTo={`/${prefix}/insights`}
               analyticsKey="insights"
               group={PrimaryNavGroup.INSIGHTS}
