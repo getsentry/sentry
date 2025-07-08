@@ -43,10 +43,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# How long we cache a conversion failure by checksum in cache.  Currently
-# 10 minutes is assumed to be a reasonable value here.
-CONVERSION_ERROR_TTL = 60 * 10
-
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
