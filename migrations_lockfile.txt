@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0075_add_index_to_dcg_action
+workflow_engine: 0076_add_detector_issue_table
