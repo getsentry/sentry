@@ -476,7 +476,7 @@ class HighlightedEventsBuilder:
 
     def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
         for k, v in parse_highlighted_event(event_type, event, sampled).items():
-            self.events[k].extend(v)
+            self.events[k].extend(v)  # type: ignore[literal-required]
 
     @property
     def result(self) -> ParsedEventMeta:
