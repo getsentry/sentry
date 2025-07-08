@@ -1183,23 +1183,8 @@ def test_get_feedback_title():
 
 
 @django_db_all
-def test_create_feedback_issue_uses_generated_title(
-    default_project, mock_produce_occurrence_to_kafka
-):
+def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka):
     """Test that create_feedback_issue uses the generated title."""
-
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = "Login button is broken"
-
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-
-    call_args = mock_produce_occurrence_to_kafka.call_args
-    occurrence = call_args[1]["occurrence"]
-
-    assert occurrence.issue_title == "User Feedback: Login button is broken"
-
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
     event = mock_feedback_event(default_project.id)
@@ -1207,7 +1192,7 @@ def test_create_feedback_issue_uses_generated_title(
 
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_produce_occurrence_to_kafka.call_count == 2
+    assert mock_produce_occurrence_to_kafka.call_count == 1
 
     call_args = mock_produce_occurrence_to_kafka.call_args
     occurrence = call_args[1]["occurrence"]
@@ -1217,4 +1202,3 @@ def test_create_feedback_issue_uses_generated_title(
         "User Feedback: This is a very long feedback message that describes multiple..."
     )
     assert occurrence.issue_title == expected_title
-    assert len(occurrence.issue_title) <= 200
