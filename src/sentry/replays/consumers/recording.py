@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import zlib
 from collections.abc import Mapping
