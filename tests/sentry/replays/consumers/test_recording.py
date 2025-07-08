@@ -440,7 +440,3 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-
-
-class ThreadedRecordingTestCase(RecordingTestCase):
-    force_synchronous = False

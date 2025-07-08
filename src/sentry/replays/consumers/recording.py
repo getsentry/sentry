@@ -88,8 +88,8 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
     ):
         try:
             recording_event = parse_recording_event(message.payload.value)
-            set_tag("org_id", recording_event["org_id"])
-            set_tag("project_id", recording_event["project_id"])
+            set_tag("org_id", recording_event["context"]["org_id"])
+            set_tag("project_id", recording_event["context"]["project_id"])
             return process_recording_event(recording_event)
         except DropSilently:
             return FilteredPayload()
@@ -116,13 +116,13 @@ def parse_recording_event(message: bytes) -> Event:
             "org_id": recording["org_id"],
             "project_id": recording["project_id"],
             "received": recording["received"],
+            "replay_id": recording["replay_id"],
             "retention_days": recording["retention_days"],
             "segment_id": segment_id,
         },
         "payload_compressed": compressed,
         "payload": decompressed,
         "replay_event": replay_event,
-        "replay_id": recording["replay_id"],
         "replay_video": recording.get("replay_video"),
     }
 

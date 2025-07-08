@@ -2,6 +2,8 @@ import zlib
 
 import msgpack
 import pytest
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.types import FilteredPayload, Value
 
 from sentry.replays.consumers.recording import (
     DropSilently,
@@ -9,7 +11,10 @@ from sentry.replays.consumers.recording import (
     parse_headers,
     parse_recording_event,
     parse_request_message,
+    process_message,
 )
+from sentry.replays.usecases.ingest import ProcessedEvent
+from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.utils import json
 
 
@@ -138,13 +143,13 @@ def test_parse_recording_event_success():
             "org_id": 3,
             "project_id": 4,
             "received": 2,
+            "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
         "replay_event": None,
-        "replay_id": "test-replay-id",
         "replay_video": b"",
     }
 
@@ -185,12 +190,12 @@ def test_parse_recording_event_with_replay_event():
             "org_id": 3,
             "project_id": 4,
             "received": 2,
+            "replay_id": "test-replay-id",
             "retention_days": 30,
             "segment_id": 42,
         },
         "payload_compressed": compressed_payload,
         "payload": original_payload,
-        "replay_id": "test-replay-id",
         "replay_event": {},
         "replay_video": b"",
     }
@@ -244,3 +249,59 @@ def test_parse_recording_event_invalid_headers():
     }
     with pytest.raises(DropSilently):
         parse_recording_event(msgpack.packb(message))
+
+
+def test_process_message():
+    """Test "process_message" function."""
+    # Create real compressed data
+    original_payload = b'[{"type": "test", "data": "some event data"}]'
+    compressed_payload = zlib.compress(original_payload)
+
+    # Create real headers
+    segment_id = 42
+    headers = json.dumps({"segment_id": segment_id}).encode()
+    recording_payload = headers + b"\n" + compressed_payload
+
+    # Mock the recording data structure
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": recording_payload,
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    processed_result = process_message(message)
+
+    expected = ProcessedEvent(
+        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        context={
+            "key_id": 1,
+            "org_id": 3,
+            "project_id": 4,
+            "received": 2,
+            "replay_id": "1",
+            "retention_days": 30,
+            "segment_id": 42,
+        },
+        filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
+        filename="30/4/1/42",
+        recording_size_uncompressed=45,
+        recording_size=47,
+        replay_event={},
+        video_size=None,
+    )
+    assert expected == processed_result
+
+
+def test_process_message_invalid():
+    """Test "process_message" function with invalid payload."""
+    message = Value(KafkaPayload(key=None, value=b"", headers=[]), {})
+    assert process_message(message) == FilteredPayload()
