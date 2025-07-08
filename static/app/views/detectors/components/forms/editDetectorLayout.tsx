@@ -32,6 +32,7 @@ type EditDetectorLayoutProps = {
   detector: Detector;
   detectorType: EditableDetectorType;
   handleSubmit?: OnSubmitCallback;
+  previewChart?: React.ReactNode;
 };
 
 function DetectorBreadcrumbs({detector}: {detector: Detector}) {
@@ -55,6 +56,7 @@ function DetectorDocumentTitle({detector}: {detector: Detector}) {
 }
 
 export function EditDetectorLayout({
+  previewChart,
   detector,
   children,
   detectorType,
@@ -101,7 +103,10 @@ export function EditDetectorLayout({
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <DetectorBreadcrumbs detector={detector} />
-            <DetectorBaseFields />
+            <Flex direction="column" gap={space(2)}>
+              <DetectorBaseFields />
+              {previewChart}
+            </Flex>
           </Layout.HeaderContent>
           <EditDetectorActions detectorId={detector.id} />
         </StyledLayoutHeader>
