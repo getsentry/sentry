@@ -1,4 +1,5 @@
-import {useMemo, useRef, useState} from 'react';
+import type {Key} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
@@ -86,6 +87,14 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+  const handleSelectionChange = useCallback(
+    (key: Key | null) => {
+      if (key) {
+        navigate(`/stories?name=${key}`, {replace: true});
+      }
+    },
+    [navigate]
+  );
 
   const state = useComboBoxState({
     ...props,
@@ -94,11 +103,7 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
     defaultFilter: filter,
     shouldCloseOnBlur: false,
     allowsEmptyCollection: false,
-    onSelectionChange(key) {
-      if (key) {
-        navigate(`/stories?name=${key}`, {replace: true});
-      }
-    },
+    onSelectionChange: handleSelectionChange,
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(
@@ -143,7 +148,6 @@ const StorySearchContainer = styled('div')`
   z-index: calc(infinity);
   padding: ${space(1)};
   padding-right: 0;
-  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -154,4 +158,6 @@ const StyledOverlay = styled(Overlay)`
   top: 48px;
   left: 272px;
   width: 320px;
+  max-height: calc(100dvh - 128px);
+  overflow-y: auto;
 `;
