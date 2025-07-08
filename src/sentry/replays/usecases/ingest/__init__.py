@@ -8,10 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 import sentry_sdk
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
@@ -32,10 +29,7 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
-CACHE_TIMEOUT = 3600
-COMMIT_FREQUENCY_SEC = 1
 LOG_SAMPLE_RATE = 0.01
-RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 logger = logging.getLogger("sentry.replays")
 logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
