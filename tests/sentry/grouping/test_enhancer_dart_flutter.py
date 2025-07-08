@@ -82,9 +82,23 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
         result = self.apply_rules_to_frame(frame, platform="javascript")
         assert result["in_app"] is False
 
-        # Native platform rule: family:native stack.abs_path:**/packages/flutter/** -app
+        # Flutter package on native platform rule: family:native stack.abs_path:**/packages/flutter/** -app
         frame = {
             "abs_path": "/Users/dev/project/packages/flutter/lib/src/material/app.dart"
+        }
+        result = self.apply_rules_to_frame(frame, platform="native")
+        assert result["in_app"] is False
+
+        # Flutter Engine SDK rule: family:native stack.abs_path:lib/ui/hooks.dart -app
+        frame = {
+            "abs_path": "lib/ui/hooks.dart"
+        }
+        result = self.apply_rules_to_frame(frame, platform="native")
+        assert result["in_app"] is False
+
+        # Flutter Engine SDK rule: family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
+        frame = {
+            "abs_path": "lib/ui/platform_dispatcher.dart"
         }
         result = self.apply_rules_to_frame(frame, platform="native")
         assert result["in_app"] is False
