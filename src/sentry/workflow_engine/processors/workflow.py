@@ -415,21 +415,9 @@ def process_workflows(
             organization,
         ):
             for action in actions:
-                trigger_action.delay(
-                    **build_trigger_action_task_params(action, detector, event_data)
-                )
-                metrics_incr(
-                    "action.trigger",
-                    tags={"action_type": action.type},
-                )
+                task_params = build_trigger_action_task_params(action, detector, event_data)
 
-                logger.info(
-                    "workflow_engine.action.trigger",
-                    extra={
-                        "action_id": action.id,
-                        "event_data": asdict(event_data),
-                    },
-                )
+                trigger_action.delay(**task_params)
         else:
             logger.info(
                 "workflow_engine.triggered_actions",

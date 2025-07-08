@@ -83,9 +83,14 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    # Fetch the action and detector
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
     detector = Detector.objects.get(id=detector_id)
+
+    metrics.incr(
+        "workflow_engine.tasks.trigger_action_task_started",
+        tags={"action_type": action.type, "detector_type": detector.type},
+        sample_rate=1.0,
+    )
 
     project_id = detector.project_id
 
@@ -100,24 +105,19 @@ def trigger_action(
             has_escalated=has_escalated,
             workflow_env_id=workflow_env_id,
         )
+
+        # TODO(iamrajjoshi): remove this once we are sure everything is working as expected
+        logger.info(
+            "workflow_engine.tasks.trigger_action.build_workflow_event_data_from_event",
+            extra={
+                "action_id": action_id,
+                "detector_id": detector_id,
+                "workflow_id": workflow_id,
+            },
+        )
+
     else:
         # Here, we probably build the event data from the activity
         raise NotImplementedError("Activity ID is not supported yet")
 
     action.trigger(event_data, detector)
-
-    metrics.incr(
-        "workflow_engine.tasks.trigger_action_task_executed",
-        tags={"action_type": action.type},
-        sample_rate=1.0,
-    )
-
-    logger.info(
-        "workflow_engine.trigger_workflow_action.success",
-        extra={
-            "action_id": action_id,
-            "detector_id": detector_id,
-            "workflow_id": workflow_id,
-            "event_id": event_id,
-        },
-    )

@@ -647,11 +647,10 @@ def fire_actions_for_groups(
                     organization,
                 ):
                     for action in filtered_actions:
-                        trigger_action.delay(
-                            **build_trigger_action_task_params(
-                                action, detector, workflow_event_data
-                            )
+                        task_params = build_trigger_action_task_params(
+                            action, detector, workflow_event_data
                         )
+                        trigger_action.delay(**task_params)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
