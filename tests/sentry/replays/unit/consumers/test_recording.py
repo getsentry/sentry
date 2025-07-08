@@ -64,6 +64,13 @@ def test_parse_headers_success():
     assert payload == b"hello, world"
 
 
+def test_parse_headers_success_invalid_type():
+    """Test parsing headers with invalid segment-id value"""
+    recording = json.dumps({"segment_id": None}).encode() + b"\n" + b"hello, world"
+    with pytest.raises(DropSilently):
+        parse_headers(recording, "1")
+
+
 def test_parse_headers_no_newline():
     """Test parsing headers without newline separator"""
     with pytest.raises(DropSilently):

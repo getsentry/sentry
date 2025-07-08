@@ -159,7 +159,7 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
 def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
-        return json.loads(recording_headers_json)["segment_id"], recording_segment
+        return int(json.loads(recording_headers_json)["segment_id"]), recording_segment
     except Exception:
         logger.exception("Recording headers could not be extracted %s", replay_id)
         raise DropSilently()
