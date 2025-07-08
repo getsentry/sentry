@@ -207,7 +207,7 @@ def keyed_rrf_score_with_filter(
 ) -> list[tuple[str, float, bool]]:
     """
     RRF score a multi-dimensional distribution of values. Returns a list of key, score pairs, and a mapping of if the key was filtered.
-    The filtered keys are those that have a normalized entropy or kl score greater than the z_threshold.
+    The filtered keys are those that have a normalized entropy and kl score less than the z_threshold.
     Duplicates are not tolerated.
 
     Sample distribution:
@@ -243,7 +243,7 @@ def keyed_rrf_score_with_filter(
     kl_z_scores = calculate_z_scores(normalized_kl_scores)
 
     filtered_keys = [
-        entropy_z_score <= z_threshold or kl_z_score <= z_threshold
+        entropy_z_score <= z_threshold and kl_z_score <= z_threshold
         for entropy_z_score, kl_z_score in zip(entropy_z_scores, kl_z_scores)
     ]
 

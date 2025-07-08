@@ -101,20 +101,30 @@ def boxcox_transform(
     Returns:
         Tuple of (transformed values, lambda parameter used)
     """
+    min_value = min(values) if values else 0
+    if min_value <= 0:
+        shift_amount = -min_value + 1
+        shifted_values = [v + shift_amount for v in values]
+    else:
+        shifted_values = values
 
     if lambda_param is not None:
         if lambda_param == 0.0:
-            transformed = [math.log(max(v, 1e-10)) for v in values]
+            transformed = [math.log(max(v, 1e-10)) for v in shifted_values]
         else:
-            transformed = [(pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in values]
+            transformed = [
+                (pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in shifted_values
+            ]
         return transformed, lambda_param
 
     optimal_lambda = _boxcox_normmax(values)
 
     if optimal_lambda == 0.0:
-        transformed = [math.log(max(v, 1e-10)) for v in values]
+        transformed = [math.log(max(v, 1e-10)) for v in shifted_values]
     else:
-        transformed = [(pow(max(v, 1e-10), optimal_lambda) - 1) / optimal_lambda for v in values]
+        transformed = [
+            (pow(max(v, 1e-10), optimal_lambda) - 1) / optimal_lambda for v in shifted_values
+        ]
 
     return transformed, optimal_lambda
 
