@@ -474,6 +474,7 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
+    add_global_tags: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -586,8 +587,8 @@ def get_stream_processor(
             stale_threshold_sec, strategy_factory
         )
 
-    # Always wrap with MinPartitionMetricTagWrapper to track partition assignment
-    strategy_factory = MinPartitionMetricTagWrapper(strategy_factory)
+    if add_global_tags:
+        strategy_factory = MinPartitionMetricTagWrapper(strategy_factory)
 
     if healthcheck_file_path is not None:
         strategy_factory = HealthcheckStrategyFactoryWrapper(
