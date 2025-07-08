@@ -3,6 +3,7 @@ Test cases for Dart/Flutter specific enhancement rules.
 Tests how Dart and Flutter stack frames are processed through enhancement rules
 and whether they are correctly marked as in-app or not in-app.
 """
+
 from __future__ import annotations
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
@@ -55,9 +56,7 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
     def test_dart_sdk_not_in_app(self):
         """Test that Dart SDK files are not marked as in-app"""
         # Rule: family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
-        frame = {
-            "abs_path": "org-dartlang-sdk:///sdk/lib/core/object.dart"
-        }
+        frame = {"abs_path": "org-dartlang-sdk:///sdk/lib/core/object.dart"}
         result = self.apply_rules_to_frame(frame, platform="javascript")
         assert result["in_app"] is False
 
@@ -76,30 +75,22 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
     def test_flutter_packages_not_in_app(self):
         """Test that Flutter framework packages are not marked as in-app"""
         # JavaScript platform rule: family:javascript module:**/packages/flutter/** -app
-        frame = {
-            "module": "packages/flutter/src/widgets/framework.dart"
-        }
+        frame = {"module": "packages/flutter/src/widgets/framework.dart"}
         result = self.apply_rules_to_frame(frame, platform="javascript")
         assert result["in_app"] is False
 
         # Flutter package on native platform rule: family:native stack.abs_path:**/packages/flutter/** -app
-        frame = {
-            "abs_path": "/Users/dev/project/packages/flutter/lib/src/material/app.dart"
-        }
+        frame = {"abs_path": "/Users/dev/project/packages/flutter/lib/src/material/app.dart"}
         result = self.apply_rules_to_frame(frame, platform="native")
         assert result["in_app"] is False
 
         # Flutter Engine SDK rule: family:native stack.abs_path:lib/ui/hooks.dart -app
-        frame = {
-            "abs_path": "lib/ui/hooks.dart"
-        }
+        frame = {"abs_path": "lib/ui/hooks.dart"}
         result = self.apply_rules_to_frame(frame, platform="native")
         assert result["in_app"] is False
 
         # Flutter Engine SDK rule: family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
-        frame = {
-            "abs_path": "lib/ui/platform_dispatcher.dart"
-        }
+        frame = {"abs_path": "lib/ui/platform_dispatcher.dart"}
         result = self.apply_rules_to_frame(frame, platform="native")
         assert result["in_app"] is False
 
@@ -175,14 +166,14 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
         for frame in user_files:
             result = self.apply_rules_to_frame(frame)
             # These frames don't match any -app rules, so in_app should be None (unchanged)
-            assert result.get("in_app") is None, f"User file {frame['abs_path']} should not be modified"
+            assert (
+                result.get("in_app") is None
+            ), f"User file {frame['abs_path']} should not be modified"
 
     def test_platform_specific_rules(self):
         """Test that platform-specific rules only apply to the correct platform"""
         # JavaScript-specific Flutter rule
-        frame = {
-            "module": "packages/flutter/src/widgets/container.dart"
-        }
+        frame = {"module": "packages/flutter/src/widgets/container.dart"}
 
         # Should be marked as not in-app for JavaScript platform
         result = self.apply_rules_to_frame(frame, platform="javascript")
@@ -212,7 +203,7 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
         ]
 
         expected_results = [
-            True,   # User app code
+            True,  # User app code
             False,  # Flutter framework
             False,  # Dart SDK
             False,  # pub cache
@@ -243,7 +234,9 @@ class TestDartFlutterEnhancerRules(TestCase, Fixtures):
         assert result.get("in_app") is None
 
         # Test partial matches that shouldn't trigger
-        frame = {"abs_path": "my_sentry_wrapper/lib/wrapper.dart"}  # Contains "sentry" but not as package:sentry
+        frame = {
+            "abs_path": "my_sentry_wrapper/lib/wrapper.dart"
+        }  # Contains "sentry" but not as package:sentry
         result = self.apply_rules_to_frame(frame)
         assert result.get("in_app") is None
 
