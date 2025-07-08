@@ -23,7 +23,7 @@ class FetchEventTests(TestCase):
         project_id = self.project.id
 
         # Mock nodestore to fail with RetryError twice, then succeed
-        with mock.patch("sentry.workflow_engine.tasks.nodestore.backend.get") as mock_get:
+        with mock.patch("sentry.workflow_engine.tasks.utils.nodestore.backend.get") as mock_get:
             mock_get.side_effect = [
                 RetryError("retry", None),
                 RetryError("retry", None),
@@ -60,7 +60,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             detector_id=None,  # No detector_id provided
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
 
@@ -83,7 +83,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
         )
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
         ) as mock_delay:
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_not_called()
@@ -108,7 +108,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
         )
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.process_workflow_activity.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
         ) as mock_delay:
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_called_once_with(
