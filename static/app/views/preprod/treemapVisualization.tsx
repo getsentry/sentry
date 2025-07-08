@@ -1,4 +1,3 @@
-import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import ReactECharts from 'echarts-for-react';
@@ -155,7 +154,7 @@ function convertToEChartsData(
   return data;
 }
 
-export function TreemapVisualization({data, sizeMode}: TreemapVisualizationProps) {
+function TreemapVisualization({data, sizeMode}: TreemapVisualizationProps) {
   const theme = useTheme();
   const typeColors = getTypeColors();
 

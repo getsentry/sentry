@@ -59,7 +59,7 @@ export interface TreemapElement {
   path?: string;
 }
 
-export interface TreemapResults {
+interface TreemapResults {
   /** Size breakdown by category */
   category_breakdown: Record<string, Record<string, number>>;
   /** Total number of files analyzed */
