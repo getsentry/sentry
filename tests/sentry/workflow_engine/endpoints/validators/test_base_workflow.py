@@ -14,6 +14,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from tests.sentry.workflow_engine.test_base import MockActionHandler
 
@@ -443,9 +444,9 @@ class TestWorkflowValidatorUpdate(TestCase):
                     {
                         "type": Action.Type.SLACK,
                         "config": {
-                            "target_identifier": "foo",
-                            "target_display": "bar",
-                            "target_type": 0,
+                            "targetIdentifier": "bar",
+                            "targetDisplay": "baz",
+                            "targetType": 0,
                         },
                         "data": {},
                         "integrationId": 1,
@@ -464,6 +465,26 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.workflow.refresh_from_db()
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 2
+        new_action_filter = (
+            WorkflowDataConditionGroup.objects.filter(workflow=self.workflow)
+            .order_by("-date_added")
+            .first()
+        )
+
+        assert new_action_filter is not None
+        assert new_action_filter.condition_group is not None
+
+        new_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=[new_action_filter.condition_group.id]
+        )
+
+        assert new_actions.count() == 1
+        assert new_actions[0].type == Action.Type.SLACK
+        assert new_actions[0].config == {
+            "target_identifier": "bar",
+            "target_display": "baz",
+            "target_type": 0,
+        }
 
     def test_update__remove_one_filter(self):
         # Configuration for the test
@@ -547,9 +568,9 @@ class TestWorkflowValidatorUpdate(TestCase):
             {
                 "type": Action.Type.SLACK,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_display": "bar",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetDisplay": "bar",
+                    "targetType": 0,
                 },
                 "data": {},
                 "integrationId": 1,
@@ -577,8 +598,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetType": 0,
                 },
                 "data": {},
             }
