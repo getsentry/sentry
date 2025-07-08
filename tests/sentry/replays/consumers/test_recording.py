@@ -14,29 +14,15 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
-from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
+from sentry.utils import json
 
 
 class RecordingTestCase(TransactionTestCase):
     replay_id = uuid.uuid4().hex
     replay_recording_id = uuid.uuid4().hex
     force_synchronous = True
-
-    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
-        # Assert no recording segment is written for direct-storage.  Direct-storage does not
-        # use a metadata database.
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment is None
-
-        bytes = self.get_recording_data(segment_id)
-
-        # Assert (depending on compression) that the bytes are equal to our default mock value.
-        if compressed:
-            assert bytes == b'[{"hello":"world"}]'
-        else:
-            assert bytes == b'[{"hello":"world"}]'
 
     def get_recording_data(self, segment_id):
         result = storage_kv.get(
@@ -120,16 +106,40 @@ class RecordingTestCase(TransactionTestCase):
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
     @patch("sentry.replays.usecases.ingest.track_outcome")
-    def test_end_to_end_consumer_processing(self, track_outcome, mock_record, mock_onboarding_task):
+    @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    def test_end_to_end_consumer_processing(
+        self,
+        report_hydration_issue,
+        track_outcome,
+        mock_record,
+        mock_onboarding_task,
+    ):
+        data = [
+            {
+                "type": 5,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "replay.hydrate-error",
+                        "timestamp": 1.0,
+                        "data": {"url": "https://sentry.io"},
+                    },
+                },
+            }
+        ]
         segment_id = 0
         self.submit(
             self.nonchunked_messages(
+                message=json.dumps(data).encode(),
                 segment_id=segment_id,
                 compressed=True,
+                replay_event=json.dumps({"platform": "javascript"}).encode(),
                 replay_video=b"hello, world!",
             )
         )
-        self.assert_replay_recording_segment(segment_id, compressed=True)
+
+        dat = self.get_recording_data(segment_id)
+        assert json.loads(bytes(dat).decode("utf-8")) == data
         assert self.get_video_data(segment_id) == b"hello, world!"
 
         self.project.refresh_from_db()
@@ -151,3 +161,4 @@ class RecordingTestCase(TransactionTestCase):
         )
 
         assert track_outcome.called
+        assert report_hydration_issue.called
