@@ -108,6 +108,20 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
             assert call[0][0] != "browser_reporting.raw_report_received"
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_accepts_various_content_type(self) -> None:
+        """Test that the endpoint rejects invalid content type."""
+        response = self.client.post(self.url, self.report_data, content_type="application/json")
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(self.url, self.report_data)
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(
+            self.url, self.report_data, content_type="application/reports+json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_handles_multiple_reports_both_specs(self, mock_metrics_incr: MagicMock) -> None:
         """Test that the endpoint handles multiple reports in a single request"""
