@@ -329,6 +329,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
+        raw_exc["raw_module"] = raw_exc["module"]
+        raw_exc["raw_type"] = raw_exc["type"]
         raw_exc["module"] = exc["module"]
         raw_exc["type"] = exc["type"]
 
