@@ -24,20 +24,6 @@ def mask_string(s: str | Any) -> str:
 
 class AuthV2Permission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        logger.info(
-            "has_permission",
-            extra={
-                "is_dev": settings.IS_DEV,
-                "auth_v2_secret": mask_string(settings.AUTH_V2_SECRET),
-                "auth_v2_header": mask_string(request.META.get("HTTP_X_SENTRY_AUTH_V2")),
-                "auth_v2_header_match": match_chars(
-                    settings.AUTH_V2_SECRET, request.META.get("HTTP_X_SENTRY_AUTH_V2")
-                ),
-            },
-        )
-
-        logger.info("all_headers", extra={"headers": request.META.keys()})
-
         if settings.IS_DEV:
             return True
 
