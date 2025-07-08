@@ -265,7 +265,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
     @sentry_sdk.tracing.trace
     def query_trace_data(
-        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None
+        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None = None
     ) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
