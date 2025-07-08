@@ -351,6 +351,7 @@ class GridEditable<
               {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
+                  key={`${i}.${column.key}`}
                   dataRows={!error && !isLoading && data ? data.length : 0}
                   onMouseDown={e => this.onResizeMouseDown(e, i)}
                   onDoubleClick={e => this.onResetColumnSize(e, i)}
