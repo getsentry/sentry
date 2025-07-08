@@ -5,7 +5,8 @@ import type {
   RawSpanType,
   TraceContextSpanProxy,
 } from 'sentry/components/events/interfaces/spans/types';
-import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
+import type {EntrySpans, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
@@ -96,4 +97,18 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   }
 
   return {affectedSpanIds, focusedSpanIds};
+}
+
+export function getTimestampFromEvent(event: Event): number | undefined {
+  const timestamp = getEventTimestamp(event);
+
+  if (typeof timestamp === 'number') {
+    return timestamp;
+  }
+
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp).getTime() / 1e3;
+  }
+
+  return undefined;
 }

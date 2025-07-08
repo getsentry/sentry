@@ -1,7 +1,10 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  getTimestampFromEvent,
+  TRACE_WATERFALL_PREFERENCES_KEY,
+} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
@@ -74,7 +77,7 @@ function SpanEvidenceTraceViewImpl({
   organization,
   traceId,
 }: SpanEvidenceTraceViewProps) {
-  const timestamp = new Date(event.dateReceived).getTime() / 1e3;
+  const timestamp = getTimestampFromEvent(event);
 
   const trace = useTrace({
     timestamp,
