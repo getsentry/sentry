@@ -25,7 +25,10 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
             response = self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "sampling": "HIGHEST_ACCURACY",
+                    },
                 ),
                 query,
                 format="json",
