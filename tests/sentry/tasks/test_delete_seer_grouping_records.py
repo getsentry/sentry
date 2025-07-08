@@ -5,7 +5,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.tasks.delete_seer_grouping_records import (
     BATCH_SIZE,
     call_delete_seer_grouping_records_by_hash,
-    call_seer_delete_project_grouping_records,
     delete_seer_grouping_records_by_hash,
 )
 from sentry.testutils.cases import TestCase
@@ -122,10 +121,3 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     ) -> None:
         call_delete_seer_grouping_records_by_hash([])
         mock_apply_async.assert_not_called()
-
-    @patch("sentry.tasks.delete_seer_grouping_records.delete_project_grouping_records")
-    def test_call_delete_project_and_delete_grouping_records(
-        self, mock_delete_project_grouping_records: MagicMock
-    ) -> None:
-        call_seer_delete_project_grouping_records(self.project.id)
-        mock_delete_project_grouping_records.assert_called_once()
