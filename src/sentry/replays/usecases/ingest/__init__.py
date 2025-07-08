@@ -150,7 +150,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
             project,
             recording.context["replay_id"],
             recording.context["retention_days"],
-            recording.context["replay_event"],
+            recording.replay_event,
         )
 
 

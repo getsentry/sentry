@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import zlib
 from collections.abc import Mapping
+from typing import cast
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -101,14 +102,20 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
 @sentry_sdk.trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
-    segment_id, payload = parse_headers(recording["payload"], recording["replay_id"])
+    segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
     compressed, decompressed = decompress_segment(payload)
 
     replay_event_json = recording.get("replay_event")
     if replay_event_json:
-        replay_event = json.loads(replay_event_json)
+        replay_event = json.loads(cast(bytes, replay_event_json))
     else:
         replay_event = None
+
+    replay_video_raw = recording.get("replay_video")
+    if replay_video_raw is not None:
+        replay_video = cast(bytes, replay_video_raw)
+    else:
+        replay_video = None
 
     return {
         "context": {
@@ -123,7 +130,7 @@ def parse_recording_event(message: bytes) -> Event:
         "payload_compressed": compressed,
         "payload": decompressed,
         "replay_event": replay_event,
-        "replay_video": recording.get("replay_video"),
+        "replay_video": replay_video,
     }
 
 
