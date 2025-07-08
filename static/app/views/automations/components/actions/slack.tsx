@@ -102,3 +102,13 @@ function NotesField() {
     />
   );
 }
+
+export function validateSlackAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Slack workspace.');
+  }
+  if (!action.config.target_display) {
+    return t('You must specify a channel name or ID.');
+  }
+  return undefined;
+}

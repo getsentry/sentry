@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -28,6 +28,7 @@ import {
   initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import {getAutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
@@ -94,6 +95,16 @@ export default function AutomationEdit() {
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
+  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
+    Record<string, string>
+  >({});
+  const removeError = useCallback((errorId: string) => {
+    setAutomationBuilderErrors(prev => {
+      const {[errorId]: _removedError, ...remainingErrors} = prev;
+      return remainingErrors;
+    });
+  }, []);
+
   if (isPending && !initialData) {
     return <LoadingIndicator />;
   }
@@ -116,9 +127,17 @@ export default function AutomationEdit() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <AutomationBuilderContext.Provider value={{state, actions}}>
-              <AutomationForm model={model} />
-            </AutomationBuilderContext.Provider>
+            <AutomationBuilderErrorContext.Provider
+              value={{
+                errors: automationBuilderErrors,
+                setErrors: setAutomationBuilderErrors,
+                removeError,
+              }}
+            >
+              <AutomationBuilderContext.Provider value={{state, actions}}>
+                <AutomationForm model={model} />
+              </AutomationBuilderContext.Provider>
+            </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -21,10 +21,13 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
+import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {getNewAutomationData} from 'sentry/views/automations/components/automationFormData';
@@ -62,6 +65,23 @@ const initialData = {
   frequency: 1440,
 };
 
+function validateAutomationBuilderState(state: AutomationBuilderState) {
+  const errors: Record<string, string> = {};
+  for (const actionFilter of state.actionFilters) {
+    if (actionFilter.actions?.length === 0) {
+      errors[actionFilter.id] = t('You must add an action for this automation to run.');
+      continue;
+    }
+    for (const action of actionFilter.actions || []) {
+      const validationResult = actionNodesMap.get(action.type)?.validate?.(action);
+      if (validationResult) {
+        errors[action.id] = validationResult;
+      }
+    }
+  }
+  return errors;
+}
+
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,6 +89,16 @@ export default function AutomationNewSettings() {
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
+
+  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
+    Record<string, string>
+  >({});
+  const removeError = useCallback((errorId: string) => {
+    setAutomationBuilderErrors(prev => {
+      const {[errorId]: _removedError, ...remainingErrors} = prev;
+      return remainingErrors;
+    });
+  }, []);
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -89,10 +119,15 @@ export default function AutomationNewSettings() {
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
       // TODO: add form validation
-      const automation = await createAutomation(
-        getNewAutomationData(data as AutomationFormData, state)
-      );
-      navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
+
+      if (Object.keys(errors).length === 0) {
+        const automation = await createAutomation(
+          getNewAutomationData(data as AutomationFormData, state)
+        );
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      }
     },
     [createAutomation, state, navigate, organization.slug]
   );
@@ -116,9 +151,17 @@ export default function AutomationNewSettings() {
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <AutomationBuilderContext.Provider value={{state, actions}}>
-              <AutomationForm model={model} />
-            </AutomationBuilderContext.Provider>
+            <AutomationBuilderErrorContext.Provider
+              value={{
+                errors: automationBuilderErrors,
+                setErrors: setAutomationBuilderErrors,
+                removeError,
+              }}
+            >
+              <AutomationBuilderContext.Provider value={{state, actions}}>
+                <AutomationForm model={model} />
+              </AutomationBuilderContext.Provider>
+            </AutomationBuilderErrorContext.Provider>
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

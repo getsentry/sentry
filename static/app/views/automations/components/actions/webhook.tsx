@@ -50,3 +50,10 @@ function ServicesField() {
     />
   );
 }
+
+export function validateWebhookAction(action: Action): string | undefined {
+  if (!action.config.target_identifier) {
+    return t('You must specify an integration.');
+  }
+  return undefined;
+}

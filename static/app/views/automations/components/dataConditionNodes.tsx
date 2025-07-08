@@ -155,6 +155,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Issue frequency'),
       dataCondition: IssueOccurrencesNode,
       details: IssueOccurrencesDetails,
+      defaultComparison: {value: 10},
     },
   ],
   [

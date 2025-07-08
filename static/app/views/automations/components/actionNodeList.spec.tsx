@@ -11,6 +11,7 @@ import {
   ActionType,
 } from 'sentry/types/workflowEngine/actions';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -52,7 +53,7 @@ describe('ActionNodeList', function () {
 
   const defaultProps = {
     actions: [],
-    group: '0',
+    conditionGroupId: '0',
     onAddRow: mockOnAddRow,
     onDeleteRow: mockOnDeleteRow,
     placeholder: 'Select an action',
@@ -68,9 +69,16 @@ describe('ActionNodeList', function () {
   });
 
   it('renders correct action options', async function () {
-    render(<ActionNodeList {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <ActionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
 
     expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
@@ -87,9 +95,16 @@ describe('ActionNodeList', function () {
   });
 
   it('adds actions', async function () {
-    render(<ActionNodeList {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <ActionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Slack'}));
 
@@ -98,9 +113,16 @@ describe('ActionNodeList', function () {
 
   it('updates existing actions', async function () {
     const slackAction = ActionFixture();
-    render(<ActionNodeList {...defaultProps} actions={[slackAction]} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
     await userEvent.type(screen.getByRole('textbox', {name: 'Tags'}), 's');
@@ -111,9 +133,16 @@ describe('ActionNodeList', function () {
 
   it('deletes existing actions', async function () {
     const slackAction = ActionFixture();
-    render(<ActionNodeList {...defaultProps} actions={[slackAction]} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));

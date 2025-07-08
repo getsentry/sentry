@@ -64,3 +64,16 @@ function SeverityField() {
     />
   );
 }
+
+export function validatePagerdutyAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a PagerDuty integration.');
+  }
+  if (!action.config.target_identifier) {
+    return t('You must specify a service.');
+  }
+  if (!action.data.priority) {
+    return t('You must specify a severity.');
+  }
+  return undefined;
+}
