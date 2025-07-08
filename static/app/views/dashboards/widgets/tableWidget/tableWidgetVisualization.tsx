@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,7 +14,7 @@ import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+// import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
   TabularColumn,
@@ -124,14 +125,13 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     aliases,
     onChangeSort,
     sort,
-    onResizeColumn,
     resizable = true,
   } = props;
 
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
     // NOTE: `alias` is set to `false` here because in almost all endpoints, we don't alias field names anymore. In the past, fields like `"p75(duration)"` would be aliased to `"p75_duration"`, but we don't do that much anymore, so we can safely assume that the field name is the same as the alias.
@@ -152,6 +152,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       unit,
     };
   };
+
+  const [nextColumnOrder, setNextColumnOrder] = useState<TabularColumn[]>();
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
@@ -188,7 +190,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   return (
     <GridEditable
       data={data}
-      columnOrder={columnOrder}
+      columnOrder={nextColumnOrder ?? columnOrder}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
@@ -251,22 +253,25 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             width: widths[columnIndex],
           };
 
-          if (onResizeColumn) {
-            onResizeColumn(columnOrder);
-            return;
-          }
+          // if (onResizeColumn) {
+          //   onResizeColumn(columnOrder);
+          //   return;
+          // }
+
+          setNextColumnOrder(columnOrder);
+          return;
 
           // Default is to fallback to location query
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                width: widths,
-              },
-            },
-            {replace: true}
-          );
+          // navigate(
+          //   {
+          //     pathname: location.pathname,
+          //     query: {
+          //       ...location.query,
+          //       width: widths,
+          //     },
+          //   },
+          //   {replace: true}
+          // );
         },
       }}
       stickyHeader={scrollable}

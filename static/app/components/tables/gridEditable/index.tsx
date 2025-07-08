@@ -161,7 +161,6 @@ class GridEditable<
   };
 
   componentDidMount() {
-    this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
     window.addEventListener('resize', this.redrawGridColumn);
     this.setGridTemplateColumns(this.props.columnOrder);
   }
@@ -210,7 +209,6 @@ class GridEditable<
   };
 
   onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
-    console.log(this.props.columnOrder);
     e.stopPropagation();
 
     // Block right-click and other funky stuff
@@ -239,7 +237,6 @@ class GridEditable<
   };
 
   onResizeMouseUp = (e: MouseEvent) => {
-    console.log(e.currentTarget);
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
 
