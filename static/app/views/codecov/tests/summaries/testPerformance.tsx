@@ -100,7 +100,9 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
         </SummaryEntryLabel>
-        {flakyTests ? (
+        {flakyTests === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
           <SummaryEntryValue>
             <SummaryEntryValueLink filterBy="flakyTests">
               {flakyTests}
@@ -111,8 +113,6 @@ function TestPerformanceBody({
               </Tag>
             )}
           </SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>-</SummaryEntryValue>
         )}
       </SummaryEntry>
       <SummaryEntry>
@@ -132,7 +132,9 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
           {t('Cumulative Failures')}
         </SummaryEntryLabel>
-        {cumulativeFailures ? (
+        {cumulativeFailures === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
           <SummaryEntryValue>
             <SummaryEntryValueLink filterBy="failedTests">
               {cumulativeFailures}
@@ -143,8 +145,6 @@ function TestPerformanceBody({
               </Tag>
             )}
           </SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>-</SummaryEntryValue>
         )}
       </SummaryEntry>
       <SummaryEntry>
