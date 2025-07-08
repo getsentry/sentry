@@ -16,7 +16,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 
-BATCH_SIZE = 10000
+BATCH_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
