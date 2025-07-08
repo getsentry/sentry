@@ -95,13 +95,13 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {
                 "name": "tags[sentry.timestamp_nanos,number]",
                 "type": "float",
-                "value": float(timestamp_nanos),
+                "value": pytest.approx(float(timestamp_nanos)),
             },
             # this is stored as a float for searching, so it is not actually very precise
             {
                 "name": "tags[sentry.timestamp_precise,number]",
                 "type": "float",
-                "value": float(timestamp_nanos),
+                "value": pytest.approx(float(timestamp_nanos)),
             },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "severity_number", "type": "int", "value": "0"},
