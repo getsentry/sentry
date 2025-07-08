@@ -6,6 +6,7 @@ import {useCodecovContext} from 'sentry/components/codecov/context/codecovContex
 import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
+import {TestSuiteDropdown} from 'sentry/components/codecov/testSuiteDropdown/testSuiteDropdown';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,12 +40,15 @@ export default function TestsPage() {
 
   return (
     <LayoutGap>
-      <PageFilterBar condensed>
-        <IntegratedOrgSelector />
-        <RepoSelector />
-        <BranchSelector />
-        <DateSelector />
-      </PageFilterBar>
+      <ControlsContainer>
+        <PageFilterBar condensed>
+          <IntegratedOrgSelector />
+          <RepoSelector />
+          <BranchSelector />
+          <DateSelector />
+        </PageFilterBar>
+        <TestSuiteDropdown />
+      </ControlsContainer>
       {shouldDisplayContent ? <Content /> : <EmptySelectorsMessage />}
     </LayoutGap>
   );
@@ -94,4 +98,9 @@ const Title = styled('div')`
 
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${space(1)};
+`;
+
+const ControlsContainer = styled('div')`
+  display: flex;
+  gap: ${space(2)};
 `;

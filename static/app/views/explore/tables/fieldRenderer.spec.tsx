@@ -19,9 +19,7 @@ const mockedEventData = {
 };
 
 describe('FieldRenderer tests', function () {
-  const organization = OrganizationFixture({
-    features: ['trace-view-v1'],
-  });
+  const organization = OrganizationFixture();
 
   const location: Location = LocationFixture({
     query: {

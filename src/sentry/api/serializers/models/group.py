@@ -106,10 +106,10 @@ class GroupProjectResponse(TypedDict):
 
 class BaseGroupResponseOptional(TypedDict, total=False):
     isUnhandled: bool
-    count: int
+    count: str
     userCount: int
-    firstSeen: datetime
-    lastSeen: datetime
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -149,6 +149,13 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+
+
+class SeenStatsResponse(TypedDict):
+    count: str
+    userCount: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
@@ -749,7 +756,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
     @staticmethod
-    def _convert_seen_stats(attrs: SeenStats):
+    def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:
         return {
             "count": str(attrs["times_seen"]),
             "userCount": attrs["user_count"],
