@@ -466,7 +466,7 @@ def check_field_cardinality(
                 if not column_low_cardinality:
                     scope.set_tag("widget_query.column_name", column)
                     if widget_query:
-                        sentry_sdk.capture_exception(
+                        sentry_sdk.capture_message(
                             HighCardinalityWidgetException(
                                 f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                             )
