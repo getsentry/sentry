@@ -1,6 +1,7 @@
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   Attributes,
@@ -39,8 +40,8 @@ function AttributeField() {
         value: attribute,
         label: attribute,
       }))}
-      onChange={(value: Attributes) => {
-        onUpdate({comparison: {...condition.comparison, attribute: value}});
+      onChange={(option: SelectValue<Attributes>) => {
+        onUpdate({comparison: {...condition.comparison, attribute: option.value}});
       }}
     />
   );
@@ -54,8 +55,8 @@ function MatchField() {
       aria-label={t('Match type')}
       value={condition.comparison.match}
       options={MATCH_CHOICES}
-      onChange={(value: MatchType) => {
-        onUpdate({comparison: {...condition.comparison, match: value}});
+      onChange={(option: SelectValue<MatchType>) => {
+        onUpdate({comparison: {...condition.comparison, match: option.value}});
       }}
     />
   );
