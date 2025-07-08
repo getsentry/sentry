@@ -139,11 +139,12 @@ function TestPerformanceBody({
             <SummaryEntryValueLink filterBy="failedTests">
               {cumulativeFailures}
             </SummaryEntryValueLink>
-            {cumulativeFailuresChange && (
-              <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-                {formatPercentRate(cumulativeFailuresChange)}
-              </Tag>
-            )}
+            {typeof cumulativeFailuresChange === 'number' &&
+              cumulativeFailuresChange !== 0 && (
+                <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
+                  {formatPercentRate(cumulativeFailuresChange)}
+                </Tag>
+              )}
           </SummaryEntryValue>
         )}
       </SummaryEntry>
