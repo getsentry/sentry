@@ -16,7 +16,6 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {TraceExploreAiQueryProvider} from 'sentry/views/explore/components/traceExploreAiQueryProvider';
 import {
   PageParamsProvider,
   useExploreId,
@@ -74,9 +73,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <PageParamsProvider>
-        <TraceExploreAiQueryProvider>
-          <ExploreTagsProvider>{children}</ExploreTagsProvider>
-        </TraceExploreAiQueryProvider>
+        <ExploreTagsProvider>{children}</ExploreTagsProvider>
       </PageParamsProvider>
     </SpansTabTourProvider>
   );

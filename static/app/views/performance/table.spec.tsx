@@ -8,15 +8,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -37,7 +32,7 @@ function WrappedComponent({data, ...rest}: any) {
       <MEPSettingProvider>
         <Table
           organization={data.organization}
-          location={data.router.location}
+          location={LocationFixture({...data.initialRouterConfig.location})}
           setError={jest.fn()}
           summaryConditions=""
           {...data}
@@ -108,9 +103,6 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
 describe('Performance > Table', function () {
   let eventsMock: jest.Mock;
   beforeEach(function () {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
-    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -201,7 +193,7 @@ describe('Performance > Table', function () {
 
       ProjectsStore.loadInitialData(data.projects);
 
-      render(
+      const {router} = render(
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
@@ -210,10 +202,10 @@ describe('Performance > Table', function () {
           projects={data.projects}
         />,
         {
-          router: data.router,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: data.initialRouterConfig,
         }
       );
+      const initialLocation = router.location;
 
       const rows = await screen.findAllByTestId('grid-body-row');
       const transactionCells = within(rows[0]!).getAllByTestId('grid-body-cell');
@@ -243,16 +235,15 @@ describe('Performance > Table', function () {
       expect(transactionCellTrigger).toBeInTheDocument();
       await userEvent.click(transactionCellTrigger);
 
-      expect(data.router.push).toHaveBeenCalledTimes(0);
+      expect(router.location).toEqual(initialLocation);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-      expect(data.router.push).toHaveBeenCalledTimes(1);
-      expect(data.router.push).toHaveBeenNthCalledWith(1, {
-        pathname: undefined,
-        query: expect.objectContaining({
+      expect(router.location).not.toEqual(initialLocation);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           query: 'transaction:/apple/cart',
-        }),
-      });
+        })
+      );
     });
 
     it('hides cell actions when withStaticFilters is true', async function () {
@@ -268,10 +259,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
           withStaticFilters
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
@@ -299,10 +287,7 @@ describe('Performance > Table', function () {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       const indicatorContainer = await screen.findByTestId('unparameterized-indicator');
@@ -360,10 +345,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
           isMEPEnabled
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
