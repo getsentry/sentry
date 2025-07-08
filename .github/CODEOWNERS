@@ -112,8 +112,7 @@ setup.cfg                                                @getsentry/release-appr
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
 vercel.json                                              @getsentry/owners-js-build
-/.github/worksflows/frontend.yml                         @getsentry/owners-js-build
-
+/.github/workflows/frontend.yml                         @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
@@ -219,7 +218,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/visibility
-
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
@@ -429,15 +427,13 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/enterprise
-
 /src/sentry/auth/staff.py                                               @getsentry/enterprise
 /src/sentry/auth/superuser.py                                           @getsentry/enterprise
 /src/sentry/middleware/staff.py                                         @getsentry/enterprise
 /src/sentry/middleware/superuser.py                                     @getsentry/enterprise
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/scim/                                                       @getsentry/enterprise
-/src/sentry/integrations/github/                                  @getsentry/enterprise
-
+/src/sentry/integrations/github/                                        @getsentry/enterprise
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
 /static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
 /static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
@@ -500,8 +496,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
-/static/app/views/settings/dynamicSampling/                              @getsentry/telemetry-experience
-
+/static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
@@ -514,7 +509,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 # Catch-all
 /src/sentry/issues/**                                       @getsentry/issue-detection-backend @getsentry/issue-workflow
 /static/**/issues/**                                        @getsentry/issue-detection-frontend @getsentry/issue-workflow
-
 /tests/sentry/issues/**                                     @getsentry/issue-detection-backend @getsentry/issue-workflow
 # Overrides
 /src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issue-workflow
@@ -628,14 +622,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 ## ML & AI
 *autofix*.py                                                @getsentry/machine-learning-ai
-
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Ecosystem
 /src/sentry/api/endpoints/notifications/notification_actions*           @getsentry/ecosystem
-
 /src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
