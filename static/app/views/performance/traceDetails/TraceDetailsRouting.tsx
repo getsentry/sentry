@@ -25,7 +25,8 @@ function TraceDetailsRouting(props: Props) {
     return children;
   }
 
-  if (!shouldForceRouteToOldView(organization, getEventTimestampInSeconds(event))) {
+  const timestamp = getEventTimestampInSeconds(event);
+  if (!shouldForceRouteToOldView(organization, timestamp)) {
     if (event?.groupID && event?.eventID) {
       const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
       browserHistory.replace({
@@ -36,7 +37,7 @@ function TraceDetailsRouting(props: Props) {
         organization,
         traceSlug: traceId,
         dateSelection: datetimeSelection,
-        timestamp: getEventTimestampInSeconds(event),
+        timestamp,
         eventId: event.eventID,
         location,
       });
