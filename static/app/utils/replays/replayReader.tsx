@@ -773,6 +773,24 @@ export default class ReplayReader {
 
   getVideoEvents = () => this._videoEvents;
 
+  getUserInteractionEvents = memoize(() =>
+    this._sortedRRWebEvents.filter(e => {
+      return (
+        e.type === EventType.IncrementalSnapshot &&
+        [
+          IncrementalSource.MouseMove, // 1
+          IncrementalSource.MouseInteraction, // 2
+          IncrementalSource.Scroll, // 3
+          IncrementalSource.Input, // 5
+          IncrementalSource.TouchMove, // 6
+          IncrementalSource.MediaInteraction, // 7
+          IncrementalSource.Drag, // 12
+          IncrementalSource.Selection, // 14
+        ].includes(e.data.source)
+      );
+    })
+  );
+
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;

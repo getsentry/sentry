@@ -21,16 +21,19 @@ import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import type {incrementalSnapshotEvent} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 // Helper function to create stacked area chart data from chapter frames
 function createStackedChartData(
   chapterFrames: any[],
+  userInteractionEvents: incrementalSnapshotEvent[],
   durationMs: number,
   startTimestampMs: number
 ) {
-  if (!chapterFrames.length) {
+  console.log({userInteractionEvents});
+  if (!chapterFrames.length && !userInteractionEvents.length) {
     return [];
   }
 
@@ -40,7 +43,10 @@ function createStackedChartData(
 
   // Get unique categories
   const categories = [
-    ...new Set(chapterFrames.map(frame => getFrameOpOrCategory(frame))),
+    ...new Set([
+      ...chapterFrames.map(frame => getFrameOpOrCategory(frame)),
+      'user.action',
+    ]),
   ].filter(Boolean);
 
   // Initialize buckets
@@ -72,6 +78,18 @@ function createStackedChartData(
     }
   });
 
+  userInteractionEvents.forEach(event => {
+    const category = 'user.action';
+    if (!category || !event.timestamp) return;
+
+    const eventTimeMs = event.timestamp - startTimestampMs;
+    const bucketIndex = Math.floor(eventTimeMs / bucketSizeMs);
+
+    if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+      buckets[bucketIndex].data[category] += 1;
+    }
+  });
+
   return buckets;
 }
 
@@ -97,12 +115,20 @@ export default function ReplayTimeline() {
   const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
   const videoEvents = replay.getVideoEvents();
+  const userInteractionEvents = replay.getUserInteractionEvents();
 
   // Generate stacked chart data from chapter frames
   const stackedData = useMemo(
-    () => createStackedChartData(chapterFrames, durationMs, startTimestampMs),
-    [chapterFrames, durationMs, startTimestampMs]
+    () =>
+      createStackedChartData(
+        chapterFrames,
+        userInteractionEvents,
+        durationMs,
+        startTimestampMs
+      ),
+    [chapterFrames, userInteractionEvents, durationMs, startTimestampMs]
   );
+  console.log({stackedData});
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
@@ -121,12 +147,13 @@ export default function ReplayTimeline() {
     return initialTranslate - (currentTime > durationMs ? 1 : percentComplete);
   };
 
-  const frameDetails = new Map(
-    chapterFrames.map(frame => [
+  const frameDetails = new Map([
+    ...chapterFrames.map(frame => [
       getFrameOpOrCategory(frame),
       getFrameDetails(frame).colorGraphicsToken,
-    ])
-  );
+    ]),
+    ['user.action', 'muted'],
+  ]);
   const chapterByCategory = useMemo(() => {
     return chapterFrames.reduce(
       (acc, frame) => {
@@ -169,7 +196,7 @@ export default function ReplayTimeline() {
         acc[0] = bucket.data.issue ?? 0;
       }
       const nonIssueTotal = Object.entries<number>(bucket.data)
-        .filter(([category]) => category !== 'issue')
+        .filter(([category]) => category !== 'issue' && category !== 'user.action')
         .reduce((sum, [, value]) => {
           return sum + (value ?? 0);
         }, 0);
@@ -183,10 +210,14 @@ export default function ReplayTimeline() {
   );
 
   console.log({maxIssueCount, maxOtherCount});
+  chapterByCategory['user.action'] = userInteractionEvents;
 
   const series1 =
     chapterFrames.length > 0
-      ? [...new Set(chapterFrames.map(frame => getFrameOpOrCategory(frame)))]
+      ? [
+          ...new Set(chapterFrames.map(frame => getFrameOpOrCategory(frame))),
+          'user.action',
+        ]
           .filter(Boolean)
           .map(category => {
             if (category === 'issue') {
@@ -230,13 +261,44 @@ export default function ReplayTimeline() {
               console.log({data});
               return data;
             }
+            if (category === 'user.action') {
+              return {
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 1,
+                // stack: 'user.activity',
+                // areaStyle: {
+                //   // opacity: 1,
+                // },
+                lineStyle: {
+                  color: theme.tokens.graphics[frameDetails.get(category)],
+                  opacity: 0.75,
+                  // opacity: 1,
+                  width: 0.4,
+                },
+                showSymbol: false,
+                seriesName: category,
+                name: category,
+                opacity: 0.25,
+                smooth: true,
+                color: theme.tokens.graphics[frameDetails.get(category)],
+                // data: stackedData.map(bucket => ({
+                //   name: bucket.time,
+                //   value: bucket[category] || 0,
+                // })),
+                data: stackedData.map(bucket => [
+                  bucket.time,
+                  bucket.data[category] || 0,
+                ]),
+              };
+            }
 
             return {
               type: 'line',
               xAxisIndex: 0,
-              stack: 'activity',
+              stack: 'breadcrumbs',
               areaStyle: {
-                // opacity: 1,
+                opacity: 1,
               },
               lineStyle: {
                 color: theme.tokens.graphics[frameDetails.get(category)],
@@ -279,7 +341,62 @@ export default function ReplayTimeline() {
         <div>
           <BaseChart
             stacked
-            height={50}
+            height={16}
+            tooltip={{appendToBody: true}}
+            yAxes={[
+              {
+                show: false,
+                axisLabel: {
+                  show: false,
+                },
+                axisTick: {
+                  show: false,
+                },
+                axisLine: {
+                  show: false,
+                },
+                boundaryGap: false,
+              },
+            ]}
+            xAxes={[
+              {
+                boundaryGap: false,
+                axisTick: {show: false},
+                axisLine: {show: false},
+                axisLabel: {
+                  show: false,
+                },
+                splitLine: {
+                  show: false,
+                  lineStyle: {color: 'rgba(24, 20, 35, 0.05)'},
+                },
+              },
+              {
+                boundaryGap: false,
+                axisTick: {show: false},
+                axisLine: {show: false, onZero: false},
+                axisLabel: {
+                  show: false,
+                },
+                splitLine: {
+                  show: false,
+                },
+              },
+            ]}
+            grid={{
+              left: 0,
+              right: 0,
+              top: 8,
+              bottom: 0,
+            }}
+            series={[
+              ...series1.filter(s => s.seriesName === 'issue'),
+              // ...series1.filter(s => s.seriesName !== 'issue'),
+            ]}
+          />
+          <BaseChart
+            stacked
+            height={36}
             tooltip={{appendToBody: true}}
             yAxes={[
               {
@@ -335,13 +452,13 @@ export default function ReplayTimeline() {
               },
             ]}
             grid={{
-              left: 8,
-              right: 8,
+              left: 0,
+              right: 0,
               top: 8,
-              bottom: 8,
+              bottom: 0,
             }}
             series={[
-              ...series1.filter(s => s.seriesName === 'issue'),
+              // ...series1.filter(s => s.seriesName === 'issue'),
               ...series1.filter(s => s.seriesName !== 'issue'),
             ]}
           />
