@@ -1,51 +1,49 @@
-import {useMemo, useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
-import {useComboBox} from '@react-aria/combobox';
+import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
-import {useListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {Badge} from 'sentry/components/core/badge';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {useStoryTree} from 'sentry/stories/view/storyTree';
 import {space} from 'sentry/styles/space';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const listBoxRef = useRef<HTMLElement | null>(null);
-  const popoverRef = useRef<HTMLElement | null>(null);
-  const labelRef = useRef<HTMLElement | null>(null);
   const files = useStoryBookFiles();
   const tree = useStoryTree(files, {query: '', representation: 'category', type: 'flat'});
   const storiesSearchHotkeys = useMemo(() => {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
   useHotkeys(storiesSearchHotkeys);
-  const location = useLocation();
-  const defaultSelectedKey = location.query.name as string;
 
   return (
     <SearchComboBox
       label={t('Search stories')}
-      defaultItems={tree}
-      defaultSelectedKey={defaultSelectedKey}
       menuTrigger="focus"
-      listBoxRef={listBoxRef}
-      labelRef={labelRef}
       inputRef={inputRef}
-      popoverRef={popoverRef}
-      items={tree}
+      defaultItems={tree}
     >
-      {tree}
+      {item => (
+        <Item
+          key={item.filesystemPath}
+          textValue={item.label}
+          {...({label: item.label, hideCheck: true} as any)}
+        />
+      )}
     </SearchComboBox>
   );
 }
@@ -70,89 +68,90 @@ function SearchInput(
 
 interface SearchComboBoxProps<T extends StoryTreeNode>
   extends Omit<AriaComboBoxProps<T>, 'children'> {
-  children: Iterable<T>;
+  children: CollectionChildren<T>;
+  defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;
-  labelRef: React.RefObject<HTMLElement | null>;
-  listBoxRef: React.RefObject<HTMLElement | null>;
-  popoverRef: React.RefObject<HTMLElement | null>;
   description?: string | null;
   label?: string;
 }
 
-function SearchComboBox<T extends StoryTreeNode>({
-  label,
-  inputRef,
-  listBoxRef,
-  popoverRef,
-  children,
-  defaultItems,
-  ...props
-}: SearchComboBoxProps<T>) {
-  // const navigate = useNavigate();
-  const state = useComboBoxState(props);
-  const listState = useListState<StoryTreeNode>({
-    items: defaultItems,
-    selectionMode: 'single',
-    selectionBehavior: 'replace',
-    disallowEmptySelection: true,
-    *filter(nodes) {
-      if (!state.inputValue) {
-        yield* nodes;
-        return;
-      }
-      for (const node of nodes) {
-        if (node.textValue.includes(state.inputValue)) {
-          yield node;
-        }
+function filter(textValue: string, inputValue: string): boolean {
+  const match = fzf(textValue, inputValue.toLowerCase(), false);
+  return match.score > 0;
+}
+
+function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) {
+  const [inputValue, setInputValue] = useState('');
+  const {inputRef} = props;
+  const listBoxRef = useRef<HTMLUListElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+
+  const state = useComboBoxState({
+    ...props,
+    inputValue,
+    onInputChange: setInputValue,
+    defaultFilter: filter,
+    shouldCloseOnBlur: false,
+    allowsEmptyCollection: false,
+    onSelectionChange(key) {
+      if (key) {
+        navigate(`/stories?name=${key}`, {replace: true});
       }
     },
   });
-  const {labelProps, inputProps, listBoxProps} = useComboBox(
-    {...props, items: children, inputRef, popoverRef, listBoxRef},
+
+  const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(
+    {
+      ...props,
+      inputRef,
+      listBoxRef,
+      popoverRef,
+    },
     state
   );
-  // const handleAction = useCallback(
-  //   (key: string | number | boolean | null) => {
-  //     if (!key) {
-  //       return;
-  //     }
-  //     navigate(`/stories?name=${encodeURIComponent(key)}`, {replace: true});
-  //   },
-  //   [navigate]
-  // );
 
   return (
-    <div {...props}>
+    <StorySearchContainer>
       <label {...labelProps} className="sr-only">
-        {label}
+        {props.label}
       </label>
-      <SearchInput ref={inputRef} placeholder={label} {...inputProps} />
-      <Overlay>
-        <StorySearchContainer>
-          <ListBox listState={listState} keyDownHandler={() => false} {...listBoxProps} />
-        </StorySearchContainer>
-      </Overlay>
-    </div>
+      <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
+      {state.isOpen && (
+        <StyledOverlay placement="bottom-start" ref={popoverRef}>
+          <ListBox
+            listState={state}
+            hasSearch={!!state.inputValue}
+            hiddenOptions={new Set([])}
+            keyDownHandler={() => false}
+            overlayIsOpen={state.isOpen}
+            size="sm"
+            {...listBoxProps}
+          >
+            {props.children}
+          </ListBox>
+        </StyledOverlay>
+      )}
+    </StorySearchContainer>
   );
 }
 
 const StorySearchContainer = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom-width: 3px;
-  border-radius: ${p => p.theme.borderRadius};
-  position: fixed;
-  top: 48px;
-  left: 272px;
+  position: relative;
   width: 320px;
   flex-grow: 1;
   z-index: calc(infinity);
   padding: ${space(1)};
   padding-right: 0;
-  overflow-y: auto;
-  max-height: 80vh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
-  ul {
-    margin: 0;
-  }
+const StyledOverlay = styled(Overlay)`
+  position: fixed;
+  top: 48px;
+  left: 272px;
+  width: 320px;
 `;
