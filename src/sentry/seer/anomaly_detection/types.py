@@ -14,7 +14,7 @@ class TimeSeriesPoint(TypedDict):
 
 
 class DataSourceType(IntEnum):
-    SNUBA_QUERY_SUBSCRIPTION = 0
+    SNUBA_QUERY_SUBSCRIPTION = 1
 
 
 class AlertInSeer(TypedDict):
