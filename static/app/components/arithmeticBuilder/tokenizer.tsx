@@ -4,6 +4,7 @@ import type {LocationRange} from 'peggy';
 import {
   isTokenFreeText,
   isTokenFunction,
+  isTokenLiteral,
   Operator,
   type Token,
   TokenAttribute,
@@ -11,6 +12,7 @@ import {
   TokenFreeText,
   TokenFunction,
   TokenKind,
+  TokenLiteral,
   TokenOpenParenthesis,
   TokenOperator,
   type TokenParenthesis,
@@ -58,12 +60,34 @@ export function tokenizeExpression(expression: string): Token[] {
 
   for (const token of tryTokenizeExpression(expression)) {
     const prev = tokens[tokens.length - 1];
-    if (isTokenFreeText(prev) && isTokenFreeText(token)) {
+    if (isTokenFreeText(token) && isTokenFreeText(prev)) {
       prev.merge(token);
+    } else if (
+      isTokenLiteral(token) &&
+      defined(token.sign) &&
+      (isTokenLiteral(prev) || isTokenFunction(prev))
+    ) {
+      // Because we're tokenizing expressions, we have to permit some intermedate
+      // invalid states. As a result, we greedily pair positive/negative signs with
+      // a trailing literal. This means an expression like  `1+1` gets tokenized as
+      // `1` and `+1`. But what we want is to tokenize it was `1` `+` `1`. To handle
+      // this situation, we check to see if a signed literal trails another valid
+      // literal or expression, and in this case we treat the sign as an operation.
+      const [op, lit] = token.split();
+
+      // make sure to inject a free text token before the operator
+      tokens.push(space(loc, op.location));
+      tokens.push(op);
+      loc = op.location;
+
+      // make sure to inject a free text token before the literal
+      tokens.push(space(loc, lit.location));
+      tokens.push(lit);
+      loc = lit.location;
     } else {
       // make sure to inject a free text token between every pair of non free space
       // tokens to allow users to enter things between them
-      if (!isTokenFreeText(prev) && !isTokenFreeText(token)) {
+      if (!isTokenFreeText(token) && !isTokenFreeText(prev)) {
         tokens.push(space(loc, token.location));
       }
 
@@ -85,6 +109,7 @@ export function tokenizeExpression(expression: string): Token[] {
     [TokenKind.FREE_TEXT]: 0,
     [TokenKind.ATTRIBUTE]: 0,
     [TokenKind.FUNCTION]: 0,
+    [TokenKind.LITERAL]: 0,
   };
 
   // assign an unique key to each token based on it's type
@@ -175,6 +200,10 @@ class TokenConverter {
     return new TokenFreeText(location, value);
   }
 
+  tokenLiteral(value: string, location: LocationRange): TokenLiteral {
+    return new TokenLiteral(location, value);
+  }
+
   tokenAttribute(
     attribute: string,
     type: string | undefined,
@@ -221,6 +250,8 @@ function toTokenKind(kind: string): TokenKind {
       return TokenKind.ATTRIBUTE;
     case TokenKind.FUNCTION:
       return TokenKind.FUNCTION;
+    case TokenKind.LITERAL:
+      return TokenKind.LITERAL;
     default:
       throw new ArithmeticError(`Unknown token kind: ${kind}`);
   }
