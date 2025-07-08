@@ -30,7 +30,7 @@ const jsonMimeTypes = [
   'text/x-json',
 ];
 
-export const webmMimeTypes = ['video/webm', 'video/mp4', 'video/quicktime'];
+export const webmMimeTypes = ['video/webm', 'video/mp4'];
 
 type AttachmentRenderer =
   | typeof ImageViewer
