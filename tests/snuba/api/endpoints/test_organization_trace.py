@@ -259,3 +259,11 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
+
+    def test_with_invalid_error_id(self):
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago, "eventId": ",blah blah,"},
+            )
+
+        assert response.status_code == 400, response.content

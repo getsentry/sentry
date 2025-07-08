@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
@@ -25,6 +26,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
+from sentry.utils.validators import is_event_id
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3)
@@ -168,7 +170,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             return self.serialize_rpc_issue(event)
 
     def errors_query(
-        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None
+        self, snuba_params: SnubaParams, trace_id: str, error_id: str | None
     ) -> DiscoverQueryBuilder:
         """Run an error query, getting all the errors for a given trace id"""
         # TODO: replace this with EAP calls, this query is copied from the old trace view
@@ -186,10 +188,10 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             "tags[level]",
         ]
         orderby = ["id"]
-        # If there's an event_id included in the request, bias the orderby to try to return that event_id over others so
+        # If there's an error_id included in the request, bias the orderby to try to return that error_id over others so
         # that we can render it in the trace view, even if we hit the error_limit
-        if event_id is not None:
-            columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        if error_id is not None:
+            columns.append(f'to_other(id, "{error_id}", 0, 1) AS target')
             orderby.insert(0, "-target")
         return DiscoverQueryBuilder(
             Dataset.Events,
@@ -265,7 +267,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
     @sentry_sdk.tracing.trace
     def query_trace_data(
-        self, snuba_params: SnubaParams, trace_id: str, event_id: str | None = None
+        self, snuba_params: SnubaParams, trace_id: str, error_id: str | None = None
     ) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -276,7 +278,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         # the thread pool, database connections can hang around as the threads are not cleaned
         # up. Because of that, tests can fail during tear down as there are active connections
         # to the database preventing a DROP.
-        errors_query = self.errors_query(snuba_params, trace_id, event_id)
+        errors_query = self.errors_query(snuba_params, trace_id, error_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
         spans_future = _query_thread_pool.submit(
@@ -353,12 +355,14 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
-        event_id = request.GET.get("eventId")
+        error_id = request.GET.get("errorId")
+        if not is_event_id(error_id):
+            raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
 
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
-                spans = self.query_trace_data(snuba_params, trace_id, event_id)
+                spans = self.query_trace_data(snuba_params, trace_id, error_id)
             return spans
 
         return self.paginate(
