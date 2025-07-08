@@ -14,6 +14,7 @@ from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
     GroupEvent,
     as_log_message,
     get_request_data,
+    parse_timestamp,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
@@ -349,6 +350,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         span_id = "1" + uuid.uuid4().hex[:15]
         event_id = uuid.uuid4().hex
         error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -370,7 +372,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         self.store_replays(
@@ -415,6 +417,82 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_trace_connected_errors_no_timestamp(self, make_seer_request):
+        """Test handling of breadcrumbs with trace connected errors with no timestamp"""
+        return_value = json.dumps({"trace_errors": "Trace connected errors found"}).encode()
+        make_seer_request.return_value = return_value
+
+        now = datetime.now(timezone.utc)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+        event_id = uuid.uuid4().hex
+        project_2 = self.create_project()
+
+        self.store_event(
+            data={
+                "event_id": event_id,
+                "timestamp": None,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ConnectionError",
+                            "value": "Failed to connect to database",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=project_2.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                now,
+                self.project.id,
+                self.replay_id,
+                trace_ids=[trace_id],
+                error_ids=[],
+            )
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        make_seer_request.assert_called_once()
+        call_args = json.loads(make_seer_request.call_args[0][0])
+        assert "logs" in call_args
+        assert not any("ConnectionError" in log for log in call_args["logs"])
+        assert not any("Failed to connect to database" in log for log in call_args["logs"])
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == return_value
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_both_direct_and_trace_connected_errors(self, make_seer_request):
         """Test handling of breadcrumbs with both direct and trace connected errors"""
         return_value = json.dumps({"errors": "Both types of errors found"}).encode()
@@ -447,6 +525,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         connected_event_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
         connected_error_timestamp = now.timestamp() - 1
+        project_2 = self.create_project()
         self.store_event(
             data={
                 "event_id": connected_event_id,
@@ -467,7 +546,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                     }
                 },
             },
-            project_id=self.project.id,
+            project_id=project_2.id,
         )
 
         # Store the replay with both error IDs and trace IDs
@@ -815,3 +894,31 @@ def test_as_log_message():
     }
     assert as_log_message(event) is None
     assert as_log_message({}) is None
+
+
+def test_parse_timestamp():
+    # Test None input
+    assert parse_timestamp(None, "ms") == 0.0
+    assert parse_timestamp(None, "s") == 0.0
+
+    # Test numeric input
+    assert parse_timestamp(123.456, "ms") == 123.456
+    assert parse_timestamp(123, "s") == 123.0
+
+    # Test string input with ISO format without timezone
+    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400.0 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400.0
+
+    # Test string input with ISO format with timezone offset
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400.0 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400.123 * 1000
+    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400.0
+
+    # Test string input with ISO format with 'Z' timezone suffix
+    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
+    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
+
+    # Test invalid input
+    assert parse_timestamp("invalid timestamp", "ms") == 0.0
+    assert parse_timestamp("", "ms") == 0.0
+    assert parse_timestamp("2023-13-01T12:00:00Z", "ms") == 0.0
