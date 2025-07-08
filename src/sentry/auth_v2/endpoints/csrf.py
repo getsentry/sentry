@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.http import JsonResponse
 from django.middleware.csrf import rotate_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -19,14 +17,18 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
     owner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     enforce_rate_limit = True
     rate_limits = {
-        "POST": {
+        "GET": {
             RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
             RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
-        }
+        },
+        "PUT": {
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
+            RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
+        },
     }
 
     @extend_schema(
@@ -39,23 +41,13 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
     )
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
-        """
-        This endpoint is used to get the HTTPOnly CSRF token.
-        """
-        response = JsonResponse(
+        return self.respond(
             {
                 "detail": "Set CSRF cookie",
                 "session": SessionSerializer().serialize(request, {}, request.user),
             },
             status=status.HTTP_200_OK,
         )
-
-        response.set_cookie(
-            settings.CSRF_COOKIE_NAME,
-            request.META.get("CSRF_COOKIE"),
-            domain=settings.CSRF_COOKIE_DOMAIN,
-        )
-        return response
 
     @extend_schema(
         operation_id="Rotate the CSRF token in your session",
@@ -68,18 +60,10 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
     @method_decorator(ensure_csrf_cookie)
     def put(self, request, *args, **kwargs):
         rotate_token(request)
-
-        response = JsonResponse(
+        return self.respond(
             {
                 "detail": "Rotated CSRF cookie",
                 "session": SessionSerializer().serialize(request, {}, request.user),
             },
             status=status.HTTP_200_OK,
         )
-
-        response.set_cookie(
-            settings.CSRF_COOKIE_NAME,
-            request.META.get("CSRF_COOKIE"),
-            domain=settings.CSRF_COOKIE_DOMAIN,
-        )
-        return response
