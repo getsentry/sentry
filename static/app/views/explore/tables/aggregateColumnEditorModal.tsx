@@ -6,10 +6,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -29,7 +26,11 @@ import {
   parseFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {
@@ -78,16 +79,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(
-      tempColumns
-        .filter(col => {
-          if (isVisualize(col)) {
-            return col.isValid();
-          }
-          return true;
-        })
-        .map(col => (isVisualize(col) ? col.toJSON() : col))
-    );
+    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -391,24 +383,40 @@ function AggregateSelector({
   );
 }
 
-function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorProps) {
+function EquationSelector({
+  numberTags,
+  stringTags,
+  onChange,
+  visualize,
+}: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const aggregateFunctions: AggregateFunction[] = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-      name: aggregate,
-      label: aggregate,
-    }));
-  }, []);
-
   const functionArguments: FunctionArgument[] = useMemo(() => {
-    return Object.entries(numberTags).map(([key, tag]) => {
-      return {
-        name: key,
-        label: tag.name,
-      };
-    });
-  }, [numberTags]);
+    return [
+      ...Object.entries(numberTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.MEASUREMENT,
+          name: key,
+          label: tag.name,
+        };
+      }),
+      ...Object.entries(stringTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.TAG,
+          name: key,
+          label: tag.name,
+        };
+      }),
+    ];
+  }, [numberTags, stringTags]);
+
+  const getSpanFieldDefinition = useCallback(
+    (key: string) => {
+      const tag = numberTags[key] ?? stringTags[key];
+      return getFieldDefinition(key, 'span', tag?.kind);
+    },
+    [numberTags, stringTags]
+  );
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -419,8 +427,9 @@ function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorPr
 
   return (
     <ArithmeticBuilder
-      aggregateFunctions={aggregateFunctions}
+      aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       functionArguments={functionArguments}
+      getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
     />

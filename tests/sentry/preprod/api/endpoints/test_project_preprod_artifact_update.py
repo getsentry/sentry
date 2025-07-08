@@ -55,6 +55,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             "artifact_type",
             "build_version",
             "build_number",
+            "state",
         }
 
         self.preprod_artifact.refresh_from_db()

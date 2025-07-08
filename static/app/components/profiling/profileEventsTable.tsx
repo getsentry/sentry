@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import type {
   GridColumnOrder,
@@ -203,12 +203,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       <Container>
         <Link
           to={generateLinkToEventInTraceView({
-            projectSlug: project.slug,
             eventId: props.dataRow[key],
             traceSlug: props.dataRow.trace,
             timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
-            transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,
           })}
         >

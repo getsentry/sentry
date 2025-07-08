@@ -1,9 +1,12 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 import {uuid4} from '@sentry/core';
 
+import type {
+  Action,
+  ActionConfig,
+  ActionHandler,
+} from 'sentry/types/workflowEngine/actions';
 import {
-  type ActionConfig,
-  type ActionHandler,
   ActionTarget,
   ActionType,
   SentryAppIdentifier,
@@ -107,8 +110,8 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       [dispatch]
     ),
     addIfAction: useCallback(
-      (groupId: string, actionId: string, actionHandler: ActionHandler) =>
-        dispatch({type: 'ADD_IF_ACTION', groupId, actionId, actionHandler}),
+      (groupId: string, actionHandler: ActionHandler) =>
+        dispatch({type: 'ADD_IF_ACTION', groupId, actionHandler}),
       [dispatch]
     ),
     removeIfAction: useCallback(
@@ -117,15 +120,8 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       [dispatch]
     ),
     updateIfAction: useCallback(
-      (
-        groupId: string,
-        actionId: string,
-        params: {
-          config?: Record<string, any>;
-          data?: Record<string, any>;
-          integrationId?: string;
-        }
-      ) => dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
+      (groupId: string, actionId: string, params: Partial<Omit<Action, 'id' | 'type'>>) =>
+        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
@@ -149,7 +145,7 @@ export interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
-  addIfAction: (groupId: string, actionId: string, actionHandler: ActionHandler) => void;
+  addIfAction: (groupId: string, actionHandler: ActionHandler) => void;
   addIfCondition: (groupId: string, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
   removeIf: (groupId: string) => void;
@@ -159,11 +155,7 @@ interface AutomationActions {
   updateIfAction: (
     groupId: string,
     actionId: string,
-    params: {
-      config?: Record<string, any>;
-      data?: Record<string, any>;
-      integrationId?: string;
-    }
+    params: Partial<Omit<Action, 'id' | 'type'>>
   ) => void;
   updateIfCondition: (
     groupId: string,
@@ -262,7 +254,6 @@ type UpdateIfConditionAction = {
 
 type AddIfActionAction = {
   actionHandler: ActionHandler;
-  actionId: string;
   groupId: string;
   type: 'ADD_IF_ACTION';
 };
@@ -276,11 +267,7 @@ type RemoveIfActionAction = {
 type UpdateIfActionAction = {
   actionId: string;
   groupId: string;
-  params: {
-    config?: Record<string, any>;
-    data?: Record<string, any>;
-    integrationId?: string;
-  };
+  params: Partial<Omit<Action, 'id' | 'type'>>;
   type: 'UPDATE_IF_ACTION';
 };
 
@@ -505,7 +492,7 @@ function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
-  const {groupId, actionId, actionHandler} = action;
+  const {groupId, actionHandler} = action;
 
   const defaultIntegration = actionHandler.integrations?.[0];
 
@@ -520,7 +507,7 @@ function addIfAction(
         actions: [
           ...(group.actions ?? []),
           {
-            id: actionId,
+            id: uuid4(),
             type: actionHandler.type,
             config: getDefaultConfig(actionHandler),
             ...(defaultIntegration && {
@@ -558,7 +545,6 @@ function updateIfAction(
   action: UpdateIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, params} = action;
-  const {integrationId, config, data} = params;
 
   return {
     ...state,
@@ -572,9 +558,7 @@ function updateIfAction(
           a.id === actionId
             ? {
                 ...a,
-                ...(integrationId && {integrationId}),
-                ...(config && {config: {...a.config, ...config}}),
-                ...(data && {data: {...a.data, ...data}}),
+                ...params,
               }
             : a
         ),

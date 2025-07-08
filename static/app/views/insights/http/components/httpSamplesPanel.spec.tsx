@@ -509,7 +509,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+        '/organizations/org-slug/traces/trace/2b60b2eb415c4bfba3efeaf65c21c605/?domain=%2A.sentry.dev&eventId=11c910c9c10b3ec4ecf8f209b8c6ce48&node=span-b1bf1acde131623a&node=txn-11c910c9c10b3ec4ecf8f209b8c6ce48&panel=duration&source=requests_module&statsPeriod=10d&timestamp=1711398696&transaction=%2Fapi%2F0%2Fusers&transactionMethod=GET'
       );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();

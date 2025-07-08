@@ -20,15 +20,15 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
-import {getDatasetConfig} from 'sentry/views/detectors/components/forms/metric/getDatasetConfig';
+import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DetectorDataset,
@@ -36,52 +36,37 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
+import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
-function MetricDetectorFormContext({children}: {children: React.ReactNode}) {
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-  const {projects} = useProjects();
-
-  const traceItemProjects = useMemo(() => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) {
-      return undefined;
-    }
-    return [project];
-  }, [projectId, projects]);
-
-  let traceItemType = TraceItemDataset.SPANS;
-  if (dataset === DetectorDataset.LOGS) {
-    traceItemType = TraceItemDataset.LOGS;
-  }
-
+function MetricDetectorForm() {
   return (
-    <TraceItemAttributeProvider
-      traceItemType={traceItemType}
-      projects={traceItemProjects}
-      enabled
-    >
-      {children}
-    </TraceItemAttributeProvider>
+    <FormStack>
+      <DetectSection />
+      <PrioritizeSection />
+      <ResolveSection />
+      <AssignSection />
+      <AutomateSection />
+    </FormStack>
   );
 }
 
-export function MetricDetectorForm() {
+export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
-    <MetricDetectorFormContext>
-      <FormStack>
-        <DetectSection />
-        <PrioritizeSection />
-        <ResolveSection />
-        <AssignSection />
-        <AutomateSection />
-      </FormStack>
-    </MetricDetectorFormContext>
+    <EditDetectorLayout detector={detector} detectorType="metric_issue">
+      <MetricDetectorForm />
+    </EditDetectorLayout>
+  );
+}
+
+export function NewMetricDetectorForm() {
+  return (
+    <NewDetectorLayout detectorType="metric_issue">
+      <MetricDetectorForm />
+    </NewDetectorLayout>
   );
 }
 

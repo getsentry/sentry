@@ -93,6 +93,7 @@ function ComparisonTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.type`}
+      aria-label={t('Comparison type')}
       value={condition.type}
       options={[
         {

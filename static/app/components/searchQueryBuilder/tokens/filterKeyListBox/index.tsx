@@ -15,6 +15,12 @@ import type {
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
+import {
+  ASK_SEER_ITEM_KEY,
+  AskSeerLabel,
+  AskSeerListItem,
+  AskSeerPane,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
@@ -32,9 +38,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
-
-const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -141,7 +144,7 @@ function RecentSearchFilterOption<T>({
 }
 
 function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
-  const ref = useRef<HTMLLIElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const organization = useOrganization();
 
@@ -250,7 +253,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys} = useSearchQueryBuilder();
+  const {filterKeys, enableAISearch} = useSearchQueryBuilder();
   const focusedItem = state.selectionManager.focusedKey
     ? (state.collection.getItem(state.selectionManager.focusedKey)?.props?.value as
         | string
@@ -260,17 +263,9 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const organization = useOrganization();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  const showAskSeerOption = traceExploreAiQueryContext && areAiFeaturesAllowed;
-
   return (
     <Fragment>
-      {showAskSeerOption ? (
+      {enableAISearch ? (
         <Feature features="organizations:gen-ai-explore-traces">
           <AskSeerPane>
             <AskSeerOption state={state} />
@@ -351,13 +346,8 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
-
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const organization = useOrganization();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch} =
+    useSearchQueryBuilder();
 
   const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
     const baseHidden = [
@@ -365,12 +355,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
     ];
 
-    if (traceExploreAiQueryContext && areAiFeaturesAllowed) {
+    if (enableAISearch) {
       baseHidden.push(ASK_SEER_ITEM_KEY);
     }
 
     return new Set(baseHidden);
-  }, [hiddenOptions, recentFilters, traceExploreAiQueryContext, areAiFeaturesAllowed]);
+  }, [enableAISearch, hiddenOptions, recentFilters]);
 
   useHighlightFirstOptionOnSectionChange({
     state,
@@ -415,7 +405,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           ref={popoverRef}
           fullWidth
           showDetailsPane={showDetailsPane}
-          hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+          hasAiFeatures={enableAISearch}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -441,7 +431,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       <SectionedOverlay
         ref={popoverRef}
         width={filterKeyMenuWidth}
-        hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+        hasAiFeatures={enableAISearch}
       >
         {isOpen ? (
           <FilterKeyMenuContent
@@ -631,52 +621,4 @@ const EmptyState = styled('div')`
   div {
     max-width: 280px;
   }
-`;
-
-const AskSeerPane = styled('div')`
-  grid-area: seer;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.purple100};
-  width: 100%;
-`;
-
-const AskSeerListItem = styled('li')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: ${space(1)} ${space(1.5)};
-  background: transparent;
-  border-radius: 0;
-  background-color: none;
-  box-shadow: none;
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  text-align: left;
-  justify-content: flex-start;
-  gap: ${space(1)};
-  list-style: none;
-  margin: 0;
-
-  &:hover,
-  &:focus {
-    background-color: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
-  }
-
-  &[aria-selected='true'] {
-    background: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
-  }
-`;
-const AskSeerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
