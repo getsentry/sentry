@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from sentry.api.endpoints.seer_rpc import (
     get_attribute_names,
-    get_attribute_values,
     get_attribute_values_with_substring,
     get_attributes_and_values,
 )
@@ -45,52 +44,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 ],
                 "number": ["span.duration"],
             },
-        }
-
-    def test_get_attribute_values(self):
-        for transaction in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction=transaction,
-                duration=100,
-                exclusive_time=100,
-                is_eap=True,
-            )
-
-        attribute_names = get_attribute_names(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-        )
-
-        result = get_attribute_values(
-            fields=attribute_names["fields"]["string"],
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-            sampled=False,
-        )
-
-        assert result == {
-            "values": {
-                "span.description": [
-                    "bar",
-                    "baz",
-                    "foo",
-                ],
-                "transaction": [
-                    "bar",
-                    "baz",
-                    "foo",
-                ],
-                "project": [],
-            }
         }
 
     def test_get_attribute_values_with_substring(self):
