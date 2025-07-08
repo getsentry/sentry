@@ -86,7 +86,7 @@ class Event:
         return serialize_event(self)
 
     @classmethod
-    # @deprecated("This constructor function is discuraged, as it is not type-safe.")
+    # @deprecated("This constructor function is discouraged, as it is not type-safe.")
     def from_instance(cls, instance: Any, **kwargs: Any) -> Self:
         # TODO: this is the "old-style" attributes based constructor. Once all events are migrated to the new style,
         # we can remove this.
