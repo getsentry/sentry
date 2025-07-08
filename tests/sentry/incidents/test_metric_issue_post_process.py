@@ -137,7 +137,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         mock_trigger.reset_mock()
 
         value = self.critical_detector_trigger.comparison + 1
-        data_packet = self.create_subscription_packet(value, 30)
+        data_packet = self.create_subscription_packet(value, 1000)
         occurrence = self.process_packet_and_return_result(data_packet)
         assert isinstance(occurrence, IssueOccurrence)
         occurrence.save()
@@ -157,7 +157,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         mock_trigger.reset_mock()
 
         value = self.warning_detector_trigger.comparison + 1
-        data_packet = self.create_subscription_packet(value, 30)
+        data_packet = self.create_subscription_packet(value, 1000)
         occurrence = self.process_packet_and_return_result(data_packet)
         assert isinstance(occurrence, IssueOccurrence)
         occurrence.save()
@@ -179,7 +179,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         mock_trigger.reset_mock()
 
         value = 0
-        data_packet = self.create_subscription_packet(value, 30)
+        data_packet = self.create_subscription_packet(value, 1000)
         evaluation_result = self.process_packet_and_return_result(data_packet)
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()
@@ -206,7 +206,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         mock_trigger.reset_mock()
 
         value = 0
-        data_packet = self.create_subscription_packet(value, 30)
+        data_packet = self.create_subscription_packet(value, 1000)
         evaluation_result = self.process_packet_and_return_result(data_packet)
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()

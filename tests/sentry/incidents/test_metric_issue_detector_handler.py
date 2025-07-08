@@ -1,10 +1,12 @@
 from sentry.incidents.grouptype import MetricIssueDetectorHandler
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 
+@freeze_time()
 class TestEvaluateMetricDetector(BaseMetricIssueTest):
     def setUp(self):
         super().setUp()

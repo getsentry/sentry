@@ -76,6 +76,8 @@ class BaseMetricIssueTest(TestCase):
     def create_subscription_packet(
         self, value: int, time_jump: int = 0
     ) -> DataPacket[QuerySubscriptionUpdate]:
+        # XXX: the timestamp here is just used as a dedupe value, so we can avoid using freeze_time
+        # by providing a large timedelta
         packet = QuerySubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
