@@ -3195,6 +3195,9 @@ class PostProcessGroupFeedbackTest(
         is_spam=False,
     ):
         data["type"] = "generic"
+        if "message" not in data:
+            data["message"] = "It Broke!!!"
+
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
