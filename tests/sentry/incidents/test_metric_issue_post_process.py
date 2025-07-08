@@ -185,9 +185,10 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         message = evaluation_result.to_dict()
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
         with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
-            update_status(group, message)
-            mock_incr.assert_called_with(
-                "workflow_engine.process_workflow.activity_update",
+            with self.tasks():
+                update_status(group, message)
+            mock_incr.assert_any_call(
+                "workflow_engine.process_workflow.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
 
@@ -212,8 +213,9 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         message = evaluation_result.to_dict()
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
         with patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
-            update_status(group, message)
-            mock_incr.assert_called_with(
-                "workflow_engine.process_workflow.activity_update",
+            with self.tasks():
+                update_status(group, message)
+            mock_incr.assert_any_call(
+                "workflow_engine.process_workflow.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
