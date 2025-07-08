@@ -440,3 +440,28 @@ export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
 
   return event.platform ?? 'other';
 }
+
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestampInSeconds(event: Event): number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (key in event) {
+      const value = event[key as keyof Event];
+
+      if (typeof value === 'number') {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        return new Date(value).getTime() / 1_000;
+      }
+    }
+  }
+
+  return undefined;
+}
