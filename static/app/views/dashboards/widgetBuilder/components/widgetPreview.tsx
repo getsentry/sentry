@@ -1,7 +1,6 @@
 import {useState} from 'react';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -90,7 +89,7 @@ function WidgetPreview({
   }
 
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
-    const widths = columns.map(column => (defined(column.width) ? column.width : -1));
+    const widths = columns.map(column => column.width as number);
     setTableWidths(widths);
   }
 
