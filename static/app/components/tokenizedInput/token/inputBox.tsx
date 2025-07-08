@@ -22,7 +22,6 @@ interface InputBoxProps {
   onClick?: MouseEventHandler<HTMLInputElement>;
   onInputBlur?: FocusEventHandler<HTMLInputElement>;
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
-  onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
@@ -39,8 +38,8 @@ export function InputBox({
   onClick,
   onInputBlur,
   onInputChange,
-  onInputCommit,
   onInputEscape,
+  onInputFocus,
   onKeyDown,
   onKeyDownCapture,
   onPaste,
@@ -51,12 +50,19 @@ export function InputBox({
 }: InputBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useTextField(
-    {
-      ...{}, // TODO
-      'aria-label': inputLabel,
+  const handleInputKeyDown = useCallback(
+    (evt: KeyboardEvent) => {
+      onKeyDown?.(evt);
+      switch (evt.key) {
+        case 'Escape':
+          evt.stopPropagation();
+          onInputEscape?.();
+          return;
+        default:
+          return;
+      }
     },
-    inputRef
+    [onInputEscape, onKeyDown]
   );
 
   const handleInputBlur: FocusEventHandler<HTMLInputElement> = useCallback(
@@ -66,6 +72,26 @@ export function InputBox({
     [onInputBlur]
   );
 
+  const handleInputFocus: FocusEventHandler<HTMLInputElement> = useCallback(
+    evt => {
+      onInputFocus?.(evt);
+    },
+    [onInputFocus]
+  );
+
+  const {inputProps} = useTextField(
+    {
+      'aria-label': inputLabel,
+      value: inputValue,
+      onKeyDown: handleInputKeyDown,
+      onBlur: handleInputBlur,
+      onFocus: handleInputFocus,
+      autoComplete: 'off',
+      validate: undefined,
+    },
+    inputRef
+  );
+
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     evt => {
       evt.stopPropagation();
@@ -73,24 +99,6 @@ export function InputBox({
       onClick?.(evt);
     },
     [inputProps, onClick]
-  );
-
-  const handleInputKeyDown = useCallback(
-    (evt: KeyboardEvent) => {
-      onKeyDown?.(evt);
-      switch (evt.key) {
-        case 'Escape':
-          evt.stopPropagation();
-          onInputEscape?.();
-          return;
-        case 'Enter':
-          onInputCommit?.(inputValue);
-          return;
-        default:
-          return;
-      }
-    },
-    [inputValue, onInputEscape, onInputCommit, onKeyDown]
   );
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});

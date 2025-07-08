@@ -228,6 +228,9 @@ class ExpressionValidator {
           // leave just an expression
           const a = this.stack.pop()!;
           const b = this.stack.pop()!;
+
+          // it doesn't matter if we pushed a function or
+          // a literal because they are valid in the same positions.
           const isAllowed = this.pushFunction({dryRun});
 
           // Because this requires a recursive check, we have

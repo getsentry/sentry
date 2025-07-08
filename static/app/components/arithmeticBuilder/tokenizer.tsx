@@ -143,15 +143,16 @@ function isTokenKeyOfKind(key: string, kind: TokenKind) {
   return key.startsWith(kind);
 }
 
-export function nextSimilarTokenKey(key: string): string {
+export function nextSimilarTokenKey(key: string, offset = 1): string {
   const {kind, index} = parseTokenKey(key);
-  return makeTokenKey(kind, index + 1);
+  return makeTokenKey(kind, index + offset);
 }
 
 export function nextTokenKeyOfKind(
   state: ListState<Token>,
   token: Token,
-  kind: TokenKind
+  kind: TokenKind,
+  offset?: number
 ): string {
   let key: string | null = null;
 
@@ -167,7 +168,7 @@ export function nextTokenKeyOfKind(
   }
 
   return defined(key)
-    ? nextSimilarTokenKey(key)
+    ? nextSimilarTokenKey(key, offset)
     : // unable to find any tokens of the given kind, so assume this will be the first one
       makeTokenKey(kind);
 }

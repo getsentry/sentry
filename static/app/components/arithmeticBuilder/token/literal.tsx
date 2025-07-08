@@ -6,8 +6,15 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenLiteral} from 'sentry/components/arithmeticBuilder/token';
-import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {
+  isTokenOperator,
+  isTokenParenthesis,
+  TokenKind,
+} from 'sentry/components/arithmeticBuilder/token';
+import {
+  nextTokenKeyOfKind,
+  tokenizeExpression,
+} from 'sentry/components/arithmeticBuilder/tokenizer';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
@@ -87,28 +94,64 @@ function InternalInput({item, state, token}: InternalInputProps) {
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);
 
-  const onInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
-    const text = evt.target.value;
-    if (validateLiteral(text)) {
-      setInputValue(evt.target.value);
-      setSelectionIndex(evt.target.selectionStart ?? 0);
-    }
-  }, []);
+  const onInputChange = useCallback(
+    (evt: ChangeEvent<HTMLInputElement>) => {
+      const text = evt.target.value;
 
-  const onInputCommit = useCallback(() => {
-    const text = inputValue.trim() || token.text;
-    if (validateLiteral(text)) {
-      dispatch({
-        text,
-        type: 'REPLACE_TOKEN',
-        token,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-        },
-      });
-    }
-    resetInputValue();
-  }, [dispatch, state, token, inputValue, resetInputValue]);
+      if (text.length <= 0) {
+        dispatch({
+          text,
+          type: 'REPLACE_TOKEN',
+          token,
+          focusOverride: {
+            itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+          },
+        });
+        resetInputValue();
+        return;
+      }
+
+      const last = text.substring(text.length - 1);
+
+      if (last === ' ') {
+        const trimmed = text.substring(0, text.length - 1);
+        if (validateLiteral(text)) {
+          dispatch({
+            text: trimmed,
+            type: 'REPLACE_TOKEN',
+            token,
+            focusOverride: {
+              itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+            },
+          });
+        }
+        resetInputValue();
+        return;
+      }
+
+      const tokens = tokenizeExpression(last);
+      if (tokens.some(tok => isTokenOperator(tok) || isTokenParenthesis(tok))) {
+        const trimmed = text.substring(0, text.length - 1);
+        if (validateLiteral(trimmed)) {
+          dispatch({
+            text,
+            type: 'REPLACE_TOKEN',
+            token,
+            focusOverride: {
+              itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT, 2),
+            },
+          });
+        }
+        resetInputValue();
+      }
+
+      if (validateLiteral(text)) {
+        setInputValue(evt.target.value);
+        setSelectionIndex(evt.target.selectionStart ?? 0);
+      }
+    },
+    [dispatch, state, token, resetInputValue]
+  );
 
   const onInputEscape = useCallback(() => {
     const text = inputValue.trim();
@@ -199,7 +242,6 @@ function InternalInput({item, state, token}: InternalInputProps) {
         onClick={onClick}
         onInputBlur={onInputBlur}
         onInputChange={onInputChange}
-        onInputCommit={onInputCommit}
         onInputEscape={onInputEscape}
         onInputFocus={onInputFocus}
         onKeyDown={onKeyDown}
