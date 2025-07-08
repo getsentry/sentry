@@ -1,7 +1,9 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import ApiOwner, ApiPublishStatus, AuthV2Endpoint, RateLimit, RateLimitCategory
+from sentry.api.base import ApiOwner, ApiPublishStatus, RateLimit, RateLimitCategory
+
+from .base import AuthV2Endpoint
 
 
 class FeatureFlagView(AuthV2Endpoint):
