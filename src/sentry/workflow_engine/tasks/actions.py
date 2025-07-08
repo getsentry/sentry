@@ -76,7 +76,7 @@ def trigger_action(
 ) -> None:
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
-    if (event_id is not None) != (activity_id is not None):
+    if (event_id is not None) == (activity_id is not None):
         logger.error(
             "Exactly one of event_id or activity_id must be provided",
             extra={"event_id": event_id, "activity_id": activity_id},
