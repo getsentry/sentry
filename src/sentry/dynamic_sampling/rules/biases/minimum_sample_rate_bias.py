@@ -9,10 +9,6 @@ class MinimumSampleRateBias(Bias):
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
-        # Only generate rules if the minimum sample rate option is enabled
-        if not project.get_option("sentry:dynamic_sampling_minimum_sample_rate"):
-            return []
-
         return [
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},

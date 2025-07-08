@@ -18,9 +18,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
-ALWAYS_ALLOWED_RULE_TYPES = {
+ALWAYS_INCLUDED_RULE_TYPES = {
     RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE,
     RuleType.CUSTOM_RULE,
+}
+
+ALWAYS_ALLOWED_RULE_TYPES = {
     RuleType.MINIMUM_SAMPLE_RATE_RULE,
 }
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
@@ -94,12 +97,15 @@ def _get_rules_of_enabled_biases(
     rules = []
 
     for rule_type, bias in combined_biases.items():
-        # All biases besides ALWAYS_ALLOWED_RULE_TYPES won't be enabled in case we have 100% base sample rate. This
-        # has been done because if we don't have a sample rate < 100%, it doesn't make sense to enable dynamic
-        # sampling in the first place. Technically dynamic sampling it is still enabled but for our customers this
-        # detail is not important.
-        if rule_type in ALWAYS_ALLOWED_RULE_TYPES or (
-            rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0
+        # Biases in ALWAYS_INCLUDED_RULE_TYPES are always included, regardless of sample rate or user activation.
+        # Biases in ALWAYS_ALLOWED_RULE_TYPES are included if users activated them, regardless of sample rate.
+        # All other biases won't be enabled when base sample rate is 100%. This is because dynamic sampling
+        # doesn't make sense when sample rate is 100%. While technically dynamic sampling is still enabled,
+        # this detail is not important for our customers.
+        if (
+            rule_type in ALWAYS_INCLUDED_RULE_TYPES
+            or (rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0)
+            or (rule_type.value in enabled_biases and rule_type in ALWAYS_ALLOWED_RULE_TYPES)
         ):
             try:
                 rules += bias.generate_rules(project, base_sample_rate)
@@ -111,13 +117,15 @@ def _get_rules_of_enabled_biases(
 
 def generate_rules(project: Project) -> list[PolymorphicRule]:
     organization = project.organization
+    base_sample_rate = get_guarded_project_sample_rate(organization, project)
+    enabled_user_biases = get_enabled_user_biases(
+        project.get_option("sentry:dynamic_sampling_biases", None)
+    )
+    combined_biases = get_relay_biases_combinator(organization).get_combined_biases()
 
     try:
         rules = _get_rules_of_enabled_biases(
-            project,
-            get_guarded_project_sample_rate(organization, project),
-            get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
-            get_relay_biases_combinator(organization).get_combined_biases(),
+            project, base_sample_rate, enabled_user_biases, combined_biases
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
