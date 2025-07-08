@@ -9,7 +9,6 @@ export interface TraceViewQueryParams {
   start: string | undefined;
   statsPeriod: string | undefined;
   timestamp: number | undefined;
-  useSpans: number;
 }
 
 export function useTraceQueryParams(
@@ -30,7 +29,6 @@ export function useTraceQueryParams(
       end: end ?? params?.end,
       statsPeriod: statsPeriod ?? params?.statsPeriod,
       timestamp: numberTimestamp ?? params?.timestamp,
-      useSpans: 1,
     };
   }, [params]);
 }

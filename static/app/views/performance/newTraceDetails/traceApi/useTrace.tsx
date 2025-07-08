@@ -28,7 +28,6 @@ export function getTraceQueryParams(
   limit: number;
   targetId: string | undefined;
   timestamp: string | undefined;
-  useSpans: number;
   demo?: string;
   pageEnd?: string;
   pageStart?: string;
@@ -71,7 +70,6 @@ export function getTraceQueryParams(
     limit,
     timestamp: timestamp?.toString(),
     targetId,
-    useSpans: 1,
   };
   for (const key in queryParams) {
     if (
