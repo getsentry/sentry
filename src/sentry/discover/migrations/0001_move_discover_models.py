@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0943_move_discover_models"),
+        ("sentry", "0944_move_discover_models"),
     ]
 
     operations = [
