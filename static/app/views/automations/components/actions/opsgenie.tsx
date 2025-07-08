@@ -64,3 +64,16 @@ function PriorityField() {
     />
   );
 }
+
+export function validateOpsgenieAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify an Opsgenie configuration.');
+  }
+  if (!action.config.target_identifier) {
+    return t('You must specify a team.');
+  }
+  if (!action.data.priority) {
+    return t('You must specify a priority.');
+  }
+  return undefined;
+}
