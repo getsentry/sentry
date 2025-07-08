@@ -568,9 +568,9 @@ class TestWorkflowValidatorUpdate(TestCase):
             {
                 "type": Action.Type.SLACK,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_display": "bar",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetDisplay": "bar",
+                    "targetType": 0,
                 },
                 "data": {},
                 "integrationId": 1,
@@ -598,8 +598,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetType": 0,
                 },
                 "data": {},
             }
