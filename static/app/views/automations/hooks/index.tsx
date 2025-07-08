@@ -108,3 +108,28 @@ export function useCreateAutomation() {
     },
   });
 }
+
+export function useUpdateAutomation() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<Automation, void, {automationId: string} & NewAutomation>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/${data.automationId}/`, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/workflows/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`organizations/${org.slug}/workflows/${data.automationId}/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to update automation')});
+    },
+  });
+}
