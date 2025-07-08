@@ -14,7 +14,7 @@ from sentry.feedback.usecases.create_feedback import (
     FeedbackCreationSource,
     create_feedback_issue,
     fix_for_issue_platform,
-    generate_feedback_title,
+    get_feedback_title,
     is_in_feedback_denylist,
     shim_to_feedback,
     validate_issue_platform_event_schema,
@@ -1147,31 +1147,31 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
 
 
 @django_db_all
-def test_generate_feedback_title():
-    """Test the generate_feedback_title function with various message types."""
+def test_get_feedback_title():
+    """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
-    assert generate_feedback_title("Login button broken") == "User Feedback: Login button broken"
+    assert get_feedback_title("Login button broken") == "User Feedback: Login button broken"
 
     # Test message with exactly 10 words (default max_words)
     message_10_words = "This is a test message with exactly ten words total"
-    assert generate_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
+    assert get_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
 
     # Test message with more than 10 words (should truncate)
     long_message = "This is a very long feedback message that goes on and on and describes many different issues"
     expected = "User Feedback: This is a very long feedback message that goes on..."
-    assert generate_feedback_title(long_message) == expected
+    assert get_feedback_title(long_message) == expected
 
     # Test very short message
-    assert generate_feedback_title("Bug") == "User Feedback: Bug"
+    assert get_feedback_title("Bug") == "User Feedback: Bug"
 
     # Test custom max_words parameter
     message = "This is a test with custom word limit"
-    assert generate_feedback_title(message, max_words=3) == "User Feedback: This is a..."
+    assert get_feedback_title(message, max_words=3) == "User Feedback: This is a..."
 
     # Test message that would create a title longer than 200 characters
     very_long_message = "a" * 300  # 300 character message
-    result = generate_feedback_title(very_long_message)
+    result = get_feedback_title(very_long_message)
     assert len(result) <= 200
     assert result.endswith("...")
     assert result.startswith("User Feedback: ")
@@ -1179,7 +1179,7 @@ def test_generate_feedback_title():
     # Test message with special characters
     special_message = "The @login button doesn't work! It's broken & needs fixing."
     expected_special = "User Feedback: The @login button doesn't work! It's broken & needs fixing."
-    assert generate_feedback_title(special_message) == expected_special
+    assert get_feedback_title(special_message) == expected_special
 
 
 @django_db_all

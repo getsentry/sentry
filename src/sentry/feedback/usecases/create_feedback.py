@@ -278,7 +278,7 @@ def should_filter_feedback(
     return False, None
 
 
-def generate_feedback_title(feedback_message: str, max_words: int = 10) -> str:
+def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
     """
     Generate a descriptive title for user feedback issues.
     Format: "User Feedback: [first few words of message]"
@@ -376,7 +376,7 @@ def create_feedback_issue(
         event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=generate_feedback_title(feedback_message),
+        issue_title=get_feedback_title(feedback_message),
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
