@@ -174,8 +174,11 @@ export class Flamegraph {
     const stack: FlamegraphFrame[] = [];
     let idx = 0;
 
+    const root = this.root;
+    let depth = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = stack[stack.length - 1] ?? this.root;
+      const parent = stack[stack.length - 1] ?? root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -191,7 +194,7 @@ export class Flamegraph {
       if (parent) {
         parent.children.push(frame);
       } else {
-        this.root.children.push(frame);
+        root.children.push(frame);
       }
 
       stack.push(frame);
@@ -214,9 +217,10 @@ export class Flamegraph {
       }
 
       frames.push(stackTop);
-      this.depth = Math.max(stackTop.depth, this.depth);
+      depth = Math.max(stackTop.depth, depth);
     };
 
+    this.depth = depth;
     profile.forEach(openFrame, closeFrame);
     return frames;
   }
@@ -242,10 +246,12 @@ export class Flamegraph {
     };
 
     this.root = virtualRoot;
+    const root = this.root;
     let idx = 0;
+    let depth = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = stack[stack.length - 1] ?? this.root;
+      const parent = stack[stack.length - 1] ?? root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
@@ -261,7 +267,7 @@ export class Flamegraph {
       if (parent) {
         parent.children.push(frame);
       } else {
-        this.root.children.push(frame);
+        root.children.push(frame);
       }
 
       stack.push(frame);
@@ -283,7 +289,7 @@ export class Flamegraph {
         return;
       }
       frames.push(stackTop);
-      this.depth = Math.max(stackTop.depth, this.depth);
+      depth = Math.max(stackTop.depth, depth);
     };
 
     function visit(node: CallTreeNode, start: number) {
@@ -301,7 +307,9 @@ export class Flamegraph {
         closeFrame(node, start + node.totalWeight);
       }
     }
+
     visit(profile.callTree, 0);
+    this.depth = depth;
     return frames;
   }
 
