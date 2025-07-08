@@ -226,7 +226,6 @@ export function SpanDescription({
         organization,
         attributes: span.data,
         op: span.op,
-        description: span.description,
       })}
     />
   );

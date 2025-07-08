@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import ParseError
@@ -100,7 +101,8 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
                     user_id=request.user.id,
                     new_dashboard_positions=dashboard_ids,
                 )
-        except (IntegrityError, ValueError):
+        except (IntegrityError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
             raise ParseError("Mismatch between existing and provided starred dashboards.")
 
         return Response(status=status.HTTP_204_NO_CONTENT)

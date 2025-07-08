@@ -595,7 +595,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
+              id: generateTransactionIdLink(domainViewFilters.view),
               trace: generateTraceLink(
                 eventView.normalizeDateSelection(location),
                 domainViewFilters.view
