@@ -28,6 +28,8 @@ interface Props {
   onEditModeChange: (mode: 'single' | 'bulk') => void;
   period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
+  onProjectSelect?: (projectId: string) => void;
+  selectedProjectId?: string | null;
 }
 
 const {useFormField} = projectSamplingForm;
@@ -40,6 +42,8 @@ export function ProjectsEditTable({
   editMode,
   period,
   onEditModeChange,
+  onProjectSelect,
+  selectedProjectId,
 }: Props) {
   const {projects, fetching} = useProjects();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
@@ -207,6 +211,8 @@ export function ProjectsEditTable({
               rateHeader={t('Target Rate')}
               canEdit={!isBulkEditEnabled}
               onChange={handleProjectChange}
+              onProjectSelect={onProjectSelect}
+              selectedProjectId={selectedProjectId}
               emptyMessage={t('No active projects found in the selected period.')}
               period={period}
               isLoading={isLoading}

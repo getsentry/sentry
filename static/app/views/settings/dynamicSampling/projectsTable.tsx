@@ -45,6 +45,8 @@ interface Props {
   canEdit?: boolean;
   inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
+  onProjectSelect?: (projectId: string) => void;
+  selectedProjectId?: string | null;
 }
 
 const COLUMN_COUNT = 4;
@@ -56,6 +58,8 @@ export function ProjectsTable({
   canEdit,
   rateHeader,
   onChange,
+  onProjectSelect,
+  selectedProjectId,
   period,
   isLoading,
   emptyMessage,
@@ -110,6 +114,8 @@ export function ProjectsTable({
         style={style}
         canEdit={canEdit}
         onChange={onChange}
+        onProjectSelect={onProjectSelect}
+        selectedProjectId={selectedProjectId}
         inputTooltip={inputTooltip}
         toggleExpanded={handleToggleItemExpanded}
         hasAccess={hasAccess}
@@ -122,7 +128,8 @@ export function ProjectsTable({
 
   return (
     <Fragment>
-      <TableHeader>
+      <TableHeader hasRadioColumn={!!onProjectSelect}>
+        {onProjectSelect && <HeaderCell>{t('Select')}</HeaderCell>}
         <HeaderCell>{t('Originating Project')}</HeaderCell>
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
           {t('Accepted Spans')}
@@ -273,6 +280,8 @@ const TableRow = memo(function TableRow({
   error,
   inputTooltip: inputTooltipProp,
   onChange,
+  onProjectSelect,
+  selectedProjectId,
   style,
 }: {
   count: number;
@@ -289,6 +298,8 @@ const TableRow = memo(function TableRow({
   error?: string;
   inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
+  onProjectSelect?: (projectId: string) => void;
+  selectedProjectId?: string | null;
 }) {
   const organization = useOrganization();
 
@@ -311,8 +322,25 @@ const TableRow = memo(function TableRow({
   );
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
+
+  const handleRadioChange = useCallback(() => {
+    onProjectSelect?.(project.id);
+  }, [onProjectSelect, project.id]);
+
   return (
-    <TableRowWrapper style={style}>
+    <TableRowWrapper style={style} hasRadioColumn={!!onProjectSelect}>
+      {onProjectSelect && (
+        <Cell>
+          <FirstCellLine>
+            <input
+              type="radio"
+              checked={selectedProjectId === project.id}
+              onChange={handleRadioChange}
+              name="selectedProject"
+            />
+          </FirstCellLine>
+        </Cell>
+      )}
       <Cell>
         <FirstCellLine data-has-chevron={isExpandable}>
           <HiddenButton
@@ -417,9 +445,10 @@ const SortableHeader = styled('button')`
   gap: ${space(0.5)};
 `;
 
-const TableRowWrapper = styled('div')`
+const TableRowWrapper = styled('div')<{hasRadioColumn?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 165px 165px 152px;
+  grid-template-columns: ${p =>
+    p.hasRadioColumn ? '40px 1fr 165px 165px 152px' : '1fr 165px 165px 152px'};
   overflow: hidden;
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};

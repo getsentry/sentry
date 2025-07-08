@@ -14,6 +14,7 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {SankeyVisualization} from 'sentry/views/settings/dynamicSampling/sankeyVisualization';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -36,6 +37,7 @@ export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
   const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const sampleRatesQuery = useGetSamplingProjectRates();
   const sampleCountsQuery = useProjectSampleCounts({period});
@@ -59,6 +61,12 @@ export function ProjectSampling() {
     initialValues,
     enableReInitialize: true,
   });
+
+  // Initialize selected project to first project if none selected
+  const projectSampleCounts = sampleCountsQuery.data;
+  if (!selectedProjectId && projectSampleCounts && projectSampleCounts.length > 0) {
+    setSelectedProjectId(projectSampleCounts[0]!.project.id);
+  }
 
   const handleReset = () => {
     formState.reset();
@@ -104,6 +112,17 @@ export function ProjectSampling() {
     );
   }, [sampleRatesQuery.data, sampleCountsQuery.data]);
 
+  // Convert form string values to decimal sample rates for the visualization
+  const currentSampleRates = useMemo(() => {
+    const formValues = formState.fields.projectRates.value;
+    if (!formValues) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(formValues).map(([id, rate]) => [id, parsePercent(rate)])
+    );
+  }, [formState.fields.projectRates.value]);
+
   const isFormActionDisabled =
     !hasAccess ||
     sampleRatesQuery.isPending ||
@@ -126,27 +145,41 @@ export function ProjectSampling() {
       {sampleCountsQuery.isError ? (
         <LoadingError onRetry={sampleCountsQuery.refetch} />
       ) : (
-        <ProjectsEditTable
-          period={period}
-          editMode={editMode}
-          onEditModeChange={setEditMode}
-          isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-          sampleCounts={sampleCountsQuery.data}
-          actions={
-            <Fragment>
-              <Button disabled={isFormActionDisabled} onClick={handleReset}>
-                {t('Reset')}
-              </Button>
-              <Button
-                priority="primary"
-                disabled={isFormActionDisabled || !formState.isValid}
-                onClick={handleSubmit}
-              >
-                {t('Apply Changes')}
-              </Button>
-            </Fragment>
-          }
-        />
+        <ContentLayout>
+          <TableSection>
+            <ProjectsEditTable
+              period={period}
+              editMode={editMode}
+              onEditModeChange={setEditMode}
+              selectedProjectId={selectedProjectId}
+              onProjectSelect={setSelectedProjectId}
+              isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+              sampleCounts={sampleCountsQuery.data}
+              actions={
+                <Fragment>
+                  <Button disabled={isFormActionDisabled} onClick={handleReset}>
+                    {t('Reset')}
+                  </Button>
+                  <Button
+                    priority="primary"
+                    disabled={isFormActionDisabled || !formState.isValid}
+                    onClick={handleSubmit}
+                  >
+                    {t('Apply Changes')}
+                  </Button>
+                </Fragment>
+              }
+            />
+          </TableSection>
+          <VisualizationSection>
+            <SankeyVisualization
+              selectedProjectId={selectedProjectId}
+              sampleCounts={sampleCountsQuery.data || []}
+              sampleRates={currentSampleRates}
+              isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+            />
+          </VisualizationSection>
+        </ContentLayout>
       )}
       <FormActions />
     </FormProvider>
@@ -157,6 +190,21 @@ const MainControlBar = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(1.5)};
+`;
+
+const ContentLayout = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+  align-items: start;
+`;
+
+const TableSection = styled('div')`
+  /* Table takes up left half */
+`;
+
+const VisualizationSection = styled('div')`
+  /* Visualization takes up right half */
 `;
 
 const FormActions = styled('div')`
