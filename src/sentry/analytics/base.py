@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import abc
 from typing import Any, overload
-
-from typing_extensions import deprecated
+from warnings import deprecated
 
 from sentry.analytics.event import Event
 from sentry.utils.services import Service

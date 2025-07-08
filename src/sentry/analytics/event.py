@@ -15,12 +15,14 @@ from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
 
 
-# for using it with parenthesis, first parameter is optional
+# this overload of the decorator is for using it with parenthesis, first parameter is optional
+# e.g: `@eventclass()` or `@eventclass("my-event")`
 @overload
 def eventclass(event_name_or_class: str | None = None) -> Callable[[type[Event]], type[Event]]: ...
 
 
-# for using it without parenthesis
+# this overload of the decorator is for using it without parenthesis
+# e.g: `@eventclass`
 @overload
 def eventclass(event_name_or_class: type[Event]) -> type[Event]: ...
 
@@ -38,18 +40,24 @@ def eventclass(
     >>> @eventclass
     ... class MyEvent(Event):
     ...     ...
+    >>> MyEvent.type
+    None
 
     With parenthesis (but no type name):
 
     >>> @eventclass()
     ... class MyEvent(Event):
     ...     ...
+    >>> MyEvent.type
+    None
 
     Or with an event type name:
 
     >>> @eventclass("my-event")
     ... class MyEvent(Event):
     ...     ...
+    >>> MyEvent.type
+    "my-event"
     """
 
     def wrapper(cls: type[Event]) -> type[Event]:
@@ -121,5 +129,5 @@ def serialize_event(event: Event) -> dict[str, Any]:
         "type": event.type,
         "uuid": b64encode(event.uuid_.bytes),
         "timestamp": event.datetime_.timestamp(),
-        "data": data,
+        "data": event.data,
     }
