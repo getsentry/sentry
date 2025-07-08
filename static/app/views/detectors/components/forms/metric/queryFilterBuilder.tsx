@@ -6,10 +6,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {unreachable} from 'sentry/utils/unreachable';
 import {
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -18,24 +15,7 @@ import {
   SectionLabelSecondary,
 } from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-
-function getDiscoverDataset(dataset: DetectorDataset): DiscoverDatasets {
-  switch (dataset) {
-    case DetectorDataset.ERRORS:
-      return DiscoverDatasets.ERRORS;
-    case DetectorDataset.TRANSACTIONS:
-      return DiscoverDatasets.TRANSACTIONS;
-    case DetectorDataset.SPANS:
-      return DiscoverDatasets.SPANS_EAP;
-    case DetectorDataset.LOGS:
-      return DiscoverDatasets.OURLOGS;
-    case DetectorDataset.RELEASES:
-      return DiscoverDatasets.DISCOVER;
-    default:
-      unreachable(dataset);
-      return DiscoverDatasets.ERRORS;
-  }
-}
+import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
@@ -76,7 +56,7 @@ export function DetectorQueryFilterBuilder() {
           projectIds={projectIds}
           onClose={handleQueryChange}
           onSearch={handleQueryChange}
-          dataset={getDiscoverDataset(dataset)}
+          dataset={DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset]}
         />
       </QueryFieldRowWrapper>
     </Flex>
