@@ -12,6 +12,7 @@ import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   DataConditionType,
   DetectorPriorityLevel,
@@ -25,7 +26,7 @@ import {
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
 
-const CHART_HEIGHT = 175;
+const CHART_HEIGHT = 150;
 
 function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
   return {
@@ -233,7 +234,9 @@ export function MetricDetectorPreviewChart() {
   if (isPending) {
     return (
       <PreviewChartContainer>
-        <Placeholder height={`${CHART_HEIGHT}px`} />
+        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+          <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+        </Flex>
       </PreviewChartContainer>
     );
   }
@@ -266,6 +269,12 @@ export function MetricDetectorPreviewChart() {
             // Hide the maximum y-axis label to avoid showing arbitrary threshold values
             showMaxLabel: false,
           },
+        }}
+        grid={{
+          left: space(0.25),
+          right: space(0.5),
+          top: space(1),
+          bottom: space(1),
         }}
       />
     </PreviewChartContainer>
