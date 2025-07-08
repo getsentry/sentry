@@ -103,30 +103,23 @@ def boxcox_transform(
     """
     min_value = min(values) if values else 0
     if min_value <= 0:
-        shift_amount = -min_value + 1
+        shift_amount = -min_value + 1e-10
         shifted_values = [v + shift_amount for v in values]
     else:
         shifted_values = values
 
-    if lambda_param is not None:
-        if lambda_param == 0.0:
-            transformed = [math.log(max(v, 1e-10)) for v in shifted_values]
-        else:
-            transformed = [
-                (pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in shifted_values
-            ]
-        return transformed, lambda_param
+    # Get lambda parameter: use provided one or find optimal
+    lambda_param = _boxcox_normmax(shifted_values) if lambda_param is None else lambda_param
 
-    optimal_lambda = _boxcox_normmax(values)
-
-    if optimal_lambda == 0.0:
+    # Apply transformation
+    if lambda_param == 0.0:
         transformed = [math.log(max(v, 1e-10)) for v in shifted_values]
     else:
         transformed = [
-            (pow(max(v, 1e-10), optimal_lambda) - 1) / optimal_lambda for v in shifted_values
+            (pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in shifted_values
         ]
 
-    return transformed, optimal_lambda
+    return transformed, lambda_param
 
 
 def _boxcox_llf(lambda_param: float, values: list[float]) -> float:
@@ -182,10 +175,6 @@ def _boxcox_normmax(values: list[float], max_iters: int = 100) -> float:
     """
     if not values:
         return 0.0
-
-    min_value = min(values)
-    if min_value <= 0:
-        values = [v - min_value + 1 for v in values]
 
     left = -2.0
     right = 2.0
