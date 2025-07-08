@@ -52,7 +52,7 @@ describe('ActionNodeList', function () {
 
   const defaultProps = {
     actions: [],
-    group: '0',
+    conditionGroupId: '0',
     onAddRow: mockOnAddRow,
     onDeleteRow: mockOnDeleteRow,
     placeholder: 'Select an action',
