@@ -23,7 +23,7 @@ export default function hydrateErrors(
   errors.forEach((e: RawReplayError) => {
     try {
       // Feedback frame
-      if (e.title === 'User Feedback') {
+      if (e.title.includes('User Feedback')) {
         const time = new Date(e.timestamp);
         invariant(isValidDate(time), 'feedbackFrame.timestamp is invalid');
 
