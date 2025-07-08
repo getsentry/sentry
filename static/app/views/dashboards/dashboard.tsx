@@ -373,6 +373,7 @@ class Dashboard extends Component<Props, State> {
   handleWidgetColumnTableResize(index: number) {
     const {dashboard, onUpdate} = this.props;
     return function (columns: TabularColumn[]) {
+      console.log(columns, index);
       const widths = columns.map(column => column.width as number);
       const widget = dashboard.widgets[index]!;
       const widgetCopy = cloneDeep(widget);
