@@ -134,7 +134,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      if (Object.keys(errors).length > 0) {
+      if (Object.keys(errors).length === 0) {
         const formData = getNewAutomationData(data as AutomationFormData, state);
         const updatedData = {
           automationId: params.automationId,
