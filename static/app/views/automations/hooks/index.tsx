@@ -115,8 +115,8 @@ export function useUpdateAutomation() {
   const queryClient = useQueryClient();
 
   return useMutation<Automation, void, {automationId: string} & NewAutomation>({
-    mutationFn: data =>
-      api.requestPromise(`/organizations/${org.slug}/workflows/${data.automationId}/`, {
+    mutationFn: ({automationId, ...data}) =>
+      api.requestPromise(`/organizations/${org.slug}/workflows/${automationId}/`, {
         method: 'PUT',
         data,
       }),
@@ -125,7 +125,7 @@ export function useUpdateAutomation() {
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
       queryClient.invalidateQueries({
-        queryKey: [`organizations/${org.slug}/workflows/${data.automationId}/`],
+        queryKey: [`/organizations/${org.slug}/workflows/${data.automationId}/`],
       });
     },
     onError: _ => {
