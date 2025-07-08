@@ -22,7 +22,6 @@ import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
   getInitialTracePreferences,
   type TracePreferencesState,
@@ -171,10 +170,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <ButtonBar gap={1}>
-          <TraceHeaderComponents.ToggleTraceFormatButton
-            location={location}
-            organization={organization}
-          />
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
