@@ -237,8 +237,6 @@ class GridEditable<
   };
 
   onResizeMouseUp = (e: MouseEvent) => {
-    e.stopPropagation();
-    console.log(this.props.columnOrder);
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
 
@@ -257,7 +255,6 @@ class GridEditable<
   };
 
   onResizeMouseMove = (e: MouseEvent) => {
-    e.stopPropagation();
     const {resizeMetadata} = this;
     if (!resizeMetadata) {
       return;

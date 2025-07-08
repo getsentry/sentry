@@ -185,6 +185,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       type: meta.fields[key],
     }));
 
+  console.log(columnOrder);
+
   return (
     <GridEditable
       data={data}
