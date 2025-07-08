@@ -23,9 +23,11 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import DeleteQuery, MetricsQuery, Request
+from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
+from snuba_sdk.query import SelectableExpression
 
+from sentry.api.helpers.error_upsampling import UPSAMPLED_ERROR_AGGREGATION
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -1665,8 +1667,26 @@ def aliased_query_params(
         selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
+        new_aggs = []
         for aggregation in aggregations:
             derived_columns.append(aggregation[2])
+
+            if aggregation[0] == UPSAMPLED_ERROR_AGGREGATION:
+                # Special-case: upsampled_count aggregation - this aggregation type
+                # requires special handling to convert it into a selected column
+                # with the appropriate SNQL function structure
+                if selected_columns is None:
+                    selected_columns = []
+                selected_columns.append(
+                    get_upsampled_count_snql_with_alias(
+                        aggregation[2]
+                        if len(aggregation) > 2 and aggregation[2] is not None
+                        else "upsampled_count"
+                    )
+                )
+            else:
+                new_aggs.append(aggregation)
+        aggregations = new_aggs
 
     if conditions:
         if condition_resolver:
@@ -2059,3 +2079,23 @@ def process_value(value: None | str | int | float | list[str] | list[int] | list
         return value
 
     return value
+
+
+def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression]:
+    return Function(
+        function="toInt64",
+        parameters=[
+            Function(
+                function="sum",
+                parameters=[
+                    Function(
+                        function="ifNull",
+                        parameters=[Column(name="sample_weight"), 1],
+                        alias=None,
+                    )
+                ],
+                alias=None,
+            )
+        ],
+        alias=alias,
+    )
