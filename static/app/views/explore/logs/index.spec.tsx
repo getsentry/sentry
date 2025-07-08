@@ -2,23 +2,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import LogsPage from './index';
-
-function ProviderWrapper({
-  children,
-  organization,
-}: {
-  children: React.ReactNode;
-  organization: any;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-}
 
 const BASE_FEATURES = ['ourlogs-enabled'];
 
@@ -118,16 +103,12 @@ describe('LogsPage', function () {
   });
 
   it('should call APIs as expected', async function () {
-    render(
-      <ProviderWrapper organization={organization}>
-        <LogsPage />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: {
-          location: `/organizations/${organization.slug}/explore/logs/`,
-        },
-      }
-    );
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: `/organizations/${organization.slug}/explore/logs/`,
+      },
+    });
 
     await waitFor(() => {
       expect(eventTableMock).toHaveBeenCalled();
@@ -171,16 +152,12 @@ describe('LogsPage', function () {
       },
     });
 
-    render(
-      <ProviderWrapper organization={newOrganization}>
-        <LogsPage />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: {
-          location: `/organizations/${newOrganization.slug}/explore/logs/`,
-        },
-      }
-    );
+    render(<LogsPage />, {
+      organization: newOrganization,
+      initialRouterConfig: {
+        location: `/organizations/${newOrganization.slug}/explore/logs/`,
+      },
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();

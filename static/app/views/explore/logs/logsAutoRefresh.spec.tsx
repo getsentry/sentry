@@ -1,5 +1,4 @@
 import React from 'react';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,16 +13,11 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import * as logsPageParams from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
 
 describe('LogsAutoRefresh', () => {
   const setAutoRefresh = jest.fn();
@@ -32,6 +26,17 @@ describe('LogsAutoRefresh', () => {
   });
 
   const projects = [ProjectFixture()];
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      query: {
+        // Toggle is disabled if sort is not a timestamp.
+        'logs.sort_bys': '-timestamp',
+      },
+    },
+    route: '/organizations/:orgId/explore/logs/',
+  };
 
   const mockLogsData = [
     LogFixture({
@@ -44,15 +49,6 @@ describe('LogsAutoRefresh', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     cleanup();
-
-    // Toggle is disabled if sort is not a timestamp.
-    mockedUsedLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          'logs.sort_bys': '-timestamp',
-        },
-      })
-    );
 
     // Init PageFiltersStore to make pageFiltersReady true (otherwise logs query won't fire)
     PageFiltersStore.init();
@@ -82,15 +78,15 @@ describe('LogsAutoRefresh', () => {
     cleanup();
   });
 
-  const renderWithProviders = (children: React.ReactNode) => {
+  const renderWithProviders = (
+    children: React.ReactNode,
+    options: Parameters<typeof render>[1]
+  ) => {
     return render(
-      <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </LogsPageParamsProvider>
-      </OrganizationContext.Provider>
+      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      </LogsPageParamsProvider>,
+      options
     );
   };
 
@@ -103,7 +99,7 @@ describe('LogsAutoRefresh', () => {
 
   it('renders correctly with time-based sort', () => {
     const mockApi = mockApiCall();
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleLabel = screen.getByText('Auto-refresh');
     expect(toggleLabel).toBeInTheDocument();
@@ -116,7 +112,7 @@ describe('LogsAutoRefresh', () => {
 
   it('calls setAutoRefresh when toggled', async () => {
     const mockApi = mockApiCall();
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
 
@@ -130,7 +126,7 @@ describe('LogsAutoRefresh', () => {
     const mockApi = mockApiCall();
     jest.spyOn(logsPageParams, 'useLogsAutoRefresh').mockReturnValue(true);
 
-    renderWithProviders(<AutorefreshToggle />);
+    renderWithProviders(<AutorefreshToggle />, {initialRouterConfig, organization});
 
     const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
     expect(toggleSwitch).toBeChecked();
