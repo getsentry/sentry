@@ -23,6 +23,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:
@@ -45,6 +46,15 @@ class WorkItemWebhook(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=100, window=1),
+            RateLimitCategory.USER: RateLimit(limit=100, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+        },
+    }
+
     authentication_classes = ()
     permission_classes = ()
 
