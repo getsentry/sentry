@@ -220,8 +220,8 @@ export class Flamegraph {
       depth = Math.max(stackTop.depth, depth);
     };
 
-    this.depth = depth;
     profile.forEach(openFrame, closeFrame);
+    this.depth = depth;
     return frames;
   }
 
