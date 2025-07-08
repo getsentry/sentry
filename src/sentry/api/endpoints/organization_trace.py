@@ -356,7 +356,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         update_snuba_params_with_timestamp(request, snuba_params)
 
         error_id = request.GET.get("errorId")
-        if not is_event_id(error_id):
+        if error_id is not None and not is_event_id(error_id):
             raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
 
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:

@@ -253,7 +253,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with mock.patch("sentry.api.endpoints.organization_trace.ERROR_LIMIT", 1):
             with self.feature(self.FEATURES):
                 response = self.client_get(
-                    data={"timestamp": self.day_ago, "eventId": error.event_id},
+                    data={"timestamp": self.day_ago, "errorId": error.event_id},
                 )
         assert response.status_code == 200, response.content
         data = response.data
@@ -263,7 +263,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_with_invalid_error_id(self):
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"timestamp": self.day_ago, "eventId": ",blah blah,"},
+                data={"timestamp": self.day_ago, "errorId": ",blah blah,"},
             )
 
         assert response.status_code == 400, response.content
