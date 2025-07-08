@@ -278,6 +278,39 @@ def should_filter_feedback(
     return False, None
 
 
+def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
+    """
+    Generate a descriptive title for user feedback issues.
+    Format: "User Feedback: [first few words of message]"
+
+    Args:
+        feedback_message: The user's feedback message
+        max_words: Maximum number of words to include from the message
+
+    Returns:
+        A formatted title string
+    """
+    stripped_message = feedback_message.strip()
+
+    # Clean and split the message into words
+    words = stripped_message.split()
+
+    if len(words) <= max_words:
+        summary = stripped_message
+    else:
+        summary = " ".join(words[:max_words])
+        if len(summary) < len(stripped_message):
+            summary += "..."
+
+    title = f"User Feedback: {summary}"
+
+    # Truncate if necessary (keeping some buffer for external system limits)
+    if len(title) > 200:  # Conservative limit
+        title = title[:197] + "..."
+
+    return title
+
+
 def create_feedback_issue(
     event: dict[str, Any], project_id: int, source: FeedbackCreationSource
 ) -> dict[str, Any] | None:
@@ -343,7 +376,7 @@ def create_feedback_issue(
         event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title="User Feedback",
+        issue_title=get_feedback_title(feedback_message),
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
