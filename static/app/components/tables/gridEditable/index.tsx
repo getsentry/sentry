@@ -163,6 +163,8 @@ class GridEditable<
   componentDidMount() {
     this.onResizeMouseMove = this.onResizeMouseMove.bind(this);
     this.onResizeMouseUp = this.onResizeMouseUp.bind(this);
+    this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
+    this.redrawGridColumn = this.redrawGridColumn.bind(this);
     window.addEventListener('resize', this.redrawGridColumn);
     this.setGridTemplateColumns(this.props.columnOrder);
   }
