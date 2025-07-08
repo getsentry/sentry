@@ -443,9 +443,9 @@ class TestWorkflowValidatorUpdate(TestCase):
                     {
                         "type": Action.Type.SLACK,
                         "config": {
-                            "target_identifier": "foo",
-                            "target_display": "bar",
-                            "target_type": 0,
+                            "targetIdentifier": "bar",
+                            "targetDisplay": "baz",
+                            "targetType": 0,
                         },
                         "data": {},
                         "integrationId": 1,
