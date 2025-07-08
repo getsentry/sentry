@@ -110,7 +110,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             refresh_token=refresh_token,
             url=refresh_token_url,
             identity=identity,
-            verify_ssl=kwargs["verify_ssl"] ** kwargs,
+            verify_ssl=kwargs["verify_ssl"],
         )
 
         try:
