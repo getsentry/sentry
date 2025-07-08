@@ -15,7 +15,7 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   getAggregateOptions: ReleasesConfig.getTableFieldOptions,
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
-  transformSeriesQueryData: (data: ReleasesSeriesResponse, aggregate: string) => [
-    transformMetricsResponseToSeries(data, aggregate),
-  ],
+  transformSeriesQueryData: (data, aggregate) => {
+    return [transformMetricsResponseToSeries(data, aggregate)];
+  },
 };

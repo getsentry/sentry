@@ -15,7 +15,7 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   getAggregateOptions: SpansConfig.getTableFieldOptions,
   SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
-  transformSeriesQueryData: (data: SpansSeriesResponse, aggregate: string) => [
-    transformEventsStatsToSeries(data, aggregate),
-  ],
+  transformSeriesQueryData: (data, aggregate) => {
+    return [transformEventsStatsToSeries(data, aggregate)];
+  },
 };

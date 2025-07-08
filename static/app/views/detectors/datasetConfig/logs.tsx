@@ -15,7 +15,7 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   getAggregateOptions: LogsConfig.getTableFieldOptions,
   SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
-  transformSeriesQueryData: (data: LogsSeriesRepsonse, aggregate: string) => [
-    transformEventsStatsToSeries(data, aggregate),
-  ],
+  transformSeriesQueryData: (data, aggregate) => {
+    return [transformEventsStatsToSeries(data, aggregate)];
+  },
 };

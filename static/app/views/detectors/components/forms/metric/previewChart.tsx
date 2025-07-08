@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventsStats} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -41,15 +40,17 @@ export function MetricDetectorPreviewChart() {
     dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
   });
 
-  const {data, isPending, isError} = useApiQuery<EventsStats>(seriesQueryOptions, {
+  const {data, isPending, isError} = useApiQuery<
+    Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
+  >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
   });
 
-  const series = useMemo(
-    () => datasetConfig.transformSeriesQueryData(data, aggregate),
-    [datasetConfig, data, aggregate]
-  );
+  const series = useMemo(() => {
+    // TypeScript can't infer that each dataset config expects its own specific response type
+    return datasetConfig.transformSeriesQueryData(data as any, aggregate);
+  }, [datasetConfig, data, aggregate]);
 
   if (isPending) {
     return (

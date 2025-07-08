@@ -9,7 +9,7 @@ import type {DetectorSeriesQueryOptions} from 'sentry/views/detectors/datasetCon
  * Based on dashboards transformEventsStatsToSeries function
  */
 export function transformEventsStatsToSeries(
-  stats: EventsStats,
+  stats: EventsStats | undefined,
   seriesName: string
 ): Series {
   if (!stats?.data?.length) {

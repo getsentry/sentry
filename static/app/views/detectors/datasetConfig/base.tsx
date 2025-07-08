@@ -58,5 +58,8 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
-  transformSeriesQueryData: (data: SeriesResponse, aggregate: string) => Series[];
+  transformSeriesQueryData: (
+    data: SeriesResponse | undefined,
+    aggregate: string
+  ) => Series[];
 }

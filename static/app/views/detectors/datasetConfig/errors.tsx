@@ -20,7 +20,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
       ...options,
       dataset: DiscoverDatasets.ERRORS,
     }),
-  transformSeriesQueryData: (data: ErrorsSeriesResponse, aggregate: string) => [
-    transformEventsStatsToSeries(data, aggregate),
-  ],
+  transformSeriesQueryData: (data, aggregate) => {
+    return [transformEventsStatsToSeries(data, aggregate)];
+  },
 };

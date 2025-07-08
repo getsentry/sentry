@@ -21,7 +21,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         ...options,
         dataset: DiscoverDatasets.TRANSACTIONS,
       }),
-    transformSeriesQueryData: (data: TransactionsSeriesResponse, aggregate: string) => [
-      transformEventsStatsToSeries(data, aggregate),
-    ],
+    transformSeriesQueryData: (data, aggregate) => {
+      return [transformEventsStatsToSeries(data, aggregate)];
+    },
   };
