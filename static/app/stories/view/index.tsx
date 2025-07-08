@@ -12,6 +12,7 @@ import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextPro
 
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
+import {StoryHero} from './storyHero';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
 export default function Stories() {
@@ -24,14 +25,37 @@ export default function Stories() {
     if (!(location.state?.storyPath ?? location.query.name)) {
       return files.filter(
         file =>
-          file.endsWith('styles/colors.mdx') ||
-          file.endsWith('styles/typography.stories.tsx')
+          file.endsWith('styles/index.mdx')
       );
     }
     return [location.state?.storyPath ?? location.query.name];
   }, [files, location.state?.storyPath, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
+
+  if (!location.query.name) {
+    const index = story.data?.at(0);
+    if (index) {
+      const {frontmatter = {}, default: Content} = index.exports;
+      return (
+        <RouteAnalyticsContextProvider>
+          <OrganizationContainer>
+            <Layout style={{gridTemplateColumns: 'auto'}}>
+              <HeaderContainer>
+                <StoryHeader />
+              </HeaderContainer>
+              <StoryMainContainer
+                style={{gridTemplateColumns: '1fr minmax(auto, 360px)'}}
+              >
+                <StoryHero frontmatter={frontmatter} />
+                <Content />
+              </StoryMainContainer>
+            </Layout>
+          </OrganizationContainer>
+        </RouteAnalyticsContextProvider>
+      );
+    }
+  }
 
   return (
     <RouteAnalyticsContextProvider>
