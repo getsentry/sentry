@@ -58,7 +58,7 @@ export function DataConditionFixture(params: Partial<DataCondition> = {}): DataC
   };
 }
 
-function ActionFixture(params: Partial<Action> = {}): Action {
+export function ActionFixture(params: Partial<Action> = {}): Action {
   return {
     id: '1000',
     type: ActionType.SLACK,
