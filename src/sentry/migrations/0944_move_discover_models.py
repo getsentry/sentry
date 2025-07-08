@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0942_dashboard_remove_extra_user_org_position_constraint"),
+        ("sentry", "0943_create_data_access_grant"),
     ]
 
     operations = [
