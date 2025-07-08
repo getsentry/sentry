@@ -6,19 +6,13 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {FIELD_TO_METRICS_EXPRESSION} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import type {DetectorSeriesQueryOptions} from 'sentry/views/detectors/datasetConfig/base';
 
-/**
- * Transform field names to metrics API field names
- * Based on dashboard fieldsToDerivedMetrics function
- */
 function fieldsToDerivedMetrics(field: string): string {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
+  return (
+    FIELD_TO_METRICS_EXPRESSION[field as keyof typeof FIELD_TO_METRICS_EXPRESSION] ??
+    field
+  );
 }
 
-/**
- * Transform SessionApiResponse into Series format for AreaChart
- * Based on dashboards transformSessionsResponseToSeries function
- */
 export function transformMetricsResponseToSeries(
   data: SessionApiResponse | undefined | null,
   aggregate: string
@@ -35,7 +29,7 @@ export function transformMetricsResponseToSeries(
     seriesName: field,
     data: data.intervals.map((interval, index) => {
       return {
-        name: new Date(interval).getTime(), // Convert string to milliseconds
+        name: new Date(interval).getTime(),
         value: data.groups.reduce((acc, group) => {
           const value = group.series?.[field]?.[index] ?? 0;
           return acc + value;
