@@ -9,6 +9,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.transport
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -312,7 +313,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     return sdk_options, dsns
 
 
-def configure_sdk():
+def configure_sdk() -> sentry_sdk.init:
     """
     Setup and initialize the Sentry SDK.
     """
@@ -330,16 +331,22 @@ def configure_sdk():
     else:
         sentry4sentry_transport = None
 
+    print("sentry_saas_transport: ...")
     if dsns.sentry_saas:
+        print(dsns.sentry_saas)
         transport = make_transport(get_options(dsn=dsns.sentry_saas, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
+        print("IS_DEV")
         sentry_saas_transport = None
     elif internal_project_key and internal_project_key.dsn_private:
+        print("internal_project_key")
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
+        print("None")
         sentry_saas_transport = None
+    print("sentry_saas_transport:", sentry_saas_transport)
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
@@ -425,6 +432,10 @@ def configure_sdk():
                 if sentry_saas_transport:
                     if is_current_event_safe():
                         metrics.incr("internal.captured.events.relay")
+                        print("sentry_saas_transport", sentry_saas_transport)
+                        print("method_name", method_name)
+                        print("args", args)
+                        print("kwargs", kwargs)
                         getattr(sentry_saas_transport, method_name)(*args, **kwargs)
                     else:
                         metrics.incr(
@@ -477,7 +488,7 @@ def configure_sdk():
         "schedule-digests",
     ]
 
-    sentry_sdk.init(
+    return sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,

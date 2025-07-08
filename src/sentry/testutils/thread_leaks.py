@@ -32,15 +32,22 @@ _THIRD_PARTY_FRAME_PATHS = tuple(_get_third_party_frame_paths())
 
 
 def _relevant_frames(stack: StackSummary) -> StackSummary:
-    return StackSummary.from_list(
+    for filter in (
+        lambda frame: frame.filename == __file__,
+        lambda frame: frame.filename.startswith(_THIRD_PARTY_FRAME_PATHS),
+        lambda frame: frame.line is None,
+    ):
+        filtered_stack = [frame for frame in stack if not filter(frame)]
+        if filtered_stack:
+            stack = StackSummary.from_list(filtered_stack)
+        else:
+            break
+
+    filtered_stack = [
         traceback.FrameSummary(frame.filename.replace(_CWD, "./"), frame.lineno, frame.name)
         for frame in stack
-        if (
-            not frame.filename.startswith(_THIRD_PARTY_FRAME_PATHS)
-            and not frame.filename == __file__
-            and frame.line is not None  # e.g. "frozen" modules
-        )
-    )
+    ]
+    return StackSummary.from_list(filtered_stack[-10:])
 
 
 def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
