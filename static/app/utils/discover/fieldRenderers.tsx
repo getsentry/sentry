@@ -21,6 +21,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import TimeSince from 'sentry/components/timeSince';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -46,6 +47,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
@@ -328,11 +330,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>
+            <OverflowContainer>
               <ExternalLink href={value} data-test-id="group-tag-url">
                 {value}
               </ExternalLink>
-            </Container>
+            </OverflowContainer>
           </Tooltip>
         );
       }
@@ -340,7 +342,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (value && typeof value === 'string') {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>{nullableValue(value)}</Container>
+            <OverflowContainer>{nullableValue(value)}</OverflowContainer>
           </Tooltip>
         );
       }
@@ -470,13 +472,27 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   id: {
     sortField: 'id',
-    renderFunc: data => {
+    renderFunc: (data, {organization, location}) => {
       const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
-        return null;
+        return <Container>{emptyStringValue}</Container>;
       }
+      const target = generateLinkToEventInTraceView({
+        projectSlug: data.project,
+        traceSlug: data.trace,
+        timestamp: data.timestamp,
+        targetId: data['transaction.span_id'],
+        eventId: undefined,
+        organization,
+        location,
+        spanId: id,
+      });
 
-      return <Container>{getShortEventId(id)}</Container>;
+      return (
+        <Container>
+          <Link to={target}>{getShortEventId(id)}</Link>
+        </Container>
+      );
     },
   },
   span_id: {
@@ -502,13 +518,13 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Container>
+          <OverflowContainer>
             {isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)
             )}
-          </Container>
+          </OverflowContainer>
         </Tooltip>
       );
     },
@@ -820,6 +836,21 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       </NumberContainer>
     ),
   },
+  timestamp: {
+    sortField: 'timestamp',
+    renderFunc: data => {
+      const timestamp = data.timestamp;
+      if (!timestamp) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+      const date = new Date(data.timestamp);
+      return (
+        <Container>
+          <TimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />
+        </Container>
+      );
+    },
+  },
   'timestamp.to_hour': {
     sortField: 'timestamp.to_hour',
     renderFunc: data => (
@@ -868,21 +899,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
-  alert_id: {
-    sortField: 'alert_id',
-    renderFunc: data => {
-      const alertId = data.alert_id;
-      if (!alertId) {
-        return <NumberContainer>{emptyValue}</NumberContainer>;
-      }
-
-      return (
-        <NumberContainer>
-          <Link to={''}>{alertId}</Link>
-        </NumberContainer>
-      );
-    },
-  },
   browser: {
     sortField: 'browser',
     renderFunc: data => {
@@ -914,6 +930,22 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <BrowserIconContainer>
           <ContextIcon name={browserName.toLocaleLowerCase()} size="md" />
           {browserName}
+        </BrowserIconContainer>
+      );
+    },
+  },
+  'os.name': {
+    sortField: 'os.name',
+    renderFunc: data => {
+      const osName: string = data['os.name'];
+      if (!osName) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+
+      return (
+        <BrowserIconContainer>
+          <ContextIcon name={osName.toLocaleLowerCase()} size="md" />
+          {osName}
         </BrowserIconContainer>
       );
     },
@@ -1184,6 +1216,12 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
+`;
+
+// Use this for fields that may be extremely wide
+export const OverflowContainer = styled('div')`
+  max-width: 500px;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 /**

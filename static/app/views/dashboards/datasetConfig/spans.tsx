@@ -35,6 +35,7 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
+  renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
@@ -170,7 +171,10 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, _organization) => {
+  getCustomFieldRenderer: (field, meta, widget, _organization) => {
+    if (field === 'trace') {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false);
   },
 };
