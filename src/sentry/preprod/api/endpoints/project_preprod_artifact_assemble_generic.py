@@ -163,7 +163,10 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                     }
                 )
             elif assemble_type == AssembleType.INSTALLABLE_APP.value:
-                update_assemble_status(AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP)
+                response = update_assemble_status(AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP)
+                if response:
+                    return response
+
                 assemble_preprod_artifact_installable_app.apply_async(
                     kwargs={
                         "org_id": project.organization_id,

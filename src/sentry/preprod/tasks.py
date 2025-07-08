@@ -11,6 +11,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -52,7 +53,7 @@ def assemble_preprod_artifact(
     Creates a preprod artifact from uploaded chunks.
     """
     from sentry.models.files.file import File
-    from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+    from sentry.preprod.models import PreprodBuildConfiguration
 
     logger.info(
         "Starting preprod artifact assembly",
@@ -248,7 +249,7 @@ def _assemble_preprod_artifact_file(
 def _assemble_preprod_artifact_size_analysis(
     assemble_result: AssembleResult, project, artifact_id, org_id
 ):
-    from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+    from sentry.preprod.models import PreprodArtifactSizeMetrics
 
     try:
         preprod_artifact = PreprodArtifact.objects.get(
@@ -335,8 +336,6 @@ def assemble_preprod_artifact_size_analysis(
 def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project, artifact_id, org_id
 ):
-    from sentry.preprod.models import PreprodArtifact
-
     try:
         preprod_artifact = PreprodArtifact.objects.get(
             project=project,
