@@ -126,6 +126,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="span.status.message",
+            internal_name="sentry.status.message",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",

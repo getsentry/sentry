@@ -53,7 +53,7 @@ class ReplayActionsEventPayload(TypedDict):
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: list[int]
+    payload: ReplayActionsEventPayload
     project_id: int
     replay_id: str
     retention_days: int
@@ -109,7 +109,7 @@ def emit_click_events(
         "retention_days": retention_days,
         "start_time": start_time,
         "type": "replay_event",
-        "payload": list(json.dumps(payload).encode()),
+        "payload": payload,
     }
 
     publish_replay_event(json.dumps(action))
