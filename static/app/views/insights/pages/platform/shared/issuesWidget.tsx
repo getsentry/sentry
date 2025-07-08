@@ -174,6 +174,7 @@ export function IssuesWidget() {
                 <StreamGroup
                   key={id}
                   id={id}
+                  canSelect={false}
                   withChart={breakpoints.xl}
                   withColumns={COLUMNS}
                   memberList={memberList?.[project.slug]}
