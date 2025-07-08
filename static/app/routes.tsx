@@ -274,6 +274,11 @@ function buildRoutes() {
         component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
+      <Route
+        path="/notifs/"
+        component={make(() => import('sentry/notifs/index'))}
+        withOrgPath
+      />
     </Route>
   );
 
