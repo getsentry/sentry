@@ -111,12 +111,18 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
                 end=filter_params["end"],
             )
             error_events = replay_errors + trace_connected_errors
+
+        return_raw_logs = (
+            features.has("organizations:replay-ai-summaries-raw-logs-access", project.organization)
+            and request.query_params.get("return_raw_logs", "false").lower() == "true"
+        )
+
         return self.paginate(
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
             on_results=functools.partial(
-                analyze_recording_segments, error_events, replay_id, project.id
+                analyze_recording_segments, error_events, replay_id, project.id, return_raw_logs
             ),
         )
 
@@ -323,12 +329,16 @@ def analyze_recording_segments(
     error_events: list[GroupEvent],
     replay_id: str,
     project_id: int,
+    return_raw_logs: bool,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
+    logs = get_request_data(iter_segment_data(segments), error_events, project_id)
+
+    if return_raw_logs:
+        return {"logs": logs}
+
     # Combine breadcrumbs and error details
-    request_data = json.dumps(
-        {"logs": get_request_data(iter_segment_data(segments), error_events, project_id)}
-    )
+    request_data = json.dumps({"logs": logs})
 
     # Log when the input string is too large. This is potential for timeout.
     if len(request_data) > 100000:

@@ -574,6 +574,59 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
 
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.as_log_message")
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_with_return_raw_logs(self, make_seer_request, as_log_message):
+        make_seer_request.return_value = json.dumps({"queried seer": "true"}).encode()
+        as_log_message.return_value = "mock log"
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "world"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        url = self.url + "?return_raw_logs=true"
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            with self.feature({"organizations:replay-ai-summaries-raw-logs-access": True}):
+                response = self.client.get(url)
+                assert response.status_code == 200
+                assert response.get("Content-Type") == "application/json"
+                assert response.json() == {"logs": ["mock log", "mock log"]}
+
+            with self.feature({"organizations:replay-ai-summaries-raw-logs-access": False}):
+                response = self.client.get(url)
+                assert response.status_code == 200
+                assert response.get("Content-Type") == "application/json"
+                assert response.json() == {"queried seer": "true"}
+
+            with self.feature({}):
+                response = self.client.get(url)
+                assert response.status_code == 200
+                assert response.get("Content-Type") == "application/json"
+                assert response.json() == {"queried seer": "true"}
+
 
 @django_db_all
 def test_get_request_data(default_project):
