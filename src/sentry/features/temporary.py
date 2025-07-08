@@ -328,6 +328,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable resolve in upcoming release
     # TODO(steve): Remove when we remove the feature from the UI
     manager.add("organizations:resolve-in-upcoming-release", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
+    # Enable revocation of org auth keys when a user renames an org slug
+    manager.add("organizations:revoke-org-auth-on-slug-rename", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable search query builder raw search replacement
