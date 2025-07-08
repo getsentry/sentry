@@ -664,7 +664,7 @@ def fire_actions_for_groups(
                         event_data.dcg_to_workflow[dcg.id] for dcg in workflow_triggers_for_group
                     }
 
-                    workflows_filters: dict[DataConditionGroup, int] = {
+                    filter_dcg_to_workflow_id: dict[DataConditionGroup, int] = {
                         dcg: workflow_id
                         for dcg, workflow_id in dcg_to_workflow_id.items()
                         if workflow_id in triggered_workflow_ids
@@ -672,7 +672,7 @@ def fire_actions_for_groups(
 
                     workflows_actions = evaluate_action_filters(
                         workflow_event_data,
-                        workflows_filters,
+                        filter_dcg_to_workflow_id,
                         workflows_by_id,
                     )
 
