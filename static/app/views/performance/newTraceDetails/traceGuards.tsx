@@ -231,6 +231,12 @@ export function isTraceOccurence(
   return 'issue_id' in issue && issue.event_type !== 'error';
 }
 
+export function isEAPTraceOccurrence(
+  issue: TraceTree.TraceIssue
+): issue is TraceTree.EAPOccurrence {
+  return isTraceOccurence(issue) && 'is_transaction' in issue;
+}
+
 export function isEAPMeasurementValue(
   value: number | Measurement | undefined
 ): value is number {

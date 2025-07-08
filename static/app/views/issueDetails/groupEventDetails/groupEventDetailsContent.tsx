@@ -66,11 +66,8 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {isJavascriptPlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -92,7 +89,6 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
@@ -277,23 +273,7 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
-      {isANR && (
-        <QuickTraceQuery
-          event={event}
-          location={location}
-          orgSlug={organization.slug}
-          type={'spans'}
-          skipLight
-        >
-          {results => {
-            return (
-              <QuickTraceContext value={results}>
-                <AnrRootCause event={event} organization={organization} />
-              </QuickTraceContext>
-            );
-          }}
-        </QuickTraceQuery>
-      )}
+      {isANR && <AnrRootCause event={event} organization={organization} />}
       {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
           event={event as EventTransaction}
