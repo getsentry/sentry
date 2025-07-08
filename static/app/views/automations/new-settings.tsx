@@ -93,6 +93,12 @@ export default function AutomationNewSettings() {
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
   >({});
+  const removeError = useCallback((errorId: string) => {
+    setAutomationBuilderErrors(prev => {
+      const {[errorId]: _removedError, ...remainingErrors} = prev;
+      return remainingErrors;
+    });
+  }, []);
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -109,13 +115,6 @@ export default function AutomationNewSettings() {
   }, [location.query.connectedIds]);
 
   const {mutateAsync: createAutomation} = useCreateAutomation();
-
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
