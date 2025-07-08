@@ -114,10 +114,6 @@
             },
             "task": {
               "type": "integer"
-            },
-            "user": {
-              "type": "string",
-              "nullable": true
             }
           }
         }

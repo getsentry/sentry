@@ -262,35 +262,6 @@ class OrganizationExamples:
                     {
                         "task": "create_project",
                         "status": "complete",
-                        "user": {
-                            "id": "1",
-                            "name": "Stella R",
-                            "username": "stella@the-interstellar-jurisdiction.io",
-                            "email": "stella@the-interstellar-jurisdiction.io",
-                            "avatarUrl": "https://gravatar.com/avatar/wufeousrfdiohfwea8sfhawesdhiu",
-                            "isActive": True,
-                            "hasPasswordAuth": True,
-                            "isManaged": False,
-                            "dateJoined": "2019-06-05T17:43:29.556793Z",
-                            "lastLogin": "2019-06-25T13:53:44.524478Z",
-                            "has2fa": False,
-                            "lastActive": "2024-06-25T14:43:41.678886Z",
-                            "isSuperuser": True,
-                            "isStaff": False,
-                            "experiments": {},
-                            "emails": [
-                                {
-                                    "id": "1",
-                                    "email": "stella@the-interstellar-jurisdiction.io",
-                                    "is_verified": False,
-                                }
-                            ],
-                            "avatar": {
-                                "avatarType": "letter_avatar",
-                                "avatarUuid": None,
-                                "avatarUrl": None,
-                            },
-                        },
                         "completionSeen": None,
                         "dateCompleted": "2019-06-17T18:56:25.856360Z",
                         "data": {},
