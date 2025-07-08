@@ -107,7 +107,7 @@ export function getTimestampFromEvent(event: Event): number | undefined {
   }
 
   if (typeof timestamp === 'string') {
-    return new Date(timestamp).getTime() / 1e3;
+    return new Date(timestamp).getTime() / 1_000;
   }
 
   return undefined;
