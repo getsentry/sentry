@@ -11,7 +11,7 @@ interface TextProps {
   /**
    * The HTML element to render the text as.
    */
-  as?: 'span' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  as?: 'span' | 'p';
   bold?: boolean;
   /**
    * Density determines the line height of the text.
@@ -102,7 +102,7 @@ export const Text = styled((props: TextProps) => {
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
-interface HeadingProps extends TextProps {
+interface HeadingProps extends Omit<TextProps, 'as'> {
   /**
    * The HTML element to render the title as.
    * @default h1
@@ -154,7 +154,7 @@ function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
   }
 }
 
-function getTextDecoration(p: TextProps) {
+function getTextDecoration(p: TextProps | HeadingProps) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');
