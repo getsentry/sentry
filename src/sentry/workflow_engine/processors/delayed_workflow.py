@@ -9,6 +9,7 @@ from typing import Any, TypeAlias
 
 import sentry_sdk
 from celery import Task
+from django.db.models import F
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -55,11 +56,11 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.detector import get_detectors_by_events_bulk
 from sentry.workflow_engine.processors.log_util import log_if_slow, track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-    evaluate_workflows_action_filters,
+    evaluate_action_filters,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
@@ -567,6 +568,26 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
+def get_dcgs_by_group(
+    groups_to_fire: dict[GroupId, set[DataConditionGroup]],
+    event_data: EventRedisData,
+    dcg_type: DataConditionHandler.Group,
+) -> dict[GroupId, set[DataConditionGroup]]:
+    """
+    Extract workflow triggers from groups_to_fire, grouped by group ID.
+    Returns a dict mapping GroupId to set of workflow trigger DCGs.
+    """
+    workflow_dcg_ids = set(event_data.trigger_group_to_dcg_model[dcg_type].keys())
+
+    workflow_dcgs_by_group = {}
+    for group_id, dcgs in groups_to_fire.items():
+        workflow_triggers = {dcg for dcg in dcgs if dcg.id in workflow_dcg_ids}
+        if workflow_triggers:  # Only include groups that have workflow triggers
+            workflow_dcgs_by_group[group_id] = workflow_triggers
+
+    return workflow_dcgs_by_group
+
+
 @sentry_sdk.trace
 def fire_actions_for_groups(
     organization: Organization,
@@ -585,6 +606,28 @@ def fire_actions_for_groups(
         },
     )
 
+    # Bulk fetch detectors
+    event_id_to_detector = get_detectors_by_events_bulk(list(group_to_groupevent.values()))
+
+    workflow_triggers = get_dcgs_by_group(
+        groups_to_fire, event_data, DataConditionHandler.Group.WORKFLOW_TRIGGER
+    )
+    action_filters = get_dcgs_by_group(
+        groups_to_fire, event_data, DataConditionHandler.Group.ACTION_FILTER
+    )
+    all_workflow_triggers = set().union(*list(workflow_triggers.values()))
+
+    # bulk fetch action filters for workflow triggers
+    workflows = Workflow.objects.filter(when_condition_group_id__in=all_workflow_triggers)
+    workflow_action_filters = DataConditionGroup.objects.filter(
+        workflowdataconditiongroup__workflow__in=workflows
+    ).annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
+
+    dcg_to_workflow_id: dict[DataConditionGroup, int] = {
+        condition: condition.workflow_id for condition in workflow_action_filters
+    }
+    workflows_by_id = {workflow.id: workflow for workflow in workflows}
+
     total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
@@ -594,30 +637,20 @@ def fire_actions_for_groups(
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
                 workflow_event_data = WorkflowEventData(event=group_event, group=group)
-                detector = get_detector_by_event(workflow_event_data)
+                detector = event_id_to_detector.get(group_event.event_id)
 
-                workflow_triggers: set[DataConditionGroup] = set()
-                action_filters: set[DataConditionGroup] = set()
-                for dcg in groups_to_fire[group.id]:
-                    if (
-                        dcg.id
-                        in event_data.trigger_group_to_dcg_model[
-                            DataConditionHandler.Group.WORKFLOW_TRIGGER
-                        ]
-                    ):
-                        workflow_triggers.add(dcg)
-                    elif (
-                        dcg.id
-                        in event_data.trigger_group_to_dcg_model[
-                            DataConditionHandler.Group.ACTION_FILTER
-                        ]
-                    ):
-                        action_filters.add(dcg)
+                if detector is None:
+                    logger.warning(
+                        "No detector found for event, skipping",
+                        extra={
+                            "event_id": group_event.event_id,
+                            "group_id": group.id,
+                        },
+                    )
+                    continue
 
-                # process workflow_triggers
-                workflows = set(
-                    Workflow.objects.filter(when_condition_group_id__in=workflow_triggers)
-                )
+                workflow_triggers_for_group = workflow_triggers.get(group.id, set())
+                action_filters_for_group = action_filters.get(group.id, set())
 
                 with log_if_slow(
                     logger,
@@ -625,11 +658,23 @@ def fire_actions_for_groups(
                     extra={"event_data": workflow_event_data},
                     threshold_seconds=1,
                 ):
-                    workflows_actions = evaluate_workflows_action_filters(
-                        workflows, workflow_event_data
+                    # process workflow filters for passing trigger groups
+                    workflow_ids = set()
+                    for dcg in workflow_triggers_for_group:
+                        workflow_ids.add(event_data.dcg_to_workflow[dcg.id])
+
+                    workflow_filters: dict[DataConditionGroup, int] = {}
+                    for dcg, workflow_id in dcg_to_workflow_id.items():
+                        if workflow_id in workflow_ids:
+                            workflow_filters[dcg] = workflow_id
+
+                    workflows_actions = evaluate_action_filters(
+                        workflow_event_data,
+                        workflow_filters,
+                        workflows_by_id,
                     )
                 filtered_actions = filter_recently_fired_workflow_actions(
-                    action_filters | workflows_actions, workflow_event_data
+                    action_filters_for_group | workflows_actions, workflow_event_data
                 )
                 create_workflow_fire_histories(detector, filtered_actions, workflow_event_data)
 
@@ -647,7 +692,7 @@ def fire_actions_for_groups(
                 logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
-                        "workflow_ids": [workflow.id for workflow in workflows],
+                        "workflow_ids": workflow_ids,
                         "actions": [action.id for action in filtered_actions],
                         "event_data": workflow_event_data,
                         "event_id": event_id,

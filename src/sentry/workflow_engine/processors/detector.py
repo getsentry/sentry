@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Mapping
 
 import sentry_sdk
 
@@ -55,6 +57,100 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
         raise Detector.DoesNotExist("Detector not found for event")
 
     return detector
+
+
+def get_detectors_by_events_bulk(
+    event_list: list[GroupEvent],
+) -> Mapping[str, Detector]:
+    if not event_list:
+        return {}
+
+    # Separate events by whether they have occurrences or not
+    events_with_occurrences: list[tuple[GroupEvent, IssueOccurrence]] = []
+    events_without_occurrences: list[GroupEvent] = []
+
+    for event in event_list:
+        issue_occurrence = event.occurrence
+
+        if issue_occurrence is None:
+            events_without_occurrences.append(event)
+        else:
+            events_with_occurrences.append((event, issue_occurrence))
+
+    result: dict[str, Detector] = {}
+
+    # Fetch detectors for events with occurrences (by detector_id)
+    if events_with_occurrences:
+        # detector_ids = set([issue_occurrence.evidence_data.get("detector_id", None) for ])
+        detector_ids = []
+        event_id_to_detector_id: dict[str, int] = {}
+
+        for event, occurrence in events_with_occurrences:
+            detector_id = occurrence.evidence_data.get("detector_id")
+            if detector_id is not None:
+                detector_ids.append(detector_id)
+                event_id_to_detector_id[event.event_id] = detector_id
+
+        if detector_ids:
+            try:
+                detectors_by_id = {
+                    detector.id: detector
+                    for detector in Detector.objects.filter(id__in=detector_ids)
+                }
+
+                for event_id, detector_id in event_id_to_detector_id.items():
+                    detector = detectors_by_id.get(detector_id)
+                    if detector:
+                        result[event_id] = detector
+                    else:
+                        metrics.incr("workflow_engine.detectors.error")
+                        logger.warning(
+                            "Detector not found for event with occurrence",
+                            extra={
+                                "event_id": event_id,
+                                "detector_id": detector_id,
+                            },
+                        )
+            except Exception:
+                logger.exception("Error fetching detectors by ID in bulk operation")
+                metrics.incr("workflow_engine.detectors.bulk_error")
+
+    # Fetch detectors for events without occurrences (by project_id and issue_type)
+    if events_without_occurrences:
+        # Group events by project_id to minimize queries
+        project_events: dict[int, list[str]] = defaultdict(list)
+
+        for event in events_without_occurrences:
+            project_events[event.project_id].append(event.event_id)
+
+        try:
+            # Fetch all detectors for the projects in one query
+            project_ids = list(project_events.keys())
+            detectors_by_project = {
+                detector.project_id: detector
+                for detector in Detector.objects.filter(project_id__in=project_ids)
+            }
+
+            # Assign detectors to events
+            for project_id, event_ids in project_events.items():
+                detector = detectors_by_project.get(project_id)
+                if detector:
+                    for event_id in event_ids:
+                        result[event_id] = detector
+                else:
+                    metrics.incr("workflow_engine.detectors.error")
+                    logger.warning(
+                        "Detector not found for project",
+                        extra={
+                            "project_id": project_id,
+                            "event_count": len(event_ids),
+                        },
+                    )
+        except Exception:
+            logger.exception("Error fetching detectors by project in bulk operation")
+            metrics.incr("workflow_engine.detectors.bulk_error")
+
+    return result
 
 
 def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:

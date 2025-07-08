@@ -192,23 +192,17 @@ def evaluate_workflow_triggers(
     return triggered_workflows
 
 
-@sentry_sdk.trace
-def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
+def evaluate_action_filters(
     event_data: WorkflowEventData,
+    dcg_to_workflow_id: dict[DataConditionGroup, int],
+    workflows_by_id: dict[int, Workflow],
 ) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
-    action_conditions = (
-        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
-        .annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
-        .distinct()
-    )
-    workflows_by_id = {workflow.id: workflow for workflow in workflows}
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
 
-    for action_condition in action_conditions:
-        workflow = workflows_by_id[action_condition.workflow_id]
+    for action_condition, workflow_id in dcg_to_workflow_id.items():
+        workflow = workflows_by_id[workflow_id]
         env = (
             Environment.objects.get_from_cache(id=workflow.environment_id)
             if workflow.environment_id
@@ -264,13 +258,33 @@ def evaluate_workflows_action_filters(
         extra={
             "group_id": event_data.group.id,
             "event_id": event_id,
-            "workflow_ids": [workflow.id for workflow in workflows],
-            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "workflow_ids": list(workflows_by_id.keys()),
+            "action_conditions": [
+                action_condition.id for action_condition in dcg_to_workflow_id.keys()
+            ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
         },
     )
 
     return filtered_action_groups
+
+
+@sentry_sdk.trace
+def evaluate_workflows_action_filters(
+    workflows: set[Workflow],
+    event_data: WorkflowEventData,
+) -> set[DataConditionGroup]:
+    action_conditions = (
+        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
+        .annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
+        .distinct()
+    )
+    dcg_to_workflow_id: dict[DataConditionGroup, int] = {
+        condition: condition.workflow_id for condition in action_conditions
+    }
+    workflows_by_id = {workflow.id: workflow for workflow in workflows}
+
+    return evaluate_action_filters(event_data, dcg_to_workflow_id, workflows_by_id)
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
