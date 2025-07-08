@@ -3,6 +3,7 @@ from unittest.mock import patch
 from sentry.issues.grouptype import ReplayHydrationErrorType, ReplayRageClickType
 from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.issue_creation import (
+    _make_clicked_element,
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
@@ -218,3 +219,36 @@ def test_report_rage_click_issue_no_component(produce_occurrence_to_kafka):
     assert occurrence.evidence_display[0].important is False
     assert occurrence.evidence_display[1].name == "Selector Path"
     assert occurrence.evidence_display[1].important is True
+
+
+def test_make_clicked_element():
+    node = {
+        "tagName": "a",
+        "attributes": {
+            "id": "id",
+            "class": "class1 class2",
+            "role": "button",
+            "aria-label": "test",
+            "alt": "1",
+            "data-testid": "2",
+            "title": "3",
+            "data-sentry-component": "SignUpForm",
+        },
+    }
+    assert (
+        _make_clicked_element(node)
+        == 'a#id.class1.class2[role="button"][aria="test"][alt="1"][data-test-id="2"][title="3"][data-sentry-component="SignUpForm"]'
+    )
+
+    node_whitespace = {
+        "tagName": "a",
+        "attributes": {
+            "id": "id",
+            "class": " class1 class2 ",
+            "data-sentry-component": "SignUpForm",
+        },
+    }
+    assert (
+        _make_clicked_element(node_whitespace)
+        == 'a#id.class1.class2[data-sentry-component="SignUpForm"]'
+    )
