@@ -14,6 +14,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,9 @@ def call_delete_seer_grouping_records_by_hash(
             extra={"project_id": project.id, "hashes": group_hashes},
         )
         if group_hashes:
-            delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+            # Chunk the group_hashes into batches of 1000 and create separate tasks
+            for hash_chunk in chunked(group_hashes, 1000):
+                delete_seer_grouping_records_by_hash.apply_async(args=[project.id, hash_chunk, 0])
 
 
 @instrumented_task(

@@ -81,3 +81,48 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     ) -> None:
         call_delete_seer_grouping_records_by_hash([])
         mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_call_delete_seer_grouping_records_by_hash_chunked(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        """
+        Test that call_delete_seer_grouping_records_by_hash chunks large numbers of hashes
+        into separate tasks with a maximum of 1000 hashes per task.
+        """
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        # Create 2500 group hashes to test chunking
+        group_ids, expected_hashes = [], []
+        for i in range(2500):
+            group = self.create_group(project=self.project)
+            group_ids.append(group.id)
+            group_hash = GroupHash.objects.create(
+                project=self.project, hash=str(i) * 32, group_id=group.id
+            )
+            expected_hashes.append(group_hash.hash)
+
+        call_delete_seer_grouping_records_by_hash(group_ids)
+
+        # Verify that the task was called 3 times (2500 hashes / 1000 per chunk = 3 chunks)
+        assert mock_apply_async.call_count == 3
+
+        # Verify the first chunk has 1000 hashes
+        first_call_args = mock_apply_async.call_args_list[0][1]["args"]
+        assert len(first_call_args[1]) == 1000
+        assert first_call_args[0] == self.project.id
+        assert first_call_args[2] == 0
+
+        # Verify the second chunk has 1000 hashes
+        second_call_args = mock_apply_async.call_args_list[1][1]["args"]
+        assert len(second_call_args[1]) == 1000
+        assert second_call_args[0] == self.project.id
+        assert second_call_args[2] == 0
+
+        # Verify the third chunk has 500 hashes (remainder)
+        third_call_args = mock_apply_async.call_args_list[2][1]["args"]
+        assert len(third_call_args[1]) == 500
+        assert third_call_args[0] == self.project.id
+        assert third_call_args[2] == 0
