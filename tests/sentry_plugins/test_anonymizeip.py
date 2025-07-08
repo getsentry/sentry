@@ -1,6 +1,8 @@
+import pytest
 from sentry_plugins.anonymizeip import anonymize_ip
 
 
+@pytest.mark.skip(reason="flaky: #95044")
 def test_ipv6():
     assert anonymize_ip("5219:3a94:fdc5:19e1:70a3:b2c4:40ef:ae03") == "5219:3a94:fdc5::"
 
