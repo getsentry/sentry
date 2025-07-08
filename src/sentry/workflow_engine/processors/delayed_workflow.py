@@ -518,7 +518,9 @@ def get_group_to_groupevent(
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project_id: int,
 ) -> dict[Group, GroupEvent]:
-    groups = Group.objects.filter(id__in=event_data.group_ids)
+    groups = Group.objects.filter(id__in=event_data.group_ids).select_related(
+        "project__organization"
+    )
     group_id_to_group = {group.id: group for group in groups}
 
     bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project_id)
