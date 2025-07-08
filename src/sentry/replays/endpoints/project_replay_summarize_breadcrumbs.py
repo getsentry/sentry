@@ -324,7 +324,7 @@ def gen_request_data(
             # Yield the current event's log message
             event_type = which(event)
             if event_type == EventType.FEEDBACK:
-                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId", None)
+                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId")
                 feedback = fetch_feedback_details(feedback_id, project_id)
                 if feedback:
                     yield generate_feedback_log_message(feedback)
@@ -376,27 +376,27 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
     match event_type:
         case EventType.CLICK:
-            message = event["data"]["payload"].get("message", None)
+            message = event["data"]["payload"].get("message")
             return f"User clicked on {message} at {timestamp}" if message else None
         case EventType.DEAD_CLICK:
-            message = event["data"]["payload"].get("message", None)
+            message = event["data"]["payload"].get("message")
             return (
                 f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
                 if message
                 else None
             )
         case EventType.RAGE_CLICK:
-            message = event["data"]["payload"].get("message", None)
+            message = event["data"]["payload"].get("message")
             return (
                 f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
                 if message
                 else None
             )
         case EventType.NAVIGATION:
-            to = event["data"]["payload"]["data"].get("to", None)
+            to = event["data"]["payload"]["data"].get("to")
             return f"User navigated to: {to} at {timestamp}" if to else None
         case EventType.CONSOLE:
-            message = event["data"]["payload"].get("message", None)
+            message = event["data"]["payload"].get("message")
             return f"Logged: {message} at {timestamp}" if message else None
         case EventType.UI_BLUR:
             timestamp_ms = timestamp * 1000
@@ -407,41 +407,64 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.RESOURCE_FETCH:
             timestamp_ms = timestamp * 1000
             payload = event["data"]["payload"]
-            description = payload.get("description", None)
-            parsed_url = urlparse(description) if description else None
-
-            path = f"{parsed_url.path}?{parsed_url.query}" if parsed_url else ""
-
-            # Safely get (request_size, response_size)
-            sizes_tuple = parse_network_content_lengths(event)
-            response_size = None
-
-            # Check if the tuple is valid and response size exists
-            if sizes_tuple and sizes_tuple[1] is not None:
-                response_size = str(sizes_tuple[1])
-
-            status_code = payload["data"].get("statusCode", "unknown")
+            method = payload["data"].get("method")
+            status_code = payload["data"].get("statusCode")
+            description = payload.get("description")
             duration = payload.get("endTimestamp", 0) - payload.get("startTimestamp", 0)
-            method = payload["data"].get("method", "unknown")
 
-            # if status code is successful, ignore it
-            if str(status_code).startswith("2"):
+            # Parse URL path
+            parsed_url = urlparse(description) if description else None
+            path = f"{parsed_url.path}?{parsed_url.query}" if parsed_url else None
+
+            # Get response size if available
+            sizes_tuple = parse_network_content_lengths(event)
+            response_size = (
+                str(sizes_tuple[1]) if sizes_tuple and sizes_tuple[1] is not None else None
+            )
+
+            # Skip successful requests
+            if status_code and str(status_code).startswith("2"):
                 return None
 
-            if response_size is None:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
-            else:
-                return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+            # Build log message
+            parts = ["Application initiated request: "]
+            if method:
+                parts.append(f"{method} ")
+            if path:
+                parts.append(f"{path} HTTP/2.0")
+            if status_code:
+                parts.append(f" with status code {status_code}")
+            if response_size:
+                parts.append(f" and response size {response_size}")
+            parts.append(f"; took {duration} milliseconds at {timestamp_ms}")
+
+            return "".join(parts)
         case EventType.LCP:
             timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"].get("size", "unknown")
-            rating = event["data"]["payload"]["data"].get("rating", "unknown")
-            return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            duration = event["data"]["payload"]["data"].get("size")
+            rating = event["data"]["payload"]["data"].get("rating")
+
+            parts = ["Application largest contentful paint"]
+            if duration:
+                parts.append(f": {duration} ms")
+            if rating:
+                parts.append(f" with {rating} rating")
+            parts.append(f" at {timestamp_ms}")
+
+            return "".join(parts)
         case EventType.FCP:
             timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"].get("size", "unknown")
-            rating = event["data"]["payload"]["data"].get("rating", "unknown")
-            return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            duration = event["data"]["payload"]["data"].get("size")
+            rating = event["data"]["payload"]["data"].get("rating")
+
+            parts = ["Application first contentful paint"]
+            if duration:
+                parts.append(f": {duration} ms")
+            if rating:
+                parts.append(f" with {rating} rating")
+            parts.append(f" at {timestamp_ms}")
+
+            return "".join(parts)
         case EventType.HYDRATION_ERROR:
             return f"There was a hydration error on the page at {timestamp}"
         case EventType.RESOURCE_XHR:
