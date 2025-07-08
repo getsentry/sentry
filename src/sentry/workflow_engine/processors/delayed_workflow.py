@@ -574,16 +574,16 @@ def get_dcgs_by_group(
     dcg_type: DataConditionHandler.Group,
 ) -> dict[GroupId, set[DataConditionGroup]]:
     """
-    Extract workflow triggers from groups_to_fire, grouped by group ID.
-    Returns a dict mapping GroupId to set of workflow trigger DCGs.
+    Extract DataConditionGroups from groups_to_fire, grouped by group ID.
+    Returns a dict mapping GroupId to set of DCGs.
     """
     workflow_dcg_ids = set(event_data.trigger_group_to_dcg_model[dcg_type].keys())
 
     workflow_dcgs_by_group = {}
     for group_id, dcgs in groups_to_fire.items():
-        workflow_triggers = {dcg for dcg in dcgs if dcg.id in workflow_dcg_ids}
-        if workflow_triggers:  # Only include groups that have workflow triggers
-            workflow_dcgs_by_group[group_id] = workflow_triggers
+        workflow_dcgs = {dcg for dcg in dcgs if dcg.id in workflow_dcg_ids}
+        if workflow_dcgs:
+            workflow_dcgs_by_group[group_id] = workflow_dcgs
 
     return workflow_dcgs_by_group
 
