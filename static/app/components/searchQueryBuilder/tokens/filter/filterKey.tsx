@@ -69,7 +69,6 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
           onActiveChange(true);
         }}
         disabled={disabled}
-        title="hello"
         {...filterButtonProps}
       >
         <InteractionStateLayer />

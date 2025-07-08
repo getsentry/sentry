@@ -288,7 +288,7 @@ const Monospace = styled('span')`
 const Path = styled('span')`
   color: ${p => p.theme.textColor};
   text-transform: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   & strong {
     margin-right: ${space(0.5)};

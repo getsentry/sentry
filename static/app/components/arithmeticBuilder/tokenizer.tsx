@@ -185,10 +185,10 @@ class TokenConverter {
 
   tokenFunction(
     func: string,
-    attribute: TokenAttribute,
+    attributes: TokenAttribute[],
     location: LocationRange
   ): TokenFunction {
-    return new TokenFunction(location, func, [attribute]);
+    return new TokenFunction(location, func, attributes);
   }
 }
 

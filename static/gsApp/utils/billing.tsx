@@ -278,8 +278,8 @@ function displayNumber(n: number, fractionDigits = 0) {
 /**
  * Utility functions for Pricing Plans
  */
-export const isEnterprise = (subscription: Subscription) =>
-  ['e1', 'enterprise'].some(p => subscription.plan.startsWith(p));
+export const isEnterprise = (plan: string) =>
+  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
 
 export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
@@ -329,14 +329,11 @@ export function isAm3DsPlan(planId?: string) {
 }
 
 export function isAmEnterprisePlan(planId?: string) {
-  return (
-    typeof planId === 'string' &&
-    planId.startsWith('am') &&
-    (planId.endsWith('_ent') ||
-      planId.endsWith('_ent_auf') ||
-      planId.endsWith('_ent_ds') ||
-      planId.endsWith('_ent_ds_auf'))
-  );
+  if (typeof planId !== 'string' || !isAmPlan(planId)) {
+    return false;
+  }
+
+  return planId.includes('_ent');
 }
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
@@ -510,11 +507,17 @@ export function getBestActionToIncreaseEventLimits(
     return UsageAction.START_TRIAL;
   }
   // paid plans should add events without changing plans
-  if (isPaidPlan && hasPerformance(subscription.planDetails)) {
+  const hasAnyUsageExceeded = Object.values(subscription.categories).some(
+    category => category.usageExceeded
+  );
+  if (isPaidPlan && hasPerformance(subscription.planDetails) && hasAnyUsageExceeded) {
     return hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS;
   }
-  // otherwise, we want them to upgrade to a different plan
-  return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  // otherwise, we want them to upgrade to a different plan if they're not already on a Business plan
+  if (!isBizPlanFamily(subscription.planDetails)) {
+    return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  }
+  return '';
 }
 
 /**

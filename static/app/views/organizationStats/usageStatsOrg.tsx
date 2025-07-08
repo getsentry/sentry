@@ -661,10 +661,10 @@ const PageGrid = styled('div')`
   grid-template-columns: 1fr;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(5, 1fr);
   }
 `;
@@ -701,8 +701,8 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: ${p => p.theme.fontWeightNormal};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-weight: ${p => p.theme.fontWeight.normal};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 

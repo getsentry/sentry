@@ -360,8 +360,8 @@ export const makeLightChonkFlamegraphTheme = (
       // Preset colors
       FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.4),
       FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.3),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.yellow200, 1),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red300, 1),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels
@@ -453,8 +453,8 @@ export const makeDarkChonkFlamegraphTheme = (
       // Preset colors
       FRAME_APPLICATION_COLOR: hexToColorChannels(theme.colors.blue400, 0.6),
       FRAME_SYSTEM_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
-      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.yellow200, 1),
-      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red300, 1),
+      DIFFERENTIAL_DECREASE: hexToColorChannels(theme.colors.blue400, 0.6),
+      DIFFERENTIAL_INCREASE: hexToColorChannels(theme.colors.red400, 0.4),
       SAMPLE_TICK_COLOR: hexToColorChannels(theme.colors.red400, 0.5),
 
       // Cursors and labels

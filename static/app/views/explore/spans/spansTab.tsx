@@ -1,8 +1,9 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -26,14 +27,16 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -100,6 +103,27 @@ export function SpansTabOnboarding({
   );
 }
 
+function useControlSectionExpanded() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const controlSectionExpanded = decodeScalar(location.query.toolbar);
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          toolbar: newControlSectionExpanded,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+}
+
 interface SpanTabProps {
   datePageFilterProps: PickableDays;
 }
@@ -108,7 +132,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
-  const [controlSectionExpanded, setControlSectionExpanded] = useState(true);
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
     <Fragment>
@@ -204,6 +228,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
+      replaceRawSearchKeys: ['span.description'],
     }),
     [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
@@ -347,7 +372,7 @@ function SpanTabContentSection({
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
-        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const dedupedYAxes = [visualize.yAxis];
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
           .filter(defined);
@@ -383,6 +408,16 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
+  const error = defined(timeseriesResult.error)
+    ? null // if the timeseries errors, we prefer to show that error in the chart
+    : queryType === 'samples'
+      ? spansTableResult.result.error
+      : queryType === 'traces'
+        ? tracesTableResult.result.error
+        : queryType === 'aggregate'
+          ? aggregatesTableResult.result.error
+          : null;
+
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -399,6 +434,13 @@ function SpanTabContentSection({
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+      {defined(error) && (
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {error.message}
+          </Alert>
+        </Alert.Container>
+      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}
@@ -445,7 +487,7 @@ const BodySearch = styled(Layout.Body)`
   border-bottom: 1px solid ${p => p.theme.border};
   padding-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding-bottom: ${space(2)};
   }
 `;
@@ -458,7 +500,7 @@ const BodyContent = styled('div')`
   flex-direction: column;
   padding: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: flex;
     flex-direction: row;
     padding: 0px;
@@ -470,7 +512,7 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: none;
     ${p =>
       p.expanded
@@ -495,7 +537,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
 
   padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     ${p =>
       p.expanded
         ? css`
@@ -511,7 +553,7 @@ const FilterSection = styled('div')`
   display: grid;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr;
   }
 `;
@@ -533,7 +575,7 @@ const ChevronButton = withChonk(
     margin-bottom: ${space(1)};
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: block;
     }
 
@@ -551,7 +593,7 @@ const ChevronButton = withChonk(
     display: none;
     margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 
@@ -567,7 +609,7 @@ const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};
   margin-bottom: 0px;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: ${space(1)};
     margin-bottom: 0px;
   }

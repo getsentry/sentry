@@ -31,7 +31,6 @@ export const PLATFORMCHOICES = platformOptions
   .flatMap(platformChoice => platformChoice.options)
   .map(option => [option.value, option.label]);
 
-// TODO(data categories): check if this should be updated with new categories or to parse from a const
 export const PRODUCTCHOICES = [
   ['errors', 'Errors'],
   ['spans', 'Spans'],

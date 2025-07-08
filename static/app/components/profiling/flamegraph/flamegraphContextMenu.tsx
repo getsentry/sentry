@@ -5,7 +5,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
@@ -609,7 +609,7 @@ function ProfileIdsSubMenu(props: {
         }}
       >
         <FullWidthFlex justify="space-between" align="center">
-          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)}</Flex.Item>
+          <div>{t('Appears in %s profiles', props.profileIds.length)}</div>
           <IconChevron direction="right" size="xs" />
         </FullWidthFlex>
       </ProfilingContextMenuItemButton>

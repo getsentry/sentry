@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import uuid
 from datetime import datetime, timedelta
+from unittest import mock
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
@@ -22,6 +23,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import (
+    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -38,7 +40,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import redis
 
 pytestmark = [requires_kafka]
@@ -471,7 +473,7 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.DISABLED,
@@ -480,7 +482,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_manual(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.MANUAL,
+            UptimeMonitorMode.MANUAL,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
@@ -489,7 +491,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_auto_young(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.FAILED,
             timezone.now() - timedelta(days=4),
             ObjectStatus.ACTIVE,
@@ -498,16 +500,37 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
     def test_auto_not_failed(self):
         self.run_test(
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             UptimeStatus.OK,
             timezone.now() - timedelta(days=8),
             ObjectStatus.ACTIVE,
             UptimeStatus.OK,
         )
 
+    def test_handle_disable_detector_exceptions(self):
+        self.create_project_uptime_subscription(
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+            uptime_status=UptimeStatus.FAILED,
+            uptime_status_update_date=timezone.now() - timedelta(days=8),
+        )
+
+        with (
+            self.tasks(),
+            mock.patch(
+                "sentry.uptime.subscriptions.subscriptions.get_project_subscription",
+                side_effect=ProjectUptimeSubscription.DoesNotExist,
+            ),
+            mock.patch(
+                "sentry.uptime.subscriptions.tasks.logger",
+            ) as logger,
+        ):
+            # Does not raise
+            broken_monitor_checker()
+            logger.exception.assert_called_once()
+
     def run_test(
         self,
-        mode: ProjectUptimeSubscriptionMode,
+        mode: UptimeMonitorMode,
         uptime_status: UptimeStatus,
         update_date: datetime,
         expected_status: int,

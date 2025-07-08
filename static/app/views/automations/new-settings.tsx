@@ -1,14 +1,12 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {flattie} from 'flattie';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import EditableText from 'sentry/components/editableText';
-import FormField from 'sentry/components/forms/formField';
 import FormModel from 'sentry/components/forms/model';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
@@ -20,14 +18,22 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import {getNewAutomationData} from 'sentry/views/automations/components/automationFormData';
+import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -51,38 +57,53 @@ function AutomationBreadcrumbs() {
   );
 }
 
-function EditableAutomationName() {
-  return (
-    <FormField name="name" inline={false} flexibleControlStateSize stacked>
-      {({onChange, value}) => (
-        <EditableText
-          isDisabled={false}
-          value={value || ''}
-          onChange={newValue => {
-            onChange(newValue, {
-              target: {
-                value: newValue,
-              },
-            });
-          }}
-          errorMessage={t('Please set a name for your automation.')}
-          placeholder={t('New Automation')}
-        />
-      )}
-    </FormField>
-  );
-}
-
-const initialData = {...flattie(initialAutomationBuilderState), frequency: '1440'};
+const initialData = {
+  environment: null,
+  frequency: 1440,
+};
 
 export default function AutomationNewSettings() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
 
+  const initialConnectedIds = useMemo(() => {
+    const connectedIdsQuery = location.query.connectedIds as
+      | string
+      | string[]
+      | undefined;
+    if (!connectedIdsQuery) {
+      return [];
+    }
+    const connectedIds = Array.isArray(connectedIdsQuery)
+      ? connectedIdsQuery
+      : [connectedIdsQuery];
+    return connectedIds;
+  }, [location.query.connectedIds]);
+
+  const {mutateAsync: createAutomation} = useCreateAutomation();
+
+  const handleSubmit = useCallback<OnSubmitCallback>(
+    async (data, _, __, ___, ____) => {
+      // TODO: add form validation
+      const automation = await createAutomation(
+        getNewAutomationData(data as AutomationFormData, state)
+      );
+      navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+    },
+    [createAutomation, state, navigate, organization.slug]
+  );
+
   return (
-    <FullHeightForm hideFooter initialData={initialData}>
+    <FullHeightForm
+      hideFooter
+      initialData={{...initialData, detectorIds: initialConnectedIds}}
+      onSubmit={handleSubmit}
+      model={model}
+    >
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
@@ -110,7 +131,9 @@ export default function AutomationNewSettings() {
           >
             {t('Back')}
           </LinkButton>
-          <Button priority="primary">{t('Create Automation')}</Button>
+          <Button priority="primary" type="submit">
+            {t('Create Automation')}
+          </Button>
         </Flex>
       </StickyFooter>
     </FullHeightForm>

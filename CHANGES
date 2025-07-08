@@ -1,3 +1,67 @@
+25.6.2
+------
+
+### Various fixes & improvements
+
+- feat(feedback): enable feedback category option for org stats page (#94649) by @aliu39
+- fix(anomaly detection): turn processing back on for dynamic rules (#94652) by @mifu67
+- chore(sentry apps): Add SLO for updating servicehooks (#94489) by @Christinarlong
+- feat(prevent): Initial RepoTokenTable (#94381) by @ajay-sentry
+- feat(aci): automation edit scaffolding (#94595) by @ameliahsu
+- feat(replay): add feedback to LLM context (#94315) by @michellewzhang
+- chore(opsgenie): instrument opsgenie installation slos (#94587) by @Christinarlong
+- chore(detectors): Add google API filtering for Consecutive HTTP detector  (#94634) by @roggenkemper
+- chore(launchpad): add dev check to skip ff logic on artifact upload path (#94638) by @NicoHinderling
+- profiling: allow session expanding (#94633) by @JonasBa
+- feat(aci): Add uptime detector form (#94617) by @malwilley
+- feat(preprod) Add file id for install file (#94642) by @noahsmartin
+- fix(ui): Silence additional AbortErrors (#94644) by @scttcper
+- fix(reports): Significantly increase the schedule_organizations deadline (#94596) by @kcons
+- feat(aci): add subfilters list to remaining frequency conditions (#94621) by @ameliahsu
+- :wrench: chore: add ecosystem to codeowners for sentry apps utils (#94620) by @iamrajjoshi
+- fix(ui): Throw error if response is undefined in api client (#94631) by @scttcper
+- :wrench: chore: fix and add a couple open pr comment logs (#94614) by @iamrajjoshi
+- :wrench: chore: sample sentry app client error slo logs (#94618) by @iamrajjoshi
+- feat(launchpad): Create size analysis upload (assemble) endpoint (#94353) by @NicoHinderling
+- fix(billing): update conditions for orgStatsBanner to appear (#94493) by @brendanhsentry
+- docs(replay): Iterate on bulk delete blueprint (#94494) by @ryan953
+- ref(issues): add rate limits to tagkey details (#94626) by @JoshFerge
+- feat(simpleTable): Allow `<SimpleTable>` to accept any Div props (#94619) by @ryan953
+
+_Plus 519 more_
+
+25.6.1
+------
+
+### Various fixes & improvements
+
+- feat(issues): Add hex parameterization experiment (#93970) by @mrduncan
+- feat(feedback): Split feedback tags into tags+context with collapsable sections (#93397) by @ryan953
+- ref(grouping): Small changes to grouping tests (#93960) by @lobsterkatie
+- ref(replay): adjust timestamps in replay ai summary UI (#93992) by @michellewzhang
+- fix(replay): Add handling for null max_segment_id (#93989) by @cmanallen
+- chore(issues): Remove traceparent experiment (#93942) by @mrduncan
+- ref(trace-items): Pull useGetTraceItemAttributeKeys into hook (#93739) by @Zylphrex
+- ref(explore): Visualize should only have 1 y axis (#93938) by @Zylphrex
+- feat(preprod): Add analytics to the assemble endpoint (#93871) by @trevor-e
+- feat(trace-eap-waterfall): Hiding some attrs (#93964) by @Abdkhan14
+- fix(aci): Fix accidental over-logging (#93971) by @kcons
+- feat(detectors): Add noise config to DB Query Injection Issue Type (#93943) by @roggenkemper
+- ref(dashboards): add a new table widget visualization component (#93902) by @lzhao-sentry
+- ref(issues): Remove redundant Type row from Event Grouping Information table (#93892) by @nora-shap
+- fix(taskworker) Extend deadlines for check_auth (#93961) by @markstory
+- flex: cleanup Flex* custom styling in favor of Flex primitive (#93809) by @JonasBa
+- ✨ feat(scm): add environment infomation to suspect commit prs (#93025) by @iamrajjoshi
+- ref(feedback): better summarization prompt (#93962) by @vishnupsatish
+- ref(replay): include error context in breadcrumb summary (#93669) by @michellewzhang
+- chore(issues): Remove regex parameterization experiment (#93958) by @mrduncan
+- fix(aci): Ensure slow conditions are consistent (#93895) by @kcons
+- feat(feedback): frontend to display summary (#93567) by @vishnupsatish
+- feat(devservices): Add tracing mode (#93759) by @hubertdeng123
+- ref(profiling): Move flamegraphFrameFilter types around for tsgo (#93948) by @scttcper
+
+_Plus 105 more_
+
 25.6.0
 ------
 

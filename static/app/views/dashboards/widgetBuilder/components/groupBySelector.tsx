@@ -29,7 +29,7 @@ function WidgetBuilderGroupBySelector({
   let tags: TagCollection = useTags();
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
-  if (state.dataset === WidgetType.SPANS) {
+  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
 

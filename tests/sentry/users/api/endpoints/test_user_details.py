@@ -48,7 +48,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
         assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["prefersChonkUI"]
-        assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -122,7 +121,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersNextjsInsightsOverview": True,
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
-                "quickStartDisplay": {self.organization.id: 1},
+                "prefersAgentsInsightsModule": True,
             },
         )
 
@@ -145,14 +144,9 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
-                str(self.organization.id)
-            )
-            == 1
-        )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
+        assert UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
 
     def test_saving_changes_value(self):
         """
@@ -241,63 +235,30 @@ class UserDetailsUpdateTest(UserDetailsTest):
         )
         assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
 
-    def test_saving_quick_start_display_option(self):
-        org1_id = str(self.organization.id)
-        org2_id = str(self.create_organization().id)
-
-        # 1 = Shown once (on the second visit)
+    def test_saving_agents_insights_module_option(self):
         self.get_success_response(
             "me",
-            options={"quickStartDisplay": {org1_id: 1, org2_id: 2}},
+            options={"prefersAgentsInsightsModule": True},
         )
         assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
-            == 1
+            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
+            is True
         )
 
-        # 2 = Hidden automatically after the second visit
-        self.get_success_response("me", options={"quickStartDisplay": {org1_id: 2}})
+        self.get_success_response(
+            "me",
+            options={"prefersAgentsInsightsModule": False},
+        )
         assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
-            == 2
+            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
+            is False
         )
 
-        # Validate that existing other orgs entries are not affected
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org2_id)
-            == 2
-        )
-
-        # Invalid values
-        self.get_error_response(
+    def test_default_agents_insights_module_option_is_true(self):
+        resp = self.get_success_response(
             "me",
-            options={"quickStartDisplay": {org1_id: None}},
-            status_code=400,
         )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: -1}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: 0}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: 3}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: "invalid"}},
-            status_code=400,
-        )
+        assert resp.data["options"]["prefersAgentsInsightsModule"] is True
 
 
 @control_silo_test

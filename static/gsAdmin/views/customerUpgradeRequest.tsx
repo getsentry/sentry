@@ -203,7 +203,7 @@ function CustomerUpgradeRequest() {
 }
 
 const Divider = styled(PanelItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};

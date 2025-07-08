@@ -301,7 +301,7 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }
 `;

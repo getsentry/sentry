@@ -108,19 +108,19 @@ export default function CustomerDetails() {
     refetch: refetchSubscription,
     isError: isErrorSubscription,
     isPending: isPendingSubscription,
-  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: Infinity});
   const {
     data: organization,
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
-  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: Infinity});
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
-  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: 0});
+  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
 
   useEffect(() => {
     if (location.query.dataType) {
@@ -137,7 +137,8 @@ export default function CustomerDetails() {
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
       addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(variables)}.`
+        data.message ??
+          `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },

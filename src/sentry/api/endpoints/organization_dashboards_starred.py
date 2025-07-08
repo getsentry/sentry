@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import ParseError
@@ -46,6 +47,15 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
             organization=organization, user_id=request.user.id
         ).select_related("dashboard")
 
+        if favorites.filter(position__isnull=True).exists():
+            # Commit the order of the dashboards of this current response if there are any
+            # that don't have a position assigned
+            DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+                organization=organization,
+                user_id=request.user.id,
+                new_dashboard_positions=[favorite.dashboard.id for favorite in favorites],
+            )
+
         def data_fn(offset, limit):
             return [favorite.dashboard for favorite in favorites[offset : offset + limit]]
 
@@ -91,7 +101,8 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
                     user_id=request.user.id,
                     new_dashboard_positions=dashboard_ids,
                 )
-        except (IntegrityError, ValueError):
+        except (IntegrityError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
             raise ParseError("Mismatch between existing and provided starred dashboards.")
 
         return Response(status=status.HTTP_204_NO_CONTENT)

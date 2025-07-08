@@ -1,5 +1,7 @@
 from unittest import mock
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.api.serializers import serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -13,6 +15,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -233,9 +236,15 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # Query for multiple types.
         response2 = self.get_success_response(
             self.organization.slug,
-            qs_params={"project": self.project.id, "query": "type:error type:metric_issue"},
+            qs_params={"project": self.project.id, "query": "type:[error, metric_issue]"},
         )
         assert {d["name"] for d in response2.data} == {detector.name, detector2.name}
+
+        response3 = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!type:metric_issue"},
+        )
+        assert {d["name"] for d in response3.data} == {detector2.name}
 
     def test_general_query(self):
         detector = self.create_detector(
@@ -267,6 +276,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
@@ -366,6 +376,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["Project not found"]}
 
+    def test_without_feature_flag(self):
+        with self.feature({"organizations:incidents": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.valid_data,
+                status_code=404,
+            )
+        assert response.data == {
+            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+        }
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
@@ -454,3 +475,89 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
 
         assert query_sub.snuba_query.query == ""
+
+    def test_valid_creation_with_owner(self):
+        # Test data with owner field
+        data_with_owner = {
+            **self.valid_data,
+            "owner": self.user.get_actor_identifier(),
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data_with_owner,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify owner is set correctly
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+        assert detector.owner is not None
+        assert detector.owner.identifier == self.user.get_actor_identifier()
+
+        # Verify serialized response includes owner
+        assert response.data["owner"] == self.user.get_actor_identifier()
+
+    def test_valid_creation_with_team_owner(self):
+        # Create a team for testing
+        team = self.create_team(organization=self.organization)
+
+        # Test data with team owner
+        data_with_team_owner = {
+            **self.valid_data,
+            "owner": f"team:{team.id}",
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data_with_team_owner,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+
+        # Verify team owner is set correctly
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id == team.id
+        assert detector.owner is not None
+        assert detector.owner.identifier == f"team:{team.id}"
+
+        # Verify serialized response includes team owner
+        assert response.data["owner"] == f"team:{team.id}"
+
+    def test_invalid_owner(self):
+        # Test with invalid owner format
+        data_with_invalid_owner = {
+            **self.valid_data,
+            "owner": "invalid:owner:format",
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data_with_invalid_owner,
+            status_code=400,
+        )
+        assert "owner" in response.data
+
+    def test_owner_not_in_organization(self):
+        # Create a user in another organization
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+
+        # Test with owner not in current organization
+        data_with_invalid_owner = {
+            **self.valid_data,
+            "owner": other_user.get_actor_identifier(),
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data_with_invalid_owner,
+            status_code=400,
+        )
+        assert "owner" in response.data

@@ -25,7 +25,7 @@ function Onboarding({actions}: Props) {
 }
 
 const AlertsImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -37,12 +37,12 @@ const AlertsImage = styled('img')`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     transform: translateX(-50%);
     width: 300px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     transform: translateX(-65%);
     width: 420px;
   }

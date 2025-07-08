@@ -25,6 +25,7 @@ import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
+import {LogsConfig} from './logs';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
@@ -132,7 +133,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     widget?: Widget,
     organization?: Organization
-  ) => ReturnType<typeof getFieldRenderer> | null;
+  ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column
    * names to more desirable values in tables.
@@ -236,7 +237,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
       ? typeof ErrorsConfig
       : T extends WidgetType.TRANSACTIONS
         ? typeof TransactionsConfig
-        : typeof ErrorsAndTransactionsConfig;
+        : T extends WidgetType.LOGS
+          ? typeof LogsConfig
+          : T extends WidgetType.SPANS
+            ? typeof SpansConfig
+            : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -245,7 +250,9 @@ export function getDatasetConfig(
   | typeof ReleasesConfig
   | typeof ErrorsAndTransactionsConfig
   | typeof ErrorsConfig
-  | typeof TransactionsConfig {
+  | typeof TransactionsConfig
+  | typeof LogsConfig
+  | typeof SpansConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -255,6 +262,8 @@ export function getDatasetConfig(
       return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
+    case WidgetType.LOGS:
+      return LogsConfig;
     case WidgetType.SPANS:
       return SpansConfig;
     case WidgetType.DISCOVER:

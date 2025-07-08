@@ -107,13 +107,13 @@ const _SlideOverPanel = styled(motion.div, {
 
   z-index: ${p => p.theme.zIndex.modal - 1};
 
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
   text-align: left;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
       p.slidePosition === 'bottom'
         ? css`

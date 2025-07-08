@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -7,14 +7,13 @@ import {Flex} from 'sentry/components/core/layout';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
 import useDrawer from 'sentry/components/globalDrawer';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -23,41 +22,30 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 const FREQUENCY_OPTIONS = [
-  {value: '5', label: t('5 minutes')},
-  {value: '10', label: t('10 minutes')},
-  {value: '30', label: t('30 minutes')},
-  {value: '60', label: t('60 minutes')},
-  {value: '180', label: t('3 hours')},
-  {value: '720', label: t('12 hours')},
-  {value: '1440', label: t('24 hours')},
-  {value: '10080', label: t('1 week')},
-  {value: '43200', label: t('30 days')},
+  {value: 5, label: t('5 minutes')},
+  {value: 10, label: t('10 minutes')},
+  {value: 30, label: t('30 minutes')},
+  {value: 60, label: t('60 minutes')},
+  {value: 180, label: t('3 hours')},
+  {value: 720, label: t('12 hours')},
+  {value: 1440, label: t('24 hours')},
+  {value: 10080, label: t('1 week')},
+  {value: 43200, label: t('30 days')},
 ];
 
 export default function AutomationForm({model}: {model: FormModel}) {
-  const location = useLocation();
   const organization = useOrganization();
-  const title = useDocumentTitle();
-
-  useEffect(() => {
-    model.setValue('name', title);
-  }, [title, model]);
 
   const {data: monitors = []} = useDetectorsQuery();
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const connectedIdsQuery = location.query.connectedIds as
-      | string
-      | string[]
-      | undefined;
-    if (!connectedIdsQuery) {
-      return new Set<string>();
-    }
-    const connectedIdsArray = Array.isArray(connectedIdsQuery)
-      ? connectedIdsQuery
-      : [connectedIdsQuery];
-    return new Set(connectedIdsArray);
-  });
+  const initialConnectedIds = useFormField('detectorIds');
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(
+    initialConnectedIds ? new Set(initialConnectedIds) : new Set<string>()
+  );
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
+  const updateConnectedIds = (ids: Set<string>) => {
+    setConnectedIds(ids);
+    model.setValue('detectorIds', Array.from(ids));
+  };
 
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
@@ -68,7 +56,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
           <EditConnectedMonitorsDrawer
             initialIds={connectedIds}
             onSave={ids => {
-              setConnectedIds(ids);
+              updateConnectedIds(ids);
               closeDrawer();
             }}
           />
@@ -82,16 +70,16 @@ export default function AutomationForm({model}: {model: FormModel}) {
   };
 
   const [environment, setEnvironment] = useState<string>('');
+  const updateEnvironment = (env: string) => {
+    setEnvironment(env);
+    model.setValue('environment', env || null);
+  };
 
   return (
     <Flex direction="column" gap={space(1.5)}>
       <Card>
         <Heading>{t('Connect Monitors')}</Heading>
-        <ConnectedMonitorsList
-          monitors={connectedMonitors}
-          connectedIds={connectedIds}
-          setConnectedIds={setConnectedIds}
-        />
+        <ConnectedMonitorsList monitors={connectedMonitors} />
         <ButtonWrapper justify="space-between">
           <LinkButton
             icon={<IconAdd />}
@@ -113,7 +101,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             )}
           </Description>
         </Flex>
-        <EnvironmentSelector value={environment} onChange={setEnvironment} />
+        <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
         <Heading>{t('Automation Builder')}</Heading>
@@ -122,6 +110,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       <Card>
         <Heading>{t('Action Interval')}</Heading>
         <EmbeddedSelectField
+          required
           name="frequency"
           inline={false}
           clearable={false}
@@ -134,12 +123,12 @@ export default function AutomationForm({model}: {model: FormModel}) {
 }
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 
 const Description = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
   padding: 0;
@@ -153,6 +142,6 @@ const ButtonWrapper = styled(Flex)`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;

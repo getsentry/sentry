@@ -318,7 +318,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(0.5)};
 `;
 
@@ -376,7 +376,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   height: 100%;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
   button {
@@ -385,7 +385,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
 
     color: ${p => p.theme.textColor};
@@ -395,7 +395,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -409,7 +409,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 
   &.active button {
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;

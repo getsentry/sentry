@@ -2,10 +2,12 @@ import styled from '@emotion/styled';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import AutomationBuilderSelectField, {
+import {
+  AutomationBuilderSelect,
   selectControlStyles,
-} from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
+} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -73,13 +75,22 @@ export function EmailNode() {
 function TargetTypeField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.config.target_type`}
       value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(value: string) =>
-        onUpdate({config: {target_type: value, target_identifier: undefined}})
-      }
+      onChange={(option: SelectValue<ActionTarget>) => {
+        onUpdate({
+          config: {
+            ...action.config,
+            target_type: option.value,
+            target_identifier: undefined,
+          },
+          ...(option.value === ActionTarget.ISSUE_OWNERS
+            ? {data: {fallthroughType: FallthroughChoiceType.ACTIVE_MEMBERS}}
+            : {}),
+        });
+      }}
     />
   );
 }
@@ -94,9 +105,12 @@ function IdentifierField() {
         <TeamSelector
           name={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
-          onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}})
-          }
+          onChange={(value: any) => {
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            });
+          }}
           useId
           styles={selectControlStyles}
         />
@@ -111,26 +125,31 @@ function IdentifierField() {
           key={`${actionId}.config.target_identifier`}
           value={action.config.target_identifier}
           onChange={(value: any) =>
-            onUpdate({config: {target_identifier: value.actor.id}})
+            onUpdate({
+              config: {...action.config, target_identifier: value.actor.id},
+              data: {},
+            })
           }
           styles={selectControlStyles}
         />
       </SelectWrapper>
     );
   }
-  return tct('and, if none found, notify [fallThrough]', {
-    fallThrough: <FallthroughField />,
+  return tct('and, if none found, notify [fallthrough]', {
+    fallthrough: <FallthroughField />,
   });
 }
 
 function FallthroughField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderSelectField
+    <AutomationBuilderSelect
       name={`${actionId}.data.fallthroughType`}
       value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
-      onChange={(value: string) => onUpdate({data: {fallthroughType: value}})}
+      onChange={(option: SelectValue<string>) =>
+        onUpdate({data: {fallthroughType: option.value}})
+      }
     />
   );
 }

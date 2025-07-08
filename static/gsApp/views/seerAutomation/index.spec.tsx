@@ -8,6 +8,30 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SeerAutomationRoot from './index';
 
 describe('SeerAutomation', function () {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {
+        repositories: [],
+      },
+    });
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
@@ -17,6 +41,7 @@ describe('SeerAutomation', function () {
   it('can update the org default autofix automation tuning setting', async function () {
     const organization = OrganizationFixture({
       features: ['trigger-autofix-on-issue-summary'],
+      defaultSeerScannerAutomation: true,
     });
     const project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);

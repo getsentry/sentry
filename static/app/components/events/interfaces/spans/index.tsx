@@ -166,7 +166,7 @@ const Container = styled('div')<{hasErrors: boolean}>`
     `
   padding: ${space(2)} 0;
 
-  @media (min-width: ${p.theme.breakpoints.small}) {
+  @media (min-width: ${p.theme.breakpoints.sm}) {
     padding: ${space(3)} 0 0 0;
   }
   `}
