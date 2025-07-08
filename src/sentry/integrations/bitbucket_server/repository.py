@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from django.core.cache import cache
 from django.urls import reverse
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
@@ -12,7 +13,7 @@ from sentry.utils.http import absolute_uri
 
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket Server"
-    repo_provider = "bitbucket_server"
+    repo_provider = IntegrationProviderSlug.BITBUCKET_SERVER.value
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)

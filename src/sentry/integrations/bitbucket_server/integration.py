@@ -29,6 +29,7 @@ from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -261,7 +262,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     @property
     def integration_name(self) -> str:
-        return "bitbucket_server"
+        return IntegrationProviderSlug.BITBUCKET_SERVER.value
 
     def get_client(self) -> BitbucketServerClient:
         try:
@@ -314,7 +315,10 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     def get_unmigratable_repositories(self):
         repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["bitbucket_server"]
+            organization_id=self.organization_id,
+            providers=[
+                IntegrationProviderSlug.BITBUCKET_SERVER.value,
+            ],
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
@@ -391,7 +395,10 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
-            providers=["bitbucket_server", "integrations:bitbucket_server"],
+            providers=[
+                IntegrationProviderSlug.BITBUCKET_SERVER.value,
+                f"integrations:{IntegrationProviderSlug.BITBUCKET_SERVER.value}",
+            ],
             has_integration=False,
         )
 
