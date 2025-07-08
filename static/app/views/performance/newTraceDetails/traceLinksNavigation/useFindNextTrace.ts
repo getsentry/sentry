@@ -5,10 +5,9 @@ import type {EventTransaction} from 'sentry/types/event';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/insights/types';
-import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
+import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
 
@@ -85,10 +84,7 @@ function useTraceRootEvents(
   traceData: Array<{eventId?: string; projectSlug?: string}> | null
 ) {
   const organization = useOrganization();
-  const [storedTraceFormat] = useSyncedLocalStorageState(
-    TRACE_FORMAT_PREFERENCE_KEY,
-    'non-eap'
-  );
+  const isEAP = useIsEAPTraceEnabled();
 
   const queryKeys = useMemo(() => {
     if (!traceData) {
@@ -107,7 +103,6 @@ function useTraceRootEvents(
   return useApiQueries<EventTransaction>(queryKeys, {
     // 10 minutes
     staleTime: 1000 * 60 * 10,
-    enabled:
-      Array.isArray(traceData) && traceData.length > 0 && storedTraceFormat === 'non-eap',
+    enabled: Array.isArray(traceData) && traceData.length > 0 && !isEAP,
   });
 }
