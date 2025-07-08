@@ -293,8 +293,8 @@ def test_process_message():
         },
         filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
         filename="30/4/1/42",
-        recording_size_uncompressed=45,
-        recording_size=47,
+        recording_size_uncompressed=len(original_payload),
+        recording_size=len(compressed_payload),
         replay_event={},
         video_size=None,
     )
