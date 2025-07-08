@@ -21,11 +21,16 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         if query and "type" not in query.keys():
             query["type"] = "string"
 
+        if query and "sampling" not in query.keys():
+            query["sampling"] = "HIGHEST_ACCURACY"
+
         with self.feature(features):
             response = self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                    },
                 ),
                 query,
                 format="json",
