@@ -185,33 +185,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       type: meta.fields[key],
     }));
 
-  const TestFunction = (columnIndex: number, nextColumn: TabularColumn) => {
-    widths[columnIndex] = defined(nextColumn.width)
-      ? nextColumn.width
-      : COL_WIDTH_UNDEFINED;
-    columnOrder[columnIndex] = {
-      ...nextColumn,
-      width: widths[columnIndex],
-    };
-
-    if (onResizeColumn) {
-      onResizeColumn(columnOrder);
-      return;
-    }
-
-    // Default is to fallback to location query
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          width: widths,
-        },
-      },
-      {replace: true}
-    );
-  };
-
   return (
     <GridEditable
       data={data}
@@ -269,7 +242,32 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
         },
-        onResizeColumn: TestFunction,
+        onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
+          widths[columnIndex] = defined(nextColumn.width)
+            ? nextColumn.width
+            : COL_WIDTH_UNDEFINED;
+          columnOrder[columnIndex] = {
+            ...nextColumn,
+            width: widths[columnIndex],
+          };
+
+          if (onResizeColumn) {
+            onResizeColumn(columnOrder);
+            return;
+          }
+
+          // Default is to fallback to location query
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                width: widths,
+              },
+            },
+            {replace: true}
+          );
+        },
       }}
       stickyHeader={scrollable}
       scrollable={scrollable}
