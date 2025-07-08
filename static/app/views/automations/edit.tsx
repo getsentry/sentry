@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,6 +21,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
@@ -30,9 +32,13 @@ import {
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
-import {getAutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getAutomationFormData,
+  getNewAutomationData,
+} from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
-import {useAutomationQuery} from 'sentry/views/automations/hooks';
+import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -61,8 +67,10 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
 }
 
 export default function AutomationEdit() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams<{automationId: string}>();
+  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   useWorkflowEngineFeatureGate({redirect: true});
 
@@ -105,6 +113,19 @@ export default function AutomationEdit() {
     });
   }, []);
 
+  const handleFormSubmit = useCallback<OnSubmitCallback>(
+    async (data, _, __, ___, ____) => {
+      const formData = getNewAutomationData(data as AutomationFormData, state);
+      const updatedData = {
+        automationId: params.automationId,
+        ...formData,
+      };
+      const updatedAutomation = await updateAutomation(updatedData);
+      navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+    },
+    [params.automationId, organization.slug, navigate, updateAutomation, state]
+  );
+
   if (isPending && !initialData) {
     return <LoadingIndicator />;
   }
@@ -114,7 +135,12 @@ export default function AutomationEdit() {
   }
 
   return (
-    <FullHeightForm hideFooter model={model} initialData={initialData}>
+    <FullHeightForm
+      hideFooter
+      model={model}
+      initialData={initialData}
+      onSubmit={handleFormSubmit}
+    >
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
