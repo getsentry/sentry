@@ -5,6 +5,8 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+discover: 0001_move_discover_models
+
 explore: 0005_explore_django_json_field
 
 feedback: 0001_squashed_0004_index_together
@@ -25,7 +27,7 @@ preprod: 0010_actual_drop_preprod_artifact_analysis_file_id_col
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0942_dashboard_remove_extra_user_org_position_constraint
+sentry: 0943_move_discover_models
 
 social_auth: 0003_social_auth_json_field
 
