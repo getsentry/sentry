@@ -87,7 +87,10 @@ export const Text = styled((props: TextProps) => {
   line-height: ${p => getLineHeight(p.density)};
   text-decoration: ${p => getTextDecoration(p)};
 
-  color: ${p => p.theme.tokens.content[p.variant ?? 'primary']};
+  color: ${p =>
+    p.variant
+      ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
+      : p.theme.tokens.content.primary};
   text-align: ${p => p.align ?? 'left'};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
@@ -130,7 +133,7 @@ export const Heading = styled((props: HeadingProps) => {
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
-  font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
+  font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
   font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
@@ -179,19 +182,6 @@ function getLineHeight(density: TextProps['density']) {
 }
 
 function getFontSize(size: TextProps['size'], theme: Theme) {
-  switch (size) {
-    case 'xs':
-      return theme.fontSize.xs;
-    case 'sm':
-      return theme.fontSize.sm;
-    case 'lg':
-      return theme.fontSize.lg;
-    case 'xl':
-      return theme.fontSize.xl;
-    case '2xl':
-      return theme.fontSize['2xl'];
-    case 'md':
-    default:
-      return theme.fontSize.md;
-  }
+  if (!size) return theme.fontSize.md;
+  return theme.fontSize[size];
 }
