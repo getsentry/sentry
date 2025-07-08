@@ -139,6 +139,6 @@ class SnubaTest(TestCase, SnubaTestCase):
                 "score": 0.016181914331041776,
                 "baseline_percent": 0,
                 "distribution": {"baseline": {"false": 2}, "outliers": {"false": 1}},
-                "is_filtered": False,
+                "is_filtered": True,
             },
         ]

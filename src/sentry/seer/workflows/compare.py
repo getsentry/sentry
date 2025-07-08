@@ -2,7 +2,14 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, Sequence
 from typing import TypeVar
 
-from sentry.seer.math import boxcox_transform, entropy, kl_divergence, laplace_smooth, rrf_score
+from sentry.seer.math import (
+    boxcox_transform,
+    calculate_z_scores,
+    entropy,
+    kl_divergence,
+    laplace_smooth,
+    rrf_score,
+)
 
 T = TypeVar("T")
 
@@ -232,14 +239,13 @@ def keyed_rrf_score_with_filter(
 
     normalized_entropy_scores, _ = boxcox_transform(entropy_scores)
     normalized_kl_scores, _ = boxcox_transform(kl_scores)
+    entropy_z_scores = calculate_z_scores(normalized_entropy_scores)
+    kl_z_scores = calculate_z_scores(normalized_kl_scores)
 
-    filtered_keys = [False] * len(keys)
-
-    for i, (key, normalized_entropy_score, normalized_kl_score) in enumerate(
-        zip(keys, normalized_entropy_scores, normalized_kl_scores)
-    ):
-        if normalized_entropy_score > z_threshold or normalized_kl_score > z_threshold:
-            filtered_keys[i] = True
+    filtered_keys = [
+        entropy_z_score <= z_threshold or kl_z_score <= z_threshold
+        for entropy_z_score, kl_z_score in zip(entropy_z_scores, kl_z_scores)
+    ]
 
     return sorted(
         zip(

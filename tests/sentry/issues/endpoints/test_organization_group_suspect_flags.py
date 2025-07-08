@@ -83,7 +83,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
                             "false": 1,
                         },
                     },
-                    "is_filtered": False,
+                    "is_filtered": True,
                 },
             ]
         }

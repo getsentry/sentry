@@ -258,13 +258,13 @@ def test_keyed_rrf_score_with_filter_threshold_behavior():
     ]
     outliers = [("key", "true", 10), ("other", "true", 100), ("other", "false", 500)]
 
-    # With high threshold, no keys should be filtered
+    # With low threshold, no keys should be filtered
     high_threshold_scores = keyed_rrf_score_with_filter(
         baseline,
         outliers,
         total_baseline=sum(i[2] for i in baseline),
         total_outliers=sum(i[2] for i in outliers),
-        z_threshold=10.0,
+        z_threshold=-10.0,
     )
 
     for key, score, filtered in high_threshold_scores:
