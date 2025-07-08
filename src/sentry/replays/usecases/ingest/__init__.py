@@ -33,6 +33,10 @@ logger = logging.getLogger("sentry.replays")
 logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
+class HaltIngestion(Exception):
+    pass
+
+
 class EventContext(TypedDict):
     key_id: int | None
     org_id: int
@@ -120,7 +124,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
     try:
         project = Project.objects.get_from_cache(id=recording.context["project_id"])
         assert isinstance(project, Project)
-    except Project.DoesNotExist:
+    except Project.DoesNotExist as exc:
         logger.warning(
             "Recording segment was received for a project that does not exist.",
             extra={
@@ -128,7 +132,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
                 "replay_id": recording.context["replay_id"],
             },
         )
-        return None
+        raise HaltIngestion("Could not find project.") from exc
 
     # Write to billing consumer if its a billable event.
     if recording.context["segment_id"] == 0:

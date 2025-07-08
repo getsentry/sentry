@@ -19,6 +19,7 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
     Event,
+    HaltIngestion,
     ProcessedEvent,
     commit_recording_message,
     process_recording_event,
@@ -184,6 +185,8 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
                 return None
             except GCS_RETRYABLE_ERRORS:
                 raise
+            except HaltIngestion:
+                return None
             except Exception:
                 logger.exception("Failed to commit replay recording message.")
                 return None
