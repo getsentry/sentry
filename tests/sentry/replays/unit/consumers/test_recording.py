@@ -15,6 +15,7 @@ from sentry.replays.consumers.recording import (
 )
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
+from sentry.replays.usecases.pack import pack
 from sentry.utils import json
 
 
@@ -251,8 +252,8 @@ def test_parse_recording_event_invalid_headers():
         parse_recording_event(msgpack.packb(message))
 
 
-def test_process_message():
-    """Test "process_message" function."""
+def test_process_message_compressed():
+    """Test "process_message" function with compressed payload."""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
     compressed_payload = zlib.compress(original_payload)
@@ -301,7 +302,207 @@ def test_process_message():
     assert expected == processed_result
 
 
-def test_process_message_invalid():
-    """Test "process_message" function with invalid payload."""
+def test_process_message_uncompressed():
+    """Test "process_message" function with uncompressed payload."""
+    # Create real compressed data
+    original_payload = b'[{"type": "test", "data": "some event data"}]'
+    compressed_payload = zlib.compress(original_payload)
+
+    # Create real headers
+    segment_id = 42
+    headers = json.dumps({"segment_id": segment_id}).encode()
+    recording_payload = headers + b"\n" + original_payload
+
+    # Mock the recording data structure
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": recording_payload,
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    processed_result = process_message(message)
+
+    expected = ProcessedEvent(
+        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        context={
+            "key_id": 1,
+            "org_id": 3,
+            "project_id": 4,
+            "received": 2,
+            "replay_id": "1",
+            "retention_days": 30,
+            "segment_id": 42,
+        },
+        filedata=b"x\x9c\x8b\xaeV*\xa9,HU\xb2RP*I-.Q\xd2QPJI,I\x04\xf1\x8b\xf3sS\x15R\xcbR\xf3J\x14\xc0B\xb5\xb1\x00F\x9f\x0e\x8d",
+        filename="30/4/1/42",
+        recording_size_uncompressed=len(original_payload),
+        recording_size=len(compressed_payload),
+        replay_event={},
+        video_size=None,
+    )
+    assert expected == processed_result
+
+
+def test_process_message_compressed_with_video():
+    """Test "process_message" function with compressed payload and a video."""
+    # Create real compressed data
+    original_payload = b'[{"type": "test", "data": "some event data"}]'
+    compressed_payload = zlib.compress(original_payload)
+
+    # Create real headers
+    segment_id = 42
+    headers = json.dumps({"segment_id": segment_id}).encode()
+    recording_payload = headers + b"\n" + compressed_payload
+
+    # Mock the recording data structure
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": recording_payload,
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"hello",
+        "version": 0,
+    }
+
+    kafka_message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    processed_result = process_message(kafka_message)
+
+    expected = ProcessedEvent(
+        actions_event=ParsedEventMeta([], [], [], [], [], []),
+        context={
+            "key_id": 1,
+            "org_id": 3,
+            "project_id": 4,
+            "received": 2,
+            "replay_id": "1",
+            "retention_days": 30,
+            "segment_id": 42,
+        },
+        filedata=zlib.compress(pack(original_payload, message["replay_video"])),
+        filename="30/4/1/42",
+        recording_size_uncompressed=len(original_payload),
+        recording_size=len(compressed_payload),
+        replay_event={},
+        video_size=5,
+    )
+    assert expected == processed_result
+
+
+def test_process_message_invalid_message():
+    """Test "process_message" function with invalid message."""
     message = Value(KafkaPayload(key=None, value=b"", headers=[]), {})
+    assert process_message(message) == FilteredPayload()
+
+
+def test_process_message_invalid_recording_json():
+    """Test "process_message" function with invalid recording json."""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": json.dumps({"segment_id": 42}).encode() + b"\n" + b"t",
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    assert process_message(message) == FilteredPayload()
+
+
+def test_process_message_invalid_headers():
+    """Test "process_message" function with invalid headers."""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": json.dumps({"hello": "world"}).encode() + b"\n" + b"[]",
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    assert process_message(message) == FilteredPayload()
+
+
+def test_process_message_malformed_headers():
+    """Test "process_message" function with malformed headers."""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": b"hello, world!" + b"\n" + b"[]",
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    assert process_message(message) == FilteredPayload()
+
+
+def test_process_message_malformed_headers_invalid_unicode_codepoint():
+    """Test "process_message" function with malformed unicode codepoint in headers."""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": '{"segment_id":"\\ud83c"}\n'.encode("utf-16") + b"[]",
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
+    assert process_message(message) == FilteredPayload()
+
+
+def test_process_message_no_headers():
+    """Test "process_message" function with no headers."""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": b"[]",
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
     assert process_message(message) == FilteredPayload()
