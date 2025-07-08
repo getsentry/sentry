@@ -1,10 +1,21 @@
+import type {EventsStats} from 'sentry/types/organization';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import {
+  getDiscoverSeriesQueryOptions,
+  transformEventsStatsToSeries,
+} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
 import type {DetectorDatasetConfig} from './base';
 
-export const DetectorLogsConfig: DetectorDatasetConfig = {
+type LogsSeriesRepsonse = EventsStats;
+
+export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   defaultField: LogsConfig.defaultField,
   getAggregateOptions: LogsConfig.getTableFieldOptions,
   SearchBar: TraceSearchBar,
+  getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  transformSeriesQueryData: (data: LogsSeriesRepsonse, aggregate: string) => [
+    transformEventsStatsToSeries(data, aggregate),
+  ],
 };
