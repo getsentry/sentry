@@ -723,7 +723,7 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
 
     assert generate_rules(default_old_project) == [
         {
-            "condition": {},
+            "condition": {"inner": [], "op": "and"},
             "id": 1006,
             "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
             "type": "trace",
@@ -853,10 +853,11 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
     )
 
     rules = generate_rules(default_old_project)
-    # With 100% sample rate, minimum sample rate rule should not be included
-    assert len(rules) == 1
-    assert rules[0]["id"] == 1000
+    assert len(rules) == 2
+    assert rules[0]["id"] == 1006
     assert rules[0]["samplingValue"]["value"] == 1.0
+    assert rules[1]["id"] == 1000
+    assert rules[1]["samplingValue"]["value"] == 1.0
 
     _validate_rules(default_old_project)
 

@@ -13,7 +13,10 @@ def test_generate_minimum_sample_rate_rule(default_project):
         {
             "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
             "type": "trace",
-            "condition": {},
+            "condition": {
+                "inner": [],
+                "op": "and",
+            },
             "id": 1006,
         }
     ]
@@ -33,7 +36,10 @@ def test_generate_rules_with_different_sample_rates(default_project):
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
                 "type": "trace",
-                "condition": {},
+                "condition": {
+                    "inner": [],
+                    "op": "and",
+                },
                 "id": RESERVED_IDS[RuleType.MINIMUM_SAMPLE_RATE_RULE],
             }
         ]

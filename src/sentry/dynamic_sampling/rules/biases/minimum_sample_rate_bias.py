@@ -13,7 +13,10 @@ class MinimumSampleRateBias(Bias):
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
                 "type": "trace",
-                "condition": {},
+                "condition": {
+                    "inner": [],
+                    "op": "and",
+                },
                 "id": RESERVED_IDS[RuleType.MINIMUM_SAMPLE_RATE_RULE],
             }
         ]
