@@ -1,6 +1,7 @@
 import zlib
 
 from sentry.replays.usecases.ingest import (
+    Event,
     pack_replay_video,
     parse_replay_events,
     process_recording_event,
@@ -14,7 +15,7 @@ def test_process_recording_event_without_video():
     payload = b'[{"type": "test"}]'
     payload_compressed = zlib.compress(payload)
 
-    message = {
+    message: Event = {
         "context": {
             "key_id": 123,
             "org_id": 1,
@@ -48,7 +49,7 @@ def test_process_recording_event_with_video():
     payload_compressed = zlib.compress(payload)
     video_data = b"video"
 
-    message = {
+    message: Event = {
         "context": {
             "key_id": 456,
             "org_id": 2,

@@ -22,7 +22,7 @@ def consumer():
         num_processes=1,
         num_threads=1,
         output_block_size=1,
-    ).create_with_partitions(lambda x, force=False: None, None)
+    ).create_with_partitions(lambda x, force=False: None, {})
 
 
 def submit(consumer, message):

@@ -3,7 +3,7 @@ import zlib
 import msgpack
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.types import FilteredPayload, Value
+from arroyo.types import FilteredPayload, Message, Value
 
 from sentry.replays.consumers.recording import (
     DropSilently,
@@ -85,7 +85,7 @@ def test_parse_headers_missing_segment_id():
 def test_parse_headers_empty_recording():
     """Test parsing empty recording"""
     with pytest.raises(DropSilently):
-        parse_headers(b"", b"1")
+        parse_headers(b"", "1")
 
 
 def test_parse_request_message_success():
@@ -278,8 +278,7 @@ def test_process_message_compressed():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    processed_result = process_message(message)
+    processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
         actions_event=ParsedEventMeta([], [], [], [], [], []),
@@ -328,8 +327,7 @@ def test_process_message_uncompressed():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    processed_result = process_message(message)
+    processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
         actions_event=ParsedEventMeta([], [], [], [], [], []),
@@ -378,8 +376,7 @@ def test_process_message_compressed_with_video():
         "version": 0,
     }
 
-    kafka_message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    processed_result = process_message(kafka_message)
+    processed_result = process_message(make_kafka_message(message))
 
     expected = ProcessedEvent(
         actions_event=ParsedEventMeta([], [], [], [], [], []),
@@ -392,7 +389,7 @@ def test_process_message_compressed_with_video():
             "retention_days": 30,
             "segment_id": 42,
         },
-        filedata=zlib.compress(pack(original_payload, message["replay_video"])),
+        filedata=zlib.compress(pack(original_payload, b"hello")),
         filename="30/4/1/42",
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
@@ -404,8 +401,7 @@ def test_process_message_compressed_with_video():
 
 def test_process_message_invalid_message():
     """Test "process_message" function with invalid message."""
-    message = Value(KafkaPayload(key=None, value=b"", headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    assert process_message(make_kafka_message(b"")) == FilteredPayload()
 
 
 def test_process_message_invalid_recording_json():
@@ -424,8 +420,8 @@ def test_process_message_invalid_recording_json():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    kafka_message = make_kafka_message(message)
+    assert process_message(kafka_message) == FilteredPayload()
 
 
 def test_process_message_invalid_headers():
@@ -444,8 +440,8 @@ def test_process_message_invalid_headers():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    kafka_message = make_kafka_message(message)
+    assert process_message(kafka_message) == FilteredPayload()
 
 
 def test_process_message_malformed_headers():
@@ -464,8 +460,8 @@ def test_process_message_malformed_headers():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    kafka_message = make_kafka_message(message)
+    assert process_message(kafka_message) == FilteredPayload()
 
 
 def test_process_message_malformed_headers_invalid_unicode_codepoint():
@@ -484,8 +480,8 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    kafka_message = make_kafka_message(message)
+    assert process_message(kafka_message) == FilteredPayload()
 
 
 def test_process_message_no_headers():
@@ -504,5 +500,9 @@ def test_process_message_no_headers():
         "version": 0,
     }
 
-    message = Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {})
-    assert process_message(message) == FilteredPayload()
+    kafka_message = make_kafka_message(message)
+    assert process_message(kafka_message) == FilteredPayload()
+
+
+def make_kafka_message(message) -> Message[KafkaPayload]:
+    return Message(Value(KafkaPayload(key=None, value=msgpack.packb(message), headers=[]), {}))
