@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -15,14 +15,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContinuousProfileHeader {
-  projectId: string;
   transaction: Event | null;
 }
 
-export function ContinuousProfileHeader({
-  transaction,
-  projectId,
-}: ContinuousProfileHeader) {
+export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -31,13 +27,10 @@ export function ContinuousProfileHeader({
     return [{type: 'landing', payload: {query: {}}}];
   }, []);
 
-  const projectSlug = projectId ?? '';
-
   const transactionTarget = transaction?.id
     ? generateLinkToEventInTraceView({
         timestamp: transaction.endTimestamp ?? '',
         eventId: transaction.id,
-        projectSlug,
         traceSlug: transaction.contexts?.trace?.trace_id ?? '',
         location,
         organization,
@@ -47,7 +40,6 @@ export function ContinuousProfileHeader({
   const handleGoToTransaction = useCallback(() => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
-      source: 'transaction_details',
     });
   }, [organization]);
 

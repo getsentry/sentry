@@ -12,7 +12,11 @@ from django.db import models
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.services.import_export import import_export_service
-from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.impl import (
+    fixup_array_fields,
+    fixup_json_fields,
+    get_existing_import_chunk,
+)
 from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
@@ -501,3 +505,15 @@ class RpcExportErrorTests(TestCase):
 
         assert isinstance(result, RpcExportError)
         assert result.get_kind() == RpcExportErrorKind.UnspecifiedScope
+
+
+def test_fixup_array_fields() -> None:
+    before = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\'a\',\'b\']"}}]'
+    expect = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\\"a\\",\\"b\\"]"}}]'
+    assert fixup_array_fields(before) == expect
+
+
+def test_fixup_json_fields() -> None:
+    before = r'[{"model":"sentry.releaseactivity","fields":{"data":"\"double\""}}]'
+    expect = r'[{"model":"sentry.releaseactivity","fields":{"data":"double"}}]'
+    assert fixup_json_fields(before) == expect

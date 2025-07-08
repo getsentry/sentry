@@ -13,7 +13,8 @@ import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insight
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Panel from 'sentry/components/panels/panel';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -278,7 +279,7 @@ const MainContent = styled('div')`
 `;
 
 const Title = styled('h2')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(1)};
 `;
 
@@ -325,7 +326,7 @@ const FeatureListItem = styled('li')<{isSelected: boolean}>`
   align-items: center;
   gap: ${space(2)};
   color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.subText)};
-  ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
+  ${p => p.isSelected && `font-weight: ${p.theme.fontWeight.bold};`}
   cursor: pointer;
   :hover {
     color: ${p => p.theme.gray500};

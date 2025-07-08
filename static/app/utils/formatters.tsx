@@ -267,19 +267,30 @@ export function formatPercentRate(change: number) {
  * e.g. 12345678 -> `'12d 12h 34m 56s'`
  *
  * @param duration the duration in milliseconds to format
+ * @param numLargestUnitsToShow the number of largest units to include in the output
  */
-export function formatTimeDuration(duration: number) {
+export function formatTimeDuration(duration?: number, numLargestUnitsToShow?: number) {
+  if (duration === undefined) return 'N/A';
+
   const d = Math.floor(duration / DAY);
   const h = Math.floor((duration % DAY) / HOUR);
   const m = Math.floor((duration % HOUR) / MINUTE);
   const s = Math.floor((duration % MINUTE) / SECOND);
 
-  return [
+  const parts = [
     duration >= DAY ? t('%sd', d) : undefined,
     duration >= HOUR ? t('%sh', h) : undefined,
     duration >= MINUTE ? t('%sm', m) : undefined,
     t('%ss', s),
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ].filter(Boolean);
+
+  if (
+    typeof numLargestUnitsToShow === 'number' &&
+    numLargestUnitsToShow > 0 &&
+    parts.length > numLargestUnitsToShow
+  ) {
+    parts.splice(numLargestUnitsToShow, parts.length - numLargestUnitsToShow);
+  }
+
+  return parts.join(' ');
 }

@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,6 +28,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
@@ -105,7 +106,13 @@ export function PipelinesTable() {
     sort = {field: 'epm()', kind: 'desc'};
   }
 
-  const {data, isPending, meta, pageLinks, error} = useSpanMetrics(
+  const {
+    data,
+    isPending,
+    meta: baseMeta,
+    pageLinks,
+    error,
+  } = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai.pipeline',
@@ -125,7 +132,11 @@ export function PipelinesTable() {
     'api.ai-pipelines.view'
   );
 
-  const {data: tokensUsedData, isPending: tokensUsedLoading} = useSpanMetrics(
+  const {
+    data: tokensUsedData,
+    meta: tokensUsedMeta,
+    isPending: tokensUsedLoading,
+  } = useSpanMetrics(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])
@@ -140,6 +151,7 @@ export function PipelinesTable() {
 
   const {
     data: tokenCostData,
+    meta: tokenCostMeta,
     isPending: tokenCostLoading,
     error: tokenCostError,
   } = useSpanMetrics(
@@ -177,6 +189,8 @@ export function PipelinesTable() {
     }
     return row;
   });
+
+  const meta = combineMeta(baseMeta, tokensUsedMeta, tokenCostMeta);
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({

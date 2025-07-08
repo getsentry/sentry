@@ -70,7 +70,7 @@ describe('MetricsRibbon', function () {
             unit: DurationUnit.MILLISECOND,
           },
         ]}
-        fields={['count()', 'avg(duration)']}
+        fields={['count()', 'avg(span.duration)']}
         referrer="test-referrer"
       />
     );
@@ -88,7 +88,7 @@ describe('MetricsRibbon', function () {
           query: 'duration:>0 transaction.op:ui.load transaction:test-transaction',
           referrer: 'test-referrer',
           dataset: 'spansMetrics',
-          field: ['count()', 'avg(duration)'],
+          field: ['count()', 'avg(span.duration)'],
         }),
       })
     );

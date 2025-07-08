@@ -7,14 +7,18 @@ import {useDragNDropColumns} from './useDragNDropColumns';
 describe('useDragNDropColumns', () => {
   const initialColumns = ['span.op', 'span_id', 'timestamp'];
 
+  function defaultColumn(): string {
+    return '';
+  }
+
   it('should insert a column', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;
-    let insertColumn: ReturnType<typeof useDragNDropColumns>['insertColumn'];
+    let insertColumn: (column?: string) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({insertColumn} = useDragNDropColumns({columns, setColumns}));
+      ({insertColumn} = useDragNDropColumns({columns, defaultColumn, setColumns}));
       return null;
     }
 
@@ -23,20 +27,22 @@ describe('useDragNDropColumns', () => {
     act(() => {
       insertColumn();
     });
-
     expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '']);
+
+    act(() => {
+      insertColumn('span.description');
+    });
+    expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '', 'span.description']);
   });
 
   it('should update a column at a specific index', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;
-    let updateColumnAtIndex: ReturnType<
-      typeof useDragNDropColumns
-    >['updateColumnAtIndex'];
+    let updateColumnAtIndex: (i: number, column: string) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({updateColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
+      ({updateColumnAtIndex} = useDragNDropColumns({columns, defaultColumn, setColumns}));
       return null;
     }
 
@@ -56,7 +62,7 @@ describe('useDragNDropColumns', () => {
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({deleteColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
+      ({deleteColumnAtIndex} = useDragNDropColumns({columns, defaultColumn, setColumns}));
       return null;
     }
 
@@ -76,7 +82,7 @@ describe('useDragNDropColumns', () => {
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
-      ({onDragEnd} = useDragNDropColumns({columns, setColumns}));
+      ({onDragEnd} = useDragNDropColumns({columns, defaultColumn, setColumns}));
       return null;
     }
 

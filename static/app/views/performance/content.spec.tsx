@@ -358,35 +358,6 @@ describe('Performance > Content', function () {
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
   });
 
-  it('Navigating to trends does not modify statsPeriod when already set', async function () {
-    const {router} = initializeTrendsData({
-      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION} api`,
-      statsPeriod: '24h',
-    });
-
-    render(<WrappedComponent router={router} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-
-    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'View Trends'});
-
-    await userEvent.click(link);
-
-    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
-
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/insights/backend/trends/',
-        query: {
-          query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-          statsPeriod: '24h',
-        },
-      })
-    );
-  });
-
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
       ProjectFixture({id: '1', firstTransactionEvent: false}),
@@ -412,28 +383,6 @@ describe('Performance > Content', function () {
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledTimes(0);
-  });
-
-  it('Tags are replaced with trends default query if navigating to trends', async function () {
-    const {router} = initializeTrendsData({query: 'device.family:Mac'}, false);
-
-    render(<WrappedComponent router={router} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-
-    const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    await userEvent.click(trendsLinks[0]!);
-
-    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/insights/backend/trends/',
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-        },
-      })
-    );
   });
 
   it('Display Create Sample Transaction Button', async function () {

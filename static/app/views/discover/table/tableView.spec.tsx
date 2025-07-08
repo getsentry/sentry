@@ -136,7 +136,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -149,7 +149,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -336,11 +336,7 @@ describe('TableView > CellActions', function () {
 
   it('renders trace view link', function () {
     const org = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'performance-discover-dataset-selector',
-        'trace-view-v1',
-      ],
+      features: ['discover-basic'],
     });
 
     rows = {

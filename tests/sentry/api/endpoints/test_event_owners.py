@@ -1,7 +1,7 @@
 from django.urls import reverse
 
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.projectownership import ProjectOwnership
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
 

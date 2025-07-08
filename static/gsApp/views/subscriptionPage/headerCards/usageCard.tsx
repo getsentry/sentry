@@ -53,9 +53,16 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
       ? onDemandBudgets.sharedMaxBudget
       : getTotalBudget(onDemandBudgets);
 
-  const {prepaidTotalSpent, onDemandTotalSpent, prepaidTotalPrice} =
-    calculateTotalSpend(subscription);
+  const {
+    prepaidTotalSpent,
+    prepaidReservedBudgetPrice,
+    onDemandTotalSpent,
+    prepaidTotalPrice,
+  } = calculateTotalSpend(subscription);
+  const priceWithoutReservedBudgets = prepaidTotalPrice - prepaidReservedBudgetPrice;
+  const spendWithoutReservedBudgets = prepaidTotalSpent - prepaidReservedBudgetPrice;
   const showPrepaid = prepaidTotalPrice > 0;
+  const showIncludedInSubscription = priceWithoutReservedBudgets > 0;
 
   // No reserved spend beyond the base subscription and no on-demand budgets
   if (!showPrepaid && !showOnDemand) {
@@ -66,7 +73,9 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   // Prevent more than 100% width
   const prepaidPercentUsed = Math.max(
     0,
-    Math.round(Math.min((prepaidTotalSpent / prepaidTotalPrice) * 100, 100))
+    Math.round(
+      Math.min((spendWithoutReservedBudgets / priceWithoutReservedBudgets) * 100, 100)
+    )
   );
   const prepaidPercentUnused = 100 - prepaidPercentUsed;
   const onDemandPercentUsed = Math.round(
@@ -78,7 +87,9 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   let prepaidMaxWidth = showOnDemand && showPrepaid ? 50 : showPrepaid ? 100 : 0;
   if (showOnDemand && showPrepaid && prepaidTotalSpent && onDemandTotalBudget) {
     prepaidMaxWidth = Math.round(
-      (prepaidTotalPrice / (prepaidTotalPrice + onDemandTotalBudget)) * 100
+      (priceWithoutReservedBudgets /
+        (priceWithoutReservedBudgets + onDemandTotalBudget)) *
+        100
     );
   }
 
@@ -87,7 +98,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
       <UsageSummary
         style={{gridTemplateColumns: `repeat(${showOnDemand ? 3 : 2}, auto)`}}
       >
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <SummaryWrapper>
             <SummaryTitleWrapper>
               <SummaryTitle>{t('Included In Subscription')}</SummaryTitle>
@@ -99,7 +110,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
               </Tooltip>
             </SummaryTitleWrapper>
             <SummaryTotal>
-              {formatCurrency(roundUpToNearestDollar(prepaidTotalPrice))}/mo
+              {formatCurrency(roundUpToNearestDollar(priceWithoutReservedBudgets))}/mo
             </SummaryTotal>
           </SummaryWrapper>
         )}
@@ -149,7 +160,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
         </SummaryWrapper>
       </UsageSummary>
       <PlanUseBarContainer>
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <PlanUseBarGroup style={{width: `${prepaidMaxWidth}%`}}>
             {prepaidPercentUsed > 1 && (
               <PlanUseBar
@@ -191,14 +202,14 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
         )}
       </PlanUseBarContainer>
       <LegendPriceWrapper>
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <LegendContainer>
             <LegendDot style={{backgroundColor: COLORS.prepaid}} />
             <div>
               <LegendTitle>{t('Included in Subscription')}</LegendTitle>
               <LegendPrice>
                 {formatPercentage(prepaidPercentUsed / 100)} of{' '}
-                {formatCurrency(roundUpToNearestDollar(prepaidTotalPrice))}
+                {formatCurrency(roundUpToNearestDollar(priceWithoutReservedBudgets))}
               </LegendPrice>
             </div>
           </LegendContainer>
@@ -245,7 +256,7 @@ const SummaryTitle = styled('div')`
 `;
 
 const SummaryTotal = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: 700;
 `;
 
@@ -257,7 +268,7 @@ const PlanUseBody = styled('div')`
   line-height: 1.2;
   color: ${p => p.theme.subText};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     padding: ${space(1.5)} ${space(3)} ${space(1.5)} 0;
   }
 `;
@@ -299,10 +310,10 @@ const LegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
 `;

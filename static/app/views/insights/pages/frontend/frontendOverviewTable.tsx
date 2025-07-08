@@ -1,24 +1,27 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
+import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
@@ -89,11 +92,13 @@ const COLUMN_ORDER: Column[] = [
     key: 'sum_if(span.duration,is_transaction,true)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
   },
   {
     key: 'performance_score(measurements.score.total)',
-    name: t('Perf Score'),
+    name: DataTitles.performanceScore,
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.performanceScore,
   },
 ];
 
@@ -119,6 +124,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 interface Props {
+  displayPerfScore: boolean;
   response: {
     data: Row[];
     isLoading: boolean;
@@ -129,7 +135,7 @@ interface Props {
   sort: ValidSort;
 }
 
-export function FrontendOverviewTable({response, sort}: Props) {
+export function FrontendOverviewTable({displayPerfScore, response, sort}: Props) {
   const {data, isLoading, meta, pageLinks} = response;
   const navigate = useNavigate();
   const location = useLocation();
@@ -142,6 +148,14 @@ export function FrontendOverviewTable({response, sort}: Props) {
     });
   };
 
+  let column_order = [...COLUMN_ORDER];
+
+  if (!displayPerfScore) {
+    column_order = column_order.filter(
+      col => col.key !== 'performance_score(measurements.score.total)'
+    );
+  }
+
   return (
     <VisuallyCompleteWithData
       id="InsightsOverviewTable"
@@ -153,7 +167,7 @@ export function FrontendOverviewTable({response, sort}: Props) {
         isLoading={isLoading}
         error={response.error}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={column_order}
         columnSortBy={[
           {
             key: sort.field,
@@ -189,7 +203,7 @@ function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   return [
     <StarredSegmentCell
       key={row.transaction}
-      initialIsStarred={row.is_starred_transaction}
+      isStarred={row.is_starred_transaction}
       projectSlug={row.project}
       segmentName={row.transaction}
     />,
@@ -204,12 +218,19 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
+  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
   if (!meta?.fields) {
     return row[column.key];
   }
 
   if (column.key === 'transaction') {
-    return <TransactionCell project={row.project} transaction={row.transaction} />;
+    return (
+      <TransactionCell
+        project={row.project}
+        transaction={row.transaction}
+        transactionMethod={spanOp}
+      />
+    );
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);

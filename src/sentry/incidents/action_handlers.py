@@ -588,13 +588,12 @@ def generate_incident_trigger_email_context(
         except IncidentGroupOpenPeriod.DoesNotExist:
             raise ValueError("IncidentGroupOpenPeriod does not exist")
 
-        incident = Incident.objects.get(id=incident_group_open_period.incident_id)
         alert_link = organization.absolute_url(
             reverse(
                 "sentry-metric-alert",
                 kwargs={
                     "organization_slug": organization.slug,
-                    "incident_id": incident.identifier,
+                    "incident_id": incident_group_open_period.incident_identifier,
                 },
             ),
             query=urlencode(alert_link_params),

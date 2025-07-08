@@ -16,7 +16,7 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
@@ -40,14 +40,14 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         dc_critical = data_condition_critical_tuple[1]
 
         self.deescalating_dc_warning = self.create_data_condition(
-            comparison={"priority": DetectorPriorityLevel.MEDIUM.value},
+            comparison=DetectorPriorityLevel.MEDIUM,
             type=self.condition,
             condition_result=True,
             condition_group=dc_warning.condition_group,
         )
 
         self.deescalating_dc_critical = self.create_data_condition(
-            comparison={"priority": DetectorPriorityLevel.HIGH.value},
+            comparison=DetectorPriorityLevel.HIGH,
             type=self.condition,
             condition_result=True,
             condition_group=dc_critical.condition_group,

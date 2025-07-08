@@ -1,16 +1,20 @@
+import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
+import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,6 +68,28 @@ export function OrgDropdown({
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const {organizations} = useLegacyStore(OrganizationsStore);
+  const [activeOrgs, inactiveOrgs] = partition(
+    organizations,
+    org => org.status.id === 'active'
+  );
+
+  const makeOrganizationMenuItem = useCallback(
+    (org: Organization): MenuItemProps => ({
+      key: org.id,
+      label: <OrganizationBadge organization={org} />,
+      textValue: org.name,
+      to: resolveRoute(`/organizations/${org.slug}/issues/`, organization, org),
+    }),
+    [organization]
+  );
+
+  const makeInactiveOrganizationMenuItem = useCallback(
+    (org: Organization): MenuItemProps => ({
+      ...makeOrganizationMenuItem(org),
+      trailingItems: <QuestionTooltip size="sm" title={org.status.name} />,
+    }),
+    [makeOrganizationMenuItem]
+  );
 
   const {projects} = useProjects();
 
@@ -105,7 +131,7 @@ export function OrgDropdown({
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/organizations/${organization.slug}/settings/`,
+              to: `/settings/${organization.slug}/`,
               hidden: !hasOrgRead || hideOrgLinks,
             },
             {
@@ -117,19 +143,19 @@ export function OrgDropdown({
             {
               key: 'members',
               label: t('Members'),
-              to: `/organizations/${organization.slug}/settings/members/`,
+              to: `/settings/${organization.slug}/members/`,
               hidden: !hasMemberRead || hideOrgLinks,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/organizations/${organization.slug}/settings/teams/`,
+              to: `/settings/${organization.slug}/teams/`,
               hidden: !hasTeamRead || hideOrgLinks,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/organizations/${organization.slug}/settings/billing/`,
+              to: `/settings/${organization.slug}/billing/`,
               hidden: !hasBillingAccess || hideOrgLinks,
             },
             {
@@ -138,22 +164,20 @@ export function OrgDropdown({
               isSubmenu: true,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => {
-                  const pendingDeletion = switchOrg.status.id === 'pending_deletion';
-
-                  return {
-                    key: switchOrg.id,
-                    label: <OrganizationBadge organization={switchOrg} />,
-                    textValue: switchOrg.name,
-                    to: resolveRoute(
-                      `/organizations/${switchOrg.slug}/issues/`,
-                      organization,
-                      switchOrg
-                    ),
-                    priority: pendingDeletion ? ('danger' as const) : undefined,
-                    tooltip: pendingDeletion ? t('Pending deletion') : undefined,
-                  };
-                }),
+                {
+                  key: 'active-orgs',
+                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
+                },
+                ...(inactiveOrgs.length === 0
+                  ? []
+                  : [
+                      {
+                        key: 'inactive-ogs',
+                        children: orderBy(inactiveOrgs, ['name']).map(
+                          makeInactiveOrganizationMenuItem
+                        ),
+                      },
+                    ]),
                 createOrganizationMenuItem(),
               ],
             },
@@ -167,6 +191,7 @@ export function OrgDropdown({
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
+  padding: 0; /* Without this the icon will be cutoff due to overflow */
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`
@@ -175,7 +200,7 @@ const StyledOrganizationAvatar = styled(OrganizationAvatar)`
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;

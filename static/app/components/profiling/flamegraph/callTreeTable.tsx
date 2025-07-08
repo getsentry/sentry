@@ -22,7 +22,7 @@ const enum CallTreeTableClassNames {
 }
 
 export const CallTreeTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
   overflow: auto;
   max-height: 100%;
@@ -384,13 +384,9 @@ interface CallTreeTableRowProps {
   onMouseEnter: () => void;
   tabIndex: number;
   top: string;
-}
-export function CallTreeTableRow({
-  ref,
-  ...props
-}: CallTreeTableRowProps & {
   ref?: React.Ref<HTMLDivElement>;
-}) {
+}
+export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
   return (
     <div
       ref={ref}

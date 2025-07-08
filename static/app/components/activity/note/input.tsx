@@ -2,11 +2,11 @@ import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -159,10 +159,10 @@ function NoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
-        <StyledTabList>
+        <TabList variant="floating" hideBorder>
           <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
           <TabList.Item key="preview">{t('Preview')}</TabList.Item>
-        </StyledTabList>
+        </TabList>
         <NoteInputPanel>
           <TabPanels.Item key="edit">
             <MentionsInput
@@ -287,11 +287,6 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   `;
 };
 
-const StyledTabList = styled(TabList)`
-  padding: 0 ${space(2)};
-  padding-top: ${space(0.5)};
-`;
-
 const NoteInputForm = styled('form')<{error?: string}>`
   transition: padding 0.2s ease-in-out;
 
@@ -300,6 +295,8 @@ const NoteInputForm = styled('form')<{error?: string}>`
 
 const NoteInputPanel = styled(TabPanels)`
   ${textStyles}
+  border-top: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
 `;
 
 const Footer = styled('div')`
@@ -315,12 +312,15 @@ const FooterButton = styled(Button)<{error?: boolean}>`
 
   ${p =>
     p.error &&
-    `
-  &, &:active, &:focus, &:hover {
-  border-bottom-color: ${p.theme.error};
-  border-right-color: ${p.theme.error};
-  }
-  `}
+    css`
+      &,
+      &:active,
+      &:focus,
+      &:hover {
+        border-bottom-color: ${p.theme.error};
+        border-right-color: ${p.theme.error};
+      }
+    `}
 `;
 
 const ErrorMessage = styled('span')`

@@ -14,6 +14,15 @@ class RuntimeChildError(RuntimeError):
     """Dummy exception for instanceof tests"""
 
 
+def test_initial_state__defaults() -> None:
+    retry = Retry(times=2)
+    proto = retry.initial_state()
+
+    assert proto.attempts == 0
+    assert proto.max_attempts == 2
+    assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
+
+
 def test_initial_state__discard() -> None:
     retry = Retry(times=1, times_exceeded=LastAction.Discard)
     proto = retry.initial_state()
@@ -30,6 +39,14 @@ def test_initial_state__deadletter() -> None:
     assert proto.attempts == 0
     assert proto.max_attempts == 5
     assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
+
+
+def test_initial_state__delay_on_retry() -> None:
+    retry = Retry(times=5, delay=1)
+    proto = retry.initial_state()
+
+    assert proto.attempts == 0
+    assert proto.delay_on_retry == 1
 
 
 def test_should_retry_no_matching_error() -> None:
@@ -87,6 +104,16 @@ def test_should_retry_error_allow_list() -> None:
 
     value_err = ValueError("no retry")
     assert not retry.should_retry(state, value_err)
+
+
+def test_max_attempts_reached() -> None:
+    retry = Retry(times=5)
+    state = retry.initial_state()
+
+    assert not retry.max_attempts_reached(state)
+
+    state.attempts = 4
+    assert retry.max_attempts_reached(state)
 
 
 def test_should_retry_allow_list_ignore_parent() -> None:

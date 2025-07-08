@@ -54,6 +54,11 @@ describe('HTTPSamplesPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
     eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -225,12 +230,10 @@ describe('HTTPSamplesPanel', () => {
               'http_response_rate(3)',
               'http_response_rate(4)',
               'http_response_rate(5)',
-              'time_spent_percentage()',
             ],
             per_page: 50,
             project: [],
-            query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users',
+            query: 'span.op:http.client !has:span.domain transaction:/api/0/users',
             referrer: 'api.performance.http.samples-panel-metrics-ribbon',
             statsPeriod: '10d',
           },
@@ -243,7 +246,6 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            cursor: undefined,
             dataset: 'spansMetrics',
             environment: [],
             excludeOther: 0,
@@ -254,11 +256,11 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.performance.http.samples-panel-response-code-chart',
             statsPeriod: '10d',
-            sort: '-count()',
             topEvents: '5',
+            transformAliasToInputFormat: '0',
             yAxis: 'count()',
           },
         })
@@ -272,7 +274,7 @@ describe('HTTPSamplesPanel', () => {
           query: expect.objectContaining({
             dataset: 'spansIndexed',
             query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             project: [],
             field: [
               'project',
@@ -423,7 +425,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             referrer: 'api.performance.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: 'avg(span.self_time)',
@@ -438,7 +440,7 @@ describe('HTTPSamplesPanel', () => {
           method: 'GET',
           query: expect.objectContaining({
             query:
-              'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
             additionalFields: [
               'id',
@@ -507,7 +509,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+        '/organizations/org-slug/traces/trace/2b60b2eb415c4bfba3efeaf65c21c605/?domain=%2A.sentry.dev&eventId=11c910c9c10b3ec4ecf8f209b8c6ce48&node=span-b1bf1acde131623a&node=txn-11c910c9c10b3ec4ecf8f209b8c6ce48&panel=duration&source=requests_module&statsPeriod=10d&timestamp=1711398696&transaction=%2Fapi%2F0%2Fusers&transactionMethod=GET'
       );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();

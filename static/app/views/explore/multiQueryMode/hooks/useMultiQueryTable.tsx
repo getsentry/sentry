@@ -5,13 +5,11 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
-  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -76,19 +74,12 @@ function useMultiQueryTableAggregateModeImpl({
   }, [groupBys, yAxes]);
 
   const eventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Multi Query Mode - Span Aggregates',
       fields,
       orderby: sortBys.map(formatSort),
-      query: search.formatString(),
+      query,
       version: 2,
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
     };
@@ -122,8 +113,6 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
     queryOptions: {
-      queryMode: QUERY_MODE.SERIAL,
-      withholdBestEffort: true,
       canTriggerHighAccuracy,
     },
   });
@@ -145,19 +134,12 @@ function useMultiQueryTableSampleModeImpl({
     return allFields;
   }, [yAxes]);
   const eventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Multi Query Mode - Samples',
       fields,
       orderby: sortBys.map(formatSort),
-      query: search.formatString(),
+      query,
       version: 2,
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
     };

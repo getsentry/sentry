@@ -11,6 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 type Props = {
   label: React.ReactNode;
@@ -65,10 +66,12 @@ const StyledNavItem = styled(RouterNavLink)`
   position: relative;
 
   &.active {
-    color: ${p => p.theme.textColor};
+    color: ${p =>
+      isChonkTheme(p.theme) ? p.theme.tokens.content.accent : p.theme.textColor};
 
     &:before {
-      background: ${p => p.theme.active};
+      background: ${p =>
+        isChonkTheme(p.theme) ? p.theme.tokens.graphics.accent : p.theme.active};
     }
   }
 
@@ -105,10 +108,10 @@ const StyledNavItem = styled(RouterNavLink)`
 `;
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

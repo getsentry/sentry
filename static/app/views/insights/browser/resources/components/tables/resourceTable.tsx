@@ -1,15 +1,17 @@
 import {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,12 +34,12 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import type {SpanMetricsResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -49,27 +51,34 @@ const {
   SPAN_GROUP,
 } = SpanMetricsField;
 
-const {TIME_SPENT_PERCENTAGE} = SpanFunction;
-
 const {EPM} = SpanFunction;
 
 const RESOURCE_SIZE_ALERT = t(
   `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
 );
 
-type Row = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'epm()': number;
-  'project.id': number;
-  'sentry.normalized_description': string;
-  'span.group': string;
-  'span.op': string;
-  'sum(span.self_time)': number;
-  'time_spent_percentage()': number;
-};
+type Row = Pick<
+  SpanMetricsResponse,
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'project.id'
+  | 'sentry.normalized_description'
+  | 'span.group'
+  | 'span.op'
+  | 'sum(span.self_time)'
+>;
 
-type Column = GridColumnHeader<keyof Row>;
+type Column = GridColumnHeader<
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'project.id'
+  | 'sentry.normalized_description'
+  | 'span.group'
+  | 'span.op'
+  | 'sum(span.self_time)'
+>;
 
 type Props = {
   sort: ValidSort;
@@ -79,19 +88,20 @@ type Props = {
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const filters = useResourceModuleFilters();
   const {setPageInfo, pageAlert} = usePageAlert();
 
-  const {data, isPending, pageLinks} = useResourcesQuery({
+  const {data, meta, isPending, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
     cursor,
     referrer: 'api.performance.browser.resources.main-table',
   });
 
-  const columnOrder: Array<GridColumnOrder<keyof Row>> = [
+  const columnOrder: Column[] = [
     {
       key: NORMALIZED_DESCRIPTION,
       width: COL_WIDTH_UNDEFINED,
@@ -104,7 +114,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     },
     {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: DataTitles.avg},
     {
-      key: `${TIME_SPENT_PERCENTAGE}()`,
+      key: `sum(${SPAN_SELF_TIME})`,
       width: COL_WIDTH_UNDEFINED,
       name: DataTitles.timeSpent,
     },
@@ -114,11 +124,10 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       name: DataTitles['avg(http.response_content_length)'],
     },
   ];
-  const tableData: Row[] = data;
 
   useEffect(() => {
     if (pageAlert?.message !== RESOURCE_SIZE_ALERT) {
-      for (const row of tableData) {
+      for (const row of data) {
         const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
         if (encodedSize >= 2147483647) {
           setPageInfo(RESOURCE_SIZE_ALERT, {dismissId: DismissId.RESOURCE_SIZE_ALERT});
@@ -126,7 +135,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         }
       }
     }
-  }, [tableData, setPageInfo, pageAlert?.message]);
+  }, [data, setPageInfo, pageAlert?.message]);
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
@@ -176,16 +185,14 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       }
       return <span>{spanOp}</span>;
     }
-    if (key === 'time_spent_percentage()') {
-      return (
-        <TimeSpentCell
-          percentage={row[key]}
-          total={row[`sum(${SPAN_SELF_TIME})`]}
-          op={row[SPAN_OP]}
-        />
-      );
-    }
-    return <span>{row[key]}</span>;
+    const renderer = getFieldRenderer(col.key, meta?.fields || {}, false);
+
+    return renderer(row, {
+      location,
+      organization,
+      unit: meta?.units?.[col.key],
+      theme,
+    });
   };
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -198,7 +205,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   return (
     <Fragment>
       <GridEditable
-        data={tableData}
+        data={data}
         isLoading={isPending}
         columnOrder={columnOrder}
         columnSortBy={[

@@ -2,10 +2,11 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import WidgetBuilder from './widgetBuilder';
 
@@ -13,6 +14,7 @@ interface WidgetBuilderProps extends React.ComponentProps<typeof WidgetBuilder> 
 
 function WidgetBuilderContainer(props: WidgetBuilderProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   return (
     <Feature
@@ -26,9 +28,9 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
         </Layout.Page>
       )}
     >
-      <SpanTagsProvider
-        dataset={DiscoverDatasets.SPANS_EAP}
-        enabled={organization.features.includes('dashboards-eap')}
+      <TraceItemAttributeProvider
+        traceItemType={TraceItemDataset.SPANS}
+        enabled={organization.features.includes('visibility-explore-view')}
       >
         <WidgetBuilder
           {...props}
@@ -37,14 +39,13 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
               location: props.location,
               organization,
               dashboard: props.dashboard,
-              router: props.router,
+              navigate,
             })
           }
         />
-      </SpanTagsProvider>
+      </TraceItemAttributeProvider>
     </Feature>
   );
 }
 
-export type {WidgetBuilderProps};
 export default WidgetBuilderContainer;

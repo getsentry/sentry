@@ -26,14 +26,32 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.organization import Organization
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.seer.similarity.utils import project_is_seer_eligible
+from sentry.seer.similarity.utils import (
+    project_is_seer_eligible,
+    set_default_project_autofix_automation_tuning,
+    set_default_project_seer_scanner_automation,
+)
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+
+
+def apply_default_project_settings(organization: Organization, project: Project) -> None:
+    # Turns on some inbound filters by default for new Javascript platform projects
+    if project.platform and project.platform.startswith("javascript"):
+        set_default_inbound_filters(project, organization)
+
+    set_default_symbol_sources(project)
+
+    # Create project option to turn on ML similarity feature for new EA projects
+    if project_is_seer_eligible(project):
+        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+
+    set_default_project_autofix_automation_tuning(organization, project)
+    set_default_project_seer_scanner_automation(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
@@ -189,15 +207,8 @@ class TeamProjectsEndpoint(TeamEndpoint):
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
         ):
-            requester_admin_teams = set(
-                OrganizationMemberTeam.objects.filter(
-                    organizationmember__user_id=request.user.id,
-                    organizationmember__organization=team.organization,
-                    role="admin",
-                ).values_list("team__id", flat=True)
-            )
             # Only allow project creation if the user is an admin of the team
-            if team.id not in requester_admin_teams:
+            if not request.access.has_team_scope(team, "team:admin"):
                 return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
@@ -215,13 +226,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
             else:
                 project.add_team(team)
 
-            # XXX: create sample event?
-
-            # Turns on some inbound filters by default for new Javascript platform projects
-            if project.platform and project.platform.startswith("javascript"):
-                set_default_inbound_filters(project, team.organization)
-
-            set_default_symbol_sources(project)
+            apply_default_project_settings(team.organization, project)
 
             common_audit_data: AuditData = {
                 "request": request,
@@ -253,10 +258,6 @@ class TeamProjectsEndpoint(TeamEndpoint):
                 origin=origin,
                 sender=self,
             )
-
-            # Create project option to turn on ML similarity feature for new EA projects
-            if project_is_seer_eligible(project):
-                project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return Response(
             serialize(project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])),

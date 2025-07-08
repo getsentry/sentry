@@ -34,7 +34,6 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -52,6 +51,7 @@ type Props = {
 function ProjectGeneralSettings({onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
@@ -82,37 +82,27 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     form[id] = value;
   };
 
-  const handleRemoveProject = () => {
+  const handleRemoveProject = async () => {
     removePageFiltersStorage(organization.slug);
 
     if (!project) {
       return;
     }
 
-    removeProject({
-      api,
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      origin: 'settings',
-    })
-      .then(
-        () => {
-          addSuccessMessage(
-            tct('[project] was successfully removed', {project: project.slug})
-          );
-        },
-        err => {
-          addErrorMessage(tct('Error removing [project]', {project: project.slug}));
-          throw err;
-        }
-      )
-      .then(
-        () => {
-          // Need to hard reload because lots of components do not listen to Projects Store
-          window.location.assign('/');
-        },
-        (err: RequestError) => handleXhrErrorResponse('Unable to remove project', err)
-      );
+    try {
+      await removeProject({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        origin: 'settings',
+      });
+    } catch (err) {
+      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      throw err;
+    }
+
+    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    navigate(`/settings/${organization.slug}/projects/`);
   };
 
   const handleTransferProject = async () => {
@@ -214,7 +204,9 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
 
         {isOrgOwner && !isInternal && (
           <Confirm
-            onConfirm={handleTransferProject}
+            onConfirm={() => {
+              handleTransferProject();
+            }}
             priority="danger"
             confirmText={t('Transfer project')}
             renderMessage={({confirm}) => (
@@ -281,7 +273,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   // The <Form /> component applies its props to its children meaning the
   // hooked component would need to conform to the form settings applied in a
   // separate repository. This is not feasible to maintain and may introduce
-  // compatability errors if something changes in either repository. For that
+  // compatibility errors if something changes in either repository. For that
   // reason, the Form component is split in two, since the fields do not
   // depend on one another, allowing for the Hook to manage its own state.
   const formProps: FormProps = {

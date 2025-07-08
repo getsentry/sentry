@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
-import Link from 'sentry/components/links/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

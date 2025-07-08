@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,7 +24,10 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {
+  UseInfiniteLogsQueryResult,
+  UseLogsQueryResult,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   combineConfidenceForSeries,
@@ -121,6 +123,7 @@ function useTrackAnalytics({
       interval,
     });
 
+    /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
@@ -138,6 +141,7 @@ function useTrackAnalytics({
     `,
       {isAnalytics: true}
     );
+    /* eslint-enable @typescript-eslint/no-base-to-string */
   }, [
     organization,
     dataset,
@@ -182,7 +186,7 @@ function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
@@ -269,7 +273,7 @@ function useTrackAnalytics({
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
@@ -349,7 +353,6 @@ export function useAnalytics({
 
 export function useCompareAnalytics({
   query: queryParts,
-  index,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -365,14 +368,13 @@ export function useCompareAnalytics({
   | 'interval'
   | 'isTopN'
 > & {
-  index: number;
   query: ReadableExploreQueryParts;
 }) {
   const dataset = DiscoverDatasets.SPANS_EAP_RPC;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
-    yAxis => new Visualize([yAxis], String(index), queryParts.chartType)
+    yAxis => new Visualize(yAxis, {chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({
@@ -394,7 +396,7 @@ export function useLogAnalytics({
   logsTableResult,
   source,
 }: {
-  logsTableResult: UseExploreLogsTableResult;
+  logsTableResult: UseLogsQueryResult | UseInfiniteLogsQueryResult;
   source: LogsAnalyticsPageSource;
 }) {
   const organization = useOrganization();
@@ -468,7 +470,7 @@ function computeConfidence(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     return String(combineConfidenceForSeries(series));
   });
@@ -489,7 +491,7 @@ function computeEmptyBuckets(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return visualizes.flatMap(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     return dedupedYAxes
       .flatMap(yAxis => data[yAxis])
       .filter(defined)

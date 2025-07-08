@@ -10,7 +10,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
-import {listDisplayNames} from 'getsentry/utils/dataCategory';
 
 import TrialBadge from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
@@ -41,12 +40,6 @@ function TrialAlert({organization, subscription}: Props) {
     ? 'performance'
     : 'business plan';
 
-  const oxfordCategories = listDisplayNames({
-    plan: subscription.planDetails,
-    categories: subscription.planDetails.categories,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-  });
-
   return (
     <Panel data-test-id="trial-alert">
       <SubscriptionBody withPadding>
@@ -56,20 +49,9 @@ function TrialAlert({organization, subscription}: Props) {
             <TrialBadge subscription={subscription} organization={organization} />
           </TrialHeader>
           <StyledSubText>
-            {subscription.isEnterpriseTrial || subscription.isPerformancePlanTrial
-              ? tct(
-                  "With your trial you have access to Sentry's [featuresName] features, and [additionalData].",
-                  {
-                    featuresName,
-                    additionalData: subscription.isEnterpriseTrial
-                      ? t('unlimited %s', oxfordCategories)
-                      : t('unlimited transactions and attachments'),
-                  }
-                )
-              : tct(
-                  "With your trial you have access to Sentry's [featuresName] features.",
-                  {featuresName}
-                )}
+            {tct("With your trial you have access to Sentry's [featuresName] features.", {
+              featuresName,
+            })}
           </StyledSubText>
         </TrialInfo>
 
@@ -103,7 +85,7 @@ const TrialHeader = styled('div')`
 
 const StyledHeading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledSubText = styled(TextBlock)`

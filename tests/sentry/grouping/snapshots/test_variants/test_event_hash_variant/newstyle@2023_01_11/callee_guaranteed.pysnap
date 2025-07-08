@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:48.505427+00:00'
+created: '2025-05-12T23:40:58.067213+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame (marked out of app by the client)
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
           frame (marked out of app by the client)
@@ -43,7 +43,7 @@ app:
           frame (marked out of app by the client)
             function*
               "_dispatch_call_block_and_release"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -51,18 +51,18 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -70,7 +70,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -78,30 +78,30 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -109,16 +109,16 @@ app:
           frame* (marked in-app by the client)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
         type*

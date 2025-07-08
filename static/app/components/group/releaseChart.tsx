@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 /**
@@ -93,9 +93,13 @@ export function getGroupReleaseChartMarkers(
     show: true,
     trigger: 'item',
     formatter: ({data}: any) => {
-      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
-        local: true,
-      });
+      const time = getFormattedDate(
+        data.displayValue,
+        getFormat({timeZone: true, year: true}),
+        {
+          local: true,
+        }
+      );
       return [
         '<div class="tooltip-series">',
         `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
@@ -205,7 +209,7 @@ function GroupReleaseChart(props: Props) {
 
 const EventNumber = styled('div')`
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default GroupReleaseChart;

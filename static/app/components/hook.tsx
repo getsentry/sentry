@@ -1,4 +1,4 @@
-import {Component, type ComponentType} from 'react';
+import {Component, type ComponentType, memo} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
@@ -86,4 +86,6 @@ function Hook<H extends ComponentHookName>({name, ...props}: Props<H>) {
   return <HookComponent />;
 }
 
-export default Hook;
+export default memo(Hook) as <H extends ComponentHookName>(
+  props: Props<H>
+) => React.ReactNode;

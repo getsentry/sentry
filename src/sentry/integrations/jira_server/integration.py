@@ -33,11 +33,12 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -70,7 +71,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from Sentry bug to tracked ticket.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -211,12 +212,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(PipelineView):
+class InstallationConfigView:
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -234,14 +235,14 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class OAuthLoginView(PipelineView):
+class OAuthLoginView:
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -277,14 +278,14 @@ class OAuthLoginView(PipelineView):
         return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(PipelineView):
+class OAuthCallbackView:
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
         if config is None:
             return pipeline.error("Missing installation_data")
@@ -1003,7 +1004,8 @@ class JiraServerIntegration(IssueSyncIntegration):
                 cleaned_data[field_name] = data[field_name]
                 continue
             elif field_name == "summary":
-                cleaned_data["summary"] = data["title"]
+                title = data.get("title")
+                cleaned_data["summary"] = title[:255] if title else None
                 continue
             elif field_name == "labels" and "labels" in data:
                 labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
@@ -1371,7 +1373,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
-    key = "jira_server"
+    key = IntegrationProviderSlug.JIRA_SERVER.value
     name = "Jira Server"
     metadata = metadata
     integration_cls = JiraServerIntegration
@@ -1388,7 +1390,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

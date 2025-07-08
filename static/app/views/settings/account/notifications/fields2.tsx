@@ -6,7 +6,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {DataCategoryExact} from 'sentry/types/core';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 export const NOTIFICATION_SETTING_FIELDS = {
   alerts: {
@@ -110,13 +111,13 @@ export const NOTIFICATION_SETTING_FIELDS = {
   brokenMonitors: {
     name: 'brokenMonitors',
     type: 'select',
-    label: t('Broken Monitors'),
+    label: t('Broken Cron Monitors'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
     help: t(
-      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+      'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
   },
   // legacy options
@@ -143,7 +144,13 @@ export const NOTIFICATION_SETTING_FIELDS = {
 } satisfies Record<string, Field>;
 
 const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
-  .filter(categoryInfo => categoryInfo.isBilledCategory)
+  .filter(
+    categoryInfo =>
+      categoryInfo.isBilledCategory &&
+      // Exclude Seer categories as they will be handled by a combined quotaSeerBudget field
+      categoryInfo.name !== DataCategoryExact.SEER_AUTOFIX &&
+      categoryInfo.name !== DataCategoryExact.SEER_SCANNER
+  )
   .map(categoryInfo => {
     return {
       name: 'quota' + upperFirst(categoryInfo.plural),
@@ -152,7 +159,9 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
         `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
         {
           displayName: categoryInfo.displayName,
-          learnMore: <ExternalLink href={getDocsLinkForEventType(categoryInfo.name)} />,
+          learnMore: (
+            <ExternalLink href={getPricingDocsLinkForEventType(categoryInfo.name)} />
+          ),
         }
       ),
       choices: [
@@ -161,6 +170,24 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
       ] as const,
     };
   });
+
+// Define the combined Seer budget field
+const quotaSeerBudgetField = {
+  // This maps to NotificationSettingEnum.QUOTA_SEER_BUDGET
+  name: 'quotaSeerBudget',
+  label: t('Seer Budget'),
+  help: tct(`Receive notifications for your Seer budget. [learnMore:Learn more]`, {
+    learnMore: (
+      <ExternalLink
+        href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+      />
+    ),
+  }),
+  choices: [
+    ['always', t('On')],
+    ['never', t('Off')],
+  ] as const,
+};
 
 // TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
@@ -175,6 +202,7 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
   ...CATEGORY_QUOTA_FIELDS,
+  quotaSeerBudgetField,
   {
     name: 'quotaSpendAllocations',
     label: (

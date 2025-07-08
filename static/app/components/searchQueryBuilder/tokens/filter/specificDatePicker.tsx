@@ -31,6 +31,7 @@ type TimeInputProps = {
   disabled: boolean;
   setTime: (newTime: string) => void;
   time: string;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 const ISO_DATE_FORMAT = 'YYYY-MM-DD';
@@ -209,14 +210,7 @@ function SpecificDatePicker({
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-function TimeInput({
-  ref,
-  disabled,
-  time,
-  setTime,
-}: TimeInputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
   const [localTime, setLocalTime] = useState(time);
   const [isFocused, setIsFocused] = useState(false);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
@@ -295,7 +289,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   user-select: none;
   gap: ${space(1)};
   cursor: pointer;
@@ -311,7 +305,7 @@ const CheckboxLabel = styled('label')`
   align-items: center;
   margin: 0;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
   cursor: pointer;
 `;

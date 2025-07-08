@@ -18,7 +18,6 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.testutils.cases import TestCase
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
 
 
 class BaseGroupTypeTest(TestCase):
@@ -49,7 +48,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         @dataclass(frozen=True)
         class TestGroupType3(GroupType):
@@ -57,7 +56,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "angelgirl"
             description = "AngelGirl"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
         assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
@@ -105,7 +104,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         assert TestGroupType.noise_config is None
         assert TestGroupType2.noise_config == NoiseConfig()
@@ -119,7 +118,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig(ignore_limit=100, expiry_time=timedelta(hours=12))
 
         assert TestGroupType.noise_config.ignore_limit == 100
@@ -134,7 +133,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
         assert TestGroupType.allow_post_process_group(self.organization)
@@ -147,7 +146,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = False
 
         assert not TestGroupType.allow_post_process_group(self.organization)
@@ -160,7 +159,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = False
 
         with self.feature(TestGroupType.build_post_process_group_feature_name()):
@@ -171,16 +170,24 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
 class GroupRegistryTest(BaseGroupTypeTest):
     def test_get_visible(self) -> None:
+        class UnreleasedGroupType(GroupType):
+            type_id = 9999
+            slug = "unreleased_group_type"
+            description = "Mcok unreleased issue group"
+            released = False
+            category = GroupCategory.ERROR.value
+            category_v2 = GroupCategory.ERROR.value
+
         registry = GroupTypeRegistry()
-        registry.add(UptimeDomainCheckFailure)
+        registry.add(UnreleasedGroupType)
         registry.add(MetricIssuePOC)
         assert registry.get_visible(self.organization) == []
-        with self.feature(UptimeDomainCheckFailure.build_visible_feature_name()):
-            assert registry.get_visible(self.organization) == [UptimeDomainCheckFailure]
+        with self.feature(UnreleasedGroupType.build_visible_feature_name()):
+            assert registry.get_visible(self.organization) == [UnreleasedGroupType]
         registry.add(ErrorGroupType)
-        with self.feature(UptimeDomainCheckFailure.build_visible_feature_name()):
+        with self.feature(UnreleasedGroupType.build_visible_feature_name()):
             assert set(registry.get_visible(self.organization)) == {
-                UptimeDomainCheckFailure,
+                UnreleasedGroupType,
                 ErrorGroupType,
             }
 
@@ -198,7 +205,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
         }
 
         # Works for new category mapping
-        assert registry.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value) == {
+        assert registry.get_by_category(GroupCategory.DB_QUERY.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }

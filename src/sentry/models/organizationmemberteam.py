@@ -31,7 +31,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(db_default=True)
     role = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:

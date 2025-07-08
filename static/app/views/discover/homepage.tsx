@@ -53,11 +53,7 @@ function Homepage(props: Props) {
     }
   );
 
-  const savedQuery = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? getSavedQueryWithDataset(data)
-    : data;
+  const savedQuery = getSavedQueryWithDataset(data);
 
   const previousSavedQuery = usePrevious(savedQuery);
 

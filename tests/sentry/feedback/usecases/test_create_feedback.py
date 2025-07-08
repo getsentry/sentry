@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -19,6 +19,8 @@ from sentry.feedback.usecases.create_feedback import (
     validate_issue_platform_event_schema,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
@@ -69,7 +71,7 @@ def create_dummy_response(*args, **kwargs):
             )
         ],
         created=int(time.time()),
-        model="gpt3.5-trubo",
+        model="gpt3.5-turbo",
         object="chat.completion",
     )
 
@@ -302,6 +304,21 @@ def test_corrected_still_works():
     assert isinstance(fixed_event["received"], str)
 
 
+@pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
+def test_fix_for_issue_platform_environment(environment):
+    event = mock_feedback_event(1)
+    if environment == "missing":
+        event.pop("environment", "")
+    else:
+        event["environment"] = environment
+
+    fixed_event = fix_for_issue_platform(event)
+    if environment == "my-environment":
+        assert fixed_event["environment"] == environment
+    else:
+        assert fixed_event["environment"] == "production"
+
+
 @django_db_all
 def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka):
     event = {
@@ -532,7 +549,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
 ):
     with Feature({"organizations:user-feedback-spam-filter-actions": True}):
 
-        with Feature({"organizations:user-feedback-spam-filter-ingest": feature_flag}):
+        with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
             event = {
                 "project_id": default_project.id,
                 "request": {
@@ -608,7 +625,7 @@ def test_create_feedback_spam_detection_project_option_false(
 ):
     default_project.update_option("sentry:feedback_ai_spam_detection", False)
 
-    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-ingest": True}):
         event = {
             "project_id": default_project.id,
             "request": {
@@ -671,7 +688,7 @@ def test_create_feedback_spam_detection_set_status_ignored(
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
+            "organizations:user-feedback-spam-ingest": True,
         }
     ):
         event = {
@@ -774,6 +791,49 @@ def test_create_feedback_adds_associated_event_id(
 
 
 @django_db_all
+def test_create_feedback_filters_invalid_associated_event_id(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    event = {
+        "project_id": default_project.id,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "contexts": {
+            "feedback": {
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "message": "great website",
+                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                "associated_event_id": "abcdefg",
+            },
+        },
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 0
+    assert Group.objects.count() == 0
+
+
+@django_db_all
 def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
@@ -844,7 +904,7 @@ def test_create_feedback_filters_large_message(
     features = (
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
+            "organizations:user-feedback-spam-ingest": True,
         }
         if spam_enabled
         else {}
@@ -884,7 +944,7 @@ def test_create_feedback_evidence_has_spam(
     monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
-    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-ingest": True}):
         event = mock_feedback_event(default_project.id)
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         create_feedback_issue(event, default_project.id, source)
@@ -894,10 +954,155 @@ def test_create_feedback_evidence_has_spam(
     assert evidence["is_spam"] is True
 
 
+@django_db_all
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id)
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event.get("release") is not None
+    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+
+
+@django_db_all
+def test_create_feedback_issue_updates_project_flag(default_project):
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+
+    with (
+        patch(
+            "sentry.receivers.onboarding.record_first_feedback",  # autospec=True
+        ) as mock_record_first_feedback,
+        patch(
+            "sentry.receivers.onboarding.record_first_new_feedback",  # autospec=True
+        ) as mock_record_first_new_feedback,
+    ):
+        first_feedback_received.connect(mock_record_first_feedback, weak=False)
+        first_new_feedback_received.connect(mock_record_first_new_feedback, weak=False)
+
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    default_project.refresh_from_db()
+    assert mock_record_first_feedback.call_count == 1
+    assert mock_record_first_new_feedback.call_count == 1
+
+    assert default_project.flags.has_feedbacks
+    assert default_project.flags.has_new_feedbacks
+
+
+@django_db_all
+def test_denylist(set_sentry_option, default_project):
+    with set_sentry_option(
+        "feedback.organizations.slug-denylist", [default_project.organization.slug]
+    ):
+        assert is_in_feedback_denylist(default_project.organization) is True
+
+
+@django_db_all
+def test_denylist_not_in_list(set_sentry_option, default_project):
+    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
+        assert is_in_feedback_denylist(default_project.organization) is False
+
+
 """
-Unit tests for shim_to_feedback error cases. The typical behavior of this function is tested in
-test_project_user_reports, test_post_process, and test_update_user_reports.
+shim_to_feedback tests. There are more integration tests in test_project_user_reports, test_post_process, and test_update_user_reports.
 """
+
+
+@pytest.mark.parametrize("use_username", (False, True))
+@django_db_all
+def test_shim_to_feedback_event_user_used_if_missing(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """Uses the error event's user context if user info is missing from the report."""
+    report_dict = {
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
+    event = Factories.store_event(
+        data={"event_id": event_id, "user": user_context},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == "Josh"
+    assert produced_event["contexts"]["feedback"]["contact_email"] == "josh.ferge@sentry.io"
+
+
+@pytest.mark.parametrize("use_username", (False, True))
+@django_db_all
+def test_shim_to_feedback_event_user_does_not_override_report(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """The report's user info should take precedence over the event."""
+    report_dict = {
+        "name": "Andrew",
+        "email": "andrew@example.com",
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
+    event = Factories.store_event(
+        data={"event_id": event_id, "user": user_context},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == "Andrew"
+    assert produced_event["contexts"]["feedback"]["contact_email"] == "andrew@example.com"
+
+
+@django_db_all
+def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka):
+    """User fields default to "" if not present."""
+    report_dict = {
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    event = Factories.store_event(
+        data={"event_id": event_id},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == ""
+    assert produced_event["contexts"]["feedback"]["contact_email"] == ""
+
+
+# ERROR CASES #
 
 
 @django_db_all
@@ -938,28 +1143,3 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
         report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
     )
     assert mock_create_feedback_issue.call_count == 0
-
-
-@django_db_all
-def test_denylist(set_sentry_option, default_project):
-    with set_sentry_option(
-        "feedback.organizations.slug-denylist", [default_project.organization.slug]
-    ):
-        assert is_in_feedback_denylist(default_project.organization) is True
-
-
-@django_db_all
-def test_denylist_not_in_list(set_sentry_option, default_project):
-    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
-        assert is_in_feedback_denylist(default_project.organization) is False
-
-
-@django_db_all
-def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
-    event = mock_feedback_event(default_project.id)
-    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert produced_event.get("release") is not None
-    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"

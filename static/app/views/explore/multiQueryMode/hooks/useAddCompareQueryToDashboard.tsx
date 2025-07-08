@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -9,11 +8,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
   getQueryMode,
   type ReadableExploreQueryParts,
@@ -44,19 +49,21 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
     const search = new MutableSearch(qs);
 
     const discoverQuery: NewQuery = {
-      name: t('Custom Widget'),
+      name: DEFAULT_WIDGET_NAME,
       fields,
       orderby: sortBys.map(formatSort),
       query: search.formatString(),
       version: 2,
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       yAxis: yAxes,
+      display:
+        CHART_TYPE_TO_DISPLAY_TYPE[query.chartType || determineDefaultChartType(yAxes)],
     };
 
     const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
     newEventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
     return newEventView;
-  }, [groupBys, mode, qs, selection, sortBys, yAxes]);
+  }, [groupBys, mode, qs, query.chartType, selection, sortBys, yAxes]);
 
   const addToDashboard = useCallback(() => {
     const eventView = getEventView();

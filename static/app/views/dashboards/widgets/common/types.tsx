@@ -21,9 +21,17 @@ type AttributeValueUnit = DataUnit | null;
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
+  /**
+   * Difference between the timestamps of the datapoints, in milliseconds
+   */
+  interval: number;
   valueType: TimeSeriesValueType;
   valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
+  /**
+   * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
+   */
+  order?: number;
 };
 
 export type TimeSeriesItem = {
@@ -32,13 +40,16 @@ export type TimeSeriesItem = {
    */
   timestamp: number;
   value: number | null;
-  delayed?: boolean;
+  /**
+   * A data point might be incomplete for a few reasons. One possible reason is that it's too new, and the ingestion of data for this time bucket is still going. Another reason is that it's truncated. For example, if we're plotting a data bucket from 1:00pm to 2:00pm, but the data set only includes data from 1:15pm and on, the bucket is incomplete.
+   */
+  incomplete?: boolean;
 };
 
 export type TimeSeries = {
-  field: string;
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
+  yAxis: string;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
@@ -47,7 +58,7 @@ export type TimeSeries = {
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-type TabularMeta<TFields extends string = string> = {
+export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
@@ -60,6 +71,14 @@ export type TabularRow<TFields extends string = string> = Record<
 export type TabularData<TFields extends string = string> = {
   data: Array<TabularRow<TFields>>;
   meta: TabularMeta<TFields>;
+};
+
+export type TabularColumn<TFields extends string = string> = {
+  key: TFields;
+  name: TFields;
+  sortable?: boolean;
+  type?: AttributeValueType;
+  width?: number;
 };
 
 type ErrorProp = Error | string;

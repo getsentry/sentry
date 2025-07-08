@@ -13,6 +13,7 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -51,8 +52,18 @@ class TestGetNotificationMessageToSend(TestCase):
             user_id=self.user.id,
             data={"ignoreUntilEscalating": True},
         )
-        result = self.service._get_notification_message_to_send(activity=activity)
-        assert result == "admin@localhost archived BAR-1"
+        uuid = uuid4()
+        with mock.patch("uuid.uuid4", return_value=uuid):
+            result = self.service._get_notification_message_to_send(activity=activity)
+            group_link = self.group.get_absolute_url(
+                params={
+                    "referrer": "activity_notification",
+                    "notification_uuid": uuid,
+                }
+            )
+            assert (
+                result == f"admin@localhost archived <{group_link}|{self.group.qualified_short_id}>"
+            )
 
 
 @freeze_time("2025-01-01 00:00:00")
@@ -117,7 +128,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
             self.service.notify_all_threads_for_activity(activity=self.activity)
-            mock_logger.info.assert_called_with(
+            mock_logger.debug.assert_called_with(
                 "no group associated on the activity, nothing to do",
                 extra={
                     "activity_id": self.activity.id,
@@ -130,7 +141,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
             self.service.notify_all_threads_for_activity(activity=self.activity)
-            mock_logger.info.assert_called_with(
+            mock_logger.debug.assert_called_with(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra={
                     "activity_id": self.activity.id,
@@ -276,6 +287,65 @@ class TestNotifyAllThreadsForActivity(TestCase):
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
     )
+    def test_handle_parent_notification_with_open_period_model_open_period_model(
+        self, mock_get_channel_id, mock_send_notification, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+
+        rule_fire_history = RuleFireHistory.objects.create(
+            project=self.project,
+            rule=self.rule,
+            group=group,
+            event_id=456,
+            notification_uuid=str(uuid4()),
+        )
+
+        # Create two parent notifications with different open periods
+        NotificationMessage.objects.create(
+            id=123,
+            date_added=timezone.now(),
+            message_identifier=self.message_identifier,
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=timezone.now() - timedelta(minutes=1),
+        )
+
+        # Create a new open period
+        latest_open_period = get_latest_open_period(self.group)
+
+        parent_notification_2_message = NotificationMessage.objects.create(
+            id=124,
+            date_added=timezone.now(),
+            message_identifier=self.message_identifier,
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=latest_open_period.date_started if latest_open_period else None,
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        # Verify only one notification was handled
+        assert mock_send_notification.call_count == 1
+        # Verify it was the newer notification
+        mock_send_notification.assert_called_once()
+        assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
+
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+    )
     def test_handle_parent_notification_with_open_period_uptime_resolved(
         self, mock_get_channel_id, mock_send_notification, mock_record
     ) -> None:
@@ -368,14 +438,23 @@ class TestNotifyAllThreadsForActivity(TestCase):
             instance=self.parent_notification_action,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        uuid = uuid4()
+        with mock.patch("uuid.uuid4", return_value=uuid):
+            self.service.notify_all_threads_for_activity(activity=activity)
+
+        group_link = self.group.get_absolute_url(
+            params={
+                "referrer": "activity_notification",
+                "notification_uuid": uuid,
+            }
+        )
 
         # Verify the notification action repository was used
         assert mock_send_notification.call_count == 1
         mock_send_notification.assert_called_with(
             channel_id=mock_get_channel_id.return_value,
             message_identifier=self.message_identifier,
-            notification_to_send="admin@localhost archived BAR-1",
+            notification_to_send=f"admin@localhost archived <{group_link}|{self.group.qualified_short_id}>",
             client=mock.ANY,
         )
 

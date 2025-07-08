@@ -86,6 +86,7 @@ export function makeEAPSpan(
     parent_span_id: null,
     children: [],
     errors: [],
+    measurements: {},
     duration: 10,
     ...overrides,
   } as TraceTree.EAPSpan;

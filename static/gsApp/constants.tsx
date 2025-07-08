@@ -50,17 +50,16 @@ const DEFAULT_BILLED_DATA_CATEGORY_INFO = {
 } as Record<DataCategoryExact, BilledDataCategoryInfo>;
 Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
   ([categoryExact, categoryInfo]) => {
-    if (!categoryInfo.isBilledCategory) {
-      DEFAULT_BILLED_DATA_CATEGORY_INFO[categoryExact as DataCategoryExact] = {
-        ...categoryInfo,
-        canAllocate: false,
-        canProductTrial: false,
-        maxAdminGift: 0,
-        freeEventsMultiple: 0,
-        feature: null,
-        reservedVolumeTooltip: null,
-      };
-    }
+    DEFAULT_BILLED_DATA_CATEGORY_INFO[categoryExact as DataCategoryExact] = {
+      ...categoryInfo,
+      canAllocate: false,
+      canProductTrial: false,
+      maxAdminGift: 0,
+      freeEventsMultiple: 0,
+      feature: null,
+      hasSpikeProtection: false,
+      reservedVolumeTooltip: null,
+    };
   }
 );
 
@@ -77,6 +76,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canProductTrial: false,
     maxAdminGift: 10_000_000,
     freeEventsMultiple: 1_000,
+    hasSpikeProtection: true,
     reservedVolumeTooltip: t(
       'Errors are sent every time an SDK catches a bug. You can send them manually too, if you want.'
     ),
@@ -88,6 +88,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 50_000_000,
     freeEventsMultiple: 1_000,
     feature: 'performance-view',
+    hasSpikeProtection: true,
     reservedVolumeTooltip: t(
       'Transactions are sent when your service receives a request and sends a response.'
     ),
@@ -99,6 +100,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'event-attachments',
+    hasSpikeProtection: true,
     reservedVolumeTooltip: t(
       'Attachments are files attached to errors, such as minidumps.'
     ),
@@ -121,6 +123,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
+    hasSpikeProtection: true,
     reservedVolumeTooltip: t(
       'Tracing is enabled by spans. A span represents a single operation of work within a trace.'
     ),
@@ -147,7 +150,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canProductTrial: false,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
-    feature: 'uptime',
+    feature: 'uptime-billing',
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
@@ -164,5 +167,21 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
     feature: null,
+  },
+  [DataCategoryExact.SEER_AUTOFIX]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
+    canAllocate: false,
+    canProductTrial: false,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'seer-billing',
+  },
+  [DataCategoryExact.SEER_SCANNER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
+    canAllocate: false,
+    canProductTrial: false,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'seer-billing',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

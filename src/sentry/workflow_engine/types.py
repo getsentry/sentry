@@ -10,7 +10,12 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.activity import Activity
     from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -18,6 +23,12 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
+
+ERROR_DETECTOR_NAME = "Error Monitor"
+
+
+class DetectorException(Exception):
+    pass
 
 
 class DetectorPriorityLevel(IntEnum):
@@ -33,16 +44,29 @@ class DetectorPriorityLevel(IntEnum):
 DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
-ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
+
+
+@dataclass(frozen=True)
+class DetectorEvaluationResult:
+    # TODO - Should group key live at this level?
+    group_key: DetectorGroupKey
+    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
+    # need to know the other results externally
+    is_triggered: bool
+    priority: DetectorPriorityLevel
+    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    result: IssueOccurrence | StatusChangeMessage | None = None
+    # Event data to supplement the `IssueOccurrence`, if passed.
+    event_data: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent
+    event: GroupEvent | Activity
+    group: Group
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
-    workflow_id: int | None = None
     workflow_env: Environment | None = None
 
 
@@ -59,6 +83,7 @@ class ActionHandler:
 
     @staticmethod
     def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+        # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
 
@@ -66,7 +91,7 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         """
-        Bulk fetch related data-source models reutrning a dict of the
+        Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
         """
         raise NotImplementedError
@@ -77,6 +102,22 @@ class DataSourceTypeHandler(Generic[T]):
         A list of deletion ModelRelations. The model relation query should map
         the source_id field within the related model to the
         `instance.source_id`.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        """
+        Returns the maximum number of instances of this data source type for the organization.
+        If None, there is no limit.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        """
+        Returns the current number of instances of this data source type for the organization.
+        Only called if `get_instance_limit` returns a number >0
         """
         raise NotImplementedError
 

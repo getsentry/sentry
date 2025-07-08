@@ -44,8 +44,8 @@ class OrganizationGroupSuspectTagsTestCase(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.json() == {
             "data": [
-                {"tag": "key", "score": 0.01634056054997356},
-                {"tag": "other", "score": 0.016181914331041776},
+                {"tag": "key", "score": 2.7622287114272543},
+                {"tag": "other", "score": 0.0},
             ]
         }
 

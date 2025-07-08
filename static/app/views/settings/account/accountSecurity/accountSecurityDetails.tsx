@@ -8,9 +8,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button, LinkButton} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,6 +27,8 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
+import {AuthenticatorHeader} from './components/authenticatorHeader';
 
 const ENDPOINT = '/users/me/authenticators/';
 const getAuthenticatorQueryKey = (authId: string) => [`${ENDPOINT}${authId}/`] as const;
@@ -146,18 +148,13 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
         title={
-          <Fragment>
-            <span>{authenticator.name}</span>
-            <AuthenticatorStatus
-              data-test-id={`auth-status-${
-                authenticator.isEnrolled ? 'enabled' : 'disabled'
-              }`}
-              enabled={authenticator.isEnrolled}
-            />
-          </Fragment>
+          <AuthenticatorHeader
+            name={authenticator.name}
+            isActive={authenticator.isEnrolled}
+          />
         }
         action={
-          <AuthenticatorActions>
+          <ButtonBar gap={1}>
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -166,18 +163,22 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
               </LinkButton>
             )}
             {authenticator.isEnrolled && authenticator.removeButton && (
-              <Tooltip
-                title={t(
-                  "Two-factor authentication is required for at least one organization you're a member of."
-                )}
-                disabled={!deleteDisabled}
-              >
-                <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
-                  <Button priority="danger">{authenticator.removeButton}</Button>
-                </RemoveConfirm>
-              </Tooltip>
+              <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
+                <Button
+                  title={
+                    deleteDisabled
+                      ? t(
+                          "Two-factor authentication is required for at least one organization you're a member of."
+                        )
+                      : undefined
+                  }
+                  priority="danger"
+                >
+                  {authenticator.removeButton}
+                </Button>
+              </RemoveConfirm>
             )}
-          </AuthenticatorActions>
+          </ButtonBar>
         }
       />
 
@@ -214,28 +215,14 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
 
 export default AccountSecurityDetails;
 
-const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-left: ${space(1)};
-`;
-
-const AuthenticatorActions = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  > * {
-    margin-left: ${space(1)};
-  }
-`;
-
 const AuthenticatorDates = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(0.75)} ${space(2)};
   grid-template-columns: max-content auto;
 `;
 
 const DateLabel = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const PhoneWrapper = styled('div')`
@@ -243,6 +230,6 @@ const PhoneWrapper = styled('div')`
 `;
 
 const Phone = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-left: ${space(1)};
 `;

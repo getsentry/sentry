@@ -5,7 +5,7 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -173,14 +173,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
 
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
-        assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
-
-        with self.feature("organizations:dashboards-table-view"):
-            response = self.client.get(self.url, data={"sort": "mydashboards"})
-            assert response.status_code == 200, response.content
-
-            values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
-            assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
+        assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
 
     def test_get_sortby_mydashboards_and_recently_viewed(self):
         user_1 = self.create_user(username="user_1")
@@ -247,37 +240,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         Dashboard.objects.create(title="F", created_by_id=user_1.id, organization=self.organization)
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-table-view"):
-            response = self.client.get(self.url, data={"sort": "mydashboards"})
-            assert response.status_code == 200, response.content
+        response = self.client.get(self.url, data={"sort": "mydashboards"})
+        assert response.status_code == 200, response.content
 
-            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
-            assert values == [
-                "Cat",
-                "Cat",
-                "admin@localhost",  # name is empty
-                "admin@localhost",
-                "Aapple",
-                "Banana",
-                "Pineapple",
-                "Pineapple",
-            ]
+        values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+        assert values == [
+            "Cat",
+            "Cat",
+            "admin@localhost",  # name is empty
+            "admin@localhost",
+            "Aapple",
+            "Banana",
+            "Pineapple",
+            "Pineapple",
+        ]
 
-            # descending
-            response = self.client.get(self.url, data={"sort": "-mydashboards"})
-            assert response.status_code == 200, response.content
+        # descending
+        response = self.client.get(self.url, data={"sort": "-mydashboards"})
+        assert response.status_code == 200, response.content
 
-            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
-            assert values == [
-                "Cat",
-                "Cat",
-                "Pineapple",
-                "Pineapple",
-                "Banana",
-                "Aapple",
-                "admin@localhost",  # name is empty
-                "admin@localhost",
-            ]
+        values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+        assert values == [
+            "Cat",
+            "Cat",
+            "Pineapple",
+            "Pineapple",
+            "Banana",
+            "Aapple",
+            "admin@localhost",  # name is empty
+            "admin@localhost",
+        ]
 
     def test_get_only_favorites_no_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -315,13 +307,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
-            assert response.status_code == 200, response.content
+        response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            # sorted by title by default
-            assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
+        values = [row["title"] for row in response.data]
+        # sorted by title by default
+        assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
 
     def test_get_only_favorites_with_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -366,14 +357,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_7.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(
-                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
-            )
-            assert response.status_code == 200, response.content
+        response = self.client.get(
+            self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+        )
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
 
     def test_get_exclude_favorites_with_no_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -418,13 +408,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"filter": "excludeFavorites"})
-            assert response.status_code == 200, response.content
+        response = self.client.get(self.url, data={"filter": "excludeFavorites"})
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            # sorted by title by default
-            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
+        values = [row["title"] for row in response.data]
+        # sorted by title by default
+        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
 
     def test_get_exclude_favorites_with_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -469,14 +458,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(
-                self.url, data={"filter": "excludeFavorites", "sort": "dateCreated"}
-            )
-            assert response.status_code == 200, response.content
+        response = self.client.get(
+            self.url, data={"filter": "excludeFavorites", "sort": "dateCreated"}
+        )
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
 
     def test_pin_favorites_with_my_dashboards_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -513,21 +501,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]
 
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"sort": "mydashboards", "pin": "favorites"})
-            assert response.status_code == 200, response.content
-            values = [row["title"] for row in response.data]
-            assert values == [
-                # favorites
-                "Dashboard D",  # self.user's favorite
-                "Dashboard E",  # user_1's dashboard
-                "Dashboard B",  # user_1's dashboard
-                # other dashboards
-                "Dashboard A",  # self.user's dashboard
-                "Dashboard 2",  # self.user's dashboard
-                "Dashboard 1",  # self.user's dashboard
-                "Dashboard C",  # user_1's dashbaord
-            ]
+        response = self.client.get(self.url, data={"sort": "mydashboards", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == [
+            # favorites
+            "Dashboard D",  # self.user's favorite
+            "Dashboard E",  # user_1's dashboard
+            "Dashboard B",  # user_1's dashboard
+            # other dashboards
+            "Dashboard A",  # self.user's dashboard
+            "Dashboard 2",  # self.user's dashboard
+            "Dashboard 1",  # self.user's dashboard
+            "Dashboard C",  # user_1's dashbaord
+        ]
 
     def test_pin_favorites_with_my_date_created_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -564,21 +551,172 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]
 
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"sort": "dateCreated", "pin": "favorites"})
-            assert response.status_code == 200, response.content
-            values = [row["title"] for row in response.data]
-            assert values == [
-                # favorites
-                "Dashboard B",
-                "Dashboard D",
-                "Dashboard E",
-                # other dashboards
-                "Dashboard 1",
-                "Dashboard 2",
-                "Dashboard A",
-                "Dashboard C",
-            ]
+        response = self.client.get(self.url, data={"sort": "dateCreated", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == [
+            # favorites
+            "Dashboard B",
+            "Dashboard D",
+            "Dashboard E",
+            # other dashboards
+            "Dashboard 1",
+            "Dashboard 2",
+            "Dashboard A",
+            "Dashboard C",
+        ]
+
+    def test_get_owned_dashboards(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard User 1"]
+
+        self.login_as(user_2)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard User 2"]
+
+    def test_get_owned_dashboards_across_organizations(self):
+        user_1 = self.create_user(username="user_1")
+
+        # The test user is a member of both orgs.
+        other_org = self.create_organization(name="Other Org")
+        self.create_member(organization=other_org, user=user_1)
+        self.create_member(organization=self.organization, user=user_1)
+
+        Dashboard.objects.create(
+            title="Initial dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Other org dashboard",
+            created_by_id=user_1.id,
+            organization=other_org,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Initial dashboard"]
+
+    def test_get_owned_dashboards_can_pin_starred_at_top(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        starred_dashboard = Dashboard.objects.create(
+            title="Starred dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        # Add the starred dashboard to the user's favorites.
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=user_1.id,
+            dashboard=starred_dashboard,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "owned", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Starred dashboard", "Dashboard User 1"]
+
+    def test_get_shared_dashboards(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        # Clean up existing dashboards setup.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Dashboard User 1",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Dashboard User 2",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard User 2"]
+
+        self.login_as(user_2)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard User 1"]
+
+    def test_get_shared_dashboards_across_organizations(self):
+        # The test user is a member of just the single org.
+        test_user = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=test_user)
+
+        # The other test user is a member of both orgs.
+        other_user = self.create_user(username="other_user")
+        other_org = self.create_organization(name="Other Org")
+        self.create_member(organization=other_org, user=other_user)
+        self.create_member(organization=self.organization, user=other_user)
+
+        # Clean up existing dashboards setup.
+        Dashboard.objects.all().delete()
+
+        Dashboard.objects.create(
+            title="Initial dashboard",
+            created_by_id=other_user.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Other org dashboard",
+            created_by_id=other_user.id,
+            organization=other_org,
+        )
+
+        self.login_as(test_user)
+        response = self.client.get(self.url, data={"filter": "shared"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Initial dashboard"]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
@@ -1445,13 +1583,67 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_gets_dashboard_favorited_with_dashboard_list(self):
         self.dashboard.favorited_by = [self.user.id]
 
-        with self.feature({"organizations:dashboards-favourite": True}):
-            response = self.do_request("get", self.url)
-            assert response.status_code == 200, response.content
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
 
-            for dashboard in response.data:
-                assert "isFavorited" in dashboard
-            self.assert_equal_dashboards(self.dashboard, response.data[1])
-            assert response.data[1]["isFavorited"] is True
-            assert response.data[0]["isFavorited"] is False  # general template
-            assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
+        for dashboard in response.data:
+            assert "isFavorited" in dashboard
+        self.assert_equal_dashboards(self.dashboard, response.data[1])
+        assert response.data[1]["isFavorited"] is True
+        assert response.data[0]["isFavorited"] is False  # general template
+        assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
+
+    def test_post_errors_widget_with_is_filter(self):
+        data: dict[str, Any] = {
+            "title": "Dashboard with errors widget",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Errors",
+                    "limit": 5,
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "widgetType": "error-events",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert dashboard.created_by_id == self.user.id
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_response_includes_project_ids(self):
+        project = self.create_project()
+        self.dashboard.projects.add(project)
+        self.dashboard.save()
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+
+        overview_dashboard = response.data[0]
+        assert overview_dashboard["projects"] == []
+
+        current_dashboard = response.data[1]
+        assert current_dashboard["projects"] == [project.id]
+
+        starred_dashboard = response.data[2]
+        assert starred_dashboard["projects"] == []

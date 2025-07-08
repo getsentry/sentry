@@ -1,4 +1,4 @@
-import {keyframes} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -115,11 +115,11 @@ const Smoke = styled('g')`
   }
 
   ${new Array(3).fill(0).map(
-    (_, i) => `
-  > :nth-child(${i + 1}) {
-    animation-delay: ${i * 0.8}s
-  }
-  `
+    (_, i) => css`
+      > :nth-child(${i + 1}) {
+        animation-delay: ${i * 0.8}s;
+      }
+    `
   )}
 `;
 

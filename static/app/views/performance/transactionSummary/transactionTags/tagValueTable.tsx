@@ -1,14 +1,15 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -340,9 +341,9 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
   align-items: center;
   ${p =>
     p.disabled &&
-    `
-    opacity: 0.5;
-    color: ${p.theme.disabled};
-    cursor: default;
-  `}
+    css`
+      opacity: 0.5;
+      color: ${p.theme.disabled};
+      cursor: default;
+    `}
 `;

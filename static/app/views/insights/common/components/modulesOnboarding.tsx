@@ -16,7 +16,7 @@ import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insig
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
 import platforms from 'sentry/data/platforms';
@@ -307,6 +307,13 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
+  agents: {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -316,10 +323,17 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'mobile-vitals': {
     heading: t('Mobile Vitals'),
-    description: t('Explore mobile app metrics.'),
-    valuePropDescription: '',
-    valuePropPoints: [],
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations for key mobile metrics based on industry standards.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),
@@ -489,22 +503,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
-  },
-  // XXX(epurkhiser): Crons does not use the insights onboarding component.
-  crons: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
-  },
-  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
-  uptime: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
   },
   sessions: {
     heading: t(`Get insights about your application's session health`),

@@ -53,28 +53,6 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('sets useRpc param', async function () {
-    await doEventsRequest<false>(api, {
-      ...opts,
-      includeAllArgs: false,
-      includePrevious: false,
-      period: '7d',
-      partial: true,
-      useRpc: true,
-    });
-
-    expect(mock).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [parseInt(project.id, 10)],
-          environment: [],
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
   it('requests events stats with relative period including previous period', async function () {
     await doEventsRequest<false>(api, {
       ...opts,

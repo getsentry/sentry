@@ -6,9 +6,6 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -17,18 +14,22 @@ import {
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
   isAValidSort,
@@ -40,10 +41,11 @@ import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobil
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
-  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateGenericPerformanceEventView,
@@ -56,10 +58,7 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {
-  getTransactionSearchQuery,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 function EAPMobileOverviewPage() {
   useOverviewPageTrackPageload();
@@ -71,6 +70,7 @@ function EAPMobileOverviewPage() {
   const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -82,19 +82,15 @@ function EAPMobileOverviewPage() {
     organization,
     true
   );
-  const searchBarEventView = eventView.clone();
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
-  );
+  const {mobileProjects: selectedMobileProjects, otherProjects: selectedOtherProjects} =
+    categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp('(');
+  existingQuery.addFilterValue('span.op', `[${OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
@@ -102,6 +98,7 @@ function EAPMobileOverviewPage() {
       `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
@@ -177,7 +174,11 @@ function EAPMobileOverviewPage() {
     });
   }
 
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   const sorts: [ValidSort, ValidSort] = [
     {
@@ -193,21 +194,25 @@ function EAPMobileOverviewPage() {
     {
       search: existingQuery,
       sorts,
+      cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',
         'transaction',
         'span.op',
         'project',
         'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
+        'p75(measurements.frames_slow_rate)',
+        'p75(measurements.frames_frozen_rate)',
         'count_unique(user)',
-        'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],
     },
     'api.performance.landing-table'
+  );
+
+  const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
+    project => project.id
   );
 
   return (
@@ -223,25 +228,30 @@ function EAPMobileOverviewPage() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
+                  <InsightsProjectSelector />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={searchBarEventView}
+                    projectIds={searchBarProjectsIds}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
@@ -253,13 +263,6 @@ function EAPMobileOverviewPage() {
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <MobileOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

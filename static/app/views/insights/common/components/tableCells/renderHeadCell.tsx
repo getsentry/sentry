@@ -1,8 +1,10 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import type {Alignments} from 'sentry/components/gridEditable/sortLink';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -41,6 +43,7 @@ const {
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
+  `sum(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `p75(transaction.duration)`,
@@ -85,6 +88,9 @@ const SORTABLE_FIELDS = new Set([
   'p95_if(span.duration,is_transaction,true)',
   'failure_rate_if(is_transaction,true)',
   'sum_if(span.duration,is_transaction,true)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
+  'trace_status_rate(ok)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
@@ -110,12 +116,14 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
   const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
-  return (
+  const hasTooltip = column.tooltip;
+
+  const sortLink = (
     <SortLink
       align={alignment}
       canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
       direction={sort?.field === column.key ? sort.kind : undefined}
-      title={name}
+      title={hasTooltip ? <TooltipHeader>{name}</TooltipHeader> : name}
       generateSortLink={() => {
         return {
           ...location,
@@ -127,6 +135,20 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
       }}
     />
   );
+
+  if (hasTooltip) {
+    const AlignmentContainer = alignment === 'right' ? AlignRight : AlignLeft;
+
+    return (
+      <AlignmentContainer>
+        <StyledTooltip isHoverable title={column.tooltip}>
+          {sortLink}
+        </StyledTooltip>
+      </AlignmentContainer>
+    );
+  }
+
+  return sortLink;
 };
 
 const getAlignment = (key: string): Alignments => {
@@ -134,7 +156,6 @@ const getAlignment = (key: string): Alignments => {
 
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
-
     if (outputType) {
       return fieldAlignment(key, outputType);
     }
@@ -145,3 +166,26 @@ const getAlignment = (key: string): Alignments => {
   }
   return 'left';
 };
+
+const AlignLeft = styled('span')`
+  display: block;
+  margin: auto;
+  text-align: left;
+  width: 100%;
+`;
+
+const AlignRight = styled('span')`
+  display: block;
+  margin: auto;
+  text-align: right;
+  width: 100%;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
+`;
+
+const TooltipHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
+`;

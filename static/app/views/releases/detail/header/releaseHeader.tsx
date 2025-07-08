@@ -6,11 +6,11 @@ import pick from 'lodash/pick';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Badge} from 'sentry/components/core/badge';
+import {TabList} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {TabList} from 'sentry/components/tabs';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
@@ -170,7 +170,7 @@ const IconWrapper = styled('span')`
 `;
 
 const NavTabsBadge = styled(Badge)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

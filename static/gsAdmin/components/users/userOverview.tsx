@@ -3,10 +3,10 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
@@ -111,7 +111,7 @@ function UserOverview({
                     size="xs"
                     title="Disconnect Identity"
                     onClick={() => onIdentityDisconnect(identity)}
-                    aria-label={t('Disconnect Identity')}
+                    aria-label={'Disconnect Identity'}
                     disabled={
                       identity.status !== UserIdentityStatus.CAN_DISCONNECT &&
                       identity.category !== UserIdentityCategory.ORG_IDENTITY
@@ -151,7 +151,7 @@ function UserOverview({
                     size="xs"
                     title="Remove Authenticator"
                     onClick={() => onAuthenticatorRemove(auth)}
-                    aria-label={t('Remove Authenticator')}
+                    aria-label={'Remove Authenticator'}
                   />
                 </ButtonWrapper>
                 <small style={{color: '#999999'}}>
@@ -169,18 +169,18 @@ function UserOverview({
         )}
         <h6>Auth Tokens</h6>
         {tokens.length ? (
-          <ApiTokenList>
+          <PanelTable headers={['Token', 'Created On', 'Scopes', '']}>
             {tokens.map(token => (
               <ApiTokenRow
                 key={token.id}
                 token={token}
                 onRemove={revokeToken}
-                onRemoveConfirmMessage={t(
+                onRemoveConfirmMessage={
                   "Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
-                )}
+                }
               />
             ))}
-          </ApiTokenList>
+          </PanelTable>
         ) : (
           <p>
             <em>
@@ -199,7 +199,3 @@ const ButtonWrapper = styled('div')`
 `;
 
 export default UserOverview;
-
-const ApiTokenList = styled('div')`
-  flex-direction: column;
-`;

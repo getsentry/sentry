@@ -10,6 +10,7 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -72,7 +73,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[celery]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[celery]'}),
     },
   ],
   configure: (params: Params) => [
@@ -190,6 +191,7 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

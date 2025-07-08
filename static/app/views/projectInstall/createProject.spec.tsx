@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -27,11 +26,6 @@ function renderFrameworkModalMockRequests({
   organization: Organization;
   teamSlug: string;
 }) {
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/rule-conditions/`,
-    body: [],
-  });
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
     body: [TeamFixture({slug: teamSlug})],
@@ -86,13 +80,6 @@ describe('CreateProject', function () {
   beforeEach(() => {
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
-
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/rule-conditions/`,
-      body: {},
-      // Not required for these tests
-      statusCode: 500,
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/?integrationType=messaging`,
@@ -375,11 +362,6 @@ describe('CreateProject', function () {
       TeamStore.loadUserTeams([teamWithAccess]);
 
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/rule-conditions/`,
-        body: MOCK_RESP_VERBOSE,
-      });
-
-      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
         body: [
           OrganizationIntegrationsFixture({
@@ -427,6 +409,51 @@ describe('CreateProject', function () {
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(getSubmitButton()).toBeEnabled();
+    });
+
+    it('should create an issue alert rule by default', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: true,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
+    });
+
+    it('should NOT create alerts if the user opt out', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      await userEvent.click(screen.getByText(/create my own alerts later/i));
+      expect(screen.getByLabelText(/create my own alerts later/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: false,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
     });
   });
 });

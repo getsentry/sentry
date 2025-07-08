@@ -22,6 +22,7 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
@@ -52,6 +53,8 @@ export default function SpanSummary(props: Props) {
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   const domainViewHeaderProps = {
     headerTitle: (
       <Fragment>
@@ -72,6 +75,7 @@ export default function SpanSummary(props: Props) {
       transaction: {name: transactionName, project: project?.id ?? ''},
       spanSlug,
       view,
+      shouldUseOTelFriendlyUI,
     }),
     hideDefaultTabs: true,
   };

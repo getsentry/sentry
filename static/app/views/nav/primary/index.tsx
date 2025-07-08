@@ -4,10 +4,10 @@ import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
-  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
+  IconPrevent,
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
@@ -22,7 +22,6 @@ import {
   SidebarLink,
   SidebarList,
 } from 'sentry/views/nav/primary/components';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
@@ -33,7 +32,11 @@ import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
-  return <SidebarList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarList>;
+  return (
+    <SidebarList isMobile={layout === NavLayout.MOBILE} data-primary-list-container>
+      {children}
+    </SidebarList>
+  );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
@@ -61,7 +64,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/issues/`}
             analyticsKey="issues"
-            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
+            group={PrimaryNavGroup.ISSUES}
           >
             <IconIssues />
           </SidebarLink>
@@ -76,7 +79,7 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
             activeTo={`/${prefix}/explore`}
             analyticsKey="explore"
-            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
+            group={PrimaryNavGroup.EXPLORE}
           >
             <IconSearch />
           </SidebarLink>
@@ -96,7 +99,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/dashboards/`}
               activeTo={`/${prefix}/dashboard`}
               analyticsKey="dashboards"
-              label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
+              group={PrimaryNavGroup.DASHBOARDS}
             >
               <IconDashboard />
             </SidebarLink>
@@ -110,10 +113,10 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             <SidebarLink
-              to={`/${prefix}/insights/frontend/`}
+              to={`/${prefix}/insights/`}
               activeTo={`/${prefix}/insights`}
               analyticsKey="insights"
-              label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
+              group={PrimaryNavGroup.INSIGHTS}
             >
               <IconGraph type="area" />
             </SidebarLink>
@@ -125,9 +128,9 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
             activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
             analyticsKey="codecov"
-            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
+            group={PrimaryNavGroup.CODECOV}
           >
-            <IconCodecov />
+            <IconPrevent />
           </SidebarLink>
         </Feature>
 
@@ -142,7 +145,7 @@ export function PrimaryNavigationItems() {
             to={`/settings/${organization.slug}/`}
             activeTo={`/settings/`}
             analyticsKey="settings"
-            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.SETTINGS].label}
+            group={PrimaryNavGroup.SETTINGS}
           >
             <IconSettings />
           </SidebarLink>
@@ -152,14 +155,22 @@ export function PrimaryNavigationItems() {
       <SidebarFooter>
         <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
-        <PrimaryNavigationWhatsNew />
-        <Hook
-          name="sidebar:try-business"
-          organization={organization}
-          orientation="left"
-        />
-        <Hook name="sidebar:billing-status" organization={organization} />
-        <PrimaryNavigationServiceIncidents />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationWhatsNew />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook
+            name="sidebar:try-business"
+            organization={organization}
+            orientation="left"
+          />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:billing-status" organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationServiceIncidents />
+        </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationOnboarding />
         </ErrorBoundary>

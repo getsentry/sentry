@@ -1,31 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Key} from '@react-types/shared';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {TabListItemProps} from 'sentry/components/core/tabs';
+import {TabList} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {TabList} from 'sentry/components/tabs';
-import type {TabListItemProps} from 'sentry/components/tabs/item';
-import {IconBusiness, IconLab} from 'sentry/icons';
+import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
@@ -62,24 +58,14 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
-  const useEap = useInsightsEap();
-  const hasEapFlag = organization.features.includes('insights-modules-use-eap');
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
+  const {view, isInOverviewPage} = useDomainViewFilters();
 
-  const toggleUseEap = () => {
-    const newState = !useEap;
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        useEap: newState ? '1' : '0',
-      },
-    });
-  };
+  const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
+  const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
+  const isAgentMonitoring = view === 'agents';
 
   const crumbs: Crumb[] = [
     {
@@ -95,7 +81,6 @@ export function DomainViewHeader({
 
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
-    useEap: location.query?.useEap,
   };
 
   const tabList: TabListItemProps[] = [
@@ -121,12 +106,19 @@ export function DomainViewHeader({
       })),
   ];
 
-  const handleExperimentDropdownAction = (key: Key) => {
-    if (key === 'eap') {
-      toggleUseEap();
-    }
-  };
-
+  const feedbackOptions =
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+      ? {
+          tags: {
+            ['feedback.source']: isAgentMonitoring
+              ? 'agent-monitoring'
+              : isLaravelInsights
+                ? 'laravel-insights'
+                : 'nextjs-insights',
+            ['feedback.owner']: 'telemetry-experience',
+          },
+        }
+      : undefined;
   return (
     <Fragment>
       <Layout.Header>
@@ -139,44 +131,9 @@ export function DomainViewHeader({
             {selectedModule === ModuleName.SESSIONS ? (
               <FeedbackButtonTour />
             ) : (
-              <FeedbackWidgetButton
-                optionOverrides={
-                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                    ? {
-                        tags: {
-                          ['feedback.source']: isLaravelInsightsAvailable
-                            ? 'laravel-insights'
-                            : 'nextjs-insights',
-                          ['feedback.owner']: 'telemetry-experience',
-                        },
-                      }
-                    : undefined
-                }
-              />
+              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
             )}
             {additonalHeaderActions}
-            {hasEapFlag && (
-              <Fragment>
-                <DropdownMenu
-                  trigger={triggerProps => (
-                    <StyledDropdownButton {...triggerProps} size={'sm'}>
-                      {/* Passing icon as child to avoid extra icon margin */}
-                      <IconLab isSolid />
-                    </StyledDropdownButton>
-                  )}
-                  onAction={handleExperimentDropdownAction}
-                  items={[
-                    {
-                      key: 'eap',
-                      label: useEap
-                        ? 'Switch to Metrics Dataset'
-                        : 'Switch to EAP Dataset',
-                    },
-                  ]}
-                  position="bottom-end"
-                />
-              </Fragment>
-            )}
           </ButtonBar>
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
@@ -221,11 +178,4 @@ const TabContainer = styled('div')`
   align-items: center;
   text-align: left;
   gap: ${space(0.5)};
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
-  :hover {
-    color: ${p => p.theme.button.primary.background};
-  }
 `;

@@ -3,11 +3,12 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -20,8 +21,12 @@ export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
-  return [new Visualize([DEFAULT_VISUALIZATION], 'A')];
+  return [new Visualize(DEFAULT_VISUALIZATION)];
 }
+
+type VisualizeOptions = {
+  chartType?: ChartType;
+};
 
 export interface BaseVisualize {
   yAxes: readonly string[];
@@ -29,33 +34,43 @@ export interface BaseVisualize {
 }
 
 export class Visualize {
+  isEquation: boolean;
   chartType: ChartType;
-  label: string;
-  yAxes: readonly string[];
+  yAxis: string;
+  stack?: string;
   private selectedChartType?: ChartType;
 
-  constructor(yAxes: readonly string[], label = '', chartType?: ChartType) {
-    this.label = label;
-    this.yAxes = yAxes;
-    this.selectedChartType = chartType;
-    this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
+  constructor(yAxis: string, options?: VisualizeOptions) {
+    this.yAxis = yAxis;
+    this.selectedChartType = options?.chartType;
+    this.isEquation = isEquation(yAxis);
+    this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.stack = 'all';
+  }
+
+  isValid(): boolean {
+    if (this.isEquation) {
+      const expression = new Expression(this.yAxis);
+      return expression.isValid;
+    }
+    return defined(parseFunction(this.yAxis));
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxes, this.label, this.selectedChartType);
+    return new Visualize(this.yAxis, {
+      chartType: this.selectedChartType,
+    });
   }
 
-  replace({chartType, yAxes}: {chartType?: ChartType; yAxes?: string[]}): Visualize {
-    return new Visualize(
-      yAxes ?? this.yAxes,
-      this.label,
-      chartType ?? this.selectedChartType
-    );
+  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+    return new Visualize(yAxis ?? this.yAxis, {
+      chartType: chartType ?? this.selectedChartType,
+    });
   }
 
   toJSON(): BaseVisualize {
     const json: BaseVisualize = {
-      yAxes: this.yAxes,
+      yAxes: [this.yAxis],
     };
 
     if (defined(this.selectedChartType)) {
@@ -65,8 +80,8 @@ export class Visualize {
     return json;
   }
 
-  static fromJSON(json: BaseVisualize): Visualize {
-    return new Visualize(json.yAxes, '', json.chartType);
+  static fromJSON(json: BaseVisualize): Visualize[] {
+    return json.yAxes.map(yAxis => new Visualize(yAxis, {chartType: json.chartType}));
   }
 }
 
@@ -76,34 +91,42 @@ export function getVisualizesFromLocation(
 ): Visualize[] {
   const rawVisualizes = decodeList(location.query.visualize);
 
-  const result: Visualize[] = rawVisualizes
-    .map(raw => parseVisualizes(raw, organization))
-    .filter(defined)
-    .filter(parsed => parsed.yAxes.length > 0)
-    .map((parsed, i) => {
-      return new Visualize(
-        parsed.yAxes,
-        String.fromCharCode(65 + i), // starts from 'A'
-        parsed.chartType
-      );
-    });
+  const visualizes: Visualize[] = [];
 
-  return result.length ? result : defaultVisualizes();
+  const baseVisualizes: BaseVisualize[] = rawVisualizes
+    .map(raw => parseBaseVisualize(raw, organization))
+    .filter(defined);
+
+  for (const visualize of baseVisualizes) {
+    for (const yAxis of visualize.yAxes) {
+      visualizes.push(
+        new Visualize(yAxis, {
+          chartType: visualize.chartType,
+        })
+      );
+    }
+  }
+
+  return visualizes.length ? visualizes : defaultVisualizes();
 }
 
-function parseVisualizes(raw: string, organization: Organization): BaseVisualize | null {
+export function parseBaseVisualize(
+  raw: string,
+  organization: Organization
+): BaseVisualize | null {
   try {
     const parsed = JSON.parse(raw);
     if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
       return null;
     }
 
-    const yAxes = organization.features.includes('visibility-explore-equations')
-      ? parsed.yAxes.filter((yAxis: string) => {
-          const expression = new Expression(yAxis);
-          return expression.isValid;
-        })
-      : parsed.yAxes.filter(parseFunction);
+    const allowEquations = organization.features.includes('visibility-explore-equations');
+    const yAxes = parsed.yAxes.filter((yAxis: string) => {
+      if (isEquation(yAxis)) {
+        return allowEquations;
+      }
+      return defined(parseFunction(yAxis));
+    });
     if (yAxes.length <= 0) {
       return null;
     }
@@ -121,27 +144,14 @@ function parseVisualizes(raw: string, organization: Organization): BaseVisualize
   }
 }
 
-export function updateLocationWithVisualizes(
-  location: Location,
-  visualizes: BaseVisualize[] | null | undefined
-) {
-  if (defined(visualizes)) {
-    location.query.visualize = visualizes.map(visualize => {
-      return JSON.stringify(Visualize.fromJSON(visualize).toJSON());
-    });
-  } else if (visualizes === null) {
-    delete location.query.visualize;
-  }
-}
-
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
   oldArgument,
 }: {
   newAggregate: string;
-  oldAggregate: string;
-  oldArgument: string;
+  oldAggregate?: string;
+  oldArgument?: string;
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -154,11 +164,18 @@ export function updateVisualizeAggregate({
     // and carry the argument if it's the same type, reset to a default
     // if it's not the same type. Just hard coding it for now for simplicity
     // as `count_unique` is the only aggregate that takes a string.
-    return `${AggregationKey.COUNT_UNIQUE}(${SpanIndexedField.SPAN_OP})`;
+    return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
+  }
+
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {
+    return `${newAggregate}()`;
   }
 
   // switching away from count_unique means we need to reset the field
-  if (oldAggregate === AggregationKey.COUNT_UNIQUE) {
+  if (
+    oldAggregate === AggregationKey.COUNT_UNIQUE ||
+    NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
+  ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 

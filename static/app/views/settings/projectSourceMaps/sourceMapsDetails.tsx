@@ -1,12 +1,13 @@
 import {Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -313,10 +314,10 @@ const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
     );
   ${p =>
     p.hasTypeColumn &&
-    `
-  grid-template-columns:
-    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-    minmax(74px, max-content);
+    css`
+      grid-template-columns:
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+        minmax(74px, max-content);
     `}
 `;
 
@@ -380,7 +381,7 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
   color: ${p => p.theme.subText};
 `;

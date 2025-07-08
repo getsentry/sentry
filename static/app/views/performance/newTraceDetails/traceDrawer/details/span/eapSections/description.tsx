@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -16,12 +16,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
   MissingImage,
 } from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -48,24 +50,6 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 
 const formatter = new SQLishFormatter();
 
-export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
-  const span = node.value;
-  const resolvedModule: ModuleName = resolveSpanModule(
-    span.sentry_tags?.op,
-    span.sentry_tags?.category
-  );
-
-  const formattedDescription =
-    resolvedModule === ModuleName.DB
-      ? formatter.toString(span.description ?? '')
-      : (span.description ?? '');
-
-  return (
-    !!formattedDescription &&
-    [ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
-  );
-}
-
 export function SpanDescription({
   node,
   organization,
@@ -73,6 +57,7 @@ export function SpanDescription({
   project,
   attributes,
   avgSpanDuration,
+  hideNodeActions,
 }: {
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
@@ -80,34 +65,38 @@ export function SpanDescription({
   node: TraceTreeNode<TraceTree.EAPSpan>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
+  const {data: event} = useEventDetails({
+    eventId: node.event?.eventID,
+    projectSlug: project?.slug,
+  });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
-  const description = findSpanAttributeValue(attributes, 'raw_description');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
 
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
-      return description ?? '';
+      return span.description ?? '';
     }
 
     if (
       dbSystem === SupportedDatabaseSystem.MONGODB &&
-      description &&
-      isValidJson(description)
+      span.description &&
+      isValidJson(span.description)
     ) {
-      return prettyPrintJsonString(description).prettifiedQuery;
+      return prettyPrintJsonString(span.description).prettifiedQuery;
     }
 
     return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, description, dbSystem]);
+  }, [span.description, resolvedModule, dbSystem]);
 
-  const actions = description ? (
+  const actions = span.description ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
@@ -128,7 +117,7 @@ export function SpanDescription({
                 location,
                 node.event?.projectID,
                 SpanIndexedField.SPAN_DESCRIPTION,
-                span.description!,
+                span.description,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
@@ -178,7 +167,7 @@ export function SpanDescription({
         {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
-            eventId={node.event?.eventID}
+            event={event}
             frame={{
               filename: codeFilepath,
               lineNo: codeLineNumber ? Number(codeLineNumber) : null,
@@ -199,10 +188,10 @@ export function SpanDescription({
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <span>
+            <FormattedDescription>
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </span>
+            </FormattedDescription>
             <CopyToClipboardButton
               borderless
               size="zero"
@@ -225,6 +214,12 @@ export function SpanDescription({
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization,
+        attributes,
+        op: span.op,
+      })}
     />
   );
 }
@@ -374,10 +369,16 @@ const StyledCodeSnippet = styled(CodeSnippet)`
   }
 `;
 
+const FormattedDescription = styled('div')`
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+`;
+
 const DescriptionWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
-  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: flex-start;
+  font-size: ${p => p.theme.fontSize.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

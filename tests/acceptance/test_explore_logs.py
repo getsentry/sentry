@@ -81,6 +81,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
             assert "1234567890" in columns[0].text
             assert "long_attribute" in columns[0].text
             assert "a" * 1000 in columns[0].text
-            assert "nested value1" in columns[1].text
-            assert "nested value2" in columns[1].text
-            assert "nested value3" in columns[1].text
+            assert "nested value1" in columns[0].text
+            assert "nested value2" in columns[0].text
+            assert "nested value3" in columns[0].text
+            assert "value1" in columns[1].text

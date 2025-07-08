@@ -117,6 +117,7 @@ export interface Monitor {
   environments: MonitorEnvironment[];
   id: string;
   isMuted: boolean;
+  isUpserting: boolean;
   name: string;
   owner: Actor;
   project: Project;
@@ -142,22 +143,43 @@ export interface MonitorStat {
 
 export interface CheckIn {
   /**
-   * Date the opening check-in was sent
+   * Date the opening check-in was received.
+   */
+  dateAdded: string;
+  /**
+   * Represents the "clock time" that this check in was recorded at. Since the
+   * stream of check-ins is processed within the context of a clock that only
+   * moves forward as we process kafka messages, this time represents the time
+   * at which we processed this check-in, in relation to all other tasks (such
+   * as detecting misses)
+   */
+  dateClock: string;
+  /**
+   * Date the check-in was first processed. The real wall-clock time of when
+   * the check-n was created.
    */
   dateCreated: string;
   /**
+   * Date that the opening in-progress check-in was received
+   */
+  dateInProgress: string | null;
+  /**
+   * Date that the most recent update to this check-in was received.
+   */
+  dateUpdated: string | null;
+  /**
    * Duration (in milliseconds)
    */
-  duration: number;
+  duration: number | null;
   /**
    * environment the check-in was sent to
    */
   environment: string;
   /**
    * What was the monitors nextCheckIn value when this check-in occured, this
-   * is when we expected the check-in to happen.
+   * is when we expected the check-in to happen. May be null for the very first check-in.
    */
-  expectedTime: string;
+  expectedTime: string | null;
   /**
    * Check-in GUID
    */
@@ -301,3 +323,12 @@ export interface CheckinProcessingError {
   errors: ProcessingError[];
   id: string;
 }
+
+export type CheckInCellKey =
+  | 'status'
+  | 'started'
+  | 'completed'
+  | 'duration'
+  | 'issues'
+  | 'environment'
+  | 'expectedAt';

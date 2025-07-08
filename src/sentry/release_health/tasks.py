@@ -1,6 +1,6 @@
 import logging
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Iterator, Sequence
+from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -51,7 +51,13 @@ def monitor_release_adoption(**kwargs) -> None:
     default_retry_delay=5,
     max_retries=5,
     taskworker_config=TaskworkerConfig(
-        namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
+        namespace=release_health_tasks,
+        retry=Retry(
+            times=5,
+            on=(Exception,),
+            delay=5,
+        ),
+        processing_deadline_duration=160,
     ),
 )
 def process_projects_with_sessions(org_id, project_ids) -> None:
@@ -78,96 +84,82 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     with metrics.timer(
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
     ):
-        for project_id, project_totals in totals.items():
-            for environment, environment_totals in project_totals.items():
-                total_releases = len(environment_totals["releases"])
-                for release_version in environment_totals["releases"]:
-                    # Ignore versions that were saved with an empty string
-                    if not Release.is_valid_version(release_version):
-                        continue
+        for adopted_release in iter_adopted_releases(totals):
+            rpe = None
+            try:
+                rpe = ReleaseProjectEnvironment.objects.get(
+                    project_id=adopted_release["project_id"],
+                    release_id=Release.objects.get(
+                        organization=org_id, version=adopted_release["version"]
+                    ).id,
+                    environment__name=adopted_release["environment"],
+                    environment__organization_id=org_id,
+                )
 
-                    threshold = 0.1 / total_releases
-                    if (
-                        environment
-                        and environment_totals["total_sessions"] != 0
-                        and environment_totals["releases"][release_version]
-                        / environment_totals["total_sessions"]
-                        >= threshold
-                    ):
-                        rpe = None
-                        try:
-                            rpe = ReleaseProjectEnvironment.objects.get(
-                                project_id=project_id,
-                                release_id=Release.objects.get(
-                                    organization=org_id, version=release_version
-                                ).id,
-                                environment__name=environment,
-                                environment__organization_id=org_id,
-                            )
+                updates: dict[str, Any] = {}
+                if rpe.adopted is None:
+                    updates["adopted"] = timezone.now()
 
-                            updates: dict[str, Any] = {}
-                            if rpe.adopted is None:
-                                updates["adopted"] = timezone.now()
+                if rpe.unadopted is not None:
+                    updates["unadopted"] = None
 
-                            if rpe.unadopted is not None:
-                                updates["unadopted"] = None
+                if updates:
+                    rpe.update(**updates)
 
-                            if updates:
-                                rpe.update(**updates)
+                # Emit metric indicating updated. Not interested in the actual row being
+                # updated. More that this step completed successfully.
+                metrics.incr("sentry.tasks.process_projects_with_sessions.updated_rpe")
+            except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
+                metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
+                try:
+                    env = Environment.objects.get_or_create(
+                        name=adopted_release["environment"], organization_id=org_id
+                    )[0]
+                    try:
+                        release = Release.objects.get_or_create(
+                            organization_id=org_id,
+                            version=adopted_release["version"],
+                            defaults={
+                                "status": ReleaseStatus.OPEN,
+                            },
+                        )[0]
+                    except IntegrityError:
+                        release = Release.objects.get(
+                            organization_id=org_id, version=adopted_release["version"]
+                        )
+                    except ValidationError:
+                        release = None
+                        logger.exception(
+                            "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
+                            extra={
+                                "org_id": org_id,
+                                "release_version": adopted_release["version"],
+                            },
+                        )
 
-                        except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
-                            metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
-                            try:
-                                env = Environment.objects.get_or_create(
-                                    name=environment, organization_id=org_id
-                                )[0]
-                                try:
-                                    release = Release.objects.get_or_create(
-                                        organization_id=org_id,
-                                        version=release_version,
-                                        defaults={
-                                            "status": ReleaseStatus.OPEN,
-                                        },
-                                    )[0]
-                                except IntegrityError:
-                                    release = Release.objects.get(
-                                        organization_id=org_id, version=release_version
-                                    )
-                                except ValidationError:
-                                    release = None
-                                    logger.exception(
-                                        "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
-                                        extra={
-                                            "org_id": org_id,
-                                            "release_version": release_version,
-                                        },
-                                    )
+                    if release:
+                        release.add_project(Project.objects.get(id=adopted_release["project_id"]))
 
-                                if release:
-                                    release.add_project(Project.objects.get(id=project_id))
+                        ReleaseEnvironment.objects.get_or_create(
+                            environment=env, organization_id=org_id, release=release
+                        )
 
-                                    ReleaseEnvironment.objects.get_or_create(
-                                        environment=env, organization_id=org_id, release=release
-                                    )
-
-                                    rpe = ReleaseProjectEnvironment.objects.create(
-                                        project_id=project_id,
-                                        release_id=release.id,
-                                        environment=env,
-                                        adopted=timezone.now(),
-                                    )
-                            except (
-                                Project.DoesNotExist,
-                                Environment.DoesNotExist,
-                                Release.DoesNotExist,
-                                ReleaseEnvironment.DoesNotExist,
-                            ) as exc:
-                                metrics.incr(
-                                    "sentry.tasks.process_projects_with_sessions.skipped_update"
-                                )
-                                capture_exception(exc)
-                        if rpe:
-                            adopted_ids.append(rpe.id)
+                        rpe = ReleaseProjectEnvironment.objects.create(
+                            project_id=adopted_release["project_id"],
+                            release_id=release.id,
+                            environment=env,
+                            adopted=timezone.now(),
+                        )
+                except (
+                    Project.DoesNotExist,
+                    Environment.DoesNotExist,
+                    Release.DoesNotExist,
+                    ReleaseEnvironment.DoesNotExist,
+                ) as exc:
+                    metrics.incr("sentry.tasks.process_projects_with_sessions.skipped_update")
+                    capture_exception(exc)
+            if rpe:
+                adopted_ids.append(rpe.id)
 
     return adopted_ids
 
@@ -180,3 +172,53 @@ def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[i
         ReleaseProjectEnvironment.objects.filter(
             project_id__in=project_ids, unadopted__isnull=True
         ).exclude(Q(adopted=None) | Q(id__in=adopted_ids)).update(unadopted=timezone.now())
+
+
+class AdoptedRelease(TypedDict):
+    environment: str
+    project_id: int
+    version: str
+
+
+def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:
+    """Iterate through the totals set yielding the totals which are valid.
+
+    The totals object is deeply nested. This function flattens it, validates that its a valid
+    release row, and returns a flat representation. This is easier to work with and enables
+    release-health monitoring code to take on a flatter form which is easier to read and test.
+    """
+    for p_id, p_totals in totals.items():
+        for e_name, e_totals in p_totals.items():
+            if valid_environment(e_name, e_totals["total_sessions"]):
+                for release_version, release_count in e_totals["releases"].items():
+                    if valid_and_adopted_release(
+                        release_version, release_count, e_totals["total_sessions"]
+                    ):
+                        yield {
+                            "environment": e_name,
+                            "project_id": p_id,
+                            "version": release_version,
+                        }
+
+
+def valid_environment(environment_name: str, environment_session_count: int) -> bool:
+    """An environment is valid if it has a name and has at least one session."""
+    return bool(environment_name) and environment_session_count > 0
+
+
+def valid_and_adopted_release(
+    release_name: str, release_session_count: int, environment_session_count: int
+) -> bool:
+    """A release is valid if it has the correct name and it has been adopted."""
+    return Release.is_valid_version(release_name) and has_been_adopted(
+        environment_session_count, release_session_count
+    )
+
+
+def has_been_adopted(total_sessions: int, total_sessions_for_release: int) -> bool:
+    """If the release's sessions exceed 10% of total sessions it is considered adopted.
+
+    https://docs.sentry.io/product/releases/health/#adoption-stages
+    """
+    threshold = total_sessions * 0.1
+    return total_sessions_for_release >= threshold

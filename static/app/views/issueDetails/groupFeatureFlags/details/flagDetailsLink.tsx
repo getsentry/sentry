@@ -1,23 +1,29 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export default function FlagDetailsLink({
-  tag,
-  children,
-}: {
+interface Props {
   children: React.ReactNode;
-  tag: GroupTag;
-}) {
+  flag: GroupTag;
+}
+
+export default function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
 
   return (
     <StyledLink
       to={{
-        pathname: `${location.pathname}${tag.key}/`,
-        query: location.query,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
+        query: {
+          ...location.query,
+          tab: DrawerTab.FEATURE_FLAGS,
+        },
       }}
     >
       {children}
@@ -27,9 +33,11 @@ export default function FlagDetailsLink({
 
 const StyledLink = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
-  display: block;
 
-  &:hover h5 {
+  ${p => p.theme.overflowEllipsis}
+  width: auto;
+
+  &:hover [data-underline-on-hover='true'] {
     text-decoration: underline;
   }
 `;

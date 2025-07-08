@@ -55,7 +55,7 @@ class PluginManager(InstanceManager):
                 return True
         return False
 
-    def for_project(self, project, version=1):
+    def for_project(self, project, version=1) -> Generator[Plugin | Plugin2]:
         for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project):
                 continue

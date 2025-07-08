@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -139,13 +139,13 @@ const TitleWrapper = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xl};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const SubtitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   display: flex;
   align-items: center;

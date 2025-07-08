@@ -47,7 +47,7 @@ describe('latencyChart', () => {
       <LatencyChart
         id="latency-chart-test"
         destination="events"
-        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+        referrer={Referrer.QUEUES_SUMMARY_LATENCY_CHART}
       />,
       {organization}
     );
@@ -56,11 +56,7 @@ describe('latencyChart', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: [
-            'avg(span.duration)',
-            'avg(messaging.message.receive.latency)',
-            'epm()',
-          ],
+          yAxis: ['avg(span.duration)', 'avg(messaging.message.receive.latency)'],
           query: 'span.op:queue.process messaging.destination.name:events',
         }),
       })

@@ -2,14 +2,15 @@ import {Fragment, useMemo, useRef} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {
   Table,
   TableBody,
@@ -26,7 +27,7 @@ import {
   useExploreSortBys,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 
@@ -52,15 +53,15 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields,
+    visibleFields.length,
     tableRef,
     {minimumColumnWidth: 50}
   );
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -69,7 +70,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -141,7 +142,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

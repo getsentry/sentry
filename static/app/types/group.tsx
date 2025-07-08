@@ -2,11 +2,13 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {
+  AvatarSentryApp,
   Commit,
   ExternalIssue,
   PlatformExternalIssue,
@@ -68,8 +70,8 @@ export enum IssueCategory {
 
   /**
    * @deprecated
-   * Regression issues will move to the "performance_regression" category
-   * Other issues will move to the "performance_best_practice" category
+   * Regression issues will move to the "metric" category
+   * Other issues will move to "db_query"/"http_client"/"mobile"/"frontend"
    */
   PERFORMANCE = 'performance',
   /**
@@ -79,7 +81,7 @@ export enum IssueCategory {
   CRON = 'cron',
   /**
    * @deprecated
-   * Rage/dead click issues will move to the "user_experience" category
+   * Rage click and hydration issues will move to the "frontend" category
    */
   REPLAY = 'replay',
   /**
@@ -89,22 +91,48 @@ export enum IssueCategory {
   UPTIME = 'uptime',
   /**
    * @deprecated
-   * Metric alert issues will move to the "performance_regression" category
+   * Metric alert issues will move to the "metric" category
    */
   METRIC_ALERT = 'metric_alert',
 
   // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
-  PERFORMANCE_REGRESSION = 'performance_regression',
-  USER_EXPERIENCE = 'user_experience',
-  RESPONSIVENESS = 'responsiveness',
-  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
-
+  METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
 }
+
+/**
+ * Valid issue categories for the new issue-taxonomy flag
+ */
+export const VALID_ISSUE_CATEGORIES_V2 = [
+  IssueCategory.ERROR,
+  IssueCategory.OUTAGE,
+  IssueCategory.METRIC,
+  IssueCategory.DB_QUERY,
+  IssueCategory.HTTP_CLIENT,
+  IssueCategory.FRONTEND,
+  IssueCategory.MOBILE,
+  IssueCategory.FEEDBACK,
+];
+
+export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
+  [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
+  [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
+  [IssueCategory.METRIC]: t('Performance regressions or metric threshold violations.'),
+  [IssueCategory.FRONTEND]: t('Frontend performance or usability issues.'),
+  [IssueCategory.HTTP_CLIENT]: t('Inefficient or problematic outgoing HTTP requests.'),
+  [IssueCategory.DB_QUERY]: t('Inefficient or problematic database queries.'),
+  [IssueCategory.MOBILE]: t('Mobile performance or usability issues.'),
+  [IssueCategory.FEEDBACK]: t('Feedback submitted directly by users.'),
+  [IssueCategory.METRIC_ALERT]: '',
+  [IssueCategory.PERFORMANCE]: '',
+  [IssueCategory.CRON]: '',
+  [IssueCategory.REPLAY]: '',
+  [IssueCategory.UPTIME]: '',
+};
 
 export enum IssueType {
   // Error
@@ -144,6 +172,9 @@ export enum IssueType {
 
   // Metric Issues
   METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+
+  // Detectors
+  DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -177,9 +208,11 @@ export enum IssueTitle {
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
+
+  DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection Vulnerability',
 }
 
-const ISSUE_TYPE_TO_ISSUE_TITLE = {
+export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -203,6 +236,8 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
+  db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
@@ -219,15 +254,18 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
   1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
   1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1906: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
@@ -437,9 +475,9 @@ export enum GroupActivityType {
 interface GroupActivityBase {
   dateCreated: string;
   id: string;
-  project: Project;
   assignee?: string;
   issue?: Group;
+  sentry_app?: AvatarSentryApp;
   user?: null | User;
 }
 
@@ -826,6 +864,13 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  SUPER_HIGH = 'super_high',
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -869,6 +914,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
@@ -906,10 +953,13 @@ export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReproc
 export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
+  dateAdded: string | null;
   id: string;
   level: Level;
   metadata: EventMetadata;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {
@@ -955,7 +1005,7 @@ export type KeyValueListDataItem = {
   key: string;
   subject: string;
   action?: {
-    link?: string | LocationDescriptor;
+    link?: LocationDescriptor;
   };
   actionButton?: React.ReactNode;
   /**

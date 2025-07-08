@@ -58,7 +58,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
             {({isMetricsData}) => {
               if (
                 isMetricsData === false &&
-                widget.widgetType === WidgetType.DISCOVER &&
+                widget.widgetType === WidgetType.TRANSACTIONS &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
               ) {

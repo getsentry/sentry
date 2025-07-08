@@ -57,22 +57,25 @@ function CustomerHistory({orgId, ...props}: Props) {
           ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
           : false;
 
-        if (row.hasReservedBudgets) {
-          reservedBudgets.forEach(budget => {
-            const categoryNames: string[] = [];
-            Object.entries(budget.categories).forEach(([category, history]) => {
-              reservedBudgetMetricHistories[category] = history;
-              categoryNames.push(
-                getPlanCategoryName({
-                  plan: row.planDetails,
-                  category: category as DataCategory,
-                  hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
-                })
-              );
-            });
-            reservedBudgetNameMapping[budget.id] = oxfordizeArray(categoryNames);
+        const displayOptions = {
+          capitalize: false,
+          hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+        };
+
+        reservedBudgets.forEach(budget => {
+          const categoryNames: string[] = [];
+          Object.entries(budget.categories).forEach(([category, history]) => {
+            reservedBudgetMetricHistories[category] = history;
+            categoryNames.push(
+              getPlanCategoryName({
+                plan: row.planDetails,
+                category: category as DataCategory,
+                ...displayOptions,
+              })
+            );
           });
-        }
+          reservedBudgetNameMapping[budget.id] = oxfordizeArray(categoryNames);
+        });
 
         return [
           <td key="period">
@@ -106,20 +109,19 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
                 ))}
-              {row.hasReservedBudgets &&
-                reservedBudgets.map(budget => {
-                  return (
-                    <div key={budget.id}>
-                      {displayPriceWithCents({cents: budget.reservedBudget})} for
-                      <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
-                    </div>
-                  );
-                })}
+              {reservedBudgets.map(budget => {
+                return (
+                  <div key={budget.id}>
+                    {displayPriceWithCents({cents: budget.reservedBudget})} for
+                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                  </div>
+                );
+              })}
             </UsageColumn>
           </td>,
           <td key="gifted" style={{textAlign: 'right'}}>
@@ -135,20 +137,19 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
                 ))}
-              {row.hasReservedBudgets &&
-                reservedBudgets.map(budget => {
-                  return (
-                    <div key={budget.id}>
-                      {displayPriceWithCents({cents: budget.freeBudget})} for
-                      <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
-                    </div>
-                  );
-                })}
+              {reservedBudgets.map(budget => {
+                return (
+                  <div key={budget.id}>
+                    {displayPriceWithCents({cents: budget.freeBudget})} for
+                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                  </div>
+                );
+              })}
             </UsageColumn>
           </td>,
           <td key="usage" style={{textAlign: 'right'}}>
@@ -162,7 +163,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                     {getPlanCategoryName({
                       plan: row.planDetails,
                       category,
-                      hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                      ...displayOptions,
                     })}
                   </DisplayName>
                   {reservedBudgetMetricHistories[category] && (
@@ -192,7 +193,6 @@ const UsageColumn = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  text-transform: lowercase;
   margin-left: ${space(0.5)};
 `;
 

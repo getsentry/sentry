@@ -111,6 +111,33 @@ export enum FilterType {
   IS = 'is',
 }
 
+/**
+ * The type of wildcard based off of positions of asterisks in the token value.
+ * These can be used to determine the type of wildcard operator used in the token value,
+ * and include the following:
+ *
+ * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
+ * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
+ * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ */
+export enum WildcardPositions {
+  /**
+   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
+   * that end with `<value>`.
+   */
+  LEADING = 'leading',
+  /**
+   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
+   * that start with `<value>`.
+   */
+  TRAILING = 'trailing',
+  /**
+   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
+   * searching for values that contain `<value>`.
+   */
+  SURROUNDED = 'surrounded',
+}
+
 export const allOperators = [
   TermOperator.DEFAULT,
   TermOperator.GREATER_THAN_EQUAL,
@@ -697,11 +724,27 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+    // we want to ignore setting the wildcard if the value is only asterisks because the
+    // value is solely matching anything and we don't want to consider it to be any of
+    // our new operators
+    const valueSet = new Set(value);
+    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
+
+    let wildcard: WildcardPositions | false = false;
+    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
+      wildcard = WildcardPositions.SURROUNDED;
+    } else if (!onlyAsterisks && value.endsWith('*')) {
+      wildcard = WildcardPositions.TRAILING;
+    } else if (!onlyAsterisks && value.startsWith('*')) {
+      wildcard = WildcardPositions.LEADING;
+    }
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      wildcard,
     };
   };
 

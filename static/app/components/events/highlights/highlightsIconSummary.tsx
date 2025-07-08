@@ -15,7 +15,6 @@ import {
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -51,7 +50,9 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     projectSlug,
     eventId: event.id,
   });
-  const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
+  const screenshot = attachments.find(
+    ({name, mimetype}) => name.includes('screenshot') && mimetype.startsWith('image')
+  );
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
@@ -183,7 +184,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   ) : null;
 }
 
-export function ReleaseHighlight({
+function ReleaseHighlight({
   releaseTag,
   organization,
   projectSlug,
@@ -216,11 +217,7 @@ export function ReleaseHighlight({
   );
 }
 
-export function EnvironmentHighlight({
-  environmentTag,
-}: {
-  environmentTag: EventTag | undefined;
-}) {
+function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | undefined}) {
   if (!environmentTag) {
     return null;
   }
@@ -253,7 +250,7 @@ const IconContainer = styled('div')`
 const IconDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const IconWrapper = styled('div')`
@@ -267,7 +264,7 @@ const IconSubtitle = styled(Tooltip)`
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.textColor};

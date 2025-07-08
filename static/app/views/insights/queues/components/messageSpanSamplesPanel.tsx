@@ -22,6 +22,8 @@ import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+// TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -29,8 +31,10 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -65,6 +69,7 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const project = projects.find(p => query.project === p.id);
 
@@ -125,6 +130,7 @@ export function MessageSpanSamplesPanel() {
   const timeseriesFilters = new MutableSearch(queryFilter);
   timeseriesFilters.addFilterValue('transaction', query.transaction);
   timeseriesFilters.addFilterValue('messaging.destination.name', query.destination);
+  const timeseriesReferrer = Referrer.QUEUES_SAMPLES_PANEL_DURATION_CHART;
 
   const sampleFilters = new MutableSearch(queryFilter);
   sampleFilters.addFilterValue('transaction', query.transaction);
@@ -172,7 +178,7 @@ export function MessageSpanSamplesPanel() {
       enabled: isPanelOpen,
       transformAliasToInputFormat: true,
     },
-    'api.performance.queues.avg-duration-chart'
+    timeseriesReferrer
   );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
@@ -250,118 +256,124 @@ export function MessageSpanSamplesPanel() {
 
   return (
     <PageAlertProvider>
-      <EventDrawerHeader>
-        <SampleDrawerHeaderTransaction
-          project={project}
-          transaction={query.transaction}
-          subtitle={
-            messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
-          }
-        />
-      </EventDrawerHeader>
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={query.transaction}
+            subtitle={
+              messageActorType === MessageActorType.PRODUCER
+                ? t('Producer')
+                : t('Consumer')
+            }
+          />
+        </EventDrawerHeader>
 
-      <SampleDrawerBody>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <MetricsRibbonContainer>
-              {messageActorType === MessageActorType.PRODUCER ? (
-                <ProducerMetricsRibbon
-                  metrics={transactionMetrics}
-                  isLoading={aretransactionMetricsFetching}
-                />
-              ) : (
-                <ConsumerMetricsRibbon
-                  metrics={transactionMetrics}
-                  isLoading={aretransactionMetricsFetching}
-                />
-              )}
-            </MetricsRibbonContainer>
-          </ModuleLayout.Full>
+        <SampleDrawerBody>
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <MetricsRibbonContainer>
+                {messageActorType === MessageActorType.PRODUCER ? (
+                  <ProducerMetricsRibbon
+                    metrics={transactionMetrics}
+                    isLoading={aretransactionMetricsFetching}
+                  />
+                ) : (
+                  <ConsumerMetricsRibbon
+                    metrics={transactionMetrics}
+                    isLoading={aretransactionMetricsFetching}
+                  />
+                )}
+              </MetricsRibbonContainer>
+            </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <PanelControls>
-              <CompactSelect
-                searchable
-                value={query.traceStatus}
-                options={TRACE_STATUS_SELECT_OPTIONS}
-                onChange={handleTraceStatusChange}
-                triggerProps={{
-                  prefix: t('Status'),
-                }}
-              />
-              {messageActorType === MessageActorType.CONSUMER && (
+            <ModuleLayout.Full>
+              <PanelControls>
                 <CompactSelect
-                  value={query.retryCount}
-                  options={RETRY_COUNT_SELECT_OPTIONS}
-                  onChange={handleRetryCountChange}
+                  searchable
+                  value={query.traceStatus}
+                  options={TRACE_STATUS_SELECT_OPTIONS}
+                  onChange={handleTraceStatusChange}
                   triggerProps={{
-                    prefix: t('Retries'),
+                    prefix: t('Status'),
                   }}
                 />
-              )}
-            </PanelControls>
-          </ModuleLayout.Full>
+                {messageActorType === MessageActorType.CONSUMER && (
+                  <CompactSelect
+                    value={query.retryCount}
+                    options={RETRY_COUNT_SELECT_OPTIONS}
+                    onChange={handleRetryCountChange}
+                    triggerProps={{
+                      prefix: t('Retries'),
+                    }}
+                  />
+                )}
+              </PanelControls>
+            </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <InsightsLineChartWidget
-              showLegend="never"
-              title={getDurationChartTitle('queue')}
-              isLoading={isDurationDataFetching}
-              error={durationError}
-              series={[durationData[`avg(span.duration)`]]}
-              samples={samplesPlottable}
-            />
-          </ModuleLayout.Full>
+            <ModuleLayout.Full>
+              <InsightsLineChartWidget
+                showLegend="never"
+                queryInfo={{search: timeseriesFilters, referrer: timeseriesReferrer}}
+                title={getDurationChartTitle('queue')}
+                isLoading={isDurationDataFetching}
+                error={durationError}
+                series={[durationData[`avg(span.duration)`]]}
+                samples={samplesPlottable}
+              />
+            </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <SpanSearchQueryBuilder
-              searchSource={`${ModuleName.QUEUE}-sample-panel`}
-              initialQuery={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              projects={selection.projects}
-            />
-          </ModuleLayout.Full>
+            <ModuleLayout.Full>
+              <SpanSearchQueryBuilder
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                projects={selection.projects}
+                useEap={useEap}
+              />
+            </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <MessageSpanSamplesTable
-              data={spanSamplesData?.data ?? []}
-              isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
-              highlightedSpanId={highlightedSpanId}
-              onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
-              onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-              error={durationSamplesDataError}
-              // Samples endpoint doesn't provide meta data, so we need to provide it here
-              meta={{
-                fields: {
-                  [SpanIndexedField.SPAN_DURATION]: 'duration',
-                  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
-                  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
-                },
-                units: {
-                  [SpanIndexedField.SPAN_DURATION]: DurationUnit.MILLISECOND,
-                  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
-                },
-              }}
-              type={messageActorType}
-            />
-          </ModuleLayout.Full>
+            <ModuleLayout.Full>
+              <MessageSpanSamplesTable
+                data={spanSamplesData?.data ?? []}
+                isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
+                highlightedSpanId={highlightedSpanId}
+                onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                onSampleMouseOut={() => setHighlightedSpanId(undefined)}
+                error={durationSamplesDataError}
+                // Samples endpoint doesn't provide meta data, so we need to provide it here
+                meta={{
+                  fields: {
+                    [SpanIndexedField.SPAN_DURATION]: 'duration',
+                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
+                    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
+                  },
+                  units: {
+                    [SpanIndexedField.SPAN_DURATION]: DurationUnit.MILLISECOND,
+                    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
+                  },
+                }}
+                type={messageActorType}
+              />
+            </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <Button
-              onClick={() => {
-                trackAnalytics(
-                  'performance_views.sample_spans.try_different_samples_clicked',
-                  {organization, source: ModuleName.QUEUE}
-                );
-                refetchDurationSpanSamples();
-              }}
-            >
-              {t('Try Different Samples')}
-            </Button>
-          </ModuleLayout.Full>
-        </ModuleLayout.Layout>
-      </SampleDrawerBody>
+            <ModuleLayout.Full>
+              <Button
+                onClick={() => {
+                  trackAnalytics(
+                    'performance_views.sample_spans.try_different_samples_clicked',
+                    {organization, source: ModuleName.QUEUE}
+                  );
+                  refetchDurationSpanSamples();
+                }}
+              >
+                {t('Try Different Samples')}
+              </Button>
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }

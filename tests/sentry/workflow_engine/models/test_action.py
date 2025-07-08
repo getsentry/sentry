@@ -1,18 +1,21 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from django.test import TestCase
 from jsonschema import ValidationError
 
 from sentry.eventstore.models import GroupEvent
+from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionHandler
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 
 class TestAction(TestCase):
     def setUp(self):
-        self.mock_event = Mock(spec=GroupEvent)
+        mock_group_event = Mock(spec=GroupEvent)
+        self.group = self.create_group()
+
+        self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
         self.config_schema = {

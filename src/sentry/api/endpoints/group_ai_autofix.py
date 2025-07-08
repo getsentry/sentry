@@ -35,14 +35,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=60),
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
+            RateLimitCategory.IP: RateLimit(limit=25, window=60),
+            RateLimitCategory.USER: RateLimit(limit=25, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
         },
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=256, window=60),
-            RateLimitCategory.USER: RateLimit(limit=256, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=2048, window=60),
+            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
         },
     }
 
@@ -66,7 +66,13 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if not access_check_cache_value:
             check_repo_access = True
 
-        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+        is_user_watching = request.GET.get("isUserWatching", False)
+
+        autofix_state = get_autofix_state(
+            group_id=group.id,
+            check_repo_access=check_repo_access,
+            is_user_fetching=bool(is_user_watching),
+        )
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
@@ -126,7 +132,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # Remove unnecessary or sensitive data to reduce returned payload size
             for key in ["usage", "signals"]:
                 response_state.pop(key, None)
-            for request_key in ["issue", "trace_tree", "profile", "issue_summary"]:
+            for request_key in ["issue", "trace_tree", "profile", "issue_summary", "logs"]:
                 if "request" in response_state and request_key in response_state["request"]:
                     del response_state["request"][request_key]
 

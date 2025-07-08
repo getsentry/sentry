@@ -1,7 +1,6 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
@@ -15,21 +14,16 @@ import {platformProductAvailability} from 'sentry/components/onboarding/productS
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
@@ -40,13 +34,11 @@ const ProductUnavailableCTAHook = HookOrDefault({
 
 type Props = {
   currentPlatformKey: PlatformKey;
-  loading: boolean;
   platform: PlatformIntegration | undefined;
-  project: Project | undefined;
+  project: Project;
 };
 
 export function ProjectInstallPlatform({
-  loading,
   project,
   currentPlatformKey,
   platform: currentPlatform,
@@ -54,7 +46,6 @@ export function ProjectInstallPlatform({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
@@ -62,57 +53,6 @@ export function ProjectInstallPlatform({
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
-
-  const {
-    data: projectAlertRules,
-    isPending: projectAlertRulesIsLoading,
-    isError: projectAlertRulesIsError,
-  } = useApiQuery<IssueAlertRule[]>(
-    [`/projects/${organization.slug}/${project?.slug}/rules/`],
-    {
-      enabled: !!project?.slug,
-      staleTime: 0,
-    }
-  );
-
-  useEffect(() => {
-    if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
-      return;
-    }
-
-    if (gettingStartedWithProjectContext.project?.id === project.id) {
-      return;
-    }
-
-    const platformKey = Object.keys(platforms).find(
-      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-      key => platforms[key].id === project.platform
-    );
-
-    if (!platformKey) {
-      return;
-    }
-
-    gettingStartedWithProjectContext.setProject({
-      id: project.id,
-      name: project.name,
-      // sometimes the team slug here can be undefined
-      teamSlug: project.team?.slug,
-      alertRules: projectAlertRules,
-      platform: {
-        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-        ...omit(platforms[platformKey], 'id'),
-        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-        key: platforms[platformKey].id,
-      } as OnboardingSelectedSDK,
-    });
-  }, [
-    gettingStartedWithProjectContext,
-    project,
-    projectAlertRules,
-    projectAlertRulesIsLoading,
-    projectAlertRulesIsError,
-  ]);
 
   const platform: Platform = {
     key: currentPlatformKey,
@@ -142,10 +82,6 @@ export function ProjectInstallPlatform({
     },
     [navigate, organization.slug, project?.id]
   );
-
-  if (!project) {
-    return null;
-  }
 
   if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
@@ -207,7 +143,6 @@ export function ProjectInstallPlatform({
         <StyledButtonBar gap={1}>
           <Button
             priority="primary"
-            busy={loading}
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,
@@ -232,7 +167,7 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: auto;
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;

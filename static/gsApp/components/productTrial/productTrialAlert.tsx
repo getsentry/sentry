@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

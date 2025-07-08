@@ -7,20 +7,14 @@ import {space} from 'sentry/styles/space';
 interface MenuProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const Menu = styled(
-  ({
-    ref,
-    ...props
-  }: MenuProps & {
-    ref?: React.Ref<unknown>;
-  }) => {
-    return <div ref={ref} role="menu" {...props} />;
-  }
-)`
+const Menu = styled(({ref, ...props}: MenuProps) => {
+  return <div ref={ref} role="menu" {...props} />;
+})`
   position: absolute;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
@@ -38,7 +32,7 @@ const MenuContentContainer = styled('div')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
@@ -54,7 +48,7 @@ const MenuContentContainer = styled('div')`
 const MenuItemCheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
   cursor: pointer;
   flex: 1 1 100%;
@@ -63,14 +57,10 @@ const MenuItemCheckboxLabel = styled('label')`
 interface MenuItemCheckboxProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   checked?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-function MenuItemCheckbox({
-  ref,
-  ...props
-}: MenuItemCheckboxProps & {
-  ref?: React.Ref<unknown>;
-}) {
+function MenuItemCheckbox({ref, ...props}: MenuItemCheckboxProps) {
   const {children, checked, ...rest} = props;
 
   return (
@@ -97,15 +87,11 @@ interface MenuItemButtonProps
   > {
   disabled?: boolean;
   icon?: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
   tooltip?: string;
 }
 
-function MenuItemButton({
-  ref,
-  ...props
-}: MenuItemButtonProps & {
-  ref?: React.Ref<unknown>;
-}) {
+function MenuItemButton({ref, ...props}: MenuItemButtonProps) {
   const {children, tooltip, ...rest} = props;
   return (
     <MenuContentOuterContainer>
@@ -196,25 +182,19 @@ const Input = styled('input')`
 interface MenuItemProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const MenuItem = styled(
-  ({
-    ref,
-    ...props
-  }: MenuItemProps & {
-    ref?: React.Ref<unknown>;
-  }) => {
-    const {children, ...rest} = props;
-    return (
-      <MenuContentOuterContainer>
-        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          <MenuContent>{children}</MenuContent>
-        </MenuContentContainer>
-      </MenuContentOuterContainer>
-    );
-  }
-)`
+const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
+  const {children, ...rest} = props;
+  return (
+    <MenuContentOuterContainer>
+      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+        <MenuContent>{children}</MenuContent>
+      </MenuContentContainer>
+    </MenuContentOuterContainer>
+  );
+})`
   cursor: pointer;
   color: ${p => p.theme.textColor};
   background: transparent;
@@ -268,7 +248,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
 })`
   text-transform: uppercase;
   line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   margin-bottom: 0;
   cursor: default;

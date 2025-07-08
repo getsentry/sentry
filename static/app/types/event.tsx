@@ -548,6 +548,7 @@ export interface UnityContext {
 
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
+  TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
   HEAP_SIZE_BYTES = 'heap_size_bytes',
   HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
@@ -580,6 +581,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
   [MemoryInfoContextKey.INDEX]?: number;
   [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES]?: number;
   [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
@@ -673,10 +675,17 @@ export type EventContexts = {
 export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
+export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
 type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;
@@ -696,7 +705,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**

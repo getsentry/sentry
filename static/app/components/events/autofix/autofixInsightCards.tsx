@@ -8,13 +8,15 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -25,7 +27,9 @@ interface AutofixInsightCardProps {
   groupId: string;
   index: number;
   insight: AutofixInsight;
+  isExpanded: boolean;
   isNewInsight: boolean | undefined;
+  onToggleExpand: (index: number | null) => void;
   runId: string;
   stepIndex: number;
 }
@@ -37,9 +41,10 @@ function AutofixInsightCard({
   groupId,
   runId,
   isNewInsight,
+  isExpanded,
+  onToggleExpand,
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
-  const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
@@ -50,14 +55,14 @@ function AutofixInsightCard({
   });
 
   const toggleExpand = () => {
-    setExpanded(oldState => !oldState);
+    onToggleExpand(index);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
     setEditText('');
-    setExpanded(false);
+    onToggleExpand(null);
   };
 
   const handleCancel = () => {
@@ -101,11 +106,29 @@ function AutofixInsightCard({
     return replaceHeadersWithBold(fullJustification || t('No details here.'));
   }, [displayedInsightTitle, isUserMessage, insight.justification, newlineIndex]);
 
+  // Determine if the card is expandable (not just 'No details here.')
+  const isExpandable = useMemo(() => {
+    // Remove markdown formatting and whitespace for the check
+    const plainText = (hasFullJustification ? insight.justification : '').trim();
+    // If there is a diff or markdown_snippets, allow expansion
+    if (insight.change_diff || insight.markdown_snippets) return true;
+    // If the justification is empty or just 'No details here.', not expandable
+    return !!plainText && plainText.toLowerCase() !== t('No details here.').toLowerCase();
+  }, [
+    hasFullJustification,
+    insight.justification,
+    insight.change_diff,
+    insight.markdown_snippets,
+  ]);
+
   return (
     <ContentWrapper>
       <AnimatePresence initial={isNewInsight}>
         <AnimationWrapper key="content">
-          <InsightContainer data-new-insight={isNewInsight ? 'true' : 'false'}>
+          <InsightContainer
+            data-new-insight={isNewInsight ? 'true' : 'false'}
+            expanded={isExpanded}
+          >
             {isEditing ? (
               <EditContainer>
                 <form onSubmit={handleSubmit}>
@@ -123,6 +146,8 @@ function AutofixInsightCard({
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSubmit(e);
+                        } else if (e.key === 'Escape') {
+                          handleCancel();
                         }
                       }}
                     />
@@ -140,17 +165,29 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Rethink from here using your insight')}
-                        aria-label={t('Rethink from here using your insight')}
+                        title={t('Redo work from here')}
+                        aria-label={t('Redo work from here')}
+                        analyticsEventName="Autofix: Insight Card Rethink Open"
+                        analyticsEventKey="autofix.insight.rethink_open"
+                        analyticsParams={{
+                          insight_card_index: index,
+                          step_index: stepIndex,
+                          group_id: groupId,
+                          run_id: runId,
+                        }}
                       >
-                        <IconRefresh size="sm" />
+                        {'\u23CE'}
                       </Button>
                     </ButtonBar>
                   </EditFormRow>
                 </form>
               </EditContainer>
             ) : (
-              <InsightCardRow onClick={toggleExpand} expanded={expanded}>
+              <InsightCardRow
+                onClick={isExpandable ? toggleExpand : undefined}
+                expanded={isExpanded}
+                style={isExpandable ? {} : {cursor: 'default', background: 'none'}}
+              >
                 <AutofixHighlightWrapper
                   groupId={groupId}
                   runId={runId}
@@ -159,37 +196,47 @@ function AutofixInsightCard({
                 >
                   <MiniHeader
                     dangerouslySetInnerHTML={truncatedTitleHtml}
-                    expanded={expanded}
+                    expanded={isExpanded}
                   />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
-                  <Button
-                    size="zero"
-                    borderless
-                    title={expanded ? t('Hide evidence') : t('Show evidence')}
-                    icon={
-                      <StyledIconChevron
-                        direction={expanded ? 'down' : 'right'}
-                        size="xs"
-                      />
-                    }
-                    aria-label={expanded ? t('Hide evidence') : t('Show evidence')}
-                  />
+                  {isExpandable && (
+                    <Button
+                      size="zero"
+                      borderless
+                      title={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                      icon={
+                        <StyledIconChevron
+                          direction={isExpanded ? 'up' : 'down'}
+                          size="xs"
+                        />
+                      }
+                      aria-label={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                    />
+                  )}
                   <EditButton
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={<IconRefresh size="xs" />}
+                    icon={<FlippedReturnIcon />}
                     aria-label={t('Edit insight')}
-                    title={t('Replace insight and rethink')}
+                    title={t('Rethink the answer from here')}
+                    analyticsEventName="Autofix: Insight Card Rethink"
+                    analyticsEventKey="autofix.insight.rethink"
+                    analyticsParams={{
+                      insight_card_index: index,
+                      step_index: stepIndex,
+                      group_id: groupId,
+                      run_id: runId,
+                    }}
                   />
                 </RightSection>
               </InsightCardRow>
             )}
 
             <AnimatePresence>
-              {expanded && (
+              {isExpanded && isExpandable && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -200,15 +247,20 @@ function AutofixInsightCard({
                     bounce: 0.1,
                   }}
                 >
-                  <AutofixHighlightWrapper
-                    groupId={groupId}
-                    runId={runId}
-                    stepIndex={stepIndex}
-                    retainInsightCardIndex={insightCardAboveIndex}
-                  >
-                    <ContextBody>
+                  <ContextBody>
+                    <AutofixHighlightWrapper
+                      groupId={groupId}
+                      runId={runId}
+                      stepIndex={stepIndex}
+                      retainInsightCardIndex={insightCardAboveIndex}
+                    >
                       {hasFullJustification || !insight.change_diff ? (
-                        <MarkedText as="p" text={fullJustificationText} />
+                        <Fragment>
+                          <ContextMarkedText as="p" text={fullJustificationText} />
+                          {insight.markdown_snippets && (
+                            <ContextMarkedText as="p" text={insight.markdown_snippets} />
+                          )}
+                        </Fragment>
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
@@ -216,12 +268,16 @@ function AutofixInsightCard({
                             groupId={groupId}
                             runId={runId}
                             editable={false}
-                            isExpandable={false}
+                            integratedStyle
                           />
                         </DiffContainer>
                       )}
-                    </ContextBody>
-                  </AutofixHighlightWrapper>
+                    </AutofixHighlightWrapper>
+                    <AutofixInsightSources
+                      sources={insight.sources}
+                      title={insight.insight}
+                    />
+                  </ContextBody>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -239,13 +295,13 @@ interface AutofixInsightCardsProps {
   insights: AutofixInsight[];
   runId: string;
   stepIndex: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface CollapsibleChainLinkProps {
   groupId: string;
   runId: string;
   stepIndex: number;
-  alignment?: 'start' | 'center';
   insightCount?: number;
   isCollapsed?: boolean;
   isEmpty?: boolean;
@@ -264,11 +320,12 @@ function CollapsibleChainLink({
   stepIndex,
   groupId,
   runId,
-  alignment = 'center',
 }: CollapsibleChainLinkProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newInsightText, setNewInsightText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
+
+  const organization = useOrganization();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,9 +334,16 @@ function CollapsibleChainLink({
       message: newInsightText,
       step_index: stepIndex,
       retain_insight_card_index:
-        insightCount !== undefined && insightCount > 0 ? insightCount - 1 : null,
+        insightCount !== undefined && insightCount > 0 ? insightCount : null,
     });
     setNewInsightText('');
+
+    trackAnalytics('autofix.step.rethink', {
+      step_index: stepIndex,
+      group_id: groupId,
+      run_id: runId,
+      organization,
+    });
   };
 
   const handleCancel = () => {
@@ -288,11 +352,8 @@ function CollapsibleChainLink({
   };
 
   return (
-    <VerticalLineContainer isEmpty={isEmpty} alignment={alignment}>
-      <RethinkButtonContainer
-        className="rethink-button-container"
-        parentAlignment={alignment}
-      >
+    <VerticalLineContainer isEmpty={isEmpty}>
+      <RethinkButtonContainer className="rethink-button-container">
         {showCollapseControl && onToggleCollapse && (
           <CollapseButtonWrapper
             onClick={onToggleCollapse}
@@ -310,10 +371,7 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               icon={
-                <CollapseIconChevron
-                  direction={isCollapsed ? 'right' : 'down'}
-                  size="sm"
-                />
+                <CollapseIconChevron direction={isCollapsed ? 'down' : 'up'} size="sm" />
               }
               aria-label={t('Toggle reasoning visibility')}
             />
@@ -340,6 +398,8 @@ function CollapsibleChainLink({
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSubmit(e);
+                      } else if (e.key === 'Escape') {
+                        handleCancel();
                       }
                     }}
                   />
@@ -356,10 +416,10 @@ function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Add insight and rethink')}
-                      aria-label={t('Add insight and rethink')}
+                      title={t('Redo work from here')}
+                      aria-label={t('Redo work from here')}
                     >
-                      <IconRefresh size="sm" />
+                      {'\u23CE'}
                     </Button>
                   </ButtonBar>
                 </EditFormRow>
@@ -370,10 +430,19 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               onClick={() => setIsAdding(true)}
-              icon={<IconRefresh size="sm" />}
-              title={t('Add insight and rethink')}
-              aria-label={t('Add insight and rethink')}
-            />
+              title={t('Give feedback and rethink the answer')}
+              aria-label={t('Give feedback and rethink the answer')}
+              analyticsEventName="Autofix: Step Rethink Open"
+              analyticsEventKey="autofix.step.rethink_open"
+              analyticsParams={{
+                step_index: stepIndex,
+                group_id: groupId,
+                run_id: runId,
+              }}
+            >
+              <RethinkLabel>{t('Rethink this answer')}</RethinkLabel>
+              <FlippedReturnIcon />
+            </AddButton>
           ))}
       </RethinkButtonContainer>
     </VerticalLineContainer>
@@ -387,10 +456,17 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(shouldCollapseByDefault ?? false);
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
 
   // Compare current insights with previous insights to determine which ones are new
   useEffect(() => {
@@ -404,6 +480,14 @@ function AutofixInsightCards({
 
   const handleToggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+    // Close any expanded card when collapsing the section
+    if (!isCollapsed) {
+      setExpandedCardIndex(null);
+    }
+  };
+
+  const handleToggleExpand = (index: number | null) => {
+    setExpandedCardIndex(prevIndex => (prevIndex === index ? null : index));
   };
 
   const validInsightCount = insights.filter(insight => insight).length;
@@ -425,10 +509,9 @@ function AutofixInsightCards({
                 stepIndex={stepIndex}
                 groupId={groupId}
                 runId={runId}
-                alignment="start"
               />
             )}
-            <AnimatePresence>
+            <AnimatePresence initial={hasMounted.current}>
               {!isCollapsed && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}
@@ -447,6 +530,8 @@ function AutofixInsightCards({
                           groupId={groupId}
                           runId={runId}
                           isNewInsight={newInsightIndices.includes(index)}
+                          isExpanded={expandedCardIndex === index}
+                          onToggleExpand={handleToggleExpand}
                         />
                       ) : null
                     )}
@@ -462,19 +547,29 @@ function AutofixInsightCards({
                 runId={runId}
                 insightCount={validInsightCount}
                 showAddControl
-                alignment="start"
               />
             )}
           </Fragment>
         ) : stepIndex === 0 && !hasStepBelow ? (
           <NoInsightsYet />
-        ) : null}
+        ) : (
+          hasStepBelow && (
+            <CollapsibleChainLink
+              isEmpty={false}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+              insightCount={validInsightCount}
+              showAddControl
+            />
+          )
+        )}
       </CardsColumn>
     </InsightsGridContainer>
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const orgSlug = useOrganization().slug;
@@ -502,11 +597,16 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 }
@@ -516,7 +616,6 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   justify-content: space-between;
   align-items: stretch;
   cursor: pointer;
-  background-color: ${p => (p.expanded ? p.theme.backgroundSecondary : 'transparent')};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -556,11 +655,22 @@ const CardsStack = styled('div')`
   gap: 0;
 `;
 
-const InsightContainer = styled(motion.div)`
+const ContextMarkedText = styled(MarkedText)`
+  font-size: ${p => p.theme.fontSize.sm};
+  code {
+    font-size: ${p => p.theme.fontSize.sm};
+  }
+`;
+
+const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.background};
+  border: 1px dashed ${p => p.theme.border};
+  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
+
+  box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 
   &[data-new-insight='true'] {
     animation: fadeFromActive 0.8s ease-in-out;
@@ -584,7 +694,6 @@ const InsightContainer = styled(motion.div)`
 `;
 
 const VerticalLineContainer = styled('div')<{
-  alignment?: 'start' | 'center';
   isEmpty?: boolean;
 }>`
   position: relative;
@@ -593,10 +702,6 @@ const VerticalLineContainer = styled('div')<{
   display: flex;
   padding: 0;
   min-height: ${p => (p.isEmpty ? space(4) : 'auto')};
-
-  .rethink-button-container {
-    /* Styles are now primarily in RethinkButtonContainer itself */
-  }
 `;
 
 const VerticalLine = styled('div')`
@@ -624,16 +729,15 @@ const CollapseButtonWrapper = styled('div')`
   }
 `;
 
-const RethinkButtonContainer = styled('div')<{parentAlignment?: 'start' | 'center'}>`
+const RethinkButtonContainer = styled('div')`
   position: relative;
   display: flex;
-  justify-content: ${p => (p.parentAlignment === 'start' ? 'flex-end' : 'center')};
+  justify-content: flex-end;
   align-items: center;
-  width: ${p => (p.parentAlignment === 'start' ? '100%' : 'max-content')};
-  background: ${p =>
-    p.parentAlignment === 'center' ? p.theme.background : 'transparent'};
-  border-radius: ${p => (p.parentAlignment === 'center' ? '50%' : '0')};
-  padding: ${p => (p.parentAlignment === 'center' ? space(0.25) : '0')};
+  width: 100%;
+  background: ${p => p.theme.background};
+  border-radius: 0;
+  padding: 0;
   z-index: 1;
 
   &:has(> ${CollapseButtonWrapper}) {
@@ -656,24 +760,16 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.pink100};
+  background: ${p => p.theme.pink400}05;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
+  border-top: 1px dashed ${p => p.theme.innerBorder};
 
   code {
     white-space: pre-wrap;
     word-break: break-word;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: ${p => p.theme.subText};
+    background-color: transparent;
   }
 `;
 
@@ -703,7 +799,7 @@ const StyledIconChevron = styled(IconChevron)`
 const RightSection = styled('div')`
   display: flex;
   align-items: center;
-  padding-right: ${space(1)};
+  padding-right: ${space(0.5)};
 `;
 
 const EditContainer = styled('div')`
@@ -743,7 +839,7 @@ const CollapseIconChevron = styled(IconChevron)`
 
 const CollapsedCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const AddEditContainer = styled('div')`
@@ -754,7 +850,9 @@ const AddEditContainer = styled('div')`
 `;
 
 const DiffContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-left: -${space(2)};
+  margin-right: -${space(2)};
+  margin-top: -${space(2)};
 `;
 
 const AddButton = styled(Button)`
@@ -764,4 +862,21 @@ const AddButton = styled(Button)`
   }
 `;
 
+function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+  return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
+}
+
 export default AutofixInsightCards;
+
+const CheckpointIcon = styled('span')`
+  transform: scaleY(-1);
+  margin-bottom: ${space(0.5)};
+`;
+
+const RethinkLabel = styled('span')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  margin-right: ${space(0.5)};
+`;

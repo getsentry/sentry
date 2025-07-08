@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
@@ -26,12 +28,12 @@ function CodecovSecondaryNav() {
   });
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="codecov-main">
           <SecondaryNav.Item
             to={`${coveragePathname}commits/`}
             activeTo={coveragePathname}
@@ -42,13 +44,13 @@ function CodecovSecondaryNav() {
             {t('Tests')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section title={t('Configure')}>
+        <SecondaryNav.Section id="codecov-configure" title={t('Configure')}>
           <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
             {t('Tokens')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 

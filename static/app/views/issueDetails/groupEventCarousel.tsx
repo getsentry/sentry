@@ -5,7 +5,8 @@ import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
@@ -124,7 +125,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
-  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.lg})`);
   const defaultIssueEvent = useDefaultIssueEvent();
   const navigate = useNavigate();
 
@@ -241,7 +242,7 @@ type GroupEventActionsProps = {
 
 function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
-  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const organization = useOrganization();
 
   const hasReplay = Boolean(getReplayIdFromEvent(event));
@@ -484,10 +485,10 @@ const EventHeading = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -551,15 +552,15 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   &:hover {
     > span {
       display: flex;
     }
   }
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 

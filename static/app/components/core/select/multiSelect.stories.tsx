@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 
 import {Select} from 'sentry/components/core/select';
-import {Grid} from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('Multiple Select', story => {
+export default Storybook.story('Multiple Select', story => {
   story('Sizes', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.Grid>
         <Select
           size="md"
           multiple
@@ -42,14 +41,14 @@ export default storyBook('Multiple Select', story => {
             {value: 'item3', label: 'Item 3'},
           ]}
         />
-      </Grid>
+      </Storybook.Grid>
     );
   });
 
   story('Disabled', () => {
     return (
       <Fragment>
-        <Grid columns={3}>
+        <Storybook.Grid columns={3}>
           <Select
             isDisabled
             multiple
@@ -87,14 +86,14 @@ export default storyBook('Multiple Select', story => {
               {value: 'item3', label: 'Item 3'},
             ]}
           />
-        </Grid>
+        </Storybook.Grid>
       </Fragment>
     );
   });
 
   story('Clearable', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.Grid>
         <Select
           multiple
           isClearable
@@ -140,13 +139,13 @@ export default storyBook('Multiple Select', story => {
             {value: 'item3', label: 'Item 3'},
           ]}
         />
-      </Grid>
+      </Storybook.Grid>
     );
   });
 
   story('Searchable', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.Grid>
         <Select
           isSearchable
           multiple
@@ -184,7 +183,7 @@ export default storyBook('Multiple Select', story => {
             {value: 'item3', label: 'Item 3'},
           ]}
         />
-      </Grid>
+      </Storybook.Grid>
     );
   });
 });

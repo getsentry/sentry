@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:34:16.297561+00:00'
+created: '2025-05-12T23:41:29.747451+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "__start_thread"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app) but ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))

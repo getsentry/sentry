@@ -25,7 +25,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -40,6 +40,8 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
 class GithubRateLimitInfo:
@@ -56,8 +58,63 @@ class GithubRateLimitInfo:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
+class GithubSetupApiClient(IntegrationProxyClient):
+    """
+    API Client that doesn't require an installation.
+    This client is used during integration setup to fetch data
+    needed to build installation metadata
+    """
+
+    base_url = "https://api.github.com"
+    integration_name = "github_setup"
+
+    def __init__(self, access_token: str | None = None, verify_ssl: bool = True):
+        super().__init__(verify_ssl=verify_ssl)
+        self.jwt = get_jwt()
+        self.access_token = access_token
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        token = self.access_token
+
+        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+            token = self.jwt
+
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        return prepared_request
+
+    def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
+        """
+        Authentication: JWT
+        Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        """
+        return self.get(f"/app/installations/{installation_id}")
+
+    def get_user_info(self) -> dict[str, Any]:
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+        """
+        return self.get("/user")
+
+    def get_user_info_installations(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+        """
+        return self.get("/user/installations")
+
+    def get_organization_memberships_for_user(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
+        """
+        return self.get("/user/memberships/orgs")
+
+
 class GithubProxyClient(IntegrationProxyClient):
-    integration: Integration  # late init
+    integration: Integration | RpcIntegration  # late init
 
     def _get_installation_id(self) -> str:
         """
@@ -121,11 +178,7 @@ class GithubProxyClient(IntegrationProxyClient):
         }
 
         # Only certain routes are authenticated with JWTs....
-        should_use_jwt = (
-            "/app/installations" in prepared_request.path_url
-            or "access_tokens" in prepared_request.path_url
-        )
-        if should_use_jwt:
+        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
@@ -142,7 +195,6 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             access_token = self._refresh_access_token()
 
-        logger.info("token.access_token", extra=logger_extra)
         return access_token
 
     @control_silo_function
@@ -191,7 +243,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     allow_redirects = True
 
     base_url = "https://api.github.com"
-    integration_name = "github"
+    integration_name = IntegrationProviderSlug.GITHUB.value
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
@@ -228,7 +280,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
-    def get_installation_info(self, installation_id: int) -> Any:
+    def get_installation_info(self, installation_id: int | str) -> Any:
         """
         https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
@@ -352,13 +404,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
-    # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
         Find repositories matching a query.
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28#search-repositories
 
-        https://docs.github.com/en/rest/search#search-repositories
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/repositories", params={"q": query})
 
@@ -408,8 +459,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
-        https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-issues-and-pull-requests
+
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -464,12 +516,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str) -> Sequence[Any]:
+    def get_labels(self, owner: str, repo: str) -> list[Any]:
         """
-        Fetches up to the first 100 labels for a repository.
+        Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
+        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
@@ -503,7 +555,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     ) -> Sequence[FileBlameInfo]:
         log_info = {
             **extra,
-            "provider": "github",
+            "provider": IntegrationProviderSlug.GITHUB,
             "organization_integration_id": self.org_integration_id,
         }
         metrics.incr("integrations.github.get_blame_for_files")
@@ -520,7 +572,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 logger.error(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
-                        "provider": "github",
+                        "provider": IntegrationProviderSlug.GITHUB,
                         "specific_resource": "graphql",
                         "remaining": rate_limit.remaining,
                         "next_window": rate_limit.next_window(),
@@ -576,7 +628,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             files=files,
             extra={
                 **extra,
-                "provider": "github",
+                "provider": IntegrationProviderSlug.GITHUB,
                 "organization_integration_id": self.org_integration_id,
             },
         )
@@ -585,7 +637,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
-        integration: Integration,
+        integration: Integration | RpcIntegration,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,

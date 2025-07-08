@@ -10,6 +10,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
+  agentMonitoringOnboarding,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -48,7 +49,7 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        ...getPythonInstallConfig({packageName: "'sentry-sdk[sanic]'"}),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}),
         ...getPythonAiocontextvarsConfig(),
       ],
     },
@@ -111,6 +112,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
+  agentMonitoringOnboarding,
 };
 
 export default docs;

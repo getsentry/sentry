@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -8,44 +9,46 @@ import {space} from 'sentry/styles/space';
 interface RowProps {
   children: React.ReactNode;
   onDelete: () => void;
+  isConflicting?: boolean;
 }
 
-export default function AutomationBuilderRow({onDelete, children}: RowProps) {
+export default function AutomationBuilderRow({
+  onDelete,
+  children,
+  isConflicting,
+}: RowProps) {
   return (
-    <RowContainer>
-      <Row>
-        <Rule>{children}</Rule>
-        <DeleteButton
-          aria-label={t('Delete Node')}
-          size="sm"
-          icon={<IconDelete />}
-          borderless
-          onClick={onDelete}
-        />
-      </Row>
+    <RowContainer incompatible={isConflicting}>
+      <RowLine>{children}</RowLine>
+      <DeleteButton
+        aria-label={t('Delete row')}
+        size="sm"
+        icon={<IconDelete />}
+        borderless
+        onClick={onDelete}
+        className={'delete-row'}
+      />
     </RowContainer>
   );
 }
 
 const RowContainer = styled('div')<{incompatible?: boolean}>`
+  display: flex;
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.innerBorder} solid;
-  border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
-`;
-
-const Row = styled('div')`
+  border-color: ${p => (p.incompatible ? p.theme.dangerFocus : 'none')};
   position: relative;
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-const Rule = styled('div')`
-  display: flex;
-  flex-direction: row;
+  padding: ${space(0.75)} ${space(1.5)};
+  min-height: 46px;
   align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: ${space(1)};
+
+  .delete-row {
+    opacity: 0;
+  }
+  :hover .delete-row {
+    opacity: 1;
+  }
 `;
 
 const DeleteButton = styled(Button)`
@@ -53,10 +56,4 @@ const DeleteButton = styled(Button)`
   top: ${space(0.75)};
   right: ${space(0.75)};
   opacity: 0;
-
-  ${RowContainer}:hover &,
-  ${RowContainer}:focus-within &,
-  &:focus {
-    opacity: 1;
-  }
 `;

@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {Select} from 'sentry/components/core/select';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -56,12 +57,15 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
+    router.location?.query?.organizationId ??
+    orgFromSubdomain ??
+    (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
-  if (!organization) {
-    organization = organizations[0]!;
+
+  if (!organization && organizations.length === 1) {
+    organization = organizations[0];
   }
-  const orgSlug = organization.slug;
+  const orgSlug = organization?.slug;
 
   // loads all the projects for an org
   const {
@@ -74,14 +78,14 @@ function NotificationSettingsByEntity({
     [
       `/organizations/${orgSlug}/projects/`,
       {
-        host: organization.links.regionUrl,
+        host: organization?.links?.regionUrl,
         query: {
           all_projects: '1',
           collapse: ['latestDeploys', 'unusedFeatures'],
         },
       },
     ],
-    {staleTime: Infinity}
+    {staleTime: Infinity, enabled: Boolean(organization)}
   );
 
   // always loading all projects even though we only need it sometimes
@@ -233,49 +237,61 @@ function NotificationSettingsByEntity({
             t('Settings for Organizations')
           )}
         </StyledPanelHeader>
-        <ControlItem>
-          {/* TODO: enable search for sentry projects */}
-          <Select
-            placeholder={
-              entityType === 'project'
-                ? t('Project\u2026')
-                : t('Sentry Organization\u2026')
-            }
-            name={entityType}
-            options={groupedEntityOptions}
-            onChange={({value}: {value: string}) => {
-              setSelectedEntityId(value);
-            }}
-            value={selectedEntityId}
-          />
-          <Select
-            placeholder={t('Value\u2026')}
-            value={selectedValue}
-            name="value"
-            choices={valueOptions}
-            onChange={({value}: {value: string}) => {
-              setSelectedValue(value as Value);
-            }}
-          />
-          <Button
-            disabled={!selectedEntityId || !selectedValue}
-            priority="primary"
-            onClick={handleAdd}
-            icon={<IconAdd />}
-            aria-label={t('Add override')}
-          />
-        </ControlItem>
-        {isPending && (
+        {!organization && entityType === 'project' ? (
           <PanelBody>
-            <LoadingIndicator />
+            <EmptyStateWarning withIcon={false}>
+              {t('Select an organization to continue')}
+            </EmptyStateWarning>
           </PanelBody>
+        ) : (
+          <Fragment>
+            <ControlItem>
+              {/* TODO: enable search for sentry projects */}
+              <Select
+                placeholder={
+                  entityType === 'project'
+                    ? t('Project\u2026')
+                    : t('Sentry Organization\u2026')
+                }
+                name={entityType}
+                options={groupedEntityOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedEntityId(value);
+                }}
+                value={selectedEntityId}
+              />
+              <Select
+                placeholder={t('Value\u2026')}
+                value={selectedValue}
+                name="value"
+                choices={valueOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedValue(value as Value);
+                }}
+              />
+              <Button
+                disabled={!selectedEntityId || !selectedValue}
+                priority="primary"
+                onClick={handleAdd}
+                icon={<IconAdd />}
+                aria-label={t('Add override')}
+              />
+            </ControlItem>
+            {isPending && entityType === 'project' && (
+              <PanelBody>
+                <LoadingIndicator />
+              </PanelBody>
+            )}
+            {isError && entityType === 'project' && (
+              <PanelBody>
+                <LoadingError onRetry={refetch} />
+              </PanelBody>
+            )}
+            {(isSuccess || entityType === 'organization') && (
+              <StyledPanelBody>{renderOverrides()}</StyledPanelBody>
+            )}
+          </Fragment>
         )}
-        {isError && (
-          <PanelBody>
-            <LoadingError onRetry={refetch} />
-          </PanelBody>
-        )}
-        {isSuccess && <StyledPanelBody>{renderOverrides()}</StyledPanelBody>}
       </Panel>
     </MinHeight>
   );

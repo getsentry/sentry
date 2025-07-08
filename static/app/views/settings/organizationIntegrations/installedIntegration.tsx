@@ -6,7 +6,8 @@ import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -240,7 +241,7 @@ function IntegrationStatus(
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
             ? t('This integration has been disconnected from the external provider')
-            : t('This integration is pending deletion.')
+            : t('Deletion takes a few minutes to complete.')
       }
     >
       {inner}
@@ -258,7 +259,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

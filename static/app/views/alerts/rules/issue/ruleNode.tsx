@@ -4,7 +4,7 @@ import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Select} from 'sentry/components/core/select';
@@ -18,6 +18,7 @@ import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
   IssueAlertRuleCondition,
+  TicketActionData,
 } from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
@@ -27,6 +28,8 @@ import {
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
+import type {IssueCategory} from 'sentry/types/group';
+import {VALID_ISSUE_CATEGORIES_V2} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
@@ -139,6 +142,41 @@ function MailActionFields({
   );
 }
 
+function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
+  const fieldConfig =
+    node?.formFields && 'value' in node.formFields
+      ? (node.formFields.value as FormField)
+      : undefined;
+
+  return fieldConfig?.choices.find(
+    ([value]: [string | number, string]) => value === data.value
+  )?.[1];
+}
+
+function getChoices({
+  data,
+  fieldConfig,
+  name,
+  organization,
+  selectedValue,
+}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name' | 'organization'> & {
+  selectedValue?: string;
+}) {
+  if (
+    data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
+    name === 'value' &&
+    organization.features.includes('issue-taxonomy')
+  ) {
+    return fieldConfig.choices.filter(
+      ([value, label]: [string | number, string]) =>
+        VALID_ISSUE_CATEGORIES_V2.includes(label as IssueCategory) ||
+        value === selectedValue
+    );
+  }
+
+  return fieldConfig.choices;
+}
+
 function ChoiceField({
   data,
   disabled,
@@ -147,6 +185,7 @@ function ChoiceField({
   onReset,
   name,
   fieldConfig,
+  organization,
 }: FieldProps) {
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
@@ -162,8 +201,13 @@ function ChoiceField({
   // All `value`s are cast to string
   // There are integrations that give the form field choices with the value as number, but
   // when the integration configuration gets saved, it gets saved and returned as a string
-  // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
-  const options = fieldConfig.choices.map(([value, label]) => ({
+  const options = getChoices({
+    data,
+    fieldConfig,
+    name,
+    organization,
+    selectedValue: initialVal,
+  }).map(([value, label]: [string | number, string]) => ({
     value: `${value}`,
     label,
   }));
@@ -380,7 +424,7 @@ function RuleNode({
                 {...deps}
                 link={node.link}
                 ticketType={node.ticketType}
-                instance={data}
+                instance={data as unknown as TicketActionData}
                 onSubmitAction={updateParentFromTicketRule}
               />
             ))
@@ -425,7 +469,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <MarginlessAlert type="error">
+          <FooterAlert type="error">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -434,12 +478,12 @@ function RuleNode({
                 ),
               }
             )}
-          </MarginlessAlert>
+          </FooterAlert>
         );
       }
 
       return (
-        <MarginlessAlert type="warning">
+        <FooterAlert type="warning">
           {tct(
             'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
             {
@@ -448,47 +492,57 @@ function RuleNode({
               ),
             }
           )}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
 
     if (data.id === IssueAlertActionType.SLACK) {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
 
     if (data.id === IssueAlertActionType.DISCORD) {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
+        </FooterAlert>
+      );
+    }
+
+    // While `issue-taxonomy` is being rolled out, both the old and new categories are supported.
+    // This will display a banner to nudge users towards selecting a new category.
+    if (
+      data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
+      organization.features.includes('issue-taxonomy') &&
+      !VALID_ISSUE_CATEGORIES_V2.includes(
+        getSelectedCategoryLabel({data, node}) as IssueCategory
+      )
+    ) {
+      return (
+        <FooterAlert type="warning">
+          {t(
+            'Issue categories have been recently updated. Make a new selection to save changes.'
+          )}
+        </FooterAlert>
       );
     }
 
@@ -500,11 +554,11 @@ function RuleNode({
       return null;
     }
     return (
-      <MarginlessAlert type="error" showIcon>
+      <FooterAlert type="error" showIcon>
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
-      </MarginlessAlert>
+      </FooterAlert>
     );
   }
 
@@ -624,10 +678,10 @@ const DeleteButton = styled(Button)`
   flex-shrink: 0;
 `;
 
-const MarginlessAlert = styled(Alert)`
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-width: 0;
-  border-top: 1px ${p => p.theme.innerBorder} solid;
-  padding: ${space(1)} ${space(1)};
+const FooterAlert = styled(Alert)`
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  margin-top: -1px; /* remove double border on panel bottom */
+  a {
+    white-space: nowrap;
+  }
 `;

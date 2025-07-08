@@ -39,7 +39,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 
 
 @freeze_time()
@@ -143,7 +143,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
             "sentry.uptime.detectors.tasks.process_project_url_ranking",
             return_value=False,
         ) as mock_process_project_url_ranking:
-            process_organization_url_ranking(self.organization)
+            process_organization_url_ranking(self.organization.id)
             mock_process_project_url_ranking.assert_has_calls(
                 [
                     call(self.project, 3),
@@ -364,13 +364,13 @@ class TestMonitorUrlForProject(UptimeTestCase):
         manual_url = "https://sentry.io"
         self.create_project_uptime_subscription(
             uptime_subscription=self.create_uptime_subscription(url=manual_url),
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            mode=UptimeMonitorMode.MANUAL,
         )
         url = "http://santry.io"
         monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
         assert ProjectUptimeSubscription.objects.filter(
             project=self.project,
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            mode=UptimeMonitorMode.MANUAL,
             uptime_subscription__url=manual_url,
         ).exists()

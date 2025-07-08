@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,9 +8,9 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +28,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
+type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'> & {
   /**
    * Discover query used to create the alert
    */
@@ -40,11 +42,11 @@ type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
    * We currently do a few checks on metrics data on performance pages and this passes the decision onward to alerts.
    */
   disableMetricDataset?: boolean;
+
   /**
    * Called when the user is redirected to the alert builder
    */
   onClick?: () => void;
-
   referrer?: string;
 };
 
@@ -52,7 +54,7 @@ type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-function CreateAlertFromViewButton({
+export function CreateAlertFromViewButton({
   projects,
   eventView,
   organization,
@@ -121,7 +123,8 @@ type CreateAlertButtonProps = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-} & ButtonProps;
+  to?: string | LocationDescriptor;
+} & Omit<LinkButtonProps, 'to'>;
 
 export default function CreateAlertButton({
   organization,
@@ -132,6 +135,7 @@ export default function CreateAlertButton({
   showPermissionGuide,
   alertOption,
   onEnter,
+  to,
   ...buttonProps
 }: CreateAlertButtonProps) {
   const router = useRouter();
@@ -181,15 +185,15 @@ export default function CreateAlertButton({
 
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const renderButton = (hasAccess: boolean) => (
-    <Button
+    <LinkButton
       disabled={!hasAccess}
       title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
-      to={projectSlug ? createAlertUrl(projectSlug) : undefined}
+      to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
         isHoverable: true,
         position: 'top',
@@ -201,7 +205,7 @@ export default function CreateAlertButton({
       {...buttonProps}
     >
       {buttonProps.children ?? t('Create Alert')}
-    </Button>
+    </LinkButton>
   );
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
@@ -222,5 +226,3 @@ export default function CreateAlertButton({
     renderButton(canCreateAlert)
   );
 }
-
-export {CreateAlertFromViewButton};

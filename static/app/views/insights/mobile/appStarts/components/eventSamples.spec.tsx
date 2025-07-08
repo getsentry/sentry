@@ -79,19 +79,20 @@ describe('ScreenLoadEventSamples', function () {
         meta: {
           fields: {
             profile_id: 'string',
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.duration': 'duration',
-            'project.name': 'string',
+            project: 'string',
             id: 'string',
           },
         },
         data: [
           {
             profile_id: 'profile-id',
-            'transaction.id': '76af98a3ac9d4448b894e44b1819970e',
+            'transaction.span_id': '76af98a3ac9d4448b894e44b1819970e',
             'span.duration': 131,
-            'project.name': 'sentry-cocoa',
+            project: 'sentry-cocoa',
             id: 'f0587aad3de14aeb',
+            trace: 'trace-id',
           },
         ],
       },
@@ -123,7 +124,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/backend/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
+      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
     );
 
     // Profile is a button

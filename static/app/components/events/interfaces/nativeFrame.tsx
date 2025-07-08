@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
@@ -20,7 +22,6 @@ import {
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
@@ -210,8 +211,9 @@ function NativeFrame({
         case SymbolicatorStatus.MISSING:
         case SymbolicatorStatus.MALFORMED:
           return 'error';
-        case SymbolicatorStatus.MISSING_SYMBOL:
         case SymbolicatorStatus.UNKNOWN_IMAGE:
+          return frame.instructionAddr === '0x0' ? 'success' : 'error';
+        case SymbolicatorStatus.MISSING_SYMBOL:
         default:
           return undefined;
       }
@@ -314,9 +316,10 @@ function NativeFrame({
             )}
             <Tooltip
               title={frame.package ?? t('Go to images loaded')}
-              position="bottom"
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
+              maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+              position="auto-start"
             >
               <Package>
                 {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
@@ -329,6 +332,7 @@ function NativeFrame({
                 title={addressTooltip}
                 disabled={!(foundByStackScanning || inlineFrame)}
                 delay={tooltipDelay}
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
@@ -348,6 +352,7 @@ function NativeFrame({
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 isHoverable
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 <FileName>
                   {'('}
@@ -457,26 +462,26 @@ const AddressCell = styled('div')`
 const FunctionNameCell = styled('div')`
   word-break: break-all;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 2/6;
   }
 `;
 
 const GroupingCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2/3;
   }
 `;
 
 const TypeCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 5/6;
     grid-row: 1/2;
   }
 `;
 
 const ExpandCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 6/7;
     grid-row: 1/2;
   }
@@ -495,7 +500,7 @@ const Registers = styled(Context)`
 
 const PackageNote = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const Package = styled('span')`
@@ -527,13 +532,13 @@ const RowHeader = styled('span')<{
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
       : `${p.theme.bodyBackground}`};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
   color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
@@ -554,9 +559,9 @@ const SymbolicatorIcon = styled('div')`
 
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.subText};

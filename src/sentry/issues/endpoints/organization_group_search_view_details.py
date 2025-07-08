@@ -46,11 +46,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         """
         Get an issue view for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         try:
             view = GroupSearchView.objects.get(id=view_id, organization=organization)
         except GroupSearchView.DoesNotExist:
@@ -73,9 +68,7 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         """
         Update an issue view for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
+        if not features.has("organizations:issue-views", organization, actor=request.user):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         try:
@@ -127,11 +120,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         """
         Delete an issue view for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         try:
             view = GroupSearchView.objects.get(id=view_id, organization=organization)
         except GroupSearchView.DoesNotExist:

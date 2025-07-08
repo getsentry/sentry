@@ -12,7 +12,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.silo.base import SiloMode
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class TombstoneBase(Model):
@@ -48,7 +47,6 @@ class TombstoneBase(Model):
             with transaction.atomic(router.db_for_write(cls)):
                 cls.objects.create(table_name=table_name, object_identifier=identifier)
         except IntegrityError:
-            incr_rollback_metrics(cls)
             pass
 
 

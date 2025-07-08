@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,7 +34,6 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -75,7 +74,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
-import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -107,7 +105,6 @@ interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
   manager: VirtualizedViewManager;
-  metaQueryResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -130,7 +127,6 @@ export function Trace({
   onRowClick,
   manager,
   previouslyFocusedNodeRef,
-  metaQueryResults,
   onTraceSearch,
   rerender,
   scheduler,
@@ -410,10 +406,6 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        <TraceLevelOpsBreakdown
-          isTraceLoading={isLoading}
-          metaQueryResults={metaQueryResults}
-        />
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -426,14 +418,14 @@ export function Trace({
           ? trace.indicators.map((indicator, i) => {
               const status =
                 indicator.score === undefined
-                  ? 'none'
+                  ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
-              const webvital = indicator.label.toLowerCase() as WebVitals;
+              const vital = indicator.type as WebVitals;
 
               const defaultFormatter = (value: number) =>
                 getFormattedDuration(value / 1000);
               const formatter =
-                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
+                WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
 
               return (
                 <Fragment key={i}>
@@ -445,9 +437,10 @@ export function Trace({
                     <Tooltip
                       title={
                         <div>
-                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          {VITAL_DETAILS[`measurements.${vital}`]?.name}
                           <br />
-                          {formatter(indicator.measurement.value)} - {status}
+                          {formatter(indicator.measurement.value)}
+                          {status !== 'None' && ` - ${status}`}
                         </div>
                       }
                     >
@@ -919,7 +912,7 @@ const TraceStylingWrapper = styled('div')`
     text-align: center;
     position: absolute;
     font-size: 10px;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.background};
     border-radius: 100px;
@@ -948,6 +941,19 @@ const TraceStylingWrapper = styled('div')`
 
       &.dark {
         background-color: rgb(63 17 20);
+      }
+    }
+
+    &.None {
+      color: ${p => p.theme.subText};
+      border: 1px solid ${p => p.theme.border};
+
+      &.light {
+        background-color: rgb(245 245 245);
+      }
+
+      &.dark {
+        background-color: rgb(60 59 59);
       }
     }
 
@@ -1012,6 +1018,15 @@ const TraceStylingWrapper = styled('div')`
           80%/2px 100% no-repeat;
       }
 
+      &.None {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.subText} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
       &.Meh {
         background: repeating-linear-gradient(
             to bottom,
@@ -1070,7 +1085,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabelContainer {
-        font-weight: ${p => p.theme.fontWeightNormal};
+        font-weight: ${p => p.theme.fontWeight.normal};
         min-width: 0;
         top: 22px;
         width: auto;
@@ -1089,15 +1104,15 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1107,13 +1122,13 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.missing_instrumentation {
-        --pattern-odd: #dedae3;
-        --pattern-even: #f4f2f7;
+        --pattern-odd: ${p => p.theme.gray200};
+        --pattern-even: ${p => p.theme.gray100};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #872d32;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
 
@@ -1130,15 +1145,15 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1148,13 +1163,13 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.missing_instrumentation {
-        --pattern-odd: #4b4550;
-        --pattern-even: #1c1521;
+        --pattern-odd: ${p => p.theme.gray200};
+        --pattern-even: ${p => p.theme.gray100};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #510d10;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
       /* stylelint-disable */
@@ -1173,7 +1188,7 @@ const TraceStylingWrapper = styled('div')`
     height: 24px;
     width: 100%;
     transition: none;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.backgroundSecondary};
@@ -1369,7 +1384,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: ${p => p.theme.fontWeightBold};
+        font-weight: ${p => p.theme.fontWeight.bold};
       }
 
       .TraceChildrenCountWrapper {
@@ -1491,7 +1506,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: transparent;
     border: none;
     transition: 60ms ease-out;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     padding: 0 2px;
     display: flex;
@@ -1513,7 +1528,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBarDuration {
     display: inline-block;
     transform-origin: left center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -1685,7 +1700,13 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
+  }
+
+  .TraceName {
+    margin-left: 4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .TraceEmDash {

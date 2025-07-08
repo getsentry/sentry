@@ -10,6 +10,21 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+  'trace.explorer.ai_query_applied': {
+    group_by_count: number;
+    query: string;
+    visualize_count: number;
+  };
+  'trace.explorer.ai_query_interface': {
+    action: 'opened' | 'closed';
+  };
+  'trace.explorer.ai_query_rejected': {
+    natural_language_query: string;
+    num_queries_returned: number;
+  };
+  'trace.explorer.ai_query_submitted': {
+    natural_language_query: string;
+  };
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
@@ -56,6 +71,7 @@ export type TracingEventParameters = {
     referrer: string | null;
     shape: string;
     source: TraceWaterFallSource;
+    trace_age: string;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {
@@ -136,6 +152,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.compare_queries': Record<string, unknown>;
+  'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -184,6 +201,10 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
+  'trace.explorer.ai_query_applied': 'Trace Explorer: AI Query Applied',
+  'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
+  'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
+  'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
@@ -243,4 +264,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
   'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
   'trace_explorer.star_query': 'Trace Explorer: Star Query',
+  'trace_explorer.delete_query': 'Trace Explorer: Delete Query',
 };

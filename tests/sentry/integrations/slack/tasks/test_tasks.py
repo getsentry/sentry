@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from uuid import uuid4
 
 import orjson
@@ -78,7 +78,51 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "New Rule",
             "environment": None,
-            "project": self.project,
+            "project_id": self.project.id,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            "actions": [
+                {
+                    "channel": "#my-channel",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+            "user_id": self.user.id,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        mock_set_value.assert_called_with("success", rule.id)
+        assert rule.label == "New Rule"
+        # check that the channel_id got added
+        assert rule.data["actions"] == [
+            {
+                "channel": "#my-channel",
+                "channel_id": "chan-id",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "tags": "",
+                "workspace": self.integration.id,
+            }
+        ]
+        assert rule.created_by_id == self.user.id
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_new_rule_project_id(self, mock_set_value):
+        # Task should work if project_id is passed instead of project
+        data = {
+            "name": "New Rule",
+            "environment": None,
+            "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [
@@ -127,7 +171,7 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "Test Rule",
             "environment": None,
-            "project": self.project,
+            "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [condition_data],
@@ -240,6 +284,47 @@ class SlackTasksTest(TestCase):
         mock_get_channel_id.assert_called_with(
             serialize_integration(self.integration), "my-channel", 180
         )
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    @patch(
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
+        return_value=SlackChannelIdData("#", "channel", False),
+    )
+    @patch(
+        "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.AlertRuleSerializer",
+        side_effect=Exception("something broke!"),
+    )
+    def test_task_encounters_serialization_exception(
+        self, mock_serializer, mock_get_channel_id, mock_set_value
+    ):
+
+        data = self.metric_alert_data()
+        # Ensure this field is removed, to avoid known serialization issue
+        data["triggers"][0]["actions"][0]["inputChannelId"] = ""
+
+        # Catch the exception we've side-effected in the serializer
+        with pytest.raises(Exception, match="something broke!"):
+            with self.tasks():
+                with self.feature(["organizations:incidents"]):
+                    find_channel_id_for_alert_rule(
+                        data=data,
+                        uuid=self.uuid,
+                        organization_id=self.organization.id,
+                        user_id=self.user.id,
+                    )
+
+        assert not AlertRule.objects.filter(name="New Rule").exists()
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration),
+            data["triggers"][0]["actions"][0]["targetIdentifier"],
+            180,
+        )
+        # Ensure the field has been removed
+        assert "inputChannelId" not in data["triggers"][0]["actions"][0]
+        mock_serializer.assert_called_with(context=ANY, data=data, instance=ANY)
+        # If we failed at serialization, don't stay in pending.
+        mock_set_value.assert_called_with("failed")
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)

@@ -5,7 +5,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -13,7 +15,6 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -148,9 +149,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
+    const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
-      query: {...location.query, tab: value},
+      query: {...query, tab: value},
     });
   };
 

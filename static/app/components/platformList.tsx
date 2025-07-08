@@ -12,6 +12,7 @@ type Props = {
    */
   max?: number;
   platforms?: PlatformKey[];
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Platform icon size in pixels
    */
@@ -26,7 +27,7 @@ export function PlatformList({
   size = 16,
   className,
   ref,
-}: Props & {ref?: React.Ref<HTMLDivElement>}) {
+}: Props) {
   const visiblePlatforms = platforms.slice(0, max);
 
   function renderContent() {
@@ -89,8 +90,8 @@ const Counter = styled('div')`
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.subText};
   padding: 0 1px;

@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
 from sentry.constants import ObjectStatus
-from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -35,6 +35,7 @@ ITERATOR_CHUNK = 10_000
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60 * 2,
     ),
 )
 def run_escalating_forecast() -> None:
@@ -62,8 +63,10 @@ def run_escalating_forecast() -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=60 * 2,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )

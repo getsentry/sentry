@@ -2,19 +2,18 @@ from collections import defaultdict
 from typing import DefaultDict, TypedDict
 
 import sentry_sdk
-from packaging.version import InvalidVersion, Version
+from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.project import Project
-from sentry.models.projectsdk import EventType, ProjectSDK
+from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
 
 
 class SDKDeprecationsSerializer(serializers.Serializer):
@@ -93,32 +92,6 @@ def get_event_types(raw_event_type: str) -> list[EventType]:
     raise ValueError(f"Unknown event type: {raw_event_type}")
 
 
-MINIMUM_SDK_VERSION_OPTIONS: dict[tuple[int, str], str] = {
-    (EventType.PROFILE_CHUNK.value, "sentry.cocoa"): "sdk-deprecation.profile-chunk.cocoa",
-    (EventType.PROFILE_CHUNK.value, "sentry.python"): "sdk-deprecation.profile-chunk.python",
-}
-
-
-def get_minimum_sdk_version(project_sdk: ProjectSDK) -> Version | None:
-    parts = project_sdk.sdk_name.split(".", 2)
-    if len(parts) < 2:
-        return None
-
-    sdk_name = ".".join(parts[:2])
-
-    sdk_version_option = MINIMUM_SDK_VERSION_OPTIONS.get((project_sdk.event_type, sdk_name))
-    if sdk_version_option is None:
-        return None
-
-    sdk_version = options.get(sdk_version_option)
-    if sdk_version:
-        try:
-            return parse_version(sdk_version)
-        except InvalidVersion as e:
-            sentry_sdk.capture_exception(e)
-    return None
-
-
 def get_deprecation_status(project_sdk: ProjectSDK) -> SDKDeprecation | None:
     try:
         sdk_version = parse_version(project_sdk.sdk_version)
@@ -126,7 +99,11 @@ def get_deprecation_status(project_sdk: ProjectSDK) -> SDKDeprecation | None:
         sentry_sdk.capture_exception(e)
         return None
 
-    minimum_sdk_version = get_minimum_sdk_version(project_sdk)
+    minimum_sdk_version = get_minimum_sdk_version(
+        project_sdk.event_type,
+        project_sdk.sdk_name,
+        hard_limit=False,
+    )
 
     # no minimum sdk version was specified
     if minimum_sdk_version is None:

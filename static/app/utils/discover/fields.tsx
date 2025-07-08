@@ -10,11 +10,11 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
-  FieldKind,
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
   MobileVital,
+  prettifyTagKey,
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
@@ -1625,18 +1625,6 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
-
-export function classifyTagKey(key: string): FieldKind {
-  const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
-}
-
-export function prettifyTagKey(key: string): string {
-  const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[1] ?? key;
-}
-
 export function prettifyParsedFunction(func: ParsedFunction) {
   // special case for `count(span.duration)` as we want to say `count(spans)`
   if (
@@ -1646,6 +1634,15 @@ export function prettifyParsedFunction(func: ParsedFunction) {
   ) {
     return 'count(spans)';
   }
+
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'message'
+  ) {
+    return 'count(logs)';
+  }
+
   const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }

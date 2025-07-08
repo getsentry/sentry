@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {logger} from '@sentry/core';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
@@ -23,10 +24,20 @@ import {RELEASES_DRAWER_FIELD_MAP} from './utils';
  * releases list or details.
  */
 export function ReleasesDrawer() {
-  const {rd, rdChart, rdEnd, rdEnv, rdStart, rdProject, rdRelease, rdReleaseProjectId} =
-    useLocationQuery({
-      fields: RELEASES_DRAWER_FIELD_MAP,
-    });
+  const {
+    rd,
+    rdChart,
+    rdEnd,
+    rdEnv,
+    rdEvent,
+    rdSource,
+    rdStart,
+    rdProject,
+    rdRelease,
+    rdReleaseProjectId,
+  } = useLocationQuery({
+    fields: RELEASES_DRAWER_FIELD_MAP,
+  });
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
   const defaultPageFilters = usePageFilters();
@@ -54,9 +65,10 @@ export function ReleasesDrawer() {
       trackAnalytics('releases.drawer_opened', {
         release: Boolean(rdRelease),
         organization: organization.id,
+        source: rdChart ?? rdSource ?? 'unknown',
       });
     }
-  }, [organization, rd, rdProject, rdRelease]);
+  }, [organization, rd, rdProject, rdRelease, rdSource, rdChart]);
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
@@ -69,11 +81,28 @@ export function ReleasesDrawer() {
   }
 
   if (rdRelease) {
-    return <ReleasesDrawerDetails release={rdRelease} projectId={rdReleaseProjectId} />;
+    return (
+      <AnalyticsArea name="releases-drawer-details">
+        <ReleasesDrawerDetails
+          release={rdRelease}
+          projectId={rdReleaseProjectId}
+          start={start}
+          end={end}
+        />
+      </AnalyticsArea>
+    );
   }
 
   if (start && end) {
-    return <ReleasesDrawerList chart={rdChart as ChartId} pageFilters={pageFilters} />;
+    return (
+      <AnalyticsArea name="releases-drawer-list">
+        <ReleasesDrawerList
+          chart={rdChart as ChartId}
+          pageFilters={pageFilters}
+          eventId={rdEvent}
+        />
+      </AnalyticsArea>
+    );
   }
 
   return (

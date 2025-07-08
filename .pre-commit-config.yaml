@@ -48,6 +48,7 @@ repos:
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
+        require_serial: true
       - id: mypy
         name: mypy
         entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
@@ -112,7 +113,7 @@ repos:
         name: eslint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: ./node_modules/.bin/eslint --config ./eslint-pre-commit.config.mjs --quiet --fix
+        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint
         name: stylelint
@@ -121,10 +122,10 @@ repos:
         entry: ./node_modules/.bin/stylelint --quiet
 
       - id: prettier
-        name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
+        name: prettier
         language: system
-        types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
-        entry: ./node_modules/.bin/prettier --log-level=error --write
+        types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
+        entry: ./node_modules/.bin/prettier --log-level=error --write --experimental-cli --no-cache
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^
@@ -142,6 +143,14 @@ repos:
             |static/app/utils/profiling/profile/formats/node/trace\.json
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
           )$
+
+      - id: knip
+        name: knip
+        language: system
+        files: \.(ts|js|tsx|jsx|mjs)$
+        pass_filenames: false
+        stages: [pre-push]
+        entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0

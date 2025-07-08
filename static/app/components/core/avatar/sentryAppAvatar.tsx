@@ -1,10 +1,12 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types/integrations';
 
-export interface SentryAppAvatarProps extends BaseAvatarProps {
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
+interface SentryAppAvatarProps extends BaseAvatarProps {
   isColor?: boolean;
   isDefault?: boolean;
+  ref?: React.Ref<HTMLSpanElement>;
   sentryApp?: AvatarSentryApp;
 }
 
@@ -14,13 +16,11 @@ export function SentryAppAvatar({
   sentryApp,
   isDefault = false,
   ...props
-}: SentryAppAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
-}) {
+}: SentryAppAvatarProps) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
 
   // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
-  if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
+  if (isDefault || avatarDetails?.avatarType === 'default') {
     return <FallbackAvatar {...props} />;
   }
 
@@ -31,7 +31,7 @@ export function SentryAppAvatar({
       type="upload"
       uploadUrl={avatarDetails?.avatarUrl}
       title={sentryApp?.name}
-      backupAvatar={<FallbackAvatar {...props} />}
+      backupAvatar={props.backupAvatar ?? <FallbackAvatar {...props} />}
     />
   );
 }

@@ -4,8 +4,8 @@ import trimStart from 'lodash/trimStart';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -20,7 +20,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {
+  FieldFormatterRenderFunctionPartial,
+  RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
@@ -424,7 +427,7 @@ export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
   widget?: Widget
-) {
+): FieldFormatterRenderFunctionPartial {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -435,7 +438,7 @@ export function getCustomEventsFieldRenderer(
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data: any, baggage: any) {
+    return function (data, baggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
@@ -606,12 +609,10 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
   }
 
-  if (organization.features.includes('performance-discover-dataset-selector')) {
-    requestData.queryExtras = {
-      ...requestData.queryExtras,
-      ...getQueryExtraForSplittingDiscover(widget, organization, false),
-    };
-  }
+  requestData.queryExtras = {
+    ...requestData.queryExtras,
+    ...getQueryExtraForSplittingDiscover(widget, organization, false),
+  };
 
   return doEventsRequest<true>(api, requestData);
 }
@@ -678,29 +679,12 @@ export function filterAggregateParams(
 
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
-  organization: Organization,
-  useOnDemandMetrics: boolean
+  _organization: Organization,
+  _useOnDemandMetrics: boolean
 ) => {
   // We want to send the dashboardWidgetId on the request if we're in the Widget
   // Builder with the selector feature flag
   const isEditing = location.pathname.endsWith('/edit/');
-  const hasDiscoverSelector = organization.features.includes(
-    'performance-discover-dataset-selector'
-  );
-
-  if (!hasDiscoverSelector) {
-    if (
-      !useOnDemandMetrics ||
-      !organization.features.includes('performance-discover-widget-split-ui')
-    ) {
-      return {};
-    }
-    if (widget.id) {
-      return {dashboardWidgetId: widget.id};
-    }
-
-    return {};
-  }
 
   if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};

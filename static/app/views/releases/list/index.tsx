@@ -1,17 +1,11 @@
-import {Fragment} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -19,159 +13,122 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {releaseHealth} from 'sentry/data/platformCategories';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Tag} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import Projects from 'sentry/utils/projects';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import Header from 'sentry/views/releases/components/header';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
+import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
+import ReleaseListInner from 'sentry/views/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 
-import ReleaseCard from './releaseCard';
-import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
-import ReleasesPromo from './releasesPromo';
-import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 
-type RouteParams = {
-  orgId: string;
-};
+const RELEASE_FILTER_KEYS = [
+  ...Object.values(SEMVER_TAGS),
+  {
+    key: 'release',
+    name: 'release',
+  },
+].reduce<TagCollection>((acc, tag) => {
+  acc[tag.key] = tag;
+  return acc;
+}, {});
 
-type Props = RouteComponentProps<RouteParams> & {
-  api: Client;
-  organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
-};
+function makeReleaseListQueryKey({
+  organizationSlug,
+  location,
+  activeSort,
+  activeStatus,
+}: {
+  location: ReturnType<typeof useLocation>;
+  organizationSlug: string;
+  activeSort?: ReleasesSortOption;
+  activeStatus?: ReleasesStatusOption;
+}): ApiQueryKey {
+  const query = {
+    project: location.query.project,
+    environment: location.query.environment,
+    cursor: location.query.cursor,
+    query: location.query.query,
+    sort: location.query.sort,
+    summaryStatsPeriod: location.query.statsPeriod,
+    per_page: 20,
+    flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
+    adoptionStages: 1,
+    status:
+      activeStatus === ReleasesStatusOption.ARCHIVED
+        ? ReleaseStatus.ARCHIVED
+        : ReleaseStatus.ACTIVE,
+  };
 
-type State = {
-  releases: Release[];
-} & DeprecatedAsyncComponent['state'];
+  return [`/organizations/${organizationSlug}/releases/`, {query}];
+}
 
-class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
-  shouldReload = true;
-  shouldRenderBadRequests = true;
+export default function ReleasesList() {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  filterKeys = [
-    ...Object.values(SEMVER_TAGS),
-    {
-      key: 'release',
-      name: 'release',
-    },
-  ].reduce((acc, tag) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    acc[tag.key] = tag;
-    return acc;
-  }, {});
+  const activeQuery = useMemo(() => {
+    const {query: locationQuery} = location.query;
+    return typeof locationQuery === 'string' ? locationQuery : '';
+  }, [location.query]);
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
-    const {statsPeriod} = location.query;
-    const activeSort = this.getSort();
-    const activeStatus = this.getStatus();
-
-    const query = {
-      ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
-      summaryStatsPeriod: statsPeriod,
-      per_page: 20,
-      flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-      adoptionStages: 1,
-      status:
-        activeStatus === ReleasesStatusOption.ARCHIVED
-          ? ReleaseStatus.ARCHIVED
-          : ReleaseStatus.ACTIVE,
-    };
-
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
-      [
-        'releases', // stateKey
-        `/organizations/${organization.slug}/releases/`, // endpoint
-        {query}, // params
-        {disableEntireQuery: true}, // options - prevent cursor from being passed into query
-      ],
-    ];
-    return endpoints;
-  }
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    super.componentDidUpdate(prevProps, prevState);
-
-    if (prevState.releases !== this.state.releases) {
-      /**
-       * Manually trigger checking for elements in viewport.
-       * Helpful when LazyLoad components enter the viewport without resize or scroll events,
-       * https://github.com/twobin/react-lazyload#forcecheck
-       *
-       * HealthStatsCharts are being rendered only when they are scrolled into viewport.
-       * This is how we re-check them without scrolling once releases change as this view
-       * uses shouldReload=true and there is no reloading happening.
-       */
-      forceCheck();
-    }
-  }
-
-  getQuery() {
-    const {query} = this.props.location.query;
-
-    return typeof query === 'string' ? query : undefined;
-  }
-
-  getSort(): ReleasesSortOption {
-    const {environments} = this.props.selection;
-    const {sort} = this.props.location.query;
+  const activeSort = useMemo(() => {
+    const {sort: locationSort} = location.query;
 
     // Require 1 environment for date adopted
-    if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+    if (
+      locationSort === ReleasesSortOption.ADOPTION &&
+      selection.environments.length !== 1
+    ) {
       return ReleasesSortOption.DATE;
     }
 
-    const sortExists = Object.values(ReleasesSortOption).includes(sort);
+    const sortExists = Object.values(ReleasesSortOption).includes(
+      locationSort as ReleasesSortOption
+    );
     if (sortExists) {
-      return sort;
+      return locationSort as ReleasesSortOption;
     }
 
     return ReleasesSortOption.DATE;
-  }
+  }, [selection.environments, location.query]);
 
-  getDisplay(): ReleasesDisplayOption {
-    const {display} = this.props.location.query;
+  const activeDisplay = useMemo(() => {
+    const {display: locationDisplay} = location.query;
 
-    switch (display) {
+    switch (locationDisplay) {
       case ReleasesDisplayOption.USERS:
         return ReleasesDisplayOption.USERS;
       default:
         return ReleasesDisplayOption.SESSIONS;
     }
-  }
+  }, [location.query]);
 
-  getStatus(): ReleasesStatusOption {
-    const {status} = this.props.location.query;
+  const activeStatus = useMemo(() => {
+    const {status} = location.query;
 
     switch (status) {
       case ReleasesStatusOption.ARCHIVED:
@@ -179,11 +136,37 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
       default:
         return ReleasesStatusOption.ACTIVE;
     }
-  }
+  }, [location.query]);
 
-  getSelectedProject(): Project | undefined {
-    const {selection, projects} = this.props;
+  const {
+    data: releases = [],
+    isPending: isReleasesPending,
+    isRefetching: isReleasesRefetching,
+    error: releasesError,
+    getResponseHeader: getReleasesResponseHeader,
+  } = useApiQuery<Release[]>(
+    makeReleaseListQueryKey({
+      organizationSlug: organization.slug,
+      location,
+      activeSort,
+      activeStatus,
+    }),
+    {staleTime: Infinity, placeholderData: prev => prev}
+  );
 
+  useEffect(() => {
+    /**
+     * Manually trigger checking for elements in viewport.
+     * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+     * https://github.com/twobin/react-lazyload#forcecheck
+     *
+     * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+     * This is how we re-check them without scrolling once releases change.
+     */
+    forceCheck();
+  }, [releases]);
+
+  const selectedProject = useMemo(() => {
     // Return the first project when 'All Projects' is displayed.
     // This ensures the onboarding panel is shown correctly, for example.
     if (selection.projects.length === 0) {
@@ -193,448 +176,214 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
-  }
+  }, [selection.projects, projects]);
 
-  getSelectedProjectSlugs(): string[] {
-    const {selection, projects} = this.props;
-    const projIdSet = new Set(selection.projects);
-
-    return projects.reduce((result: string[], proj) => {
-      if (projIdSet.has(Number(proj.id))) {
-        result.push(proj.slug);
-      }
-      return result;
-    }, []);
-  }
-
-  get projectHasSessions() {
-    return this.getSelectedProject()?.hasSessions ?? null;
-  }
-
-  handleSearch = (query: string) => {
-    const {location, router} = this.props;
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, query},
-    });
-  };
-
-  handleSortBy = (sort: string) => {
-    const {location, router} = this.props;
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, sort},
-    });
-  };
-
-  handleDisplay = (display: string) => {
-    const {location, router} = this.props;
-
-    let sort = location.query.sort;
-    if (
-      sort === ReleasesSortOption.USERS_24_HOURS &&
-      display === ReleasesDisplayOption.SESSIONS
-    ) {
-      sort = ReleasesSortOption.SESSIONS_24_HOURS;
-    } else if (
-      sort === ReleasesSortOption.SESSIONS_24_HOURS &&
-      display === ReleasesDisplayOption.USERS
-    ) {
-      sort = ReleasesSortOption.USERS_24_HOURS;
-    } else if (
-      sort === ReleasesSortOption.CRASH_FREE_USERS &&
-      display === ReleasesDisplayOption.SESSIONS
-    ) {
-      sort = ReleasesSortOption.CRASH_FREE_SESSIONS;
-    } else if (
-      sort === ReleasesSortOption.CRASH_FREE_SESSIONS &&
-      display === ReleasesDisplayOption.USERS
-    ) {
-      sort = ReleasesSortOption.CRASH_FREE_USERS;
-    }
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, display, sort},
-    });
-  };
-
-  handleStatus = (status: string) => {
-    const {location, router} = this.props;
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, status},
-    });
-  };
-
-  trackAddReleaseHealth = () => {
-    const {organization, selection} = this.props;
-
-    if (organization.id && selection.projects[0]) {
-      trackAnalytics('releases_list.click_add_release_health', {
-        organization,
-        project_id: selection.projects[0],
+  const handleSearch = useCallback(
+    (query: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, query},
       });
-    }
-  };
+    },
+    [location, navigate]
+  );
 
-  tagValueLoader = (key: string, search: string) => {
-    const {location, organization} = this.props;
-    const {project: projectId} = location.query;
+  const handleSortBy = useCallback(
+    (sort: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, sort},
+      });
+    },
+    [location, navigate]
+  );
 
-    return fetchTagValues({
-      api: this.api,
-      orgSlug: organization.slug,
-      tagKey: key,
-      search,
-      projectIds: projectId ? [projectId] : undefined,
-      endpointParams: normalizeDateTimeParams(location.query),
-    });
-  };
+  const handleDisplay = useCallback(
+    (display: string) => {
+      let sort = location.query.sort;
+      if (
+        sort === ReleasesSortOption.USERS_24_HOURS &&
+        display === ReleasesDisplayOption.SESSIONS
+      ) {
+        sort = ReleasesSortOption.SESSIONS_24_HOURS;
+      } else if (
+        sort === ReleasesSortOption.SESSIONS_24_HOURS &&
+        display === ReleasesDisplayOption.USERS
+      ) {
+        sort = ReleasesSortOption.USERS_24_HOURS;
+      } else if (
+        sort === ReleasesSortOption.CRASH_FREE_USERS &&
+        display === ReleasesDisplayOption.SESSIONS
+      ) {
+        sort = ReleasesSortOption.CRASH_FREE_SESSIONS;
+      } else if (
+        sort === ReleasesSortOption.CRASH_FREE_SESSIONS &&
+        display === ReleasesDisplayOption.USERS
+      ) {
+        sort = ReleasesSortOption.CRASH_FREE_USERS;
+      }
 
-  getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
-    const values = await this.tagValueLoader(tag.key, currentQuery);
-    return values.map(({value}) => value);
-  };
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, display, sort},
+      });
+    },
+    [location, navigate]
+  );
 
-  shouldShowLoadingIndicator() {
-    const {loading, releases, reloading} = this.state;
+  const handleStatus = useCallback(
+    (status: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, status},
+      });
+    },
+    [location, navigate]
+  );
 
-    return (loading && !reloading) || (loading && !releases?.length);
-  }
+  const tagValueLoader = useCallback(
+    (key: string, search: string) => {
+      const {project} = location.query;
 
-  renderLoading() {
-    return this.renderBody();
-  }
+      // Coerce the url param into an array
+      const projectIds = Array.isArray(project)
+        ? project
+        : typeof project === 'string'
+          ? [project]
+          : [];
 
-  renderError() {
-    return this.renderBody();
-  }
+      return fetchTagValues({
+        api,
+        orgSlug: organization.slug,
+        tagKey: key,
+        search,
+        projectIds,
+        endpointParams: normalizeDateTimeParams(location.query),
+      });
+    },
+    [api, location, organization]
+  );
 
-  get shouldShowQuickstart() {
-    const {releases} = this.state;
+  const getTagValues = useCallback(
+    async (tag: Tag, currentQuery: string): Promise<string[]> => {
+      const values = await tagValueLoader(tag.key, currentQuery);
+      return values.map(({value}) => value);
+    },
+    [tagValueLoader]
+  );
 
-    const selectedProject = this.getSelectedProject();
-    const hasReleasesSetup = selectedProject?.features.includes('releases');
+  const hasAnyMobileProject = selection.projects
+    .map(id => `${id}`)
+    .map(ProjectsStore.getById)
+    .some(project => project?.platform && isMobileRelease(project.platform));
+  const showReleaseAdoptionStages =
+    hasAnyMobileProject && selection.environments.length === 1;
+  const shouldShowQuickstart = Boolean(
+    selectedProject &&
+      // Has not set up releases
+      !selectedProject?.features.includes('releases') &&
+      // Has no releases
+      !releases?.length
+  );
+  const releasesPageLinks = getReleasesResponseHeader?.('Link');
 
-    return !releases?.length && !hasReleasesSetup && selectedProject;
-  }
-
-  renderEmptyMessage() {
-    const {location} = this.props;
-    const {statsPeriod, start, end} = location.query;
-    const searchQuery = this.getQuery();
-    const activeSort = this.getSort();
-    const activeStatus = this.getStatus();
-
-    const selectedPeriod =
-      !!start && !!end
-        ? t('time range')
-        : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
-
-    if (searchQuery?.length) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
-            'There are no releases that match'
-          )}: '${searchQuery}'.`}</EmptyMessage>
-        </Panel>
-      );
-    }
-
-    if (activeSort === ReleasesSortOption.USERS_24_HOURS) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-            {t(
-              'There are no releases with active user data (users in the last 24 hours).'
-            )}
-          </EmptyMessage>
-        </Panel>
-      );
-    }
-
-    if (activeSort === ReleasesSortOption.SESSIONS_24_HOURS) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-            {t(
-              'There are no releases with active session data (sessions in the last 24 hours).'
-            )}
-          </EmptyMessage>
-        </Panel>
-      );
-    }
-
-    if (
-      activeSort === ReleasesSortOption.BUILD ||
-      activeSort === ReleasesSortOption.SEMVER
-    ) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-            {t('There are no releases with semantic versioning.')}
-          </EmptyMessage>
-        </Panel>
-      );
-    }
-
-    if (activeSort !== ReleasesSortOption.DATE) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-            {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
-          </EmptyMessage>
-        </Panel>
-      );
-    }
-
-    if (activeStatus === ReleasesStatusOption.ARCHIVED) {
-      return (
-        <Panel>
-          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-            {t('There are no archived releases.')}
-          </EmptyMessage>
-        </Panel>
-      );
-    }
-
-    return (
-      <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
-          {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
-        </EmptyMessage>
-      </Panel>
-    );
-  }
-
-  renderHealthCta() {
-    const {organization} = this.props;
-    const {releases} = this.state;
-
-    const selectedProject = this.getSelectedProject();
-
-    if (!selectedProject || this.projectHasSessions !== false || !releases?.length) {
+  const releasesErrorMessage = useMemo(() => {
+    if (!releasesError) {
       return null;
     }
-
-    return (
-      <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-        {({projects, initiallyLoaded, fetchError}) => {
-          const project: AvatarProject | undefined =
-            projects?.length === 1 ? projects.at(0) : undefined;
-          const projectCanHaveReleases =
-            project?.platform && releaseHealth.includes(project.platform);
-
-          if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
-            return null;
-          }
-
-          return (
-            <Alert.Container>
-              <Alert type="info" showIcon>
-                <AlertText>
-                  <div>
-                    {t(
-                      'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-                    )}
-                  </div>
-                  <ExternalLink
-                    href="https://docs.sentry.io/product/releases/setup/#release-health"
-                    onClick={this.trackAddReleaseHealth}
-                  >
-                    {t('Add Release Health')}
-                  </ExternalLink>
-                </AlertText>
-              </Alert>
-            </Alert.Container>
-          );
-        }}
-      </Projects>
-    );
-  }
-
-  renderInnerBody(
-    activeDisplay: ReleasesDisplayOption,
-    showReleaseAdoptionStages: boolean
-  ) {
-    const {location, selection, organization, router} = this.props;
-    const {releases, reloading, releasesPageLinks} = this.state;
-
-    const selectedProject = this.getSelectedProject();
-    const hasReleasesSetup = selectedProject?.features.includes('releases');
-
-    if (this.shouldShowLoadingIndicator()) {
-      return <LoadingIndicator />;
+    if (releasesError?.status === 400) {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      return String(releasesError?.responseJSON?.detail);
     }
+    return t('There was an error loading releases');
+  }, [releasesError]);
 
-    if (!releases?.length && hasReleasesSetup) {
-      return this.renderEmptyMessage();
-    }
+  return (
+    <PageFiltersContainer showAbsolute={false} defaultSelection={selection}>
+      <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
+      <NoProjectMessage organization={organization}>
+        <Header />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ReleaseHealthCTA
+              organization={organization}
+              releases={releases}
+              selectedProject={selectedProject}
+              selection={selection}
+            />
+            <ReleasesPageFilterBar condensed>
+              <DemoTourElement
+                id={DemoTourStep.RELEASES_COMPARE}
+                title={t('Compare releases')}
+                description={t(
+                  'Click here and select the "react" project to see how the release is trending compared to previous releases.'
+                )}
+                position="bottom-start"
+              >
+                <ProjectPageFilter />
+              </DemoTourElement>
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                disallowArbitraryRelativeRanges
+                menuFooterMessage={t(
+                  'Changing this date range will recalculate the release metrics.'
+                )}
+              />
+            </ReleasesPageFilterBar>
 
-    if (this.shouldShowQuickstart) {
-      return <ReleasesPromo organization={organization} project={selectedProject!} />;
-    }
-
-    return (
-      <ReleasesRequest
-        releases={releases.map(({version}) => version)}
-        organization={organization}
-        selection={selection}
-        location={location}
-        display={[this.getDisplay()]}
-        releasesReloading={reloading}
-        healthStatsPeriod={location.query.healthStatsPeriod}
-      >
-        {({isHealthLoading, getHealthData}) => {
-          const singleProjectSelected =
-            selection.projects?.length === 1 &&
-            selection.projects[0] !== ALL_ACCESS_PROJECTS;
-
-          // TODO: project specific chart should live on the project details page.
-          const isMobileProject =
-            selectedProject?.platform && isMobileRelease(selectedProject.platform);
-
-          return (
-            <Fragment>
-              {singleProjectSelected && this.projectHasSessions && isMobileProject && (
-                <ReleasesAdoptionChart
-                  organization={organization}
-                  selection={selection}
-                  location={location}
-                  router={router}
-                  activeDisplay={activeDisplay}
+            {shouldShowQuickstart ? null : (
+              <SortAndFilterWrapper>
+                <StyledSearchQueryBuilder
+                  searchOnChange={organization.features.includes('ui-search-on-change')}
+                  onSearch={handleSearch}
+                  initialQuery={activeQuery}
+                  filterKeys={RELEASE_FILTER_KEYS}
+                  getTagValues={getTagValues}
+                  placeholder={t('Search by version, build, package, or stage')}
+                  searchSource="releases"
+                  showUnsubmittedIndicator
                 />
-              )}
-
-              {releases.map((release, index) => (
-                <ReleaseCard
-                  key={`${release.projects[0]!.slug}-${release.version}`}
-                  activeDisplay={activeDisplay}
-                  release={release}
-                  organization={organization}
-                  location={location}
-                  selection={selection}
-                  reloading={reloading}
-                  showHealthPlaceholders={isHealthLoading}
-                  isTopRelease={index === 0}
-                  getHealthData={getHealthData}
-                  showReleaseAdoptionStages={showReleaseAdoptionStages}
+                <ReleasesStatusOptions selected={activeStatus} onSelect={handleStatus} />
+                <ReleasesSortOptions
+                  selected={activeSort}
+                  selectedDisplay={activeDisplay}
+                  onSelect={handleSortBy}
+                  environments={selection.environments}
                 />
-              ))}
-              <Pagination pageLinks={releasesPageLinks} />
-            </Fragment>
-          );
-        }}
-      </ReleasesRequest>
-    );
-  }
-
-  renderBody() {
-    const {organization, selection} = this.props;
-    const {releases, reloading, error} = this.state;
-
-    const activeSort = this.getSort();
-    const activeStatus = this.getStatus();
-    const activeDisplay = this.getDisplay();
-
-    const hasAnyMobileProject = selection.projects
-      .map(id => `${id}`)
-      .map(ProjectsStore.getById)
-      .some(project => project?.platform && isMobileRelease(project.platform));
-    const showReleaseAdoptionStages =
-      hasAnyMobileProject && selection.environments.length === 1;
-
-    return (
-      <PageFiltersContainer showAbsolute={false}>
-        <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
-        <NoProjectMessage organization={organization}>
-          <Header />
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              {this.renderHealthCta()}
-
-              <ReleasesPageFilterBar condensed>
-                <DemoTourElement
-                  id={DemoTourStep.RELEASES_COMPARE}
-                  title={t('Compare releases')}
-                  description={t(
-                    'Click here and select the "react" project to see how the release is trending compared to previous releases.'
-                  )}
-                  position="bottom-start"
-                >
-                  <ProjectPageFilter />
-                </DemoTourElement>
-                <EnvironmentPageFilter />
-                <DatePageFilter
-                  disallowArbitraryRelativeRanges
-                  menuFooterMessage={t(
-                    'Changing this date range will recalculate the release metrics.'
-                  )}
+                <ReleasesDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={handleDisplay}
                 />
-              </ReleasesPageFilterBar>
+              </SortAndFilterWrapper>
+            )}
 
-              {this.shouldShowQuickstart ? null : (
-                <SortAndFilterWrapper>
-                  <StyledSearchQueryBuilder
-                    onSearch={this.handleSearch}
-                    initialQuery={this.getQuery() || ''}
-                    filterKeys={this.filterKeys}
-                    getTagValues={this.getTagValues}
-                    placeholder={t('Search by version, build, package, or stage')}
-                    searchSource="releases"
-                    showUnsubmittedIndicator
-                  />
-                  <ReleasesStatusOptions
-                    selected={activeStatus}
-                    onSelect={this.handleStatus}
-                  />
-                  <ReleasesSortOptions
-                    selected={activeSort}
-                    selectedDisplay={activeDisplay}
-                    onSelect={this.handleSortBy}
-                    environments={selection.environments}
-                  />
-                  <ReleasesDisplayOptions
-                    selected={activeDisplay}
-                    onSelect={this.handleDisplay}
-                  />
-                </SortAndFilterWrapper>
-              )}
+            {!(isReleasesPending || isReleasesRefetching) &&
+              activeStatus === ReleasesStatusOption.ARCHIVED &&
+              !!releases?.length && <ReleaseArchivedNotice multi />}
 
-              {!reloading &&
-                activeStatus === ReleasesStatusOption.ARCHIVED &&
-                !!releases?.length && <ReleaseArchivedNotice multi />}
-
-              {error
-                ? super.renderError()
-                : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-              <FloatingFeedbackWidget />
-            </Layout.Main>
-          </Layout.Body>
-        </NoProjectMessage>
-      </PageFiltersContainer>
-    );
-  }
+            {releasesErrorMessage ? (
+              <LoadingError message={releasesErrorMessage} />
+            ) : (
+              <ReleaseListInner
+                activeDisplay={activeDisplay}
+                loading={isReleasesPending}
+                organization={organization}
+                releases={releases}
+                releasesPageLinks={releasesPageLinks}
+                reloading={isReleasesRefetching}
+                selectedProject={selectedProject}
+                selection={selection}
+                shouldShowQuickstart={shouldShowQuickstart}
+                showReleaseAdoptionStages={showReleaseAdoptionStages}
+              />
+            )}
+            <FloatingFeedbackWidget />
+          </Layout.Main>
+        </Layout.Body>
+      </NoProjectMessage>
+    </PageFiltersContainer>
+  );
 }
-
-const AlertText = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: ${space(2)};
-
-  > *:nth-child(1) {
-    flex: 1;
-  }
-  flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    flex-direction: row;
-  }
-`;
 
 const ReleasesPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
@@ -646,21 +395,19 @@ const SortAndFilterWrapper = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(3, 1fr);
     & > div {
       width: auto;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-column: 1 / -1;
   }
 `;
-
-export default withApi(withProjects(withOrganization(withPageFilters(ReleasesList))));

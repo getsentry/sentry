@@ -94,11 +94,28 @@ export function DataSetStep({
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
 
-  if (organization.features.includes('dashboards-eap')) {
+  if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
         {t('Spans')}{' '}
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change'
+            ),
+          }}
+        />
+      </FeatureBadgeAlignmentWrapper>
+    );
+  }
+
+  if (organization.features.includes('ourlogs-dashboards')) {
+    datasetChoices.set(
+      DataSet.LOGS,
+      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
+        {t('Logs')}{' '}
         <FeatureBadge
           type="beta"
           tooltipProps={{

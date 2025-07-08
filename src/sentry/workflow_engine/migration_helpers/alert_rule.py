@@ -9,6 +9,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -212,6 +213,7 @@ def get_action_filter(
     action_filter = DataCondition.objects.get(
         condition_group__in=workflow_dcgs,
         comparison=priority,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
     )
     return action_filter
 
@@ -262,7 +264,7 @@ def migrate_metric_action(
 
 def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, DataCondition]:
+) -> tuple[DataCondition, DataCondition, DataCondition]:
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
@@ -284,12 +286,24 @@ def migrate_metric_data_conditions(
     )
     condition_result = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
 
-    detector_trigger = DataCondition.objects.create(
-        comparison=alert_rule_trigger.alert_threshold,
-        condition_result=condition_result,
-        type=threshold_type,
-        condition_group=detector_data_condition_group,
-    )
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        detector_trigger = DataCondition.objects.create(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": alert_rule.sensitivity,
+                "seasonality": alert_rule.seasonality,
+                "threshold_type": alert_rule.threshold_type,
+            },
+            condition_result=condition_result,
+            condition_group=detector_data_condition_group,
+        )
+    else:
+        detector_trigger = DataCondition.objects.create(
+            comparison=alert_rule_trigger.alert_threshold,
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector_data_condition_group,
+        )
     DataConditionAlertRuleTrigger.objects.create(
         data_condition=detector_trigger,
         alert_rule_trigger_id=alert_rule_trigger.id,
@@ -313,7 +327,15 @@ def migrate_metric_data_conditions(
         type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
-    return detector_trigger, action_filter
+    # finally, create a "resolution action filter": the condition result is set to true
+    # if we're de-escalating from the priority specified in the comparison
+    resolve_action_filter = DataCondition.objects.create(
+        comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        condition_group=data_condition_group,
+    )
+    return detector_trigger, action_filter, resolve_action_filter
 
 
 def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> float:
@@ -540,7 +562,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=True if open_incident else False,
+        is_triggered=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
@@ -575,7 +597,9 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
             for trigger_action in trigger_actions:
                 migrate_metric_action(trigger_action)
         # step 4: migrate alert rule resolution
-        migrate_resolve_threshold_data_condition(alert_rule)
+        # if the alert rule is an anomaly detection alert, then this is handled by the anomaly detection data condition
+        if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC:
+            migrate_resolve_threshold_data_condition(alert_rule)
 
 
 def dual_update_alert_rule(alert_rule: AlertRule) -> None:
@@ -665,7 +689,7 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
             dc.update(type=threshold_type)
 
     # reset detector status, as the rule was updated
-    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
+    detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
 
@@ -690,6 +714,21 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
         )
         raise MissingDataConditionGroup
 
+    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK).first()
+
+    # changing detector priority level for anomaly detection alerts is handled by the data condition
+    # so we should delete the explicit resolution condition if it exists
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        if resolve_condition is not None:
+            resolve_condition.delete()
+        return None
+
+    # if we're changing from anomaly detection alert to regular metric alert, we need to recreate the resolve condition
+    if resolve_condition is None:
+        resolve_condition = migrate_resolve_threshold_data_condition(alert_rule)
+        return resolve_condition
+
     if alert_rule.resolve_threshold is not None:
         resolve_threshold = alert_rule.resolve_threshold
     else:
@@ -697,13 +736,6 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
     if resolve_threshold == -1:
         raise UnresolvableResolveThreshold
 
-    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    try:
-        resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
-    except DataCondition.DoesNotExist:
-        # In the serializer, we call handle triggers before migrating the resolve data condition,
-        # so the resolve condition may not exist yet. Return early.
-        return None
     resolve_condition.update(comparison=resolve_threshold)
 
     return resolve_condition
@@ -719,6 +751,10 @@ def dual_update_migrated_alert_rule_trigger(
         # we won't reach this path
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
+    resolve_action_filter = DataCondition.objects.filter(
+        condition_group=action_filter.condition_group,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+    ).first()
 
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
@@ -727,11 +763,25 @@ def dual_update_migrated_alert_rule_trigger(
         label, DetectorPriorityLevel.HIGH
     )
     updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(label, DetectorPriorityLevel.HIGH)
-    updated_detector_trigger_fields["comparison"] = alert_rule_trigger.alert_threshold
+    alert_rule = alert_rule_trigger.alert_rule
+
+    # if we're changing to anomaly detection, we need to set the comparison JSON
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        updated_detector_trigger_fields["type"] = Condition.ANOMALY_DETECTION
+        updated_detector_trigger_fields["comparison"] = {
+            "sensitivity": alert_rule.sensitivity,
+            "seasonality": alert_rule.seasonality,
+            "threshold_type": alert_rule.threshold_type,
+        }
+    else:
+        updated_detector_trigger_fields["comparison"] = alert_rule_trigger.alert_threshold
 
     detector_trigger.update(**updated_detector_trigger_fields)
     if updated_action_filter_fields:
+        # these are updated together
         action_filter.update(**updated_action_filter_fields)
+        if resolve_action_filter is not None:
+            resolve_action_filter.update(**updated_action_filter_fields)
 
     return detector_trigger, action_filter
 
@@ -835,8 +885,7 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
             action.delete()
 
         detector_trigger.delete()
-        action_filter.delete()
-        action_filter_dcg.delete()
+        action_filter_dcg.delete()  # deletes the action filter and resolve action filter
 
     return None
 

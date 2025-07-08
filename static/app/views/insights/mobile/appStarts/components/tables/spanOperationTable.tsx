@@ -2,36 +2,31 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -41,9 +36,7 @@ import {
   WARM_START_TYPE,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {
   ModuleName,
   SpanMetricsField,
@@ -65,19 +58,13 @@ export function SpanOperationTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
-  );
-  const baseURL = isMobileScreensEnabled
-    ? `${moduleURL}/details/`
-    : `${moduleURL}/spans/`;
+  const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
+  const baseURL = `${moduleURL}/details/`;
 
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
 
-  const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
@@ -98,9 +85,9 @@ export function SpanOperationTable({
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',
-    'transaction.op:ui.load',
+    'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
-    `has:ttid`,
+    'has:ttid',
     `${SpanMetricsField.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
@@ -127,34 +114,24 @@ export function SpanOperationTable({
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      PROJECT_ID,
-      SPAN_OP,
-      SPAN_GROUP,
-      SPAN_DESCRIPTION,
-      `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      `sum(${SPAN_SELF_TIME})`,
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    version: 2,
-    projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
-  };
-
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-  eventView.sorts = [sort];
-
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: true,
-    referrer: 'api.starfish.mobile-spartup-span-table',
-    cursor,
-  });
+  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+    {
+      cursor,
+      fields: [
+        PROJECT_ID,
+        SPAN_OP,
+        SPAN_GROUP,
+        SPAN_DESCRIPTION,
+        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+        `sum(${SPAN_SELF_TIME})`,
+      ],
+      sorts: [sort],
+      search: queryStringPrimary,
+    },
+    'api.starfish.mobile-spartup-span-table'
+  );
 
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
@@ -172,7 +149,7 @@ export function SpanOperationTable({
   };
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
+    if (!meta?.fields) {
       return row[column.key];
     }
 
@@ -195,7 +172,7 @@ export function SpanOperationTable({
       );
     }
 
-    if (data.meta.fields[column.key] === 'percent_change') {
+    if (meta.fields[column.key] === 'percent_change') {
       return (
         <PercentChangeCell
           deltaValue={defined(row[column.key]) ? parseFloat(row[column.key]) : Infinity}
@@ -204,11 +181,11 @@ export function SpanOperationTable({
       );
     }
 
-    const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
+    const renderer = getFieldRenderer(column.key, meta.fields, false);
     const rendered = renderer(row, {
       location,
       organization,
-      unit: data?.meta.units?.[column.key],
+      unit: meta.units?.[column.key],
       theme,
     });
     return rendered;
@@ -262,8 +239,6 @@ export function SpanOperationTable({
     return sortLink;
   }
 
-  const columnSortBy = eventView.getSorts();
-
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -275,7 +250,7 @@ export function SpanOperationTable({
     <Fragment>
       <GridEditable
         isLoading={isPending}
-        data={data?.data as TableDataRow[]}
+        data={data}
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
@@ -285,9 +260,14 @@ export function SpanOperationTable({
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
-        columnSortBy={columnSortBy}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
-          renderHeadCell: column => renderHeadCell(column, data?.meta),
+          renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
         }}
       />

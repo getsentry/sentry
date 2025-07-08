@@ -14,14 +14,18 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
+} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -58,22 +62,58 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  acc[aggregate] = {
-    isSortable: true,
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
-        defaultValue: 'span.duration',
-        required: true,
-      },
-    ],
-  };
-  return acc;
-}, {});
+const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
+  (acc, aggregate) => {
+    if (aggregate === AggregationKey.COUNT) {
+      acc[AggregationKey.COUNT] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['number'],
+            defaultValue: 'span.duration',
+            required: true,
+          },
+        ],
+      };
+    } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
+      acc[AggregationKey.COUNT_UNIQUE] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'span.op',
+            required: true,
+          },
+        ],
+      };
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+      acc[aggregate] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [],
+      };
+    } else {
+      acc[aggregate] = {
+        isSortable: true,
+        outputType: null,
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
+            defaultValue: 'span.duration',
+            required: true,
+          },
+        ],
+      };
+    }
+    return acc;
+  },
+  {} as Record<AggregationKey, Aggregation>
+);
 
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
@@ -185,6 +225,13 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  if (
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT
+  ) {
+    return option.value.meta.name === 'span.duration';
+  }
+
   const expectedDataType =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
@@ -223,18 +270,12 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: '1',
     ...queryExtras,
   };
 
   if (query.orderby) {
     params.sort = toArray(query.orderby);
   }
-
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  eventView.query = `${eventView.query} !transaction.span_id:00`;
 
   return doDiscoverQuery<EventsTableData>(
     api,
@@ -293,13 +334,6 @@ function getSeriesRequest(
     DiscoverDatasets.SPANS_EAP,
     referrer
   );
-
-  requestData.useRpc = true;
-
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  requestData.query = `${requestData.query} !transaction.span_id:00`;
 
   if (samplingMode) {
     requestData.sampling = samplingMode;

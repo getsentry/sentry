@@ -24,8 +24,8 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview, isAm3DsPlan} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
+import {isPartOfReservedBudget, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -40,7 +40,7 @@ import RecurringCredits from './recurringCredits';
 import ReservedUsageChart from './reservedUsageChart';
 import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
-import UsageTotals from './usageTotals';
+import {CombinedUsageTotals, UsageTotals} from './usageTotals';
 import {trackSubscriptionView} from './utils';
 
 type Props = {
@@ -81,6 +81,7 @@ function Overview({location, subscription, promotionData}: Props) {
         reservedSpend: rbmh.reservedSpend,
         reservedCpe: rbmh.reservedCpe,
         prepaidBudget: rb.reservedBudget + rb.freeBudget,
+        apiName: rb.apiName,
       };
     });
   });
@@ -192,88 +193,110 @@ function Overview({location, subscription, promotionData}: Props) {
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
-    if (
-      !subscription.hadCustomDynamicSampling &&
-      isAm3DsPlan(subscription.plan) &&
-      !subscription.isEnterpriseTrial
-    ) {
-      // if the customer has not yet stated using custom DS in the current period,
-      // just show one spans UsageTotalsTable
-      reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
-        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
-    }
-
     return (
       <TotalsWrapper>
-        {sortCategories(subscription.categories).map(categoryHistory => {
-          const category = categoryHistory.category;
-          // Stored spans are combined into the accepted spans category's table
-          if (category === DataCategory.SPANS_INDEXED) {
-            return null;
-          }
+        {sortCategories(subscription.categories)
+          .filter(
+            categoryHistory =>
+              !isPartOfReservedBudget(
+                categoryHistory.category,
+                subscription.reservedBudgets ?? []
+              )
+          )
+          .map(categoryHistory => {
+            const category = categoryHistory.category;
 
-          // The usageData does not include details for seat-based categories.
-          // For now we will handle the monitor category specially
+            // The usageData does not include details for seat-based categories.
+            // For now we will handle the monitor category specially
+            let monitor_usage: number | undefined = 0;
+            if (category === DataCategory.MONITOR_SEATS) {
+              monitor_usage = subscription.categories.monitorSeats?.usage;
+            }
+            if (category === DataCategory.UPTIME) {
+              monitor_usage = subscription.categories.uptime?.usage;
+            }
 
-          let monitor_usage: number | undefined = 0;
-          if (category === DataCategory.MONITOR_SEATS) {
-            monitor_usage = subscription.categories.monitorSeats?.usage;
-          }
-          if (category === DataCategory.UPTIME) {
-            monitor_usage = subscription.categories.uptime?.usage;
-          }
+            if (
+              category === DataCategory.SPANS_INDEXED &&
+              !subscription.hadCustomDynamicSampling
+            ) {
+              return null; // TODO(trial limits): DS enterprise trial should have a reserved budget too, but currently just has unlimited
+            }
 
-          const categoryTotals: BillingStatTotal =
-            category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
-              ? usageData.totals[category]!
-              : {
-                  accepted: monitor_usage ?? 0,
-                  dropped: 0,
-                  droppedOther: 0,
-                  droppedOverQuota: 0,
-                  droppedSpikeProtection: 0,
-                  filtered: 0,
-                  projected: 0,
-                };
+            const categoryTotals: BillingStatTotal =
+              category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
+                ? usageData.totals[category]!
+                : {
+                    accepted: monitor_usage ?? 0,
+                    dropped: 0,
+                    droppedOther: 0,
+                    droppedOverQuota: 0,
+                    droppedSpikeProtection: 0,
+                    filtered: 0,
+                    projected: 0,
+                  };
 
-          const eventTotals =
-            category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
-              ? usageData.eventTotals?.[category]
-              : undefined;
+            const eventTotals =
+              category !== DataCategory.MONITOR_SEATS && category !== DataCategory.UPTIME
+                ? usageData.eventTotals?.[category]
+                : undefined;
 
-          const showEventBreakdown =
-            organization.features.includes('profiling-billing') &&
-            subscription.planTier === PlanTier.AM2 &&
-            category === DataCategory.TRANSACTIONS;
+            const showEventBreakdown =
+              organization.features.includes('profiling-billing') &&
+              subscription.planTier === PlanTier.AM2 &&
+              category === DataCategory.TRANSACTIONS;
+
+            return (
+              <UsageTotals
+                key={category}
+                category={category}
+                totals={categoryTotals}
+                eventTotals={eventTotals}
+                showEventBreakdown={showEventBreakdown}
+                reservedUnits={categoryHistory.reserved}
+                prepaidUnits={categoryHistory.prepaid}
+                freeUnits={categoryHistory.free}
+                trueForward={categoryHistory.trueForward}
+                softCapType={categoryHistory.softCapType}
+                disableTable={
+                  category === DataCategory.MONITOR_SEATS ||
+                  category === DataCategory.UPTIME ||
+                  displayMode === 'cost'
+                }
+                subscription={subscription}
+                organization={organization}
+                displayMode={displayMode}
+              />
+            );
+          })}
+
+        {subscription.reservedBudgets?.map(reservedBudget => {
+          let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
+          let trueForward = false;
+
+          Object.keys(reservedBudget.categories).forEach(category => {
+            const categoryHistory = subscription.categories[category as DataCategory];
+            if (softCapType === null) {
+              if (categoryHistory?.softCapType) {
+                softCapType = categoryHistory.softCapType;
+              }
+            }
+            if (!trueForward) {
+              if (categoryHistory?.trueForward) {
+                trueForward = categoryHistory.trueForward;
+              }
+            }
+          });
 
           return (
-            <UsageTotals
-              key={category}
-              category={category}
-              totals={categoryTotals}
-              eventTotals={eventTotals}
-              showEventBreakdown={showEventBreakdown}
-              reservedUnits={categoryHistory.reserved}
-              prepaidUnits={categoryHistory.prepaid}
-              freeUnits={categoryHistory.free}
-              trueForward={categoryHistory.trueForward}
-              softCapType={categoryHistory.softCapType}
-              disableTable={
-                category === DataCategory.MONITOR_SEATS ||
-                category === DataCategory.UPTIME ||
-                displayMode === 'cost'
-              }
+            <CombinedUsageTotals
+              key={reservedBudget.apiName}
               subscription={subscription}
               organization={organization}
-              displayMode={displayMode}
-              reservedBudget={reservedBudgetCategoryInfo[category]?.totalReservedBudget}
-              prepaidBudget={reservedBudgetCategoryInfo[category]?.prepaidBudget}
-              reservedSpend={reservedBudgetCategoryInfo[category]?.reservedSpend}
-              freeBudget={reservedBudgetCategoryInfo[category]?.freeBudget}
-              // If there are reserved budgets and all the budgets should have separate breakdowns
-              // we need to be able to access other categories' usageData.totals
-              allTotalsByCategory={showAllBudgetTotals ? usageData.totals : undefined}
+              productGroup={reservedBudget}
+              allTotalsByCategory={usageData.totals}
+              softCapType={softCapType}
+              trueForward={trueForward}
             />
           );
         })}

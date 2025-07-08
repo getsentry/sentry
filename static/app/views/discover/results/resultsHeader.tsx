@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -79,11 +78,7 @@ class ResultsHeader extends Component<Props, State> {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({
-          savedQuery: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
-            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
-            : savedQuery,
+          savedQuery: getSavedQueryWithDataset(savedQuery) as SavedQuery,
           loading: false,
         });
       });
@@ -95,11 +90,7 @@ class ResultsHeader extends Component<Props, State> {
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
-        homepageQuery: organization.features.includes(
-          'performance-discover-dataset-selector'
-        )
-          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
-          : homepageQuery,
+        homepageQuery: getSavedQueryWithDataset(homepageQuery) as SavedQuery,
         loading: false,
       });
     });
@@ -201,11 +192,9 @@ class ResultsHeader extends Component<Props, State> {
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({
-                homepageQuery: organization.features.includes(
-                  'performance-discover-dataset-selector'
-                )
-                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
-                  : updatedHomepageQuery,
+                homepageQuery: getSavedQueryWithDataset(
+                  updatedHomepageQuery
+                ) as SavedQuery,
               });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
@@ -214,29 +203,20 @@ class ResultsHeader extends Component<Props, State> {
             homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
-        <Feature
-          organization={organization}
-          features="performance-discover-dataset-selector"
-        >
-          {({hasFeature}) =>
-            hasFeature && (
-              <DatasetSelectorTabs
-                eventView={eventView}
-                isHomepage={isHomepage}
-                savedQuery={savedQuery}
-                splitDecision={splitDecision}
-              />
-            )
-          }
-        </Feature>
+        <DatasetSelectorTabs
+          eventView={eventView}
+          isHomepage={isHomepage}
+          savedQuery={savedQuery}
+          splitDecision={splitDecision}
+        />
       </Layout.Header>
     );
   }
 }
 
 const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   margin: ${space(0.5)} 0 0 0;
 `;

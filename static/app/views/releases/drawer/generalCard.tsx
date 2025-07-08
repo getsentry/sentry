@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {Card} from 'sentry/components/keyValueData';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
@@ -78,7 +78,11 @@ export function GeneralCard({
         key: t('First Event'),
         subject: t('First Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.firstEvent} />
+          releaseDetails.firstEvent ? (
+            <TimeSince date={releaseDetails.firstEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),
@@ -89,7 +93,11 @@ export function GeneralCard({
         key: t('Last Event'),
         subject: t('Last Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.lastEvent} />
+          releaseDetails.lastEvent ? (
+            <TimeSince date={releaseDetails.lastEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),

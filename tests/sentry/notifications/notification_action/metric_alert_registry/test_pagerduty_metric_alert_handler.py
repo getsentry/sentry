@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -37,9 +38,14 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
-            self.detector, self.group_event.occurrence
+            self.detector,
+            self.evidence_data,
+            self.group_event.group.status,
+            self.group_event.occurrence.priority,
         )
-        metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
+        metric_issue_context = MetricIssueContext.from_group_event(
+            self.group, self.evidence_data, self.group_event.occurrence.priority
+        )
         open_period_context = OpenPeriodContext.from_group(self.group)
         notification_uuid = str(uuid.uuid4())
 
@@ -94,10 +100,10 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             alert_context,
             name=self.detector.name,
             action_identifier_id=self.detector.id,
-            threshold_type=None,
-            detection_type=None,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
-            alert_threshold=1.0,
+            alert_threshold=self.evidence_data.conditions[0]["comparison"],
         )
 
         self.assert_metric_issue_context(
@@ -108,6 +114,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             metric_value=123.45,
             group=self.group_event.group,
             title=self.group_event.group.title,
+            subscription=self.subscription,
         )
 
         self.assert_open_period_context(

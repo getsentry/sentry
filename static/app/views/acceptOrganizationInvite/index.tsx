@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -13,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -236,7 +238,7 @@ function AcceptOrganizationInvite() {
       ),
     onSuccess: () => {
       if (inviteDetails?.orgSlug) {
-        window.location.href = `/${inviteDetails.orgSlug}/`;
+        testableWindowLocation.assign(`/${inviteDetails.orgSlug}/`);
       }
     },
   });

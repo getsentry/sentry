@@ -44,8 +44,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -65,7 +63,11 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        retry=Retry(times=5),
+        processing_deadline_duration=timedelta(minutes=10),
+    ),
 )
 @retry
 def schedule_organizations(
@@ -123,20 +125,26 @@ def schedule_organizations(
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        processing_deadline_duration=60 * 10,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 @retry
 def prepare_organization_report(
     timestamp: float,
     duration: int,
     organization_id: int,
-    batch_id: uuid.UUID | str,
+    batch_id: str,
     dry_run: bool = False,
-    target_user: User | int | None = None,
+    target_user: int | None = None,
     email_override: str | None = None,
 ):
     batch_id = str(batch_id)
-    if target_user and not isinstance(target_user, int) and not hasattr(target_user, "id"):
+    if email_override and not isinstance(target_user, int):
         logger.error(
             "Target user must have an ID",
             extra={
@@ -147,11 +155,6 @@ def prepare_organization_report(
             },
         )
         return
-    target_user_id: int | None = None
-    if isinstance(target_user, (User, RpcUser)):
-        target_user_id = target_user.id
-    elif isinstance(target_user, int):
-        target_user_id = target_user
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
@@ -257,7 +260,7 @@ def prepare_organization_report(
         return
 
     # Finally, deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user_id, email_override)
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",

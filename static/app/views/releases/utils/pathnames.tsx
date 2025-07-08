@@ -29,9 +29,11 @@ export function makeReleaseDrawerPathname({
   location,
   release,
   projectId,
+  source,
 }: {
   location: Location;
   release: string;
+  source: string;
   projectId?: string | string[] | null;
 }) {
   return {
@@ -40,6 +42,7 @@ export function makeReleaseDrawerPathname({
       [ReleasesDrawerFields.DRAWER]: 'show',
       [ReleasesDrawerFields.RELEASE]: release,
       [ReleasesDrawerFields.RELEASE_PROJECT_ID]: projectId,
+      [ReleasesDrawerFields.SOURCE]: source,
     },
   };
 }

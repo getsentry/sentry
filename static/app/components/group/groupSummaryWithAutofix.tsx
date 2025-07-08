@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
+  getAutofixRunExists,
   getCodeChangesDescription,
   getCodeChangesIsLoading,
   getRootCauseCopyText,
@@ -44,6 +45,8 @@ interface InsightCardObject {
   id: string;
   insight: string | null | undefined;
   title: string;
+  copyAnalyticsEventKey?: string;
+  copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
   icon?: React.ReactNode;
@@ -100,7 +103,7 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
-  if (isPending) {
+  if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
   }
 
@@ -174,6 +177,8 @@ function AutofixSummary({
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
+      copyAnalyticsEventName: 'Autofix: Copy Root Cause as Markdown',
+      copyAnalyticsEventKey: 'autofix.root_cause.copy',
     },
 
     ...(solutionDescription || solutionIsLoading
@@ -199,6 +204,8 @@ function AutofixSummary({
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
+            copyAnalyticsEventName: 'Autofix: Copy Solution as Markdown',
+            copyAnalyticsEventKey: 'autofix.solution.copy',
           },
         ]
       : []),
@@ -255,6 +262,8 @@ function AutofixSummary({
                         onClick={e => {
                           e.stopPropagation();
                         }}
+                        analyticsEventName={card.copyAnalyticsEventName}
+                        analyticsEventKey={card.copyAnalyticsEventKey}
                       />
                     )}
                   </CardTitle>
@@ -356,8 +365,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
 
@@ -370,8 +378,8 @@ const CardTitleSpacer = styled('div')`
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 1px;
 `;
 
@@ -384,7 +392,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1)};
+  padding: ${space(0.5)} ${space(1)} ${space(1)} ${space(1)};
   text-align: left;
   flex: 1;
 

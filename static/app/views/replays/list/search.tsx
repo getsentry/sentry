@@ -37,10 +37,12 @@ export default function ReplaysSearch() {
 }
 
 const SearchContainer = styled('div')`
-  flex-grow: 1;
+  flex: 1;
   min-width: 400px;
+  max-width: 100%;
+  width: auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     min-width: auto;
   }
 `;

@@ -3,7 +3,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -12,16 +13,16 @@ import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreen
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
@@ -29,8 +30,7 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
   errorBeforeReplayStart,
@@ -54,12 +54,10 @@ export default function ReplayPreviewPlayer({
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
-  const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
-  const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -71,9 +69,16 @@ export default function ReplayPreviewPlayer({
   const referrer = getRouteStringFromRoutes(routes);
   const fromFeedback = referrer === '/feedback/';
 
+  const {groupId} = useParams<{groupId: string}>();
+
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
-    if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
+    if (
+      !replayRecord.is_archived &&
+      !replayRecord.has_viewed &&
+      !isFetching &&
+      isPlaying
+    ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
@@ -88,12 +93,11 @@ export default function ReplayPreviewPlayer({
         </StyledAlert>
       )}
       <HeaderWrapper>
-        <StyledReplayCell
-          key="session"
-          replay={replayRecord}
-          eventView={eventView}
-          organization={organization}
-          referrer="issue-details-replay-header"
+        <ReplaySessionColumn.Component
+          replay={replayRecord as ReplayListRecord}
+          rowIndex={0}
+          columnIndex={0}
+          showDropdownFilters={false}
         />
         <LinkButton
           size="sm"
@@ -106,6 +110,7 @@ export default function ReplayPreviewPlayer({
               referrer: getRouteStringFromRoutes(routes),
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
+              groupId,
             },
           }}
           {...fullReplayButtonProps}
@@ -236,10 +241,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledReplayCell = styled(ReplayCell)`
-  padding: 0 0 ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`

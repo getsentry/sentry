@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -244,13 +245,13 @@ const PolicyFrame = styled('iframe')`
 `;
 
 const PolicySubtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
 const PolicyTitle = styled('h6')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeLarge};
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 
@@ -268,7 +269,7 @@ const PolicyActions = styled('div')`
 `;
 
 const modalCss = (theme: Theme) => css`
-  @media (min-width: ${theme.breakpoints.small}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
     max-width: 1200px;
   }

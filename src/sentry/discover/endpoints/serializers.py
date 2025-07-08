@@ -20,6 +20,7 @@ from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
 
@@ -34,7 +35,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     projects = ListField(
         child=serializers.IntegerField(),
         required=False,
-        default=[],
+        default=list,
         help_text="The saved projects filter for this query.",
     )
     queryDataset = serializers.ChoiceField(
@@ -175,14 +176,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 },
             )
             sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
-            if features.has(
-                "organizations:deprecate-discover-widget-type",
-                self.context["organization"],
-                actor=self.context["user"],
-            ):
-                raise serializers.ValidationError(
-                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-                )
+            raise serializers.ValidationError(
+                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            )
         return dataset
 
     def validate(self, data):
@@ -245,6 +241,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
 
                 equations, columns = categorize_columns(query["fields"])
+
+                config = QueryBuilderConfig()
+                if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
+                    config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
+                elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
+                    config.has_metrics = use_metrics
+
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
@@ -252,7 +255,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
-                    config=QueryBuilderConfig(has_metrics=use_metrics),
+                    config=config,
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:

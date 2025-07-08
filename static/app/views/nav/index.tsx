@@ -2,20 +2,25 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import MobileTopbar from 'sentry/views/nav/mobileTopbar';
-import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {Sidebar} from 'sentry/views/nav/sidebar';
 import {
   NavigationTourProvider,
   useStackedNavigationTour,
 } from 'sentry/views/nav/tour/tour';
 import {NavLayout} from 'sentry/views/nav/types';
+import {UserDropdown} from 'sentry/views/nav/userDropdown';
+import {useResetActiveNavGroup} from 'sentry/views/nav/useResetActiveNavGroup';
 
 function NavContent() {
   const {layout, navParentRef} = useNavContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
+  const hoverProps = useResetActiveNavGroup();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
@@ -30,14 +35,24 @@ function NavContent() {
       ref={navParentRef}
       tourIsActive={tourIsActive}
       isMobile={layout === NavLayout.MOBILE}
+      {...hoverProps}
     >
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-      <SecondaryNavContent />
     </NavContainer>
   );
 }
 
 function Nav() {
+  const organization = useOrganization({allowNull: true});
+
+  if (!organization) {
+    return (
+      <NoOrganizationSidebar data-test-id="no-organization-sidebar">
+        <UserDropdown />
+      </NoOrganizationSidebar>
+    );
+  }
+
   return (
     <NavigationTourProvider>
       <NavContent />
@@ -64,6 +79,18 @@ const NavContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
       height: 100vh;
       height: 100dvh;
     `}
+`;
+
+const NoOrganizationSidebar = styled('div')`
+  z-index: ${p => p.theme.zIndex.sidebarPanel};
+  width: ${PRIMARY_SIDEBAR_WIDTH}px;
+  padding: ${space(1.5)} 0 ${space(1)} 0;
+  border-right: 1px solid
+    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
+  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
+  display: flex;
+  align-items: center;
+  flex-direction: column;
 `;
 
 export default Nav;

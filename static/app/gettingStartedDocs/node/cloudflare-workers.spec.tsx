@@ -13,7 +13,9 @@ describe('express onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
 
     // Includes import statement
     const allMatches = screen.getAllByText(

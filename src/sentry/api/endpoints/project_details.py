@@ -1,6 +1,4 @@
 import logging
-import math
-import time
 from datetime import timedelta
 from uuid import uuid4
 
@@ -38,7 +36,11 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    has_dynamic_sampling_minimum_sample_rate,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -56,9 +58,9 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -129,11 +131,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
-        "performanceIssueCreationRate",
-        "performanceIssueCreationThroughPlatform",
-        "performanceIssueSendToPlatform",
+        "dynamicSamplingMinimumSampleRate",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
+        "autofixAutomationTuning",
+        "seerScannerAutomation",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -223,11 +225,13 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
-    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    dynamicSamplingMinimumSampleRate = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=[item.value for item in AutofixAutomationTuningSettings], required=False
+    )
+    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -356,22 +360,15 @@ E.g. `['release', 'environment']`""",
 
         return value
 
+    # TODO: Once these have been in place for a while we can probably remove them
+    def validate_groupingConfig(self, value):
+        raise serializers.ValidationError("Grouping config cannot be manually set.")
+
+    def validate_secondaryGroupingConfig(self, value):
+        raise serializers.ValidationError("Secondary grouping config cannot be manually set.")
+
     def validate_secondaryGroupingExpiry(self, value):
-        if not isinstance(value, (int, float)) or math.isnan(value):
-            raise serializers.ValidationError(
-                f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
-            )
-        now = time.time()
-        if value < now:
-            raise serializers.ValidationError(
-                "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
-            )
-
-        max_expiry_date = now + (91 * 24 * 3600)
-        if value > max_expiry_date:
-            value = max_expiry_date
-
-        return value
+        raise serializers.ValidationError("Secondary grouping expiry cannot be manually set.")
 
     def validate_fingerprintingRules(self, value):
         if not value:
@@ -437,6 +434,15 @@ E.g. `['release', 'environment']`""",
 
         return value
 
+    def validate_dynamicSamplingMinimumSampleRate(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_dynamic_sampling_minimum_sample_rate(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the dynamic sampling minimum sample rate feature enabled."
+            )
+        return value
+
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
@@ -452,6 +458,28 @@ E.g. `['release', 'environment']`""",
         if not has_tempest_access(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
             )
         return value
 
@@ -555,6 +583,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
@@ -620,7 +650,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
-                incr_rollback_metrics(ProjectBookmark)
                 pass
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
@@ -637,9 +666,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("scrubIPAddresses") is not None:
             if project.update_option("sentry:scrub_ip_address", result["scrubIPAddresses"]):
                 changed_proj_settings["sentry:scrub_ip_address"] = result["scrubIPAddresses"]
-        if result.get("groupingConfig") is not None:
-            if project.update_option("sentry:grouping_config", result["groupingConfig"]):
-                changed_proj_settings["sentry:grouping_config"] = result["groupingConfig"]
         if result.get("groupingEnhancements") is not None:
             if project.update_option(
                 "sentry:grouping_enhancements", result["groupingEnhancements"]
@@ -650,20 +676,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("fingerprintingRules") is not None:
             if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
-        if result.get("secondaryGroupingConfig") is not None:
-            if project.update_option(
-                "sentry:secondary_grouping_config", result["secondaryGroupingConfig"]
-            ):
-                changed_proj_settings["sentry:secondary_grouping_config"] = result[
-                    "secondaryGroupingConfig"
-                ]
-        if result.get("secondaryGroupingExpiry") is not None:
-            if project.update_option(
-                "sentry:secondary_grouping_expiry", result["secondaryGroupingExpiry"]
-            ):
-                changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
-                    "secondaryGroupingExpiry"
-                ]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -760,6 +772,29 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
+                ]
+        if result.get("dynamicSamplingMinimumSampleRate") is not None:
+            if project.update_option(
+                "sentry:dynamic_sampling_minimum_sample_rate",
+                result["dynamicSamplingMinimumSampleRate"],
+            ):
+                changed_proj_settings["sentry:dynamic_sampling_minimum_sample_rate"] = result[
+                    "dynamicSamplingMinimumSampleRate"
+                ]
+
+        if result.get("autofixAutomationTuning") is not None:
+            if project.update_option(
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
+            ):
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
+                ]
+        if result.get("seerScannerAutomation") is not None:
+            if project.update_option(
+                "sentry:seer_scanner_automation", result["seerScannerAutomation"]
+            ):
+                changed_proj_settings["sentry:seer_scanner_automation"] = result[
+                    "seerScannerAutomation"
                 ]
 
         if has_elevated_scopes:

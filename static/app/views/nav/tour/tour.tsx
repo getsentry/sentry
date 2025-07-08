@@ -11,10 +11,12 @@ import {
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
@@ -28,6 +30,9 @@ export const enum StackedNavigationTour {
   INSIGHTS = 'insights',
   SETTINGS = 'settings',
 }
+
+// Started rolling out to GA users on June 18, 2025
+const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
 
 const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
@@ -243,25 +248,34 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
+  const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useStackedNavigationTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
+  const user = useUser();
+
+  const enforceStackedNav = organization.features.includes('enforce-stacked-navigation');
+  // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
+  const shouldSkipForNewUserEnforcedStackedNav =
+    enforceStackedNav && new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
-      ?.seen === false;
+      ?.seen === false && !shouldSkipForNewUserEnforcedStackedNav;
 
   useEffect(() => {
     if (shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
+      trackAnalytics('navigation.tour_modal_shown', {organization});
       openModal(
         props => (
           <NavTourModal
             closeModal={props.closeModal}
             handleDismissTour={() => {
+              trackAnalytics('navigation.tour_modal_dismissed', {organization});
               mutateAssistant({
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
@@ -278,6 +292,7 @@ export function useTourModal() {
           // If user closes modal through other means, also prevent the modal from being shown again.
           onClose: reason => {
             if (reason) {
+              trackAnalytics('navigation.tour_modal_dismissed', {organization});
               mutateAssistant({
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
@@ -288,7 +303,7 @@ export function useTourModal() {
         }
       );
     }
-  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+  }, [shouldShowTourModal, startTour, mutateAssistant, endTour, organization]);
 }
 
 const NAV_REFERRER = 'nav-tour';

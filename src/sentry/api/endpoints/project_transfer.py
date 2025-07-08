@@ -72,24 +72,41 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            owner = OrganizationMember.objects.get_members_by_email_and_role(
-                email=email, role=roles.get_top_dog().id
-            )[0]
-        except IndexError:
+        all_owners = OrganizationMember.objects.get_members_by_email_and_role(
+            email=email,
+            role=roles.get_top_dog().id,
+        )
+        owners = all_owners.exclude(organization_id=project.organization_id)
+
+        if len(all_owners) > 0 and len(owners) == 0:
+            return Response(
+                {"detail": "Cannot transfer project to the same organization."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        unique_user_ids: set[int] = {owner.user_id for owner in owners}
+
+        if len(unique_user_ids) == 0:
             return Response(
                 {"detail": "Could not find an organization owner with that email"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        organization = project.organization
+        if len(unique_user_ids) > 1:
+            return Response(
+                {
+                    "detail": "That email belongs to multiple accounts. Contact the person and ensure the email is associated with only one account."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         transaction_id = uuid4().hex
         url_data = sign(
             salt=SALT,
             actor_id=request.user.id,
-            from_organization_id=organization.id,
+            from_organization_id=project.organization_id,
             project_id=project.id,
-            user_id=owner.user_id,
+            user_id=unique_user_ids.pop(),
             transaction_id=transaction_id,
         )
 

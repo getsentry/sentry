@@ -55,6 +55,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 "orgHasAcknowledged": False,
                 "userHasAcknowledged": False,
             },
+            "billing": {
+                "hasAutofixQuota": True,
+            },
         }
 
     def test_current_user_acknowledged_setup(self):
@@ -153,6 +156,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "setupAcknowledgement": {
                 "orgHasAcknowledged": False,
                 "userHasAcknowledged": False,
+            },
+            "billing": {
+                "hasAutofixQuota": True,
             },
         }
 

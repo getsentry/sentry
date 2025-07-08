@@ -1,9 +1,8 @@
-import {
+import type {
   Applications,
-  MethodType,
   PiiConfig,
-  RuleType,
 } from 'sentry/views/settings/components/dataScrubbing/types';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 
 export function DataScrubbingRelayPiiConfigFixture(): {
   applications: Applications;

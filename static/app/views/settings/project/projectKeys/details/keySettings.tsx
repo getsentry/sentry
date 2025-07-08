@@ -172,7 +172,9 @@ export function KeySettings({
                     message={t(
                       'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
                     )}
-                    onConfirm={handleRemove}
+                    onConfirm={() => {
+                      handleRemove();
+                    }}
                     confirmText={t('Revoke Key')}
                     disabled={!hasAccess}
                   >

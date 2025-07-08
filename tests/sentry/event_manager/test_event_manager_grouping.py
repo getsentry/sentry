@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import time
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, MagicMock
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -11,8 +11,11 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
@@ -128,6 +131,15 @@ class EventManagerGroupingTest(TestCase):
         assert group.message == event2.message
         assert group.data["metadata"]["title"] == event2.title
 
+    def test_loads_default_config_if_stored_config_option_is_invalid(self):
+        self.project.update_option("sentry:grouping_config", "dogs.are.great")
+        config_dict = get_grouping_config_dict_for_project(self.project)
+        assert config_dict["id"] == DEFAULT_GROUPING_CONFIG
+
+        self.project.update_option("sentry:grouping_config", {"not": "a string"})
+        config_dict = get_grouping_config_dict_for_project(self.project)
+        assert config_dict["id"] == DEFAULT_GROUPING_CONFIG
+
     def test_auto_updates_grouping_config_even_if_config_is_gone(self):
         """This tests that setups with deprecated configs will auto-upgrade."""
         self.project.update_option("sentry:grouping_config", "non_existing_config")
@@ -167,6 +179,60 @@ class EventManagerGroupingTest(TestCase):
             int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
         )
         assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+
+    @patch(
+        "sentry.event_manager.update_or_set_grouping_config_if_needed",
+        wraps=update_or_set_grouping_config_if_needed,
+    )
+    def test_sets_default_grouping_config_project_option_if_missing(
+        self, update_config_spy: MagicMock
+    ):
+        # To start, the project defaults to the current config but doesn't have its own config
+        # option set in the DB
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert (
+            ProjectOption.objects.filter(
+                project_id=self.project.id, key="sentry:grouping_config"
+            ).first()
+            is None
+        )
+
+        save_new_event({"message": "Dogs are great!"}, self.project)
+
+        update_config_spy.assert_called_with(self.project, "ingest")
+
+        # After the function has been called, the config still defaults to the current one (and no
+        # transition has started), but the project now has its own config record in the DB
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert self.project.get_option("sentry:secondary_grouping_config") is None
+        assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+        assert ProjectOption.objects.filter(
+            project_id=self.project.id, key="sentry:grouping_config"
+        ).exists()
+
+    @patch(
+        "sentry.event_manager.update_or_set_grouping_config_if_needed",
+        wraps=update_or_set_grouping_config_if_needed,
+    )
+    def test_no_ops_if_grouping_config_project_option_exists_and_is_current(
+        self, update_config_spy: MagicMock
+    ):
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert ProjectOption.objects.filter(
+            project_id=self.project.id, key="sentry:grouping_config"
+        ).exists()
+
+        save_new_event({"message": "Dogs are great!"}, self.project)
+
+        update_config_spy.assert_called_with(self.project, "ingest")
+
+        # After the function has been called, the config still defaults to the current one and no
+        # transition has started
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert self.project.get_option("sentry:secondary_grouping_config") is None
+        assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
 
 
 class PlaceholderTitleTest(TestCase):

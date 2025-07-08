@@ -1,17 +1,23 @@
 import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+export type SeriesSamplingInfo = {
+  isSampled: boolean | null;
+  sampleCount: number;
+  dataScanned?: 'full' | 'partial';
+};
+
 export function determineSeriesSampleCountAndIsSampled(
   data: TimeSeries[],
   topNMode: boolean
-): {isSampled: boolean | null; sampleCount: number; dataScanned?: 'full' | 'partial'} {
+): SeriesSamplingInfo {
   if (data.length <= 0) {
     return {sampleCount: 0, isSampled: null};
   }
 
   if (topNMode) {
     // We dont want to count the other series in top N mode
-    data = data.filter(s => s.field !== 'Other');
+    data = data.filter(s => s.yAxis !== 'Other');
   }
 
   const merge: (a: number, b: number) => number = topNMode

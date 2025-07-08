@@ -5,12 +5,12 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, options
+from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -26,7 +26,6 @@ from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +60,14 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
+                raise PermissionDenied()
             return None
 
-        should_filter, metrics_reason, outcomes_reason = validate_user_report(
+        should_filter, metrics_reason, display_reason = validate_user_report(
             report, project.id, source=source
         )
         if should_filter:
@@ -76,12 +80,17 @@ def save_userreport(
                 project_id=project.id,
                 key_id=None,
                 outcome=Outcome.INVALID,
-                reason=outcomes_reason,
+                reason=display_reason,
                 timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
+                raise BadRequest(display_reason)
             return None
 
         # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
@@ -130,7 +139,6 @@ def save_userreport(
             # something wrong with the SDK, but this behavior is
             # more reasonable than just hard erroring and is more
             # expected.
-            incr_rollback_metrics(UserReport)
             existing_report = UserReport.objects.get(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
@@ -174,23 +182,11 @@ def save_userreport(
         # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
-        logger.info(
-            "ingest.user_report",
-            extra={
-                "project_id": project.id,
-                "event_id": report["event_id"],
-                "has_event": bool(event),
-            },
-        )
         metrics.incr(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
         if event and source.value in FeedbackCreationSource.old_feedback_category_values():
-            logger.info(
-                "ingest.user_report.shim_to_feedback",
-                extra={"project_id": project.id, "event_id": report["event_id"]},
-            )
             shim_to_feedback(report, event, project, source)
             # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
@@ -203,13 +199,11 @@ def validate_user_report(
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
 ) -> tuple[bool, str | None, str | None]:
     """
-    Validates required fields, field lengths, and garbage messages. Also checks email format and that event_id is a UUID.
+    Validates required fields, field lengths, and garbage messages. Also checks that event_id is a valid UUID. Does not raise errors.
 
     Reformatting: strips whitespace from comments and dashes from event_id.
 
-    Returns a tuple of (should_filter, metrics_reason, outcomes_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
-
-    At the moment we do not raise validation errors.
+    Returns a tuple of (should_filter, metrics_reason, display_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
     """
     if "comments" not in report:
         return True, "missing_comments", "Missing comments"  # type: ignore[unreachable]
@@ -261,12 +255,6 @@ def validate_user_report(
     max_email_length = UserReport._meta.get_field("email").max_length
     if max_email_length and len(email) > max_email_length:
         return True, "too_large.email", "Email Too Large"
-
-    try:
-        if email:
-            validate_email(email)
-    except ValidationError:
-        return True, "invalid_email", "Invalid Email"
 
     try:
         # Validates UUID and strips dashes.

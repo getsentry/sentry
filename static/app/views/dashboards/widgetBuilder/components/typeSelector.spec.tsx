@@ -18,7 +18,7 @@ describe('TypeSelector', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture();
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
   });
 
   it('changes the visualization type', async function () {
@@ -46,7 +46,7 @@ describe('TypeSelector', () => {
         ...router.location,
         query: expect.objectContaining({displayType: 'bar'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 

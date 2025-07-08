@@ -1,4 +1,5 @@
 import {NavLink} from 'react-router-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
@@ -58,17 +59,17 @@ const StyledLi = styled('li', {
 })<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
-    `
-  a {
-      color:${p.theme.disabled} !important;
-      :hover {
-        color: ${p.theme.disabled}  !important;
+    css`
+      a {
+        color: ${p.theme.disabled} !important;
+        :hover {
+          color: ${p.theme.disabled} !important;
+        }
+        cursor: default !important;
       }
-      cursor: default !important;
-    }
 
-  a:active {
-    pointer-events: none;
-  }
-`}
+      a:active {
+        pointer-events: none;
+      }
+    `}
 `;

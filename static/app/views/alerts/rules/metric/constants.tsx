@@ -1,7 +1,9 @@
-import {t} from 'sentry/locale';
+import pick from 'lodash/pick';
+
+import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {parseFunction, SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {AggregationKey, MobileVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -15,6 +17,7 @@ import {
   EventTypes,
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
@@ -22,7 +25,7 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
-export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
+export const DEFAULT_COUNT_TIME_WINDOW = 5; // 5min (lowest common denominator supported for all datasets)
 export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
 export const DEFAULT_DYNAMIC_TIME_WINDOW = 60; // 1h
 export const DEFAULT_CHANGE_COMP_DELTA = 10080; // 1w
@@ -114,6 +117,61 @@ export const COMPARISON_DELTA_OPTIONS = [
   {value: 43200, label: t('same time one month ago')}, // 30 days
 ];
 
+const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
+  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hours'),
+  [TimeWindow.FOUR_HOURS]: t('4 hours'),
+  [TimeWindow.ONE_DAY]: t('24 hours'),
+};
+
+export function getTimeWindowOptions(
+  dataset: Dataset,
+  comparisonType: AlertRuleComparisonType
+) {
+  let options: Record<string, string> = TIME_WINDOW_MAP;
+
+  if (isCrashFreeAlert(dataset)) {
+    options = pick(TIME_WINDOW_MAP, [
+      // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
+      TimeWindow.ONE_HOUR,
+      TimeWindow.TWO_HOURS,
+      TimeWindow.FOUR_HOURS,
+      TimeWindow.ONE_DAY,
+    ]);
+  }
+
+  if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
+    options = pick(TIME_WINDOW_MAP, [
+      TimeWindow.FIFTEEN_MINUTES,
+      TimeWindow.THIRTY_MINUTES,
+      TimeWindow.ONE_HOUR,
+    ]);
+  } else if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    options = pick(TIME_WINDOW_MAP, [
+      TimeWindow.FIVE_MINUTES,
+      TimeWindow.TEN_MINUTES,
+      TimeWindow.FIFTEEN_MINUTES,
+      TimeWindow.THIRTY_MINUTES,
+      TimeWindow.ONE_HOUR,
+      TimeWindow.TWO_HOURS,
+      TimeWindow.FOUR_HOURS,
+      TimeWindow.ONE_DAY,
+    ]);
+  }
+
+  return Object.entries(options).map(([value, label]) => ({
+    value: parseInt(value, 10),
+    label: tct('[timeWindow] interval', {
+      timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
+    }),
+  }));
+}
+
 export function getWizardAlertFieldConfig(
   alertType: AlertType,
   dataset: Dataset
@@ -122,10 +180,11 @@ export function getWizardAlertFieldConfig(
     return errorFieldConfig;
   }
   // If user selected apdex we must include that in the OptionConfig as it has a user specified column
-  const aggregations =
-    alertType === 'apdex' || alertType === 'custom_transactions'
-      ? allAggregations
-      : commonAggregations;
+  const aggregations = ['apdex', 'trace_item_apdex', 'custom_transactions'].includes(
+    alertType
+  )
+    ? allAggregations
+    : commonAggregations;
 
   const config: OptionConfig = {
     aggregations,
@@ -272,6 +331,11 @@ export function getThresholdUnits(
     comparisonType === AlertRuleComparisonType.CHANGE
   ) {
     return '%';
+  }
+
+  const parsed = parseFunction(aggregate);
+  if (parsed && parsed.name === 'count') {
+    return '';
   }
 
   if (aggregate.includes('measurements.cls')) {

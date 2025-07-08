@@ -5,10 +5,10 @@ import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
@@ -33,6 +33,7 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
@@ -212,7 +213,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'sentry.normalized_description');
-          mutableSearch.addFilterValue('span.module', 'db');
+          mutableSearch.addFilterValue('span.category', 'db');
+          mutableSearch.addFilterValue('!span.op', `[${EXCLUDED_DB_OPS.join(',')}]`);
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
@@ -238,7 +240,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('span.module', 'http');
+          mutableSearch.addFilterValue('span.category', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
@@ -293,7 +295,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
-          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues('count()', ['>1']);
           extraQueryParams = {
             ...extraQueryParams,
             ...metricsQueryParams,
@@ -488,6 +490,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
+          }
+
+          if (useEap) {
+            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            extraQueryParams = {
+              ...extraQueryParams,
+              ...spanQueryParams,
+            };
           }
 
           return (

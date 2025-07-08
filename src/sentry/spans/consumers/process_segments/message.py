@@ -1,44 +1,44 @@
 import logging
+import types
 import uuid
 from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
-from sentry.event_manager import get_project_insight_flag
+from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.receivers.features import record_generic_event_processed
-from sentry.receivers.onboarding import (
-    record_first_insight_span,
-    record_first_transaction,
-    record_release_received,
-)
+from sentry.receivers.onboarding import record_release_received
+from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import (
-    match_schemas,
-    set_exclusive_time,
-    set_shared_tags,
+    Enricher,
+    Span,
+    segment_span_measurement_updates,
 )
-from sentry.spans.consumers.process_segments.types import Span, UnprocessedSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
-def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
+def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -46,10 +46,21 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
             project = Project.objects.get_from_cache(id=segment_span["project_id"])
-    except Project.DoesNotExist:
+
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+    except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
+    segment_span.setdefault("measurements", {}).update(
+        segment_span_measurement_updates(
+            segment_span,
+            unprocessed_spans,
+            project.get_option("sentry:breakdowns"),
+        )
+    )
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -57,27 +68,8 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     return spans
 
 
-def _find_segment_span(spans: list[Span]) -> Span | None:
-    """
-    Finds the segment in the span in the list that has ``is_segment`` set to
-    ``True``.
-
-    At most one span in the list can be marked as segment span. If more than one
-    span is marked, the function does not have defined behavior.
-
-    If there is no segment span, the function returns ``None``.
-    """
-
-    # Iterate backwards since we usually expect the segment span to be at the end.
-    for span in reversed(spans):
-        if span.get("is_segment"):
-            return span
-
-    return None
-
-
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
-def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None, list[Span]]:
+def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, list[Span]]:
     """
     Enriches all spans with data derived from the span tree and the segment.
 
@@ -88,13 +80,7 @@ def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None
     Returns the segment span, if any, and the list of enriched spans.
     """
 
-    spans = cast(list[Span], unprocessed_spans)
-    segment = _find_segment_span(spans)
-
-    match_schemas(spans)
-    set_exclusive_time(spans)
-    if segment:
-        set_shared_tags(segment, spans)
+    segment, spans = Enricher.enrich_spans(unprocessed_spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
@@ -152,7 +138,7 @@ def _create_models(segment: Span, project: Project) -> None:
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
-    if not options.get("standalone-spans.detect-performance-problems.enable"):
+    if not options.get("spans.process-segments.detect-performance-problems.enable"):
         return
 
     event_data = _build_shim_event_data(segment_span, spans)
@@ -247,9 +233,6 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    # TODO: Make transaction name clustering work again
-    # record_transaction_name_for_clustering(project, event.data)
-
     sentry_tags = segment_span.get("sentry_tags", {})
 
     record_generic_event_processed(
@@ -259,8 +242,21 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         environment=sentry_tags.get("environment"),
     )
 
-    record_first_transaction(project, to_datetime(segment_span["end_timestamp_precise"]))
+    # signal expects an event like object with a datetime attribute
+    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp_precise"]))
+
+    set_project_flag_and_signal(
+        project,
+        "has_transactions",
+        first_transaction_received,
+        event=event_like,
+    )
 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if not get_project_insight_flag(project, module) and is_module(spans):
-            record_first_insight_span(project, module)
+        if is_module(spans):
+            set_project_flag_and_signal(
+                project,
+                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                first_insight_span_received,
+                module=module,
+            )

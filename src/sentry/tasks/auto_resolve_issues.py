@@ -71,7 +71,7 @@ def schedule_auto_resolution():
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
-        processing_deadline_duration=75,
+        processing_deadline_duration=90,
     ),
 )
 @log_error_if_queue_has_items
@@ -106,13 +106,14 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
+        resolution_time = django_timezone.now()
         happened = Group.objects.filter(
             id=group.id,
             status=GroupStatus.UNRESOLVED,
             last_seen__lte=cutoff,
         ).update(
             status=GroupStatus.RESOLVED,
-            resolved_at=django_timezone.now(),
+            resolved_at=resolution_time,
             substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
@@ -128,8 +129,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             update_group_open_period(
                 group=group,
                 new_status=GroupStatus.RESOLVED,
-                activity=activity,
-                should_reopen_open_period=False,
+                resolution_time=resolution_time,
+                resolution_activity=activity,
             )
 
             kick_off_status_syncs.apply_async(

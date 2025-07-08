@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -81,7 +82,7 @@ function ProjectTeamAccess({organization, project}: Props) {
 }
 
 const StyledSidebarSection = styled(SidebarSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledLink = styled(Link)`

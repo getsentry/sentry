@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,6 +21,10 @@ type Props = {
   isDisabled?: boolean;
   maxLength?: number;
   name?: string;
+  /**
+   * The placeholder text to display when the input is empty.
+   */
+  placeholder?: string;
   successMessage?: React.ReactNode;
 };
 
@@ -34,6 +39,7 @@ function EditableText({
   autoSelect = false,
   className,
   'aria-label': ariaLabel,
+  placeholder,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -161,6 +167,7 @@ function EditableText({
             onChange={handleInputChange}
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
+            placeholder={placeholder}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
@@ -171,7 +178,7 @@ function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel>{inputValue}</InnerLabel>
+          <InnerLabel>{inputValue || placeholder}</InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}
@@ -231,7 +238,7 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
 
   ${p =>
     p.isDisabled &&
-    `
+    css`
       ${InnerLabel} {
         border-bottom-color: transparent;
       }

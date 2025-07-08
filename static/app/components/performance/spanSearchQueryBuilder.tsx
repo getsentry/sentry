@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
+import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -23,8 +24,10 @@ import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
@@ -39,6 +42,7 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  useEap?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -151,10 +155,21 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
+    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 
-export function SpanSearchQueryBuilder({
+export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
+  const {useEap} = props;
+
+  if (useEap) {
+    return <EapSpanSearchQueryBuilderWrapper {...props} />;
+  }
+
+  return <IndexedSpanSearchQueryBuilder {...props} />;
+}
+
+function IndexedSpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
@@ -176,9 +191,23 @@ export function SpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
+function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
+
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      {...props}
+    />
+  );
+}
+
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
@@ -187,16 +216,29 @@ export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderPr
 
 export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuilderProps) {
   const {numberTags, stringTags, ...rest} = props;
+
+  const numberAttributes = numberTags;
+  const stringAttributes = useMemo(() => {
+    if (stringTags.hasOwnProperty(SpanIndexedField.RELEASE)) {
+      return {
+        ...stringTags,
+        ...STATIC_SEMVER_TAGS,
+      };
+    }
+    return stringTags;
+  }, [stringTags]);
+
   return useSearchQueryBuilderProps({
     itemType: TraceItemDataset.SPANS,
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
+    numberAttributes,
+    stringAttributes,
     ...rest,
   });
 }
 
 export function EAPSpanSearchQueryBuilder(props: EAPSpanSearchQueryBuilderProps) {
   const {numberTags, stringTags, ...rest} = props;
+
   return (
     <TraceItemSearchQueryBuilder
       itemType={TraceItemDataset.SPANS}

@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:51.210373+00:00'
+created: '2025-05-12T23:41:00.802468+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ app:
           frame (marked out of app by the client)
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
           frame (marked out of app by the client)
@@ -84,7 +84,7 @@ app:
           frame* (marked in-app by the client)
             function*
               "ViewController.captureError"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             function*
               "ViewController.captureError"
 --------------------------------------------------------------------------
@@ -152,7 +152,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (ignored by stack trace rule (family:native function:__*[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:__*[[]Sentry* -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
           frame (ignored by stack trace rule (category:internals -group))

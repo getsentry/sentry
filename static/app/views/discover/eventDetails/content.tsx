@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
@@ -193,7 +194,6 @@ function EventDetailsContent(props: Props) {
                 projectId={projectId}
                 location={location}
                 errorDest="discover"
-                transactionDest="discover"
               />
             </Layout.Main>
             <Layout.Main fullWidth={!isSidebarVisible}>
@@ -368,7 +368,7 @@ function EventDetailsContent(props: Props) {
 }
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints.small};
+  max-width: ${p => p.theme.breakpoints.sm};
 `;
 
 const TitleWrapper = styled('div')`

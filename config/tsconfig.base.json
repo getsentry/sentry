@@ -8,15 +8,12 @@
     // features are supported based on our browser usage configuration in
     // package.json). `target` DOES NOT affect the babel output! [0]
     //
-    // We DO however, use ts-node to build jest, webpack, and a few other
-    // {build,dev}-time tools. Because these are run through node, we can
-    // target what our current version of node supports (see [1])
     //
     // [0]: https://babeljs.io/docs/en/babel-preset-typescript
     // [1]: https://node.green
-    "module": "commonjs",
+    "module": "preserve",
     "target": "ES2022",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
     "lib": ["esnext", "dom", "dom.iterable"],
@@ -122,8 +119,5 @@
     ]
   },
   "include": ["../static/app", "../static/gsApp", "../tests/js"],
-  "exclude": ["../node_modules", "../**/*.benchmark.ts"],
-  "ts-node": {
-    "transpileOnly": true
-  }
+  "exclude": ["../node_modules"]
 }

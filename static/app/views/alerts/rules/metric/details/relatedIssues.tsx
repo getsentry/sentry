@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,6 +20,7 @@ import {
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 
@@ -65,6 +66,10 @@ function RelatedIssues({
         rule,
         query,
         timePeriod,
+        traceItemType: getTraceItemTypeForDatasetAndEventType(
+          rule.dataset,
+          rule.eventTypes
+        ),
       });
       return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
     }

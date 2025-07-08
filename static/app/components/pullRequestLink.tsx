@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';

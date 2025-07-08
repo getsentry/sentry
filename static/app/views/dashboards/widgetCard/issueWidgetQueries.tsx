@@ -24,6 +24,7 @@ type Props = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -37,6 +38,7 @@ function IssueWidgetQueries({
   limit,
   dashboardFilters,
   onDataFetched,
+  onDataFetchStart,
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
@@ -66,6 +68,7 @@ function IssueWidgetQueries({
         limit={limit}
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         afterFetchTableData={afterFetchTableData}
         skipDashboardFilterParens // Issue widgets do not support parens in search
       >

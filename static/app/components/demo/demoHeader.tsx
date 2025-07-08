@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconUpload} from 'sentry/icons';
@@ -99,7 +100,7 @@ const Wrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     height: ${SIDEBAR_MOBILE_HEIGHT};
     margin-left: 0;
   }
@@ -125,14 +126,14 @@ const FreeTrialTextLong = styled('span')``;
 
 const NewRequestDemoBtn = styled(LinkButton)`
   text-transform: uppercase;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
 
 const DocsButton = styled(LinkButton)`
   text-transform: uppercase;
-  @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
     display: none;
   }
 `;
@@ -143,7 +144,7 @@ const FreeTrialButton = styled(Button)`
   .short-text {
     display: none;
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     ${FreeTrialTextLong} {
       display: none;
     }

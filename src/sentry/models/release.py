@@ -7,6 +7,7 @@ from typing import ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Sum, When
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry_relay.processing import parse_release
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
-    ArrayField,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -45,7 +45,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
-from sentry.utils.rollback_metrics import incr_rollback_metrics
+from sentry.utils.sdk import set_span_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -207,14 +207,14 @@ class Release(Model):
     date_started = models.DateTimeField(null=True, blank=True)
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
-    data = JSONField(default={})
+    data = JSONField(default=dict)
     # generally the release manager, or the person initiating the process
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedBigIntegerField(null=True)
-    authors = ArrayField(null=True)
+    authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
@@ -458,7 +458,6 @@ class Release(Model):
 
                     metric_tags["created"] = "true"
                 except IntegrityError:
-                    incr_rollback_metrics(cls)
                     metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
@@ -526,13 +525,11 @@ class Release(Model):
                     with atomic_transaction(using=router.db_for_write(model)):
                         model.objects.filter(release_id=release.id).update(**update_kwargs)
                 except IntegrityError:
-                    incr_rollback_metrics(model)
                     for item in model.objects.filter(release_id=release.id):
                         try:
                             with atomic_transaction(using=router.db_for_write(model)):
                                 model.objects.filter(id=item.id).update(**update_kwargs)
                         except IntegrityError:
-                            incr_rollback_metrics(model)
                             item.delete()
 
             Group.objects.filter(first_release=release).update(first_release=to_release)
@@ -565,7 +562,6 @@ class Release(Model):
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
-            incr_rollback_metrics(ReleaseProject)
             obj = None
             created = False
 
@@ -649,7 +645,8 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
-        sentry_sdk.set_measurement("release.set_commits", len(commit_list))
+        set_span_attribute("release.set_commits", len(commit_list))
+
         from sentry.models.releases.set_commits import set_commits
 
         set_commits(self, commit_list)

@@ -9,7 +9,7 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
@@ -21,7 +21,7 @@ describe('QueryFilterBuilder', () => {
       features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
-    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
+    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
 
     MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });
@@ -140,5 +140,29 @@ describe('QueryFilterBuilder', () => {
     await userEvent.click(await screen.findByText('+ Add Filter'));
 
     expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
+  });
+
+  it('allow adding filters for the spans dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
   });
 });

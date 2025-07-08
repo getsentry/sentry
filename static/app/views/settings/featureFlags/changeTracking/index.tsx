@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -210,7 +210,7 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 }
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),

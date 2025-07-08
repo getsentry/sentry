@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
+from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -27,7 +28,9 @@ from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -36,6 +39,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
@@ -65,7 +69,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from a Sentry bug to tracked ticket.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -1004,17 +1008,27 @@ class JiraIntegration(IssueSyncIntegration):
                     extra={
                         "integration_id": external_issue.integration_id,
                         "user_id": user.id,
+                        "user_emails": user.emails,
                         "issue_key": external_issue.key,
+                        "organization_id": external_issue.organization_id,
                     },
                 )
-                return
+                if not user.emails:
+                    raise InvalidConfiguration(
+                        {
+                            "email": "User must have a verified email on Sentry to sync assignee in Jira",
+                            "help": "https://sentry.io/settings/account/emails",
+                        }
+                    )
+                raise InvalidConfiguration({"email": "Unable to find the requested user"})
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except (ApiUnauthorized, ApiError):
+        except ApiError as e:
             # TODO(jess): do we want to email people about these types of failures?
             logger.info(
                 "jira.failed-to-assign",
+                exc_info=e,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
@@ -1022,6 +1036,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "issue_key": external_issue.key,
                 },
             )
+            raise
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -1067,7 +1082,10 @@ class JiraIntegration(IssueSyncIntegration):
             logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
-        client.transition_issue(external_issue.key, transition["id"])
+        try:
+            client.transition_issue(external_issue.key, transition["id"])
+        except ApiInvalidRequestError as e:
+            self.raise_error(e)
 
     def _get_done_statuses(self):
         client = self.get_client()
@@ -1102,7 +1120,7 @@ class JiraIntegration(IssueSyncIntegration):
 
 
 class JiraIntegrationProvider(IntegrationProvider):
-    key = "jira"
+    key = IntegrationProviderSlug.JIRA.value
     name = "Jira"
     metadata = metadata
     integration_cls = JiraIntegration
@@ -1122,7 +1140,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return []
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

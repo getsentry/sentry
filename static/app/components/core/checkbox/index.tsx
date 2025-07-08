@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -14,13 +14,13 @@ type CheckboxConfig = {
   icon: string;
 };
 
-const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
+const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig> = {
   xs: {box: '12px', borderRadius: '2px', icon: '10px'},
   sm: {box: '16px', borderRadius: '4px', icon: '12px'},
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export interface CheckboxProps
+interface CheckboxProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
@@ -83,7 +83,7 @@ export function Checkbox({
 }
 
 const CheckboxWrapper = styled('div')<{
-  size: FormSize;
+  size: NonNullable<CheckboxProps['size']>;
 }>`
   position: relative;
   cursor: pointer;
@@ -144,7 +144,7 @@ const NativeHiddenCheckbox = withChonk(
 );
 
 const FakeCheckbox = styled('div')<{
-  size: FormSize;
+  size: NonNullable<CheckboxProps['size']>;
 }>`
   position: relative;
   display: flex;

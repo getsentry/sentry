@@ -55,13 +55,11 @@ function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const marklineColor = isChonkTheme(theme)
-      ? theme.colors.content.muted
-      : theme.gray200;
+    const marklineColor = isChonkTheme(theme) ? theme.gray300 : theme.gray200;
     const marklineLabelColor = isChonkTheme(theme)
-      ? theme.colors.content.primary
+      ? theme.tokens.content.muted
       : theme.gray300;
-    const chartColor = isChonkTheme(theme) ? theme.colors.content.primary : theme.gray300;
+    const chartColor = isChonkTheme(theme) ? theme.tokens.graphics.muted : theme.gray300;
 
     const markLine = MarkLine({
       silent: true,
@@ -127,7 +125,7 @@ function GroupStatusChart({
               showXAxisLine
               hideZeros={hideZeros}
               markLineLabelSide="right"
-              barOpacity={0.4}
+              barOpacity={theme.isChonk ? 1 : 0.4}
               height={showMarkLine ? 36 : height}
               isGroupedByDate
               showTimeInTooltip
@@ -166,6 +164,6 @@ const ChartWrapper = styled('div')`
 `;
 
 const GraphText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

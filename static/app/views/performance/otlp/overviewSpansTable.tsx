@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button';
-import GridEditable from 'sentry/components/gridEditable';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -150,7 +150,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.OTHER}
-        projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row.span_id}

@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ModalStore from 'sentry/stores/modalStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -281,7 +282,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
-    expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
+    expect(screen.getByText('Passkey / Biometric / Security Key')).toBeInTheDocument();
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
@@ -393,14 +394,16 @@ describe('AccountSecurity', function () {
     });
 
     renderComponent();
+    renderGlobalModal();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Sign out of all devices'})
     );
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>
-      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/')
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/login/')
     );
   });
 });

@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
   GridHead,
   GridHeadCell,
   GridResizer,
   GridRow,
-} from 'sentry/components/gridEditable/styles';
-import Panel from 'sentry/components/panels/panel';
+} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,9 +51,9 @@ interface EventListTableProps {
     tableUnits?: string;
     /**
      * The total number of results for this table across all pages
-     * Needs to be a ReactNode for <EventsTable /> to work.
+     * Needs to be a string | number for <EventsTable /> to work.
      */
-    totalCount?: React.ReactNode;
+    totalCount?: string | number;
   };
   /**
    * The title of the table
@@ -146,14 +146,14 @@ export const Header = styled('div')`
 
 export const Title = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export const HeaderItem = styled('div')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`
@@ -167,7 +167,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHead} {
     min-height: unset;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     ${GridResizer} {
       height: 36px;
     }
@@ -202,7 +202,7 @@ const StreamlineGridEditable = styled('div')`
   ${GridBodyCell} {
     min-height: unset;
     padding: ${space(1)} ${space(1.5)};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -225,7 +225,7 @@ const StreamlineGridEditable = styled('div')`
 
 export const PaginationButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export function PaginationText({

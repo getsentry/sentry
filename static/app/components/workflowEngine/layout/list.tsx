@@ -1,4 +1,4 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
@@ -17,7 +17,7 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
-      <Layout.Header>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>
@@ -25,7 +25,7 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Flex column gap={space(1.5)}>
+          <Flex direction="column" gap={space(1.5)}>
             {children}
           </Flex>
         </Layout.Main>

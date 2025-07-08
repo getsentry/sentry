@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -824,7 +825,8 @@ class RegionJiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        installation.sync_assignee_outbound(external_issue, user)
+        with pytest.raises(InvalidConfiguration):
+            installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1

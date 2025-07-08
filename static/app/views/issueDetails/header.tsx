@@ -7,15 +7,15 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Badge} from 'sentry/components/core/badge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Link} from 'sentry/components/core/link';
+import {TabList} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -206,7 +206,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+  const NEW_ISSUE_TYPES: IssueType[] = []; // adds a "new" banner next to the title
 
   return (
     <Layout.Header>
@@ -313,13 +313,13 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   margin-top: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
   }
 `;
 
 const TitleWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 65%;
   }
 `;
@@ -338,7 +338,7 @@ const StatsWrapper = styled('div')`
   display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     justify-content: flex-end;
   }
 `;

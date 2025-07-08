@@ -296,7 +296,6 @@ describe('Sentry Application Details', function () {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
-      expect(screen.getByText('Tokens')).toBeInTheDocument();
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
     });
 
@@ -406,6 +405,8 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
+      renderGlobalModal();
+
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
       expect(screen.getAllByLabelText('Token preview')).toHaveLength(1);
@@ -430,10 +431,12 @@ describe('Sentry Application Details', function () {
       renderComponent();
       renderGlobalModal();
       await screen.findByRole('button', {name: 'Save Changes'});
-      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-      expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
+      expect(
+        await screen.findByText("You haven't created any authentication tokens yet.")
+      ).toBeInTheDocument();
     });
 
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
@@ -618,7 +621,9 @@ describe('Sentry Application Details', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(
-        screen.getByText('This will be the only time your client secret is visible!')
+        await screen.findByText(
+          'This will be the only time your client secret is visible!'
+        )
       ).toBeInTheDocument();
       expect(screen.getByText('Your new Client Secret')).toBeInTheDocument();
       expect(screen.getByLabelText<HTMLInputElement>('new-client-secret')).toHaveValue(

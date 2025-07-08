@@ -12,6 +12,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
@@ -75,7 +76,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[fastapi]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[fastapi]'}),
     },
   ],
   configure: (params: Params) => [
@@ -162,6 +163,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

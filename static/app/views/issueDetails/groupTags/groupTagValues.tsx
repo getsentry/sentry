@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -12,7 +13,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -364,10 +364,10 @@ const Title = styled('h3')`
 
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 

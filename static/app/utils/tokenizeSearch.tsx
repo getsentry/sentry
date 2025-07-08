@@ -6,6 +6,7 @@ const ALLOWED_WILDCARD_FIELDS = [
   'span.status_code',
   'log.body',
   'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -477,7 +478,27 @@ function isSpace(s: string) {
  * both sides of the split as strings.
  */
 function parseFilter(filter: string) {
-  const idx = filter.indexOf(':');
+  let idx = 0;
+  let quoted = false;
+
+  // look for the first `:` that is not in quotes
+  for (; idx < filter.length; idx++) {
+    const c = filter[idx];
+
+    if (c === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (c === ':' && !quoted) {
+      const key = removeSurroundingQuotes(filter.slice(0, idx));
+      const value = removeSurroundingQuotes(filter.slice(idx + 1));
+      return [key, value];
+    }
+  }
+
+  // something went wrong, fallback to the naive approach of spliting the filter
+  idx = filter.indexOf(':');
   const key = removeSurroundingQuotes(filter.slice(0, idx));
   const value = removeSurroundingQuotes(filter.slice(idx + 1));
 

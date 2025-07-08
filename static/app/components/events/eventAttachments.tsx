@@ -5,7 +5,8 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
@@ -139,9 +140,10 @@ function EventAttachmentsContent({
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <FlexCenter>
+              <Flex align="center">
                 <Name>{attachment.name}</Name>
-              </FlexCenter>
+              </Flex>
+
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
@@ -196,12 +198,6 @@ export function EventAttachments(props: EventAttachmentsProps) {
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;
-`;
-
-const FlexCenter = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  align-items: center;
 `;
 
 const Name = styled('div')`

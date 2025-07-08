@@ -1,4 +1,4 @@
-import {prettifyTagKey} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 
 function removePrefixes(key: string) {
   return key.replace(/^log\.|^sentry\./, '');

@@ -28,6 +28,8 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -49,6 +51,7 @@ type TransactionNodeDetailHeaderProps = {
   node: TraceTreeNode<TraceTree.Transaction>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  hideNodeActions?: boolean;
 };
 
 function TransactionNodeDetailHeader({
@@ -56,6 +59,7 @@ function TransactionNodeDetailHeader({
   organization,
   onTabScrollToNode,
   event,
+  hideNodeActions,
 }: TransactionNodeDetailHeaderProps) {
   return (
     <TraceDrawerComponents.HeaderContainer>
@@ -70,12 +74,14 @@ function TransactionNodeDetailHeader({
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        eventSize={event?.size}
-      />
+      {!hideNodeActions && (
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+          eventSize={event?.size}
+        />
+      )}
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -86,6 +92,7 @@ export function TransactionNodeDetails({
   onTabScrollToNode,
   onParentClick,
   replay,
+  hideNodeActions,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -96,7 +103,8 @@ export function TransactionNodeDetails({
     isError,
     isPending,
   } = useTransaction({
-    node,
+    event_id: node.value.event_id,
+    project_slug: node.value.project_slug,
     organization,
   });
   const {data: cacheMetrics} = useSpanMetrics(
@@ -126,6 +134,7 @@ export function TransactionNodeDetails({
         organization={organization}
         event={event}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         {node.canFetch ? null : (
@@ -155,7 +164,11 @@ export function TransactionNodeDetails({
           node={node}
           project={project}
           organization={organization}
+          hideNodeActions={hideNodeActions}
         />
+
+        <AIInputSection node={node} event={event} />
+        <AIOutputSection node={node} event={event} />
 
         <TransactionSpecificSections
           event={event}

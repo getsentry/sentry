@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Iterator
 
-import progressbar
+import click
 from django.db import connections, router
 
 from sentry import eventstore
@@ -217,39 +218,17 @@ class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgress
         return cursor.fetchone()[0]
 
 
-class WithProgressBar:
-    def __init__(self, iterator, count=None, caption=None):
-        if count is None and hasattr(iterator, "__len__"):
-            count = len(iterator)
+class WithProgressBar[V]:
+    def __init__(
+        self, iterator: Iterable[V], count: int | None = None, caption: str | None = None
+    ) -> None:
         self.iterator = iterator
         self.count = count
-        self.caption = str(caption or "Progress")
+        self.caption = caption or "Progress"
 
-    def __iter__(self):
-        pbar = progressbar.ProgressBar(
-            widgets=[
-                f"{self.caption}: ",
-                progressbar.Percentage(),
-                " ",
-                progressbar.Bar(),
-                " ",
-                progressbar.ETA(),
-            ],
-            max_value=self.count,
-            # The default update interval is every 0.1s,
-            # which for large migrations would easily logspam GoCD.
-            min_poll_interval=10,
-        )
-        pbar.start()
-        for idx, item in enumerate(self.iterator):
-            yield item
-            # It's possible that we've exceeded the maxval, but instead
-            # of exploding on a ValueError, let's just cap it so we don't.
-            # this could happen if new rows were added between calculating `count()`
-            # and actually beginning iteration where we're iterating slightly more
-            # than we thought.
-            pbar.update(min(idx, self.count))
-        pbar.finish()
+    def __iter__(self) -> Iterator[V]:
+        with click.progressbar(self.iterator, length=self.count, label=self.caption) as it:
+            yield from it
 
 
 def bulk_delete_objects(

@@ -598,7 +598,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             group_event.occurrence
             assert fetch_mock.call_count == 1
             # Call count should increase if we do it a second time
-            group_event.occurrence = None
+            group_event._occurrence = None
             assert group_event.occurrence == occurrence
             assert fetch_mock.call_count == 2
 

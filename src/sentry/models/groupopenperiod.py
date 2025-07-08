@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.conf import settings
+from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField
+from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models
 from django.utils import timezone
 
@@ -54,22 +56,46 @@ class GroupOpenPeriod(DefaultFieldsModel):
             models.Index(fields=("group", "date_started")),
         )
 
-        # This constraint is applied in the db but can't be represented in the model because Django
-        # doesn't support specifying the opsclass needed to use the bigint field (group_id) in the constraint.
-        # constraints = (
-        #     ExclusionConstraint(
-        #         name="exclude_overlapping_start_end",
-        #         expressions=[
-        #             (models.F("group"), RangeOperators.EQUAL),
-        #             (
-        #                 TsTzRange("date_started", "date_ended", RangeBoundary()),
-        #                 RangeOperators.OVERLAPS,
-        #             ),
-        #         ],
-        #     ),
-        # )
+        constraints = (
+            ExclusionConstraint(
+                name="exclude_overlapping_date_start_end",
+                expressions=[
+                    (models.F("group"), RangeOperators.EQUAL),
+                    (
+                        TsTzRange(
+                            "date_started",
+                            "date_ended",
+                            RangeBoundary(inclusive_lower=True, inclusive_upper=True),
+                        ),
+                        RangeOperators.OVERLAPS,
+                    ),
+                ],
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "date_started", "date_ended", "user_id")
+
+    def close_open_period(
+        self,
+        resolution_activity: Activity,
+        resolution_time: datetime,
+    ) -> None:
+        if self.date_ended is not None:
+            logger.warning("Open period is already closed", extra={"group_id": self.group.id})
+            return
+
+        self.update(
+            date_ended=resolution_time,
+            resolution_activity=resolution_activity,
+            user_id=resolution_activity.user_id,
+        )
+
+    def reopen_open_period(self) -> None:
+        if self.date_ended is None:
+            logger.warning("Open period is not closed", extra={"group_id": self.group.id})
+            return
+
+        self.update(date_ended=None, resolution_activity=None, user_id=None)
 
 
 def get_last_checked_for_open_period(group: Group) -> datetime:
@@ -195,11 +221,31 @@ def get_open_periods_for_group(
     return open_periods
 
 
+def create_open_period(group: Group, start_time: datetime) -> None:
+    if not features.has("organizations:issue-open-periods", group.project.organization):
+        return
+
+    latest_open_period = get_latest_open_period(group)
+    if latest_open_period and latest_open_period.date_ended is None:
+        logger.warning("Latest open period is not closed", extra={"group_id": group.id})
+        return
+
+    # There are some historical cases where we log multiple regressions for the same group,
+    # but we only want to create a new open period for the first regression
+    GroupOpenPeriod.objects.create(
+        group=group,
+        project=group.project,
+        date_started=start_time,
+        date_ended=None,
+        resolution_activity=None,
+    )
+
+
 def update_group_open_period(
     group: Group,
     new_status: int,
-    activity: Activity | None,
-    should_reopen_open_period: bool,
+    resolution_time: datetime | None = None,
+    resolution_activity: Activity | None = None,
 ) -> None:
     """
     Update an existing open period when the group is resolved or unresolved.
@@ -217,50 +263,25 @@ def update_group_open_period(
     if not has_initial_open_period(group):
         return
 
-    if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
-        return
-
     open_period = get_latest_open_period(group)
     if open_period is None:
-        return
-
-    if open_period.date_ended is None and new_status == GroupStatus.UNRESOLVED:
-        logger.warning(
-            "Attempting to unresolve group with no closed open period",
-            extra={"group_id": group.id},
-        )
-        return
-
-    if open_period.date_ended is not None and new_status == GroupStatus.RESOLVED:
-        logger.warning(
-            "Attempting to resolve group with no active open period",
-            extra={"group_id": group.id},
-        )
+        logger.warning("No open period found for group", extra={"group_id": group.id})
         return
 
     if new_status == GroupStatus.RESOLVED:
-        if activity is None:
+        if resolution_activity is None or resolution_time is None:
             logger.warning(
-                "Missing activity for group resolution, querying for it",
+                "Missing information to close open period",
                 extra={"group_id": group.id},
             )
-            activity = (
-                Activity.objects.filter(
-                    group=group,
-                    type=ActivityType.SET_RESOLVED.value,
-                )
-                .order_by("-datetime")
-                .first()
-            )
+            return
 
-        end_time = group.resolved_at or (activity.datetime if activity else None)
-        open_period.update(
-            date_ended=end_time,
-            resolution_activity=activity,
-            user_id=activity.user_id if activity else None,
+        open_period.close_open_period(
+            resolution_activity=resolution_activity,
+            resolution_time=resolution_time,
         )
-    elif new_status == GroupStatus.UNRESOLVED and should_reopen_open_period:
-        open_period.update(date_ended=None, resolution_activity=None, user_id=None)
+    elif new_status == GroupStatus.UNRESOLVED:
+        open_period.reopen_open_period()
 
 
 def has_initial_open_period(group: Group) -> bool:

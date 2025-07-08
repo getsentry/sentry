@@ -5,12 +5,16 @@ import {
   ItemType,
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
+  ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -55,6 +59,10 @@ const PREDEFINED_FIELDS = {
 
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
+
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+  category => category !== IssueCategory.FEEDBACK
+);
 
 /**
  * Certain field keys may conflict with custom tags. In this case, the tag will be
@@ -160,8 +168,7 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
-      const key = `flags["${tag.key}"]`;
+      const key = makeFeatureFlagSearchKey(tag.key);
       if (allTagsCollection[key]) {
         allTagsCollection[key].totalValues =
           (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
@@ -282,15 +289,15 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? [
-            IssueCategory.ERROR,
-            IssueCategory.OUTAGE,
-            IssueCategory.PERFORMANCE_BEST_PRACTICE,
-            IssueCategory.PERFORMANCE_REGRESSION,
-            IssueCategory.RESPONSIVENESS,
-            IssueCategory.USER_EXPERIENCE,
-            IssueCategory.FEEDBACK,
-          ]
+        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+            icon: null,
+            title: value,
+            name: value,
+            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+            value,
+            type: ItemType.TAG_VALUE,
+            children: [],
+          }))
         : [
             IssueCategory.ERROR,
             IssueCategory.PERFORMANCE,
@@ -329,8 +336,8 @@ function builtInIssuesFields({
     [FieldKey.FIRST_RELEASE]: {
       ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
-      values: ['latest'],
-      predefined: true,
+      values: [],
+      predefined: false,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
       ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
@@ -352,6 +359,23 @@ function builtInIssuesFields({
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.SUPER_HIGH,
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
     },
   };
 

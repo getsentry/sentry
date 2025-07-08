@@ -28,9 +28,7 @@ export function InterimSection({
   Pick<
     FoldSectionProps,
     'initialCollapse' | 'preventCollapse' | 'disableCollapsePersistence'
-  > & {
-    ref?: React.Ref<HTMLElement>;
-  }) {
+  >) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   return hasStreamlinedUI ? (

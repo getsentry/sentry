@@ -1,15 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
+import {
+  getAutofixRunExists,
+  isIssueQuickFixable,
+} from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
+import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -75,6 +80,13 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
+  const autofixRunExists = getAutofixRunExists(data as Group);
+  const seerFixable = isIssueQuickFixable(data as Group);
+  const showSeer =
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures &&
+    (autofixRunExists || seerFixable);
+
   const {subtitle} = getTitle(data);
 
   const items = [
@@ -107,6 +119,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       </CommentsLink>
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
+    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
         <GlobalSelectionLink
@@ -156,15 +169,16 @@ const GroupExtra = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   line-height: 1.2;
+  min-height: ${space(2)};
 
   & > a {
     color: ${p => p.theme.subText};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;
@@ -210,7 +224,7 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 `;
 
 const Location = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   min-width: 10px;
   ${p => p.theme.overflowEllipsis};

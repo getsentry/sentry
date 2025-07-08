@@ -2,10 +2,13 @@ from unittest import mock
 
 import pytest
 
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user import RpcUser
@@ -51,7 +54,7 @@ class TestSyncAssigneeOutbound(TestCase):
         assert isinstance(user_arg, RpcUser)
         assert user_arg.id == self.user.id
 
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -93,9 +96,7 @@ class TestSyncAssigneeOutbound(TestCase):
         mock_sync_assignee.assert_not_called()
 
         assert mock_record_event.call_count == 2
-        start, success = mock_record_event.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
+        assert_success_metric(mock_record_event)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -115,9 +116,7 @@ class TestSyncAssigneeOutbound(TestCase):
         # We don't want to log halt/failure metrics for these as it will taint
         # all non-sync integrations' metrics.
         assert mock_record_event.call_count == 2
-        start, success = mock_record_event.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
+        assert_success_metric(mock_record_event)
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_missing_integration_installation(self, mock_sync_assignee):
@@ -134,3 +133,25 @@ class TestSyncAssigneeOutbound(TestCase):
         assert ExternalIssue.objects.filter(id=external_issue.id).exists()
         sync_assignee_outbound(external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
+    def test_missing_organization_integration(self, mock_sync_assignee, mock_record_event):
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-1234",
+            integration=self.example_integration,
+        )
+
+        # Delete all organization integrations, but ensure we still have an external issue
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            OrganizationIntegration.objects.filter().delete()
+
+        assert ExternalIssue.objects.filter(id=external_issue.id).exists()
+        sync_assignee_outbound(external_issue.id, self.user.id, True, None)
+        mock_sync_assignee.assert_not_called()
+
+        assert mock_record_event.call_count == 2
+        assert_halt_metric(
+            mock_record_event, OrganizationIntegrationNotFound("missing org_integration")
+        )

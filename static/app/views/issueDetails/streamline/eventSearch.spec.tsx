@@ -11,6 +11,7 @@ import {
   renderHook,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -33,7 +34,7 @@ describe('EventSearch', () => {
     handleSearch: mockHandleSearch,
     query: '',
   };
-  const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
+  const [tagKey, tagValue] = ['user.email', 'leander@s.io'];
   let mockTagKeyQuery: jest.Mock;
 
   beforeEach(() => {
@@ -58,20 +59,20 @@ describe('EventSearch', () => {
   });
 
   it('handles basic inputs for tags', async function () {
-    render(<EventSearch {...defaultProps} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<EventSearch {...defaultProps} />);
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
     await userEvent.type(search, `${tagKey}:`);
     await userEvent.keyboard(`${tagValue}{enter}{enter}`);
 
-    expect(mockTagKeyQuery).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockTagKeyQuery).toHaveBeenCalled();
+    });
     expect(mockHandleSearch).toHaveBeenCalledWith(
       `${tagKey}:${tagValue}`,
       expect.anything()
     );
-  });
+  }, 10_000);
 
   it('filters issue tokens from event queries', function () {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;

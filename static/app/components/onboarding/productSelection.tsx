@@ -80,7 +80,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -94,7 +98,11 @@ export const platformProductAvailability = {
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
-  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  flutter: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
@@ -112,6 +120,10 @@ export const platformProductAvailability = {
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -194,7 +206,11 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -285,9 +301,11 @@ export type ProductSelectionProps = {
   disabledProducts?: DisabledProducts;
   /**
    * Fired when the product selection changes
-   *
    */
-  onChange?: (products: ProductSolution[]) => void;
+  onChange?: (params: {
+    previousProducts: ProductSolution[];
+    products: ProductSolution[];
+  }) => void;
   /**
    * Triggered when the component is loaded
    */
@@ -354,7 +372,10 @@ export function ProductSelection({
 
       const selectedProducts = Array.from(newProduct);
 
-      onChange?.(selectedProducts);
+      onChange?.({
+        previousProducts: urlProducts as ProductSolution[],
+        products: selectedProducts,
+      });
       setParams({product: selectedProducts});
     },
     [products, setParams, urlProducts, onChange]
@@ -417,10 +438,6 @@ export function ProductSelection({
 
 const ProductButton = withChonk(
   styled(Button)`
-    border: 1px solid ${p => p.theme.purple300};
-    color: ${p => p.theme.purple300};
-    background: ${p => p.theme.purple100};
-
     :hover,
     :focus-visible {
       border: 1px solid ${p => p.theme.purple300};

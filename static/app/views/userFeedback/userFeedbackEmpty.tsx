@@ -75,12 +75,10 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
     };
   }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalyticsInternal(
-    eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
-  ) {
+  function trackAnalyticsInternal(eventKey: 'user_feedback.dialog_opened') {
     trackAnalytics(eventKey, {
       organization,
-      projects: selectedProjects?.join(','),
+      projects: selectedProjects?.map(p => p.id).join(','),
     });
   }
 

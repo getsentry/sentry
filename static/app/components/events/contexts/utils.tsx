@@ -288,6 +288,10 @@ export function getContextTitle({
       return t('Profile');
     case 'replay':
       return t('Replay');
+    case 'ota_updates':
+      return t('OTA Updates');
+    case 'react_native_context':
+      return t('React Native');
     default:
       return contextType;
   }
@@ -345,8 +349,8 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = theme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={iconSize} gravatar={false} />;
+      const iconSize = theme.iconSizes[contextIconProps?.size ?? 'xl'];
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);

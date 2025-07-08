@@ -1,14 +1,12 @@
 import {Fragment} from 'react';
 
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
 import {NumberInput} from './numberInput';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/numberInput';
 
-export default storyBook('NumberInput', (story, APIReference) => {
+export default Storybook.story('NumberInput', (story, APIReference) => {
   APIReference(types.NumberInput);
 
   story('Default', () => {
@@ -17,11 +15,16 @@ export default storyBook('NumberInput', (story, APIReference) => {
         <p>
           The NumberInput component provides a numeric input field with
           increment/decrement buttons. It supports keyboard controls,
-          <JSXProperty name="min" value="number" /> and
-          <JSXProperty name="max" value="number" /> validation, and comes with full
-          accessibility features through React Aria.
+          <Storybook.JSXProperty name="min" value="number" /> and
+          <Storybook.JSXProperty name="max" value="number" /> validation, and comes with
+          full accessibility features through React Aria.
         </p>
+        <label>Default size</label>
         <NumberInput />
+        <br />
+        <label>Extra small size</label>
+        <br />
+        <NumberInput size="xs" />
       </Fragment>
     );
   });

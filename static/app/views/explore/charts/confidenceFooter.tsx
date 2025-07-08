@@ -5,7 +5,6 @@ import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   confidence?: Confidence;
@@ -16,52 +15,25 @@ type Props = {
 };
 
 export function ConfidenceFooter(props: Props) {
-  const organization = useOrganization();
-  const normalSamplingModeEnabled = organization.features.includes(
-    'visibility-explore-progressive-loading-normal-sampling-mode'
-  );
-  return (
-    <Container>{confidenceMessage({...props, normalSamplingModeEnabled})}</Container>
-  );
+  return <Container>{confidenceMessage(props)}</Container>;
 }
 
-function confidenceMessage({
-  sampleCount,
-  confidence,
-  topEvents,
-  isSampled,
-  dataScanned,
-  normalSamplingModeEnabled,
-}: Props & {normalSamplingModeEnabled: boolean}) {
+function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
   const isTopN = defined(topEvents) && topEvents > 1;
   if (!defined(sampleCount)) {
     return isTopN
-      ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
-      : t('* Chart extrapolated from \u2026');
+      ? t('* Top %s groups extrapolated based on \u2026', topEvents)
+      : t('* Extrapolated based on \u2026');
   }
 
   const noSampling = defined(isSampled) && !isSampled;
 
-  const partialScanTooltip = <_PartialScanTooltip />;
   const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
   const sampleCountComponent = <Count value={sampleCount} />;
-  const showPartialScanMessage = dataScanned === 'partial' && !normalSamplingModeEnabled;
-
   if (confidence === 'low') {
     if (isTopN) {
-      if (showPartialScanMessage) {
-        return tct(
-          'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
-          {
-            topEvents,
-            tooltip: partialScanTooltip,
-            sampleCountComponent,
-          }
-        );
-      }
-
       return tct(
-        'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples]',
+        'Top [topEvents] groups extrapolated based on [tooltip:[sampleCountComponent] span samples]',
         {
           topEvents,
           tooltip: lowAccuracyFullSampleCount,
@@ -70,45 +42,23 @@ function confidenceMessage({
       );
     }
 
-    if (showPartialScanMessage) {
-      return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
-        tooltip: partialScanTooltip,
-        sampleCountComponent,
-      });
-    }
-
-    return tct('Based on [tooltip:[sampleCountComponent] samples]', {
+    return tct('Extrapolated based on [tooltip:[sampleCountComponent] span samples]', {
       tooltip: lowAccuracyFullSampleCount,
       sampleCountComponent,
     });
   }
 
   if (isTopN) {
-    if (showPartialScanMessage) {
-      return tct(
-        'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
-        {
-          topEvents,
-          tooltip: partialScanTooltip,
-          sampleCountComponent,
-        }
-      );
-    }
-
-    return tct('Top [topEvents] groups based on [sampleCountComponent] samples', {
-      topEvents,
-      sampleCountComponent,
-    });
+    return tct(
+      'Top [topEvents] groups extrapolated based on [sampleCountComponent] span samples',
+      {
+        topEvents,
+        sampleCountComponent,
+      }
+    );
   }
 
-  if (showPartialScanMessage) {
-    return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
-      tooltip: partialScanTooltip,
-      sampleCountComponent,
-    });
-  }
-
-  return tct('Based on [sampleCountComponent] samples', {
+  return tct('Extrapolated based on [sampleCountComponent] span samples', {
     sampleCountComponent,
   });
 }
@@ -124,11 +74,13 @@ function _LowAccuracyFullTooltip({
     <Tooltip
       title={
         <div>
-          {t('You may not have enough samples for high accuracy.')}
+          {t(
+            'You may not have enough span samples for a high accuracy extrapolation of your query.'
+          )}
           <br />
           <br />
           {t(
-            'You can try adjusting your query by removing filters or increasing the time interval.'
+            "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
           )}
           <br />
           <br />
@@ -146,28 +98,7 @@ function _LowAccuracyFullTooltip({
   );
 }
 
-function _PartialScanTooltip({children}: {children?: React.ReactNode}) {
-  return (
-    <Tooltip
-      title={
-        <div>
-          {t('We could not scan all available data due to time or resource limits.')}
-          <br />
-          <br />
-          {t(
-            'Try reducing your time range or removing filters to get more accurate trends.'
-          )}
-        </div>
-      }
-      maxWidth={270}
-      showUnderline
-    >
-      {children}
-    </Tooltip>
-  );
-}
-
 const Container = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from django.db.models import Model
 from django.utils.text import re_camel_case
+from rest_framework.exceptions import ValidationError
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
 
@@ -39,6 +40,10 @@ def convert_dict_key_case(obj, converter):
     obj = obj.copy()
     for key in list(obj.keys()):
         converted_key = converter(key)
+        if converted_key != key and converted_key in obj:
+            raise ValidationError(
+                {key: f"{key} collides with {converted_key}, please pass only one value"}
+            )
         obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
 
     return obj

@@ -38,9 +38,14 @@ class TeamSerializerTest(TestCase):
         user = self.create_user(username="foo")
         other_user = self.create_user(username="bar")
         third_user = self.create_user(username="baz")
+        # Inactive users are not included in the member count
+        inactive_user = self.create_user(username="qux", is_active=False)
 
         organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization, members=[user, other_user, third_user])
+        team = self.create_team(
+            organization=organization,
+            members=[user, other_user, third_user, inactive_user],
+        )
 
         result = serialize(team, user)
         assert result["memberCount"] == 3

@@ -1,24 +1,29 @@
 from contextlib import contextmanager
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import IntegrityError
 
-from sentry import options
-from sentry.models.counter import Counter
+from sentry.locks import locks
+from sentry.models.counter import (
+    LOW_WATER_RATIO,
+    Counter,
+    calculate_cached_id_block_size,
+    increment_project_counter_in_cache,
+    refill_cached_short_ids,
+)
 from sentry.models.group import Group
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
+from sentry.utils.redis import redis_clusters
 
 
 @django_db_all
-@pytest.mark.parametrize("upsert_sample_rate", [0, 1])
-def test_increment(default_project, upsert_sample_rate):
-    options.set("store.projectcounter-modern-upsert-sample-rate", upsert_sample_rate)
-
-    assert Counter.increment(default_project, 42) == 42
-    assert Counter.increment(default_project, 1) == 43
+def test_increment(default_project):
+    assert Counter.increment(default_project) == 1
+    assert Counter.increment(default_project) == 2
 
 
 @contextmanager
@@ -45,10 +50,6 @@ def create_existing_group(project, monkeypatch, message):
 
         assert group_creation_spy.call_count == 1
         assert group_creation_results[0] == group
-
-        # This equality ensures the next new group's `short_id` won't conflict with group's `short_id`.
-        counter = Counter.objects.get(project_id=project.id)
-        assert group.short_id == counter.value
 
         return group
 
@@ -85,8 +86,26 @@ def test_group_creation_with_stuck_project_counter(default_project, monkeypatch,
         # Set the counter value such that it will try to create the next group with the same `short_id` as the
         # existing group
         counter = Counter.objects.get(project_id=project.id)
+
         counter.value = counter.value - discrepancy
         counter.save()
+
+        # Populate the Redis cache with values that would cause the stuck counter scenario
+        # We want to populate it with the short_id that would conflict with an existing group
+        redis_key = f"pc:{project.id}"
+        redis = redis_clusters.get("default")
+
+        # Clear any existing values
+        redis.delete(redis_key)
+
+        # Get the short_id that would conflict (one of the existing group's short_ids)
+        conflicting_short_id = existing_groups[0].short_id
+
+        # Populate Redis with the conflicting short_id and some additional values
+        # This will cause the Redis-based counter to return the conflicting short_id
+        redis.rpush(
+            redis_key, conflicting_short_id, conflicting_short_id + 1, conflicting_short_id + 2
+        )
 
         # Change the message so the event will create a new group... or at least try to
         new_message = "Dogs are great!"
@@ -126,6 +145,13 @@ def test_group_creation_with_stuck_project_counter(default_project, monkeypatch,
         messages.append(new_message)
         existing_groups.append(new_group)
 
+    # Clear the Redis cache to ensure the second part of the test works correctly
+    # The stuck counter logic should have fixed the database counter, so we want
+    # the Redis cache to be repopulated from the corrected database value
+    redis_key = f"pc:{project.id}"
+    redis = redis_clusters.get("default")
+    redis.delete(redis_key)
+
     # Just to prove that it now works, here we go (new spies just for convenience)
     with patch_group_creation(monkeypatch) as patches:
         group_creation_spy, group_creation_results = patches
@@ -145,4 +171,169 @@ def test_group_creation_with_stuck_project_counter(default_project, monkeypatch,
 
         # And as before, the counter has been adjusted to be ready for the next new group
         counter = Counter.objects.get(project_id=project.id)
-        assert counter.value == new_new_group.short_id
+        block_size = calculate_cached_id_block_size(counter.value)
+        assert counter.value >= new_new_group.short_id
+        assert counter.value - new_new_group.short_id <= block_size
+
+
+# === Redis-based Counter Tests ===
+@pytest.fixture
+def redis_mock():
+    with patch("sentry.models.counter.redis_clusters") as mock:
+        mock.get.return_value = MagicMock()
+        yield mock.get.return_value
+
+
+@django_db_all
+def test_increment_project_counter_in_cache(default_project, redis_mock):
+    # Enable the feature flag
+    # Patch the pipeline context manager
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        # First increment should trigger a refill
+        pipeline_mock.execute.return_value = [None, 0]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+            result = increment_project_counter_in_cache(default_project, using="default")
+            mock_refill.assert_called_once_with(
+                default_project.id,
+                block_size=calculate_cached_id_block_size(1),
+                using="default",
+            )
+
+        # After refill, should get a value from Redis
+        pipeline_mock.execute.return_value = ["42", 100]
+        result = increment_project_counter_in_cache(default_project, using="default")
+        assert result == 42
+
+
+@django_db_all
+def test_refill_cached_short_ids(default_project, redis_mock):
+    # Mock the lock
+    lock_mock = MagicMock()
+    lock_mock.locked.return_value = False
+    lock_mock.__enter__ = MagicMock()
+    lock_mock.__exit__ = MagicMock()
+    block_size = calculate_cached_id_block_size(1)
+    # Configure redis_mock to return an integer for llen
+    redis_mock.llen.return_value = 0
+
+    with (
+        patch("sentry.models.counter.locks.get", return_value=lock_mock),
+        patch("sentry.models.counter.increment_project_counter_in_database", return_value=100),
+    ):
+        refill_cached_short_ids(default_project.id, block_size)
+
+        # Should have pushed BLOCK values to Redis
+        redis_mock.rpush.assert_called_once()
+        args = redis_mock.rpush.call_args[0]
+        assert len(args) == block_size + 1  # +1 for the redis_key
+        assert args[0] == f"pc:{default_project.id}"
+        # Convert tuple to list for comparison
+        assert list(args[1:]) == list(range(1, calculate_cached_id_block_size(1) + 1))
+
+
+@django_db_all
+def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
+    # Mock the lock as already locked
+    block_size = calculate_cached_id_block_size(1)
+    lock = locks.get(
+        f"pc:lock:{default_project.id}", duration=30, name="project_short_id_counter_refill"
+    )
+    with lock.acquire():
+        refill_cached_short_ids(default_project.id, block_size)
+        # Should not have called any Redis operations
+        redis_mock.rpush.assert_not_called()  # noqa: F821
+
+
+@django_db_all
+def test_low_water_mark_trigger(default_project, redis_mock):
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    block_size = calculate_cached_id_block_size(42)
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        pipeline_mock.execute.return_value = [
+            "42",
+            block_size * LOW_WATER_RATIO - 1,
+        ]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+            result = increment_project_counter_in_cache(default_project, using="default")
+            assert result == 42
+            mock_refill.assert_called_once_with(
+                default_project.id,
+                block_size=block_size,
+                using="default",
+            )
+
+
+@django_db_all
+def test_fallback_to_database(default_project, redis_mock):
+    # Enable the feature flag
+    # Patch the pipeline context manager
+    pipeline_mock = MagicMock()
+    pipeline_mock.__enter__.return_value = pipeline_mock
+    pipeline_mock.__exit__.return_value = None
+    with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+        pipeline_mock.execute.return_value = [None, 0]
+        with patch("sentry.models.counter.refill_cached_short_ids.delay"):
+            with patch(
+                "sentry.models.counter.increment_project_counter_in_database", return_value=42
+            ) as mock_db:
+                result = increment_project_counter_in_cache(default_project, using="default")
+                assert result == 42
+                mock_db.assert_called_once_with(default_project, using="default")
+
+
+@django_db_all
+def test_preallocation_end_to_end(default_project):
+    # The first increment should trigger a refill
+    with TaskRunner():
+        current_value = Counter.increment(default_project)
+    # see that the next counter value is 2 (incremented by 1)
+    assert current_value == 1
+    # see that the database was incremented by CACHED_ID_BLOCK_SIZE
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)
+    # See that the redis key was populated with CACHED_ID_BLOCK_SIZE values
+    redis_key = f"pc:{default_project.id}"
+    redis = redis_clusters.get("default")
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(2)
+    assert Counter.increment(default_project) == 2
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(2) - 1
+    assert redis.lpop(redis_key) == "3"
+
+    # see the the database value is still the same since we didn't refill
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == 1 + calculate_cached_id_block_size(1)
+
+
+@django_db_all
+def test_preallocation_early_return(default_project):
+    block_size = calculate_cached_id_block_size(1)
+    with TaskRunner():
+        current_value = Counter.increment(default_project)
+    assert current_value == 1
+    assert Counter.objects.get(project_id=default_project.id).value == current_value + block_size
+    redis_key = f"pc:{default_project.id}"
+    redis = redis_clusters.get("default")
+    assert redis.llen(redis_key) == block_size
+
+    # Directly call refill_cached_short_ids - should do nothing since we have enough values
+    refill_cached_short_ids(default_project.id, block_size)
+    assert Counter.objects.get(
+        project_id=default_project.id
+    ).value == current_value + calculate_cached_id_block_size(
+        1
+    )  # Value hasn't changed
+    assert redis.llen(redis_key) == calculate_cached_id_block_size(
+        1
+    )  # Redis values haven't changed
+
+
+def test_calculate_cached_id_block_size():
+    assert calculate_cached_id_block_size(1) == 100
+    assert calculate_cached_id_block_size(1000) == 1000

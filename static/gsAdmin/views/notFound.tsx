@@ -1,16 +1,15 @@
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 function NotFound() {
   return (
     <SplashWrapper>
       <Header>
-        <HeaderTitle>{t('Not Found')}</HeaderTitle>
+        <HeaderTitle>Not Found</HeaderTitle>
       </Header>
       <div>
-        <strong>{t('Page not found.')}</strong>
+        <strong>Page not found.</strong>
       </div>
     </SplashWrapper>
   );
@@ -27,7 +26,7 @@ const Header = styled('div')`
 `;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
   color: ${p => p.theme.textColor};
 `;

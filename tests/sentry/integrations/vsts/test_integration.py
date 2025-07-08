@@ -36,7 +36,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
     @patch(
-        "sentry.identity.pipeline.IdentityProviderPipeline.get_provider",
+        "sentry.identity.pipeline.IdentityPipeline._get_provider",
         return_value=VSTSNewIdentityProvider(),
     )
     def test_original_installation_still_works(self, mock_get_scopes, mock_get_provider):
@@ -97,6 +97,82 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
                         "token_type": "bearer",
                     }
                 },
+            }
+        )
+        assert external_id == data["external_id"]
+        subscription = data["metadata"]["subscription"]
+        assert subscription["id"] is not None and subscription["secret"] is not None
+        metadata = data.get("metadata")
+        assert metadata is not None
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
+        assert metadata["integration_migration_version"] == 1
+
+        # Make sure the integration object is updated
+        # ensure_integration will be called in _finish_pipeline
+        new_integration_obj = ensure_integration("vsts", data)
+        assert new_integration_obj.metadata["integration_migration_version"] == 1
+        assert set(new_integration_obj.metadata["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
+
+    # Test that on reinstall of new migration, we keep the migration version
+    @with_feature("organizations:migrate-azure-devops-integration")
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
+    def test_migration_after_reinstall(self, mock_get_scopes):
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+            "integration_migration_version": 1,
+            "subscription": {
+                "id": "123",
+                "secret": "456",
+            },
+        }
+
+        external_id = self.vsts_account_id
+
+        # Create the integration with old integration metadata
+        integration = self.create_provider_integration(
+            metadata=state, provider="vsts", external_id=external_id
+        )
+        self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+
+        data = provider.build_integration(
+            {
+                "account": {"accountName": self.vsts_account_name, "accountId": external_id},
+                "base_url": self.vsts_base_url,
+                "identity": {
+                    "data": {
+                        "access_token": "new_access_token",
+                        "expires_in": "3600",
+                        "refresh_token": "new_refresh_token",
+                        "token_type": "bearer",
+                    }
+                },
+                "subscription": {
+                    "id": "123",
+                    "secret": "456",
+                },
+                "integration_migration_version": 1,
             }
         )
         assert external_id == data["external_id"]

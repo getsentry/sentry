@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import Any
 
 from sentry_sdk import trace
 from snuba_sdk import Column, Condition
@@ -8,13 +9,13 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
-from sentry.search.events.types import EventsMeta, EventsResponse, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, EventsResponse, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.rpc_dataset_common import run_table_query
+from sentry.snuba.rpc_dataset_common import TableQuery, run_table_query
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -68,18 +69,20 @@ def query(
         if precise_timestamp not in selected_columns:
             selected_columns.append(precise_timestamp)
     return run_table_query(
-        query_string=query or "",
-        selected_columns=selected_columns,
-        orderby=orderby,
-        offset=offset or 0,
-        limit=limit,
-        referrer=referrer or "referrer unset",
-        sampling_mode=None,
-        resolver=get_resolver(
-            params=snuba_params,
-            config=SearchResolverConfig(
-                auto_fields=False,
-                use_aggregate_conditions=use_aggregate_conditions,
+        TableQuery(
+            query_string=query or "",
+            selected_columns=selected_columns,
+            orderby=orderby,
+            offset=offset or 0,
+            limit=limit,
+            referrer=referrer or "referrer unset",
+            sampling_mode=None,
+            resolver=get_resolver(
+                params=snuba_params,
+                config=SearchResolverConfig(
+                    auto_fields=False,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                ),
             ),
         ),
         debug=debug,
@@ -93,7 +96,7 @@ def run_timeseries_query(
     y_axes: list[str],
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     rpc_dataset_common.validate_granularity(params)
@@ -137,4 +140,32 @@ def run_timeseries_query(
         params.start,
         params.end,
         params.granularity_secs,
+    )
+
+
+@trace
+def run_top_events_timeseries_query(
+    params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    raw_groupby: list[str],
+    orderby: list[str] | None,
+    limit: int,
+    referrer: str,
+    config: SearchResolverConfig,
+    sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
+) -> Any:
+    return rpc_dataset_common.run_top_events_timeseries_query(
+        get_resolver=get_resolver,
+        params=params,
+        query_string=query_string,
+        y_axes=y_axes,
+        raw_groupby=raw_groupby,
+        orderby=orderby,
+        limit=limit,
+        referrer=referrer,
+        config=config,
+        sampling_mode=sampling_mode,
+        equations=equations,
     )

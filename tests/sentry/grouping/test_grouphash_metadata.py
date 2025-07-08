@@ -20,7 +20,6 @@ from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import (
@@ -37,14 +36,15 @@ dummy_project = Mock(id=11211231)
 
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_hash_basis_with_legacy_configs(
-    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
+    config_name: str,
+    grouping_input: GroupingInput,
+    insta_snapshot: InstaSnapshotter,
 ) -> None:
     """
     Run the grouphash metadata snapshot tests using a minimal (and much more performant) save
@@ -143,6 +143,7 @@ def _assert_and_snapshot_results(
     hash_basis = metadata["hash_basis"]
     hashing_metadata = metadata["hashing_metadata"]
 
+    # Check that the right metrics are being recorded
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
             GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata),

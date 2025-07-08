@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -190,7 +191,7 @@ export default Form;
 const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
   margin-bottom: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
     margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
@@ -203,14 +204,14 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
   transition-property: height;
   ${p =>
     p.isExpanded &&
-    `
-    border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowMedium};
-    margin: ${space(2)} 0 ${space(3)} 0;
-    padding: ${space(2)};
-    height: 180px;
-  `}
+    css`
+      border-radius: ${p.theme.borderRadius};
+      border: 1px solid ${p.theme.border};
+      box-shadow: ${p.theme.dropShadowMedium};
+      margin: ${space(2)} 0 ${space(3)} 0;
+      padding: ${space(2)};
+      height: 180px;
+    `}
 `;
 
 const RegularExpression = styled(Input)`
@@ -223,7 +224,7 @@ const ToggleWrapper = styled('div')`
 `;
 
 const Toggle = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {

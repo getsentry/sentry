@@ -1,20 +1,6 @@
+import {PriorityLevel} from 'sentry/types/group';
+
 import type {Action} from './actions';
-
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
 
 export enum DataConditionType {
   // operators
@@ -44,6 +30,7 @@ export enum DataConditionType {
   TAGGED_EVENT = 'tagged_event',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
   ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
+  ISSUE_PRIORITY_DEESCALATING = 'issue_priority_deescalating',
 
   // frequency
   EVENT_FREQUENCY_COUNT = 'event_frequency_count',
@@ -54,6 +41,11 @@ export enum DataConditionType {
   PERCENT_SESSIONS_PERCENT = 'percent_sessions_percent',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = 'event_unique_user_frequency_with_conditions_count',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
+
+  // frequency types for UI only
+  EVENT_FREQUENCY = 'event_frequency',
+  EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
+  PERCENT_SESSIONS = 'percent_sessions',
 }
 
 export enum DataConditionGroupLogicType {
@@ -63,16 +55,60 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface NewDataCondition {
+export enum DetectorPriorityLevel {
+  OK = 0,
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
+export const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
+  Exclude<DetectorPriorityLevel, DetectorPriorityLevel.OK>,
+  PriorityLevel
+> = {
+  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
+  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
+  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
+};
+
+/**
+ * See DataConditionSerializer
+ */
+export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
-  condition_group?: DataConditionGroup;
-  condition_result?: any;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
 }
 
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
   actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  type: DataConditionType;
+  handlerSubgroup?: DataConditionHandlerSubgroupType;
+}
+
+// for keeping track of conflicting condition ids in the UI
+export interface ConflictingConditions {
+  conflictingActionFilters: Record<string, string[]>;
+  conflictingTriggers: string[];
 }

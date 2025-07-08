@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -12,32 +13,29 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
-  useExplorePageParams,
   useExploreSortBys,
   useExploreVisualizes,
+  useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture({
-    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit', 'explore-multi-query'],
+    features: ['dashboards-edit'],
   });
 
   beforeEach(function () {
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
     const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
@@ -47,13 +45,13 @@ describe('ExploreToolbar', function () {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
     });
   });
 
-  it('disables changing visualize fields for count', function () {
+  it('disables changing visualize fields for count', async function () {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -62,18 +60,18 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
 
-    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+    expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
   it('changes to count(span.duration) when using count', async function () {
@@ -85,16 +83,16 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -104,12 +102,81 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('avg(span.self_time)')]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count'}));
 
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <Component />
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    // change aggregate to epm
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <Component />
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([new Visualize('avg(span.self_time)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(visualizes).toEqual([new Visualize('epm()')]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'epm'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    expect(visualizes).toEqual([new Visualize('avg(span.duration)')]);
   });
 
   it('defaults count_unique argument to span.op', async function () {
@@ -121,22 +188,22 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count_unique(span.op)')]);
 
     // try changing the aggregate + field
     await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
@@ -146,13 +213,13 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('avg(span.self_time)')]);
     //
     // try changing the aggregate back to count_unique
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count_unique(span.op)')]);
   });
 
   it('allows changing visualizes', async function () {
@@ -166,16 +233,16 @@ describe('ExploreToolbar', function () {
 
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
 
     expect(fields).toEqual([
       'id',
@@ -189,12 +256,12 @@ describe('ExploreToolbar', function () {
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('avg(span.duration)')]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('avg(span.self_time)')]);
 
     expect(fields).toEqual([
       'id',
@@ -206,133 +273,19 @@ describe('ExploreToolbar', function () {
       'span.self_time',
     ]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
+      new Visualize('avg(span.self_time)'),
+      new Visualize('count(span.duration)'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize('avg(span.self_time)')]);
 
     // only one left so we hide the delete button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
-  });
-
-  it('allows changing visualizes equations', async function () {
-    let fields!: string[];
-    let visualizes: any;
-    function Component() {
-      fields = useExploreFields();
-      visualizes = useExploreVisualizes();
-      return <ExploreToolbar extras={['equations']} />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>
-    );
-
-    const section = screen.getByTestId('section-visualizes');
-
-    // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
-
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-    ]); // default
-
-    let input: HTMLElement;
-
-    // try changing the field
-    input = within(section).getByRole('combobox', {
-      name: 'Select an attribute',
-    });
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-      'span.self_time',
-    ]);
-
-    await userEvent.click(input);
-    await userEvent.keyboard('{Backspace}');
-
-    await userEvent.click(within(section).getByRole('option', {name: 'avg(\u2026)'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
-
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    input = within(section)
-      .getAllByRole('combobox', {
-        name: 'Select an attribute',
-      })
-      .at(-1)!;
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-    ]);
-
-    // try adding a new chart
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['count(span.self_time)'], 'A')]);
-
-    // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
   });
 
   it('allows changing group bys', async function () {
@@ -344,9 +297,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -396,9 +349,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -425,9 +378,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -442,7 +395,7 @@ describe('ExploreToolbar', function () {
     expect(groupBys).toEqual(['', '']);
   });
 
-  it('allows changing sort by', async function () {
+  it('allows changing sort by in samples mode', async function () {
     let sortBys: any;
     function Component() {
       sortBys = useExploreSortBys();
@@ -450,9 +403,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
@@ -499,43 +452,122 @@ describe('ExploreToolbar', function () {
     expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
-  it('takes you to suggested query', async function () {
-    let pageParams: any;
+  it('allows changing sort by in aggregates mode', async function () {
+    let sortBys: any;
+    let setMode: any;
     function Component() {
-      pageParams = useExplorePageParams();
+      setMode = useSetExploreMode();
+      sortBys = useExploreSortBys();
       return <ExploreToolbar />;
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>
     );
 
-    const section = screen.getByTestId('section-suggested-queries');
+    act(() => setMode(Mode.AGGREGATE));
 
-    await userEvent.click(within(section).getByText('Slowest Ops'));
-    expect(pageParams).toEqual(
-      expect.objectContaining({
-        fields: [
-          'id',
-          'project',
-          'span.op',
-          'span.description',
-          'span.duration',
-          'timestamp',
-        ],
-        groupBys: ['span.op'],
-        mode: Mode.AGGREGATE,
-        query: '',
-        sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-        visualizes: [
-          new Visualize(['avg(span.duration)'], 'A'),
-          new Visualize(['p50(span.duration)'], 'B'),
-        ],
+    const visualizeSection = screen.getByTestId('section-visualizes');
+
+    // try changing the aggregate
+    await userEvent.click(within(visualizeSection).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(visualizeSection).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(
+      within(visualizeSection).getByRole('button', {name: 'span.duration'})
+    );
+    await userEvent.click(
+      within(visualizeSection).getByRole('option', {name: 'span.self_time'})
+    );
+
+    await userEvent.click(
+      within(visualizeSection).getByRole('button', {
+        name: 'Add Chart',
       })
     );
+
+    const section = screen.getByTestId('section-sort-by');
+
+    // this is the default
+    expect(
+      within(section).getByRole('button', {name: 'avg(span.self_time)'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
+    expect(sortBys).toEqual([{field: 'avg(span.self_time)', kind: 'desc'}]);
+
+    // check the default field options
+    const fields = ['avg(span.self_time)', 'count(spans)'];
+    await userEvent.click(
+      within(section).getByRole('button', {name: 'avg(span.self_time)'})
+    );
+    const fieldOptions = await within(section).findAllByRole('option');
+    expect(fieldOptions).toHaveLength(fields.length);
+    fieldOptions.forEach((option, i) => {
+      expect(option).toHaveTextContent(fields[i]!);
+    });
+
+    // try changing the field
+    await userEvent.click(
+      within(section).getByRole('option', {name: 'avg(span.self_time)'})
+    );
+    expect(
+      within(section).getByRole('button', {name: 'avg(span.self_time)'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
+    expect(sortBys).toEqual([{field: 'avg(span.self_time)', kind: 'desc'}]);
+
+    // check the kind options
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
+    const kindOptions = await within(section).findAllByRole('option');
+    expect(kindOptions).toHaveLength(2);
+    expect(kindOptions[0]).toHaveTextContent('Desc');
+    expect(kindOptions[1]).toHaveTextContent('Asc');
+  });
+
+  it('allows for different sort bys on samples and aggregates mode', async function () {
+    let sortBys: any;
+    let setMode: any;
+    function Component() {
+      setMode = useSetExploreMode();
+      sortBys = useExploreSortBys();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <Component />
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-sort-by');
+
+    expect(sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
+
+    expect(sortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
+
+    act(() => setMode(Mode.AGGREGATE));
+
+    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
+
+    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
+
+    act(() => setMode(Mode.SAMPLES));
+    expect(sortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
+
+    act(() => setMode(Mode.AGGREGATE));
+    expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
   it('opens compare queries', async function () {
@@ -553,9 +585,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -593,9 +625,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -636,9 +668,9 @@ describe('ExploreToolbar', function () {
     }
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -718,11 +750,12 @@ describe('ExploreToolbar', function () {
     function Component() {
       return <ExploreToolbar />;
     }
+
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,
@@ -737,19 +770,19 @@ describe('ExploreToolbar', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          sort: ['count(span.duration)'],
+          aggregateSort: ['count(span.duration)'],
         }),
       })
     );
 
     // Simulate navigation from sort change
-    router.location.query.sort = ['count(span.duration)'];
+    router.location.query.aggregateSort = ['count(span.duration)'];
     router.push(router.location);
     render(
       <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <Component />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {
         router,

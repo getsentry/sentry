@@ -157,7 +157,8 @@ def format_crash_free_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
 
     for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
         date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
-        ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
+        count_value = 0.0 if count is None else float(count)
+        ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count_value)
         formatted_data.append(ts_point)
     return formatted_data
 

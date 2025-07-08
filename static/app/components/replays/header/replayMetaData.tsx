@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import ReplayViewers from 'sentry/components/replays/header/replayViewers';
@@ -15,19 +15,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-type Props = {
+interface Props {
   replayErrors: ReplayError[];
-  replayRecord: ReplayRecord | undefined;
-  isLoading?: boolean;
+  replayRecord: ReplayRecord;
   showDeadRageClicks?: boolean;
-};
+}
 
-function ReplayMetaData({
+export default function ReplayMetaData({
   replayErrors,
   replayRecord,
   showDeadRageClicks = true,
-  isLoading,
 }: Props) {
+  const nonFeedbackErrors = replayErrors.filter(e => e.title !== 'User Feedback');
+
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -43,9 +43,7 @@ function ReplayMetaData({
     },
   };
 
-  return isLoading ? (
-    <Placeholder height="47px" width="203px" />
-  ) : (
+  return (
     <KeyMetrics>
       {showDeadRageClicks && (
         <Fragment>
@@ -86,7 +84,9 @@ function ReplayMetaData({
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
+          replayRecord.is_archived ? null : (
+            <ErrorCounts replayErrors={nonFeedbackErrors} replayRecord={replayRecord} />
+          )
         ) : (
           <Placeholder width="20px" height="16px" />
         )}
@@ -94,7 +94,12 @@ function ReplayMetaData({
       <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <ReplayViewers projectId={replayRecord.project_id} replayId={replayRecord.id} />
+          replayRecord.is_archived ? null : (
+            <ReplayViewers
+              projectId={replayRecord.project_id}
+              replayId={replayRecord.id}
+            />
+          )
         ) : (
           <Placeholder width="55px" height="27px" />
         )}
@@ -114,18 +119,18 @@ const KeyMetrics = styled('dl')`
   color: ${p => p.theme.subText};
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     justify-self: flex-end;
   }
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -142,5 +147,3 @@ const ClickCount = styled(Count)`
   gap: ${space(0.75)};
   align-items: center;
 `;
-
-export default ReplayMetaData;

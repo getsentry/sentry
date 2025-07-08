@@ -218,6 +218,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'issue.priority',
   'issue.category',
   'issue.type',
+  'issue.seer_actionability',
+  'issue.seer_last_run',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];

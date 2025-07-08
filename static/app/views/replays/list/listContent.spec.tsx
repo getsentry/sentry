@@ -21,6 +21,7 @@ const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
   isLoading: false,
   isError: false,
+  error: null,
   data: [],
   pageLinks: undefined,
 });
@@ -54,7 +55,7 @@ describe('ReplayList', () => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
-    // mockUseAllMobileProj.mockClear();
+    mockUseAllMobileProj.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',

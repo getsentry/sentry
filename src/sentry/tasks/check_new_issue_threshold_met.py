@@ -65,6 +65,7 @@ def calculate_threshold_met(project_id: int) -> bool:
         namespace=issues_tasks,
         retry=Retry(
             times=1,
+            delay=60,
         ),
     ),
 )

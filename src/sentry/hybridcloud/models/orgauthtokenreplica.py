@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH
 
@@ -21,7 +22,7 @@ class OrgAuthTokenReplica(Model):
     # The JWT token in hashed form
     token_hashed = models.TextField(null=False)
     name = models.CharField(max_length=MAX_NAME_LENGTH, null=False, blank=False)
-    scope_list = ArrayField(models.TextField())
+    scope_list = ArrayField(models.TextField(), default=list)
     created_by_id = HybridCloudForeignKey(
         "sentry.User", null=True, blank=True, on_delete="set_null"
     )

@@ -6,6 +6,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
+  associateTagsWithMeta,
   getSentryDefaultTags,
   TagFilter,
   TagFilterData,
@@ -27,6 +28,7 @@ type Props = {
    */
   additionalActions?: React.ReactNode;
   disableCollapsePersistence?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
 };
 
 export function EventTagsDataSection({
@@ -35,25 +37,28 @@ export function EventTagsDataSection({
   projectSlug,
   additionalActions,
   disableCollapsePersistence,
-}: Props & {
-  ref?: React.Ref<HTMLElement>;
-}) {
+}: Props) {
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
   const handleTagFilterChange = useCallback((value: TagFilter) => {
     setTagFilter(value);
   }, []);
-  const tags = useMemo(() => {
+
+  const tagsWithMeta = useMemo(() => {
+    return associateTagsWithMeta({tags: event.tags, meta: event._meta?.tags});
+  }, [event.tags, event._meta?.tags]);
+
+  const filteredTags = useMemo(() => {
     switch (tagFilter) {
       case TagFilter.ALL:
-        return event.tags;
+        return tagsWithMeta;
       case TagFilter.CUSTOM:
-        return event.tags.filter(tag => !sentryTags.has(tag.key));
+        return tagsWithMeta.filter(tag => !sentryTags.has(tag.key));
       default:
-        return event.tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
+        return tagsWithMeta.filter(tag => TagFilterData[tagFilter].has(tag.key));
     }
-  }, [tagFilter, event.tags, sentryTags]);
+  }, [tagFilter, tagsWithMeta, sentryTags]);
 
   const availableFilters = useMemo(() => {
     return Object.keys(TagFilterData).filter(filter => {
@@ -99,7 +104,7 @@ export function EventTagsDataSection({
         event={event}
         projectSlug={projectSlug}
         tagFilter={tagFilter}
-        filteredTags={tags ?? []}
+        filteredTags={filteredTags ?? []}
       />
     </StyledEventDataSection>
   );
@@ -108,7 +113,7 @@ export function EventTagsDataSection({
 const StyledEventDataSection = styled(InterimSection)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(4)} ${space(1.5)};
   }
 `;

@@ -17,39 +17,42 @@ interface Props {
 export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   const isSupportedProvider = isSupportedAutofixProvider(repo.provider?.name || '');
 
-  const tooltipMessage = isSupportedProvider
-    ? ''
-    : t('Support for %s will be coming soon', repo.provider?.name || t('this provider'));
-
-  const repoContent = (
+  return (
     <RepoListItemContainer
       selected={isSelected}
       disabled={!isSupportedProvider}
       role="button"
       tabIndex={0}
       data-repo-id={repo.externalId}
-      onClick={() => onToggle(repo.externalId)}
+      onClick={() => {
+        if (isSupportedProvider) {
+          onToggle(repo.externalId);
+        }
+      }}
     >
-      <RepoHeader>
-        <RepoInfoWrapper>
-          <RepoName>{repo.name}</RepoName>
-          <SelectionWrapper>
-            <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
-            {isSupportedProvider && (
-              <StyledCheckbox checked={isSelected} size="sm" readOnly />
-            )}
-          </SelectionWrapper>
-        </RepoInfoWrapper>
-      </RepoHeader>
-    </RepoListItemContainer>
-  );
+      <Tooltip
+        title={t('Support for %s will be coming soon', repo.provider?.name)}
+        showUnderline={false}
+        disabled={isSupportedProvider}
+      >
+        <RepoHeader>
+          <RepoInfoWrapper>
+            <RepoName>{repo.name}</RepoName>
 
-  return isSupportedProvider ? (
-    repoContent
-  ) : (
-    <Tooltip title={tooltipMessage} showUnderline={false}>
-      {repoContent}
-    </Tooltip>
+            <SelectionWrapper>
+              <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
+
+              <StyledCheckbox
+                checked={isSelected}
+                size="sm"
+                readOnly
+                disabled={!isSupportedProvider}
+              />
+            </SelectionWrapper>
+          </RepoInfoWrapper>
+        </RepoHeader>
+      </Tooltip>
+    </RepoListItemContainer>
   );
 }
 
@@ -96,11 +99,11 @@ const RepoInfoWrapper = styled('div')`
 `;
 
 const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;

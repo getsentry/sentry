@@ -112,9 +112,9 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 obj.comparison,
             ),
             "resolveThreshold": (
-                AlertRuleThresholdType.BELOW
+                AlertRuleThresholdType.BELOW.value
                 if obj.type == Condition.GREATER
-                else AlertRuleThresholdType.ABOVE
+                else AlertRuleThresholdType.ABOVE.value
             ),
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),

@@ -10,27 +10,6 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
   return {
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',
-    project: ProjectFixture({
-      features: [
-        'releases',
-        'sample-events',
-        'minidump',
-        'rate-limits',
-        'similarity-indexing',
-        'similarity-view',
-        'data-forwarding',
-      ],
-      isInternal: true,
-      dateCreated: '2019-03-09T06:52:19.832Z',
-      id: '1',
-      slug: 'internal',
-      name: 'Internal',
-      hasAccess: true,
-      isBookmarked: false,
-      platform: undefined,
-      firstEvent: '2019-03-09T06:56:15Z',
-      isMember: true,
-    }),
     user: UserFixture({
       username: 'billy@sentry.io',
       lastLogin: '2019-04-23T00:10:19.787Z',
@@ -56,9 +35,9 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         timezone: 'America/Los_Angeles',
         prefersIssueDetailsStreamlinedUI: false,
         prefersNextjsInsightsOverview: false,
+        prefersAgentsInsightsModule: false,
         prefersStackedNavigation: false,
         prefersChonkUI: false,
-        quickStartDisplay: {},
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
@@ -92,8 +71,8 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
       // there is a nasty type issue here where "reprocessing" cannot be assigned to
       // resolution status | "reprocessing" and "reprocessing" cannot be assigned to resolution
       // status (fails even if I as const it).
-      // @ts-expect-error
-      status: 'reprocessing',
+      // @ts-expect-error - cannot be assigned to resolution
+      status: 'reprocessing' as const,
       activity: [],
       logger: 'critical',
       type: EventOrGroupType.ERROR,

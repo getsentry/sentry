@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
@@ -16,6 +17,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
@@ -122,14 +124,16 @@ function QuotaExceededContent({
             handleRequestSent={() => onCheck({checked: true, eventTypes})}
           />
           <DismissContainer>
-            <Checkbox
-              name="dismiss"
-              checked={isDismissed}
-              onChange={e => {
-                onCheck({checked: e.target.checked, eventTypes, isManual: true});
-              }}
-            />
-            <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
+            <CheckboxLabel>
+              <Checkbox
+                name="dismiss"
+                checked={isDismissed}
+                onChange={e => {
+                  onCheck({checked: e.target.checked, eventTypes, isManual: true});
+                }}
+              />
+              <span>{t("Don't annoy me again")}</span>
+            </CheckboxLabel>
           </DismissContainer>
         </ActionContainer>
       </Body>
@@ -154,12 +158,15 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
             ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
+
+        const reservedTiers = subscription?.planDetails.planCategories?.[category];
         if (
           !designatedBudget &&
-          (!currentHistory.reserved || currentHistory.reserved <= 1)
+          reservedTiers?.length === 1 &&
+          reservedTiers[0]?.events === 1
         ) {
-          // don't show any categories without additional reserved volumes
-          // if there is no PAYG
+          // if there isn't any PAYG and the category has a single reserved tier which is 1 (ie. crons, uptime, etc),
+          // then we don't need to show the alert
           return acc;
         }
         acc.push(category);
@@ -168,8 +175,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category);
-      return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
+      return `${snakeCase(category)}_overage_alert`;
     })
     .filter(Boolean);
 
@@ -308,9 +314,19 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       <SidebarButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
-        buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
+        // @ts-expect-error Warning variant is only available in Chonk
+        buttonProps={{
+          ...overlayTriggerProps,
+          ...(isChonkTheme(theme)
+            ? {priority: 'warning'}
+            : {style: {backgroundColor: theme.warning}}),
+        }}
       >
-        <motion.div {...(isOpen || hasSnoozedAllPrompts() ? {} : ANIMATE_PROPS)}>
+        <motion.div
+          {...(isOpen || hasSnoozedAllPrompts()
+            ? {style: {display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            : ANIMATE_PROPS)}
+        >
           <IconWarning color={iconColor as Color} />
         </motion.div>
       </SidebarButton>
@@ -342,18 +358,18 @@ const Header = styled('div')`
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0;
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
 `;
 
 const Body = styled('div')`
   margin: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -375,6 +391,13 @@ const DismissContainer = styled('div')`
   align-items: center;
 `;
 
-const CheckboxLabel = styled('span')`
-  margin-left: ${space(1)};
+const CheckboxLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  cursor: pointer;
+
+  > span {
+    margin-left: ${space(1)};
+  }
 `;

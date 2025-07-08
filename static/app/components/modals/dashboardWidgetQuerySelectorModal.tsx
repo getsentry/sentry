@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,10 +15,11 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
+  dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   widget: Widget;
   isMetricsData?: boolean;
@@ -32,7 +33,8 @@ type Props = ModalRenderProps &
   };
 
 function DashboardWidgetQuerySelectorModal(props: Props) {
-  const {organization, widget, selection, isMetricsData, Body, Header} = props;
+  const {organization, widget, selection, isMetricsData, Body, Header, dashboardFilters} =
+    props;
 
   const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
@@ -41,6 +43,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
           ...widget,
           queries: [query],
         },
+        dashboardFilters,
         selection,
         organization,
         0,

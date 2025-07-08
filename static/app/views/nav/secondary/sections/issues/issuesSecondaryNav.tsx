@@ -1,14 +1,17 @@
 import {Fragment, useRef} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
+import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {IssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
+import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export function IssuesSecondaryNav() {
   const organization = useOrganization();
@@ -18,13 +21,13 @@ export function IssuesSecondaryNav() {
   const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         {!hasIssueTaxonomy && (
-          <SecondaryNav.Section>
+          <SecondaryNav.Section id="issues-feed">
             <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
@@ -38,12 +41,12 @@ export function IssuesSecondaryNav() {
         )}
         {hasIssueTaxonomy && (
           <Fragment>
-            <SecondaryNav.Section>
+            <SecondaryNav.Section id="issues-feed">
               <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
                 {t('Feed')}
               </SecondaryNav.Item>
             </SecondaryNav.Section>
-            <SecondaryNav.Section>
+            <SecondaryNav.Section id="issues-types">
               {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
                 <SecondaryNav.Item
                   key={key}
@@ -63,30 +66,46 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Section>
           </Fragment>
         )}
-        {organization.features.includes('issue-stream-custom-views') && (
-          <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
-        )}
+        <SecondaryNav.Section id="issues-views-all">
+          <SecondaryNav.Item
+            to={`${baseUrl}/views/`}
+            analyticsItemName="issues_all_views"
+            end
+          >
+            {t('All Views')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+        <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const {layout} = useNavContext();
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
+
+  const isSticky = layout === NavLayout.SIDEBAR;
+
   return (
-    <SecondaryNav.Section title={t('Configure')}>
+    <StickyBottomSection
+      id="issues-configure"
+      title={t('Configure')}
+      collapsible={false}
+      isSticky={isSticky}
+    >
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/monitors/`}
             activeTo={`${baseUrl}/monitors`}
           >
             {t('Monitors')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/automations/`}
             activeTo={`${baseUrl}/automations`}
           >
@@ -102,6 +121,19 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           {t('Alerts')}
         </SecondaryNav.Item>
       )}
-    </SecondaryNav.Section>
+    </StickyBottomSection>
   );
 }
+
+const StickyBottomSection = styled(SecondaryNav.Section, {
+  shouldForwardProp: prop => prop !== 'isSticky',
+})<{isSticky: boolean}>`
+  ${p =>
+    p.isSticky &&
+    css`
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      background: ${p.theme.isChonk ? p.theme.background : p.theme.surface200};
+    `}
+`;

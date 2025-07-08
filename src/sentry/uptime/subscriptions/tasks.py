@@ -18,7 +18,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     get_detector,
 )
-from sentry.uptime.types import CheckConfig, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import CheckConfig, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -38,6 +38,7 @@ BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -70,6 +71,7 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -103,6 +105,7 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -209,6 +212,9 @@ def subscription_checker(**kwargs):
 @instrumented_task(
     name="sentry.uptime.tasks.broken_monitor_checker",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def broken_monitor_checker(**kwargs):
     """
@@ -225,8 +231,11 @@ def broken_monitor_checker(**kwargs):
     ):
         detector = get_detector(uptime_subscription)
         assert detector
-        if detector.config["mode"] == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE:
-            disable_uptime_detector(detector)
-            count += 1
+        if detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE:
+            try:
+                disable_uptime_detector(detector)
+                count += 1
+            except Exception:
+                logger.exception("uptime.subscriptions.disable_broken_failed")
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)

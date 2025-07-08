@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -11,7 +12,6 @@ import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
   model: FormModel;
@@ -237,7 +237,9 @@ function Form({
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >
-        <div>{isRenderFunc(children) ? children({model: formModel}) : children}</div>
+        <div>
+          {typeof children === 'function' ? children({model: formModel}) : children}
+        </div>
 
         {shouldShowFooter && (
           <StyledFooter
@@ -301,22 +303,22 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
   ${p =>
     !p.saveOnBlur &&
-    `
-  ${Panel} & {
-    margin-top: 0;
-    padding-right: ${space(2)}
-  }
+    css`
+      ${Panel} & {
+        margin-top: 0;
+        padding-right: ${space(2)};
+      }
 
-  /* Better padding with form inside of a modal */
-  [role='document'] & {
-    padding-right: 30px;
-    margin-left: -30px;
-    margin-right: -30px;
-    margin-bottom: -30px;
-    margin-top: 16px;
-    padding-bottom: 16px;
-  }
-  `};
+      /* Better padding with form inside of a modal */
+      [role='document'] & {
+        padding-right: 30px;
+        margin-left: -30px;
+        margin-right: -30px;
+        margin-bottom: -30px;
+        margin-top: 16px;
+        padding-bottom: 16px;
+      }
+    `};
 `;
 
 const DefaultButtons = styled('div')`

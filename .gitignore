@@ -51,7 +51,6 @@ Gemfile.lock
 coverage.xml
 junit.xml
 *.codestyle.xml
-package-lock.json
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
@@ -64,3 +63,5 @@ model-manifest.json
 .yalc/
 yalc.lock
 ngrok.yml
+package-lock.json
+yarn.lock

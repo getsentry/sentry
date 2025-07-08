@@ -94,7 +94,7 @@ const GraphLabelContents = styled('div')`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-right: ${space(2)};
 `;
 
@@ -126,7 +126,7 @@ const PriorityLabel = styled(IssueStreamHeaderLabel)`
   width: 64px;
 `;
 
-export const AssigneeLabel = styled(IssueStreamHeaderLabel)`
+const AssigneeLabel = styled(IssueStreamHeaderLabel)`
   width: 66px;
 `;
 
@@ -136,7 +136,7 @@ const StartedColumn = styled(ToolbarHeader)`
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 140px;
   }
 `;
@@ -146,7 +146,7 @@ const EventsReprocessedColumn = styled(ToolbarHeader)`
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 140px;
   }
 `;
@@ -156,7 +156,7 @@ const ProgressColumn = styled(ToolbarHeader)`
 
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     width: 160px;
   }

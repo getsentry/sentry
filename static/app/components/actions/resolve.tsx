@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
@@ -410,11 +411,11 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.gray400};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 

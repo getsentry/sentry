@@ -18,6 +18,7 @@ import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import type {
   SamplingMode,
   SpansRPCQueryExtras,
@@ -50,7 +51,6 @@ interface EventRequestQueryParams {
   topEvents?: number;
   // XXX: This is the literal string 'true', not a boolean
   useOnDemandMetrics?: 'true';
-  useRpc?: '1';
   withoutZerofill?: '1';
   yAxis?: string | string[];
 }
@@ -68,7 +68,14 @@ export function useMetricEventStats(
   const organization = useOrganization();
   const location = useLocation();
 
-  const {dataset, aggregate, query: ruleQuery, environment: ruleEnvironment} = rule;
+  const {
+    dataset,
+    aggregate,
+    query: ruleQuery,
+    environment: ruleEnvironment,
+    eventTypes: storedEventTypes,
+  } = rule;
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, storedEventTypes);
   const interval = getPeriodInterval(timePeriod, rule);
   const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, ruleQuery);
   const eventType = extractEventTypeFilterFromRule(rule);
@@ -90,6 +97,7 @@ export function useMetricEventStats(
     dataset,
     newAlertOrQuery: false,
     useOnDemandMetrics: isOnDemandAlert,
+    traceItemType,
   });
 
   const queryObject: EventRequestQueryParams = Object.fromEntries(
@@ -101,7 +109,6 @@ export function useMetricEventStats(
       environment: ruleEnvironment ? [ruleEnvironment] : undefined,
       query,
       yAxis: aggregate,
-      useRpc: dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? '1' : undefined,
       referrer,
       sampling: samplingMode,
       ...queryExtras,

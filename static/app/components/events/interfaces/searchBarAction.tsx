@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {
@@ -75,11 +76,11 @@ const Wrapper = styled('div')`
   width: 100%;
   justify-content: flex-end;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 350px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     width: 500px;
   }
 `;
@@ -89,7 +90,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 
   ${p =>
     p.blendWithFilter &&
-    `
+    css`
       input {
         border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
         border-left-width: 0;

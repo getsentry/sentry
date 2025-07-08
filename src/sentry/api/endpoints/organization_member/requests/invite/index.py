@@ -78,6 +78,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        if request.access.requires_sso:
+            return Response(
+                {
+                    "detail": "Your organization must use its single sign-on provider to register new members."
+                },
+                status=400,
+            )
+
         result = serializer.validated_data
 
         with outbox_context(

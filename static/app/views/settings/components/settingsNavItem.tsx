@@ -26,7 +26,7 @@ const LabelHook = HookOrDefault({
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} variant="short" />;
+    return <FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (
@@ -57,10 +57,10 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

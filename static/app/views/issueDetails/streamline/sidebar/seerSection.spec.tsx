@@ -53,11 +53,13 @@ describe('SeerSection', () => {
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
-    const mockSummary = 'This is a test summary';
+    const mockWhatHappened = 'This is a test what happened';
+    const mockTrace = 'This is a test trace';
+    const mockCause = 'This is a test cause';
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
       method: 'POST',
-      body: {whatsWrong: mockSummary},
+      body: {possibleCause: mockCause, whatsWrong: mockWhatHappened, trace: mockTrace},
     });
 
     render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -65,8 +67,10 @@ describe('SeerSection', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(mockSummary)).toBeInTheDocument();
+      expect(screen.getByText(mockCause)).toBeInTheDocument();
     });
+    expect(screen.queryByText(mockWhatHappened)).not.toBeInTheDocument();
+    expect(screen.queryByText(mockTrace)).not.toBeInTheDocument();
   });
 
   it('renders resources section when AI features are disabled', () => {
@@ -101,7 +105,7 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Seer" with summary when Seer needs setup', async () => {
+    it('shows "Find Root Cause" when Seer needs setup and no run already', async () => {
       const customOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['gen-ai-features'],
@@ -119,18 +123,14 @@ describe('SeerSection', () => {
         }),
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-        method: 'POST',
-        body: {whatsWrong: 'Test summary'},
-      });
-
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
         organization: customOrganization,
       });
 
-      expect(await screen.findByText('Test summary')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+      expect(
+        await screen.findByText('Explore potential root causes and solutions with Seer.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {

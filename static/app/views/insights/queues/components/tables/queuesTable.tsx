@@ -5,13 +5,13 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Link} from 'sentry/components/core/link';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,7 +29,6 @@ import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   ModuleName,
-  SpanFunction,
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
@@ -77,7 +76,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -89,7 +88,8 @@ const SORTABLE_FIELDS = [
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(span.duration)`,
+  `sum(span.duration)`,
+  'trace_status_rate(ok)',
 ] as const;
 
 type ValidSort = Sort & {

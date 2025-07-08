@@ -4,10 +4,10 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   createablePlatforms,
@@ -81,6 +81,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     category: this.props.defaultCategory ?? categoryList[0]!.id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
+
+  componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
+    if (this.props.defaultCategory !== prevProps.defaultCategory) {
+      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+    }
+  }
 
   get platformList() {
     const {category} = this.state;
@@ -256,7 +262,7 @@ const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  grid-template-columns: 1fr minmax(0, 200px);
   align-items: start;
 
   &.centered {
@@ -350,7 +356,7 @@ const PlatformCard = styled(
     width: 100%;
     color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

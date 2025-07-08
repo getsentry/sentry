@@ -21,6 +21,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
         self.mock_trace_tree = [
             SerializedSpan(
                 description="http.request",
+                name="GET *",
                 event_id="span1",
                 event_type="span",
                 project_id=1,
@@ -39,9 +40,11 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=True,
+                transaction_id="1" * 32,
             ),
             SerializedSpan(
                 description="db.query",
+                name="SELECT users",
                 event_id="span2",
                 event_type="span",
                 project_id=1,
@@ -60,6 +63,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=False,
+                transaction_id="1" * 32,
             ),
         ]
 

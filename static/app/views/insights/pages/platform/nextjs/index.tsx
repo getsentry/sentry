@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,35 +8,30 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewPageloadsChartWidget from 'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget';
+import OverviewSlowNextjsSSRWidget from 'sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget';
+import {ApiTable} from 'sentry/views/insights/pages/platform/nextjs/apiTable';
+import {ClientTable} from 'sentry/views/insights/pages/platform/nextjs/clientTable';
+import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
+import {ServerTree} from 'sentry/views/insights/pages/platform/nextjs/serverTree';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
-import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
-import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 
-type View = 'api' | 'pages';
-type SpanOperation = 'pageload' | 'navigation';
-
-// Define cursor parameter names based on span operation
-const CURSOR_PARAM_NAMES: Record<SpanOperation, string> = {
-  pageload: 'pageCursor',
-  navigation: 'navCursor',
-};
-const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
-  {value: 'pageload', label: t('Pageloads')},
-  {value: 'navigation', label: t('Navigations')},
-];
-
-function PlaceholderWidget() {
-  return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
+enum TableType {
+  API = 'api',
+  SSR = 'ssr',
+  CLIENT = 'client',
 }
+
+function isTableType(value: any): value is TableType {
+  return Object.values(TableType).includes(value as TableType);
+}
+
+const TableControl = SegmentedControl<TableType>;
+const TableControlItem = SegmentedControl.Item<TableType>;
 
 export function NextJsOverviewPage({
   performanceType,
@@ -45,186 +39,91 @@ export function NextJsOverviewPage({
   performanceType: 'backend' | 'frontend';
 }) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
-  const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeView: View = (location.query.view as View) ?? 'api';
-  const spanOperationFilter: SpanOperation =
-    (location.query.spanOp as SpanOperation) ?? 'pageload';
+  const activeTable: TableType = isTableType(location.query.view)
+    ? location.query.view
+    : TableType.CLIENT;
 
-  const updateQuery = (newParams: Record<string, string>) => {
-    const newQuery = {
-      ...location.query,
-      ...newParams,
-    };
-    if ('spanOp' in newParams && newParams.spanOp !== spanOperationFilter) {
-      const oldCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
-      delete newQuery[oldCursorParamName];
-    }
+  const updateQuery = useCallback(
+    (newParams: Record<string, string | string[] | null | undefined>) => {
+      const newQuery = {
+        ...location.query,
+        ...newParams,
+      };
 
-    navigate(
-      {
-        pathname: location.pathname,
-        query: newQuery,
-      },
-      {replace: true}
-    );
-  };
+      navigate(
+        {
+          pathname: location.pathname,
+          query: newQuery,
+        },
+        {replace: true, preventScrollReset: true}
+      );
+    },
+    [location.query, location.pathname, navigate]
+  );
 
   useEffect(() => {
     trackAnalytics('nextjs-insights.page-view', {
       organization,
-      view: activeView,
-      spanOp: spanOperationFilter,
+      view: activeTable,
     });
-  }, [organization, activeView, spanOperationFilter]);
+  }, [organization, activeTable]);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
+  const handleTableViewChange = useCallback(
+    (view: TableType) => {
+      trackAnalytics('nextjs-insights.table_view_change', {
+        organization,
+        view,
+      });
+      updateQuery({
+        view,
+        // Clear table cursor and sort order
+        tableCursor: undefined,
+        field: undefined,
+        order: undefined,
+      });
+    },
+    [organization, updateQuery]
+  );
 
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
-        <RequestsContainer>
-          <TrafficWidget
-            title={t('Traffic')}
-            trafficSeriesName={t('Page views')}
-            baseQuery={'span.op:[navigation,pageload]'}
-            query={query}
-            releases={releases}
-          />
-        </RequestsContainer>
-        <IssuesContainer>
-          <IssuesWidget query={query} />
-        </IssuesContainer>
-        <DurationContainer>
-          <DurationWidget query={query} releases={releases} />
-        </DurationContainer>
-        <WebVitalsContainer>
-          <WebVitalsWidget query={query} />
-        </WebVitalsContainer>
-        <QueriesContainer>
-          <SlowSSRWidget query={query} releases={releases} />
-        </QueriesContainer>
-        <CachesContainer>
-          <PlaceholderWidget />
-        </CachesContainer>
+        <WidgetGrid.Position1>
+          <OverviewPageloadsChartWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <OverviewApiLatencyChartWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <IssuesWidget />
+        </WidgetGrid.Position3>
+        <WidgetGrid.Position4>
+          <WebVitalsWidget />
+        </WidgetGrid.Position4>
+        <WidgetGrid.Position5>
+          <DeadRageClicksWidget />
+        </WidgetGrid.Position5>
+        <WidgetGrid.Position6>
+          <OverviewSlowNextjsSSRWidget />
+        </WidgetGrid.Position6>
       </WidgetGrid>
       <ControlsWrapper>
-        <SegmentedControl
-          value={activeView}
-          onChange={value => updateQuery({view: value})}
-          size="sm"
-        >
-          <SegmentedControl.Item key="api">{t('API')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="pages">{t('Pages')}</SegmentedControl.Item>
-        </SegmentedControl>
-        {activeView === 'pages' && (
-          <CompactSelect<SpanOperation>
-            size="sm"
-            triggerProps={{prefix: t('Display')}}
-            options={spanOperationOptions}
-            value={spanOperationFilter}
-            onChange={(option: SelectOption<SpanOperation>) =>
-              updateQuery({spanOp: option.value})
-            }
-          />
-        )}
+        <TableControl value={activeTable} onChange={handleTableViewChange} size="sm">
+          <TableControlItem key={TableType.CLIENT}>{t('Client')}</TableControlItem>
+          <TableControlItem key={TableType.API}>{t('API')}</TableControlItem>
+          <TableControlItem key={TableType.SSR}>{t('SSR')}</TableControlItem>
+        </TableControl>
       </ControlsWrapper>
 
-      {activeView === 'api' && (
-        <PathsTable
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-          showHttpMethodColumn={false}
-          showUsersColumn={false}
-        />
-      )}
-
-      {activeView === 'pages' && (
-        <PagesTable
-          spanOperationFilter={spanOperationFilter}
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-        />
-      )}
+      {activeTable === TableType.API && <ApiTable />}
+      {activeTable === TableType.CLIENT && <ClientTable />}
+      {activeTable === TableType.SSR && <ServerTree />}
     </PlatformLandingPageLayout>
   );
 }
-
-const WidgetGrid = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
-
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 240px 300px 300px;
-  grid-template-areas:
-    'requests'
-    'duration'
-    'issues'
-    'web-vitals'
-    'queries'
-    'caches';
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 240px 300px;
-    grid-template-areas:
-      'requests duration'
-      'issues issues'
-      'web-vitals web-vitals'
-      'queries caches';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 180px 300px;
-    grid-template-areas:
-      'requests issues issues'
-      'duration issues issues'
-      'web-vitals queries caches';
-  }
-`;
-
-const RequestsContainer = styled('div')`
-  grid-area: requests;
-`;
-
-// TODO(aknaus): Remove css hacks and build custom IssuesWidget
-const IssuesContainer = styled('div')`
-  grid-area: issues;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  & > * {
-    min-width: 0;
-    overflow-y: auto;
-    margin-bottom: 0 !important;
-  }
-`;
-
-const DurationContainer = styled('div')`
-  grid-area: duration;
-`;
-
-const WebVitalsContainer = styled('div')`
-  grid-area: web-vitals;
-`;
-
-const QueriesContainer = styled('div')`
-  grid-area: queries;
-`;
-
-const CachesContainer = styled('div')`
-  grid-area: caches;
-`;
 
 const ControlsWrapper = styled('div')`
   display: flex;

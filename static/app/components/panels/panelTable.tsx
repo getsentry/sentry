@@ -1,4 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -53,6 +54,7 @@ type PanelTableProps = {
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * If true, scrolling headers out of view will pin to the top of container.
    */
@@ -89,9 +91,7 @@ function PanelTable({
   disableHeaderBorderBottom = false,
   disableHeaders,
   ...props
-}: PanelTableProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -179,8 +179,8 @@ const Wrapper = styled(Panel, {
 
 const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};
@@ -192,11 +192,11 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
 
   ${p =>
     p.sticky &&
-    `
-    position: sticky;
-    top: 0;
-    z-index: ${p.theme.zIndex.initial};
-  `}
+    css`
+      position: sticky;
+      top: 0;
+      z-index: ${p.theme.zIndex.initial};
+    `}
 `;
 
 export {PanelTable, type PanelTableProps, PanelTableHeader};

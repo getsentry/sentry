@@ -31,6 +31,8 @@ def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) ->
     for k, v in raw_data.items():
         if isinstance(v, datetime):
             v = v.isoformat()
+        if isinstance(v, frozenset):
+            v = list(v)
 
         parsed_data[k] = v
 
@@ -104,7 +106,7 @@ def async_send_notification(
     silo_mode=SiloMode.REGION,
     queue="notifications",
     taskworker_config=TaskworkerConfig(
-        namespace=notifications_tasks,
+        namespace=notifications_tasks, processing_deadline_duration=30
     ),
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:

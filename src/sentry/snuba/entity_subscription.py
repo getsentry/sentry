@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import types
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
@@ -10,7 +11,7 @@ from typing import Any, TypedDict, Union
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
@@ -23,7 +24,7 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
-from sentry.snuba import rpc_dataset_common, spans_rpc
+from sentry.snuba import ourlogs, rpc_dataset_common, spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -48,7 +49,8 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
-    EntityKey.EAPSpans: "timestamp",
+    EntityKey.EAPItemsSpan: "timestamp",
+    EntityKey.EAPItems: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -264,6 +266,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
+        dataset_module: types.ModuleType
+        if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
+            dataset_module = ourlogs
+        else:
+            dataset_module = spans_rpc
         now = datetime.now(tz=timezone.utc)
         snuba_params = SnubaParams(
             environments=[environment],
@@ -273,7 +280,9 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
             granularity_secs=self.time_window,
         )
-        search_resolver = spans_rpc.get_resolver(snuba_params, SearchResolverConfig())
+        search_resolver = dataset_module.get_resolver(
+            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
+        )
 
         rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(
             search_resolver=search_resolver,
@@ -621,7 +630,10 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        return EntityKey.EAPSpans
+        use_eap_items = options.get("alerts.spans.use-eap-items")
+        if use_eap_items:
+            return EntityKey.EAPItems
+        return EntityKey.EAPItemsSpan
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

@@ -166,13 +166,11 @@ function ReleaseCard({
                 <Tooltip
                   isHoverable
                   title={tct('This release was finalized on [date]. [docs:Read More].', {
-                    date: moment
-                      .tz(release.dateReleased, options?.timezone ?? '')
-                      .format(
-                        options?.clock24Hours
-                          ? 'MMMM D, YYYY HH:mm z'
-                          : 'MMMM D, YYYY h:mm A z'
-                      ),
+                    date: moment(release.dateReleased).format(
+                      options?.clock24Hours
+                        ? 'MMMM D, YYYY HH:mm z'
+                        : 'MMMM D, YYYY h:mm A z'
+                    ),
                     docs: (
                       <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
                     ),
@@ -186,16 +184,11 @@ function ReleaseCard({
                   title={tct(
                     'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
-                      date: moment
-                        .tz(
-                          release.firstEvent ?? release.dateCreated,
-                          options?.timezone ?? ''
-                        )
-                        .format(
-                          options?.clock24Hours
-                            ? 'MMMM D, YYYY HH:mm z'
-                            : 'MMMM D, YYYY h:mm A z'
-                        ),
+                      date: moment(release.firstEvent ?? release.dateCreated).format(
+                        options?.clock24Hours
+                          ? 'MMMM D, YYYY HH:mm z'
+                          : 'MMMM D, YYYY h:mm A z'
+                      ),
                       br: <br />,
                       code: <code />,
                       docs: (
@@ -298,7 +291,7 @@ function ReleaseCard({
   );
 }
 
-export const VersionWrapper = styled('div')`
+const VersionWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -311,7 +304,7 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
   pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: flex;
   }
 `;
@@ -323,7 +316,7 @@ const ReleaseInfo = styled('div')`
   flex-direction: column;
   justify-content: stretch;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-right: 1px solid ${p => p.theme.border};
     min-width: 260px;
     width: 22%;
@@ -331,8 +324,8 @@ const ReleaseInfo = styled('div')`
   }
 `;
 
-export const ReleaseInfoSubheader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const ReleaseInfoSubheader = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray400};
   flex-grow: 1;
 `;
@@ -361,7 +354,7 @@ const FinalizeWrapper = styled('div')`
 `;
 
 const PackageName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
@@ -381,13 +374,13 @@ const ReleaseProjects = styled('div')`
   flex-grow: 1;
   display: grid;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     border-top: none;
   }
 `;
 
-export const ReleaseInfoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+const ReleaseInfoHeader = styled('div')`
+  font-size: ${p => p.theme.fontSize.xl};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: ${space(2)};
@@ -397,7 +390,7 @@ export const ReleaseInfoHeader = styled('div')`
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
   padding: ${space(1.5)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const ProjectRows = styled('div')`
@@ -420,7 +413,7 @@ const ExpandButtonWrapper = styled('div')`
   border-bottom: ${space(1)} solid ${p => p.theme.background};
   border-top: ${space(1)} solid transparent;
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
 `;
@@ -442,15 +435,15 @@ export const ReleaseProjectsLayout = styled('div')<{
   align-items: center;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     ${p => {
       const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
       return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
@@ -466,7 +459,7 @@ export const ReleaseProjectColumn = styled('div')`
 export const NewIssuesColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     text-align: right;
   }
 `;
@@ -475,7 +468,7 @@ export const AdoptionColumn = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
@@ -490,7 +483,7 @@ export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: flex;
 
     /* Need to show the edges of the tags */
@@ -501,11 +494,11 @@ export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
 export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     text-align: right;
   }
 `;
@@ -514,7 +507,7 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     text-align: right;
   }
@@ -523,7 +516,7 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
 const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
   overflow: hidden;
@@ -532,7 +525,7 @@ const HiddenProjectsMessage = styled('div')`
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
 `;

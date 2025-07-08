@@ -83,15 +83,15 @@ const DropdownBubble = styled(
 
   ${p =>
     p.detached
-      ? `
-    top: 100%;
-    margin-top: ${space(1)};
-    box-shadow: ${p.theme.dropShadowHeavy};
-  `
-      : `
-    top: calc(100% - 1px);
-    box-shadow: ${p.theme.dropShadowMedium};
-  `};
+      ? css`
+          top: 100%;
+          margin-top: ${space(1)};
+          box-shadow: ${p.theme.dropShadowHeavy};
+        `
+      : css`
+          top: calc(100% - 1px);
+          box-shadow: ${p.theme.dropShadowMedium};
+        `};
 
   ${getMenuBorderRadius};
 

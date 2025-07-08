@@ -65,7 +65,7 @@ class CheckinGuidProjectMismatch(TypedDict):
 
     guid: str
     """
-    The guid which is assoicated to a different project
+    The guid which is associated to a different project
     """
 
 
@@ -215,8 +215,8 @@ ProcessingError = Union[
 
 class ProcessingErrorsException(Exception):
     """
-    This exception should be raised wtih a list of ProcessingError representing
-    the problems which occured while processing a monitor check-in.
+    This exception should be raised with a list of ProcessingError representing
+    the problems which occurred while processing a monitor check-in.
     """
 
     def __init__(

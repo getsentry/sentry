@@ -104,7 +104,11 @@ class User(Model, AbstractBaseUser):
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
-    email = models.EmailField(_("email address"), blank=True, max_length=75)
+    email = models.EmailField(_("email address"), blank=True, max_length=200)
+    # temporary field that prevents creating new users with the same email address as an existing user on the DB level
+    email_unique = models.EmailField(
+        _("unique email address"), null=True, max_length=200, unique=True
+    )
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,

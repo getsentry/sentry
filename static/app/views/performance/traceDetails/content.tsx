@@ -5,8 +5,9 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -573,9 +574,9 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`
@@ -616,7 +617,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
   text-align: center;
 `;

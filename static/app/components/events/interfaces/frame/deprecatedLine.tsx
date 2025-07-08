@@ -1,11 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
@@ -13,7 +14,6 @@ import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktra
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -108,6 +108,7 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
@@ -152,12 +153,17 @@ function DeprecatedLine({
         (data.absPath ?? '').endsWith(ending) || (data.filename ?? '').endsWith(ending)
     );
 
+  // If context is available (non-empty), users can already see the source code
+  // This means they have a "good stack trace" with readable source lines
+  // In this case, we want to hide the 'unminify code' button since the
+  // user already has sufficient debugging information
   const shouldShowSourceMapDebuggerButton =
+    !hasContextSource(data) &&
     !hideSourceMapDebugger &&
     data.inApp &&
     frameHasValidFileEndingForSourceMapDebugger &&
     frameSourceResolutionResults &&
-    (!frameSourceResolutionResults.frameIsResolved || !hasContextSource(data));
+    !frameSourceResolutionResults.frameIsResolved;
 
   const sourceMapDebuggerAmplitudeData = {
     organization: organization ?? null,
@@ -283,7 +289,7 @@ function DeprecatedLine({
                         <SourceMapsDebuggerModal
                           analyticsParams={sourceMapDebuggerAmplitudeData}
                           sourceResolutionResults={frameSourceResolutionResults}
-                          orgSlug={organization?.slug}
+                          organization={organization}
                           projectId={event.projectID}
                           {...modalProps}
                         />
@@ -322,7 +328,9 @@ function DeprecatedLine({
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div style={{width: 20, height: 20}} />
+              <div
+                style={theme.isChonk ? {width: 26, height: 20} : {width: 20, height: 20}}
+              />
             )}
           </DefaultLineTagWrapper>
         </DefaultLine>
@@ -401,7 +409,7 @@ const DefaultLine = styled('div')<{
   min-height: 32px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
@@ -425,9 +433,9 @@ const ToggleContextButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {
@@ -442,5 +450,5 @@ const SourceMapDebuggerButtonText = styled('span')`
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
   padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

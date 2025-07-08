@@ -164,7 +164,7 @@ function TimeSince({
     fixed: options?.clock24Hours
       ? 'November 3, 2020 08:57 UTC'
       : 'November 3, 2020 8:58 AM UTC',
-    value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    value: moment(dateObj).format(format),
   });
 
   return (
@@ -191,7 +191,7 @@ function TimeSince({
 
 export default TimeSince;
 
-function getRelativeDate(
+export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   prefix?: string,

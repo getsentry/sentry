@@ -2,25 +2,22 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {GridResizer} from 'sentry/components/gridEditable/styles';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {
-  fieldAlignment,
-  parseFunction,
-  prettifyParsedFunction,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   Table,
   TableBody,
@@ -33,94 +30,109 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
+  useExploreAggregateFields,
+  useExploreFields,
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
+  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {viewSamplesTarget} from 'sentry/views/explore/utils';
+import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
-  isProgressivelyLoading: boolean;
 }
 
-export function AggregatesTable({
-  aggregatesTableResult,
-  isProgressivelyLoading,
-}: AggregatesTableProps) {
+export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
+  const {result, eventView} = aggregatesTableResult;
+
   const topEvents = useTopEvents();
+  const aggregateFields = useExploreAggregateFields();
+  const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
-
-  const {result, eventView, fields} = aggregatesTableResult;
-
+  const visualizes = useExploreVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const visibleAggregateFields = useMemo(
+    () =>
+      aggregateFields.filter(aggregateField => {
+        if (isGroupBy(aggregateField)) {
+          return Boolean(aggregateField.groupBy);
+        }
+        return true;
+      }),
+    [aggregateFields]
+  );
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    visibleAggregateFields.length,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+    }
+  );
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
     result.data?.length ?? 0
   );
 
+  const columns = useMemo(() => {
+    return eventView.getColumns().reduce(
+      (acc, col) => {
+        acc[col.key] = col;
+        return acc;
+      },
+      {} as Record<string, TableColumn<string>>
+    );
+  }, [eventView]);
+
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent>
-                <LoadingIndicatorWrapper>
-                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
-                </LoadingIndicatorWrapper>
-              </TableHeadCellContent>
+              <TableHeadCellContent />
             </TableHeadCell>
-            {fields.map((field, i) => {
+            {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
-              let label = field;
+              const field = isGroupBy(aggregateField)
+                ? aggregateField.groupBy
+                : aggregateField.yAxis;
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
-              if (tag) {
-                label = tag.name;
-              }
-
-              const func = parseFunction(field);
-              if (func) {
-                label = prettifyParsedFunction(func);
-              }
+              const label = prettifyField(field, stringTags, numberTags);
 
               const direction = sorts.find(s => s.field === field)?.kind;
 
@@ -148,7 +160,7 @@ export function AggregatesTable({
                       />
                     )}
                   </TableHeadCellContent>
-                  {i !== fields.length - 1 && (
+                  {i !== visibleAggregateFields.length - 1 && (
                     <GridResizer
                       dataRows={
                         !result.isError && !result.isPending && result.data
@@ -174,7 +186,14 @@ export function AggregatesTable({
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const target = viewSamplesTarget(location, query, groupBys, row, {
+              const target = viewSamplesTarget({
+                location,
+                query,
+                fields,
+                groupBys,
+                visualizes,
+                sorts,
+                row,
                 projects,
               });
               return (
@@ -189,11 +208,15 @@ export function AggregatesTable({
                       </StyledLink>
                     </Tooltip>
                   </TableBodyCell>
-                  {fields.map((field, j) => {
+                  {visibleAggregateFields.map((aggregateField, j) => {
+                    const field = isGroupBy(aggregateField)
+                      ? aggregateField.groupBy
+                      : aggregateField.yAxis;
+
                     return (
                       <TableBodyCell key={j}>
                         <FieldRenderer
-                          column={columns[j]!}
+                          column={columns[field]}
                           data={row}
                           unit={meta?.units?.[field]}
                           meta={meta}
@@ -221,6 +244,19 @@ export function AggregatesTable({
   );
 }
 
+function prettifyField(
+  field: string,
+  stringTags: TagCollection,
+  numberTags: TagCollection
+): string {
+  const tag = stringTags[field] ?? numberTags[field] ?? null;
+  if (tag) {
+    return tag.name;
+  }
+
+  return prettifyAggregation(field) ?? field;
+}
+
 const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;
   left: -1px;
@@ -233,14 +269,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
-`;
-
-// Positions the loading indicator in the center of the cell that
-// corresponds to the stack column. Prevents layout shift when the
-// loading indicator is removed.
-const LoadingIndicatorWrapper = styled('div')`
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 `;

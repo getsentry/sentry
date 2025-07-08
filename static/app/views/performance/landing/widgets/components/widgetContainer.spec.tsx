@@ -892,7 +892,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.module:db transaction.op:pageload',
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -936,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.module:http',
+          query: 'span.category:http',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -1100,7 +1100,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'total_opportunity_score()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -1168,7 +1168,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1209,7 +1209,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1250,7 +1250,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),

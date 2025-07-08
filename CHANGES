@@ -1,3 +1,163 @@
+25.6.2
+------
+
+### Various fixes & improvements
+
+- feat(feedback): enable feedback category option for org stats page (#94649) by @aliu39
+- fix(anomaly detection): turn processing back on for dynamic rules (#94652) by @mifu67
+- chore(sentry apps): Add SLO for updating servicehooks (#94489) by @Christinarlong
+- feat(prevent): Initial RepoTokenTable (#94381) by @ajay-sentry
+- feat(aci): automation edit scaffolding (#94595) by @ameliahsu
+- feat(replay): add feedback to LLM context (#94315) by @michellewzhang
+- chore(opsgenie): instrument opsgenie installation slos (#94587) by @Christinarlong
+- chore(detectors): Add google API filtering for Consecutive HTTP detector  (#94634) by @roggenkemper
+- chore(launchpad): add dev check to skip ff logic on artifact upload path (#94638) by @NicoHinderling
+- profiling: allow session expanding (#94633) by @JonasBa
+- feat(aci): Add uptime detector form (#94617) by @malwilley
+- feat(preprod) Add file id for install file (#94642) by @noahsmartin
+- fix(ui): Silence additional AbortErrors (#94644) by @scttcper
+- fix(reports): Significantly increase the schedule_organizations deadline (#94596) by @kcons
+- feat(aci): add subfilters list to remaining frequency conditions (#94621) by @ameliahsu
+- :wrench: chore: add ecosystem to codeowners for sentry apps utils (#94620) by @iamrajjoshi
+- fix(ui): Throw error if response is undefined in api client (#94631) by @scttcper
+- :wrench: chore: fix and add a couple open pr comment logs (#94614) by @iamrajjoshi
+- :wrench: chore: sample sentry app client error slo logs (#94618) by @iamrajjoshi
+- feat(launchpad): Create size analysis upload (assemble) endpoint (#94353) by @NicoHinderling
+- fix(billing): update conditions for orgStatsBanner to appear (#94493) by @brendanhsentry
+- docs(replay): Iterate on bulk delete blueprint (#94494) by @ryan953
+- ref(issues): add rate limits to tagkey details (#94626) by @JoshFerge
+- feat(simpleTable): Allow `<SimpleTable>` to accept any Div props (#94619) by @ryan953
+
+_Plus 519 more_
+
+25.6.1
+------
+
+### Various fixes & improvements
+
+- feat(issues): Add hex parameterization experiment (#93970) by @mrduncan
+- feat(feedback): Split feedback tags into tags+context with collapsable sections (#93397) by @ryan953
+- ref(grouping): Small changes to grouping tests (#93960) by @lobsterkatie
+- ref(replay): adjust timestamps in replay ai summary UI (#93992) by @michellewzhang
+- fix(replay): Add handling for null max_segment_id (#93989) by @cmanallen
+- chore(issues): Remove traceparent experiment (#93942) by @mrduncan
+- ref(trace-items): Pull useGetTraceItemAttributeKeys into hook (#93739) by @Zylphrex
+- ref(explore): Visualize should only have 1 y axis (#93938) by @Zylphrex
+- feat(preprod): Add analytics to the assemble endpoint (#93871) by @trevor-e
+- feat(trace-eap-waterfall): Hiding some attrs (#93964) by @Abdkhan14
+- fix(aci): Fix accidental over-logging (#93971) by @kcons
+- feat(detectors): Add noise config to DB Query Injection Issue Type (#93943) by @roggenkemper
+- ref(dashboards): add a new table widget visualization component (#93902) by @lzhao-sentry
+- ref(issues): Remove redundant Type row from Event Grouping Information table (#93892) by @nora-shap
+- fix(taskworker) Extend deadlines for check_auth (#93961) by @markstory
+- flex: cleanup Flex* custom styling in favor of Flex primitive (#93809) by @JonasBa
+- ✨ feat(scm): add environment infomation to suspect commit prs (#93025) by @iamrajjoshi
+- ref(feedback): better summarization prompt (#93962) by @vishnupsatish
+- ref(replay): include error context in breadcrumb summary (#93669) by @michellewzhang
+- chore(issues): Remove regex parameterization experiment (#93958) by @mrduncan
+- fix(aci): Ensure slow conditions are consistent (#93895) by @kcons
+- feat(feedback): frontend to display summary (#93567) by @vishnupsatish
+- feat(devservices): Add tracing mode (#93759) by @hubertdeng123
+- ref(profiling): Move flamegraphFrameFilter types around for tsgo (#93948) by @scttcper
+
+_Plus 105 more_
+
+25.6.0
+------
+
+### Various fixes & improvements
+
+- fix(release): Run self-hosted image push on release branches (#93827) by @hubertdeng123
+- fixing(trace-eap-waterfall): Not implemented error (#93820) by @Abdkhan14
+- Remove `File`-based `EventAttachment` code (#93804) by @Swatinem
+- fix(aci): Change open period range boundary to inclusive (#93535) by @snigdhas
+- fix(ourlogs): Expand the menu automatically when you change the function (#93821) by @colin-sentry
+- fix(dashboards-comparison): Add proper handling for environment filters (#93822) by @nikkikapadia
+- feat(sentryapps): Display sentry apps token usage as app rather than proxy user  (#93763) by @leeandher
+- fix(issues): Handle breadcrumb item as array (#93784) by @scttcper
+- fix(issues): Move sentry attachment exception (#93783) by @scttcper
+- fix(ui): restore height for pageFilterBar (#93800) by @TkDodo
+- :wrench: chore: add logging for project transfers (#93779) by @iamrajjoshi
+- flex: add support for inline flex (#93813) by @JonasBa
+- ref(replays): Remove unused flag (#93805) by @cmanallen
+- releases: fix button overflow (#92344) by @JonasBa
+- chore(detectors): Normalize evidence data for query injection issues  (#93760) by @roggenkemper
+- ref(ci): Remove unused matrix (#93815) by @untitaker
+- fix(browser-reports): Support the correct media type (#93814) by @armenzg
+- chore(taskworker): Update put child multiprocessing queue metric (#93744) by @enochtangg
+- ref: growing input is no more (#86553) by @JonasBa
+- ref(replays): Clean up RRWeb event parsing logic (#93517) by @cmanallen
+- fix(spans): Do not shut down the flusher at the beginning of rebalancing (#93807) by @untitaker
+- fix(release): Publish image on release branches (#93757) by @hubertdeng123
+- ref: enable strict types on sentry.utils.github (#93710) by @asottile-sentry
+- Reapply "ref: match pipeline arg name in auth views (#93722) by @asottile-sentry
+
+_Plus 1454 more_
+
+25.5.1
+------
+
+### Various fixes & improvements
+
+- :wrench: chore(integrations): use `IntegrationProviderSlug` for Integration `key` (#91465) by @iamrajjoshi
+- ref: fix types for group_integration_details (#92026) by @asottile-sentry
+- Bump `devenv`/`devservices` to make Python SDK 3 compatible (#92028) by @antonpirker
+- build(ui): Remove react prod sourcemaps (#92006) by @scttcper
+- feat(spans): Produce items from process-segments (#91714) by @untitaker
+- feat(explore): Add attribute description throughout explore (#91829) by @Zylphrex
+- fix(symbolicator): check source credentials and not the credential token (#92024) by @Litarnus
+- feat(replay): Start bringing in new replay context wrappers to test (#91982) by @ryan953
+- feat(agents-insights): dashboard placeholder (#92021) by @obostjancic
+- ref: remove remote_subscriptions migrations (#92004) by @asottile-sentry
+- fix(apps): disallow Manager to rotate an app secret with org:admin scope (#92019) by @oioki
+- issues: remove custom save button styling (#91974) by @JonasBa
+- replay: replace colors for tokens on timeline (#91933) by @JonasBa
+- trace: fix buttons in chonk (#91878) by @JonasBa
+- tag: fix bad tag change and flickering text (#91927) by @JonasBa
+- chore(sdk): Use add_full_stack by default (#91939) by @armenzg
+- fix(codeowners): move demomode upwards in codewards to stop matching everything (#92020) by @shellmayr
+- fix(nextjs-insight): Filter spans without component type from tree view (#92017) by @ArthurKnaus
+- Add directory for preprod (#91961) by @chromy
+- fix(span-buffer): Fix crashing behavior in flusher (#91949) by @untitaker
+- feat(agents-insights): feature flag registration (#92014) by @obostjancic
+- fix(codeowners): add owner to demomode line (#92012) by @shellmayr
+- ref: add flags to migrations lockfile (#91991) by @asottile-sentry
+- feat(source-maps): Do not render source maps wizard if platform is react native (#91860) by @priscilawebdev
+
+_Plus 231 more_
+
+25.5.0
+------
+
+### Various fixes & improvements
+
+- chore(perf-issues): Add a flag and check it to allow customer to disable detectors (#91734) by @leeandher
+- feat(trace-tabs-ui): Adding ops to search on click and hiding trace level ops breakdown (#91684) by @Abdkhan14
+- build(ui): Add rspack as webpack alternative (#77077) by @scttcper
+- fix(taskworker) Fix async notification parameter serialization (#91720) by @markstory
+- fix(profiles): Set the proper span entity to insert data to in tests (#91736) by @phacops
+- fix(insights): line of code not working with db module on eap (#91654) by @DominikB2014
+- ref(reserved budgets): Update types + constants (#91606) by @isabellaenriquez
+- feat(taskworker) Check 2% of tasks for pickle (#91624) by @markstory
+- chore(github): Only support pagination for getting labels (#91570) by @armenzg
+- Skip test_queries_profile_candidates_from_spans (#91724) by @armenzg
+- fix(issue-details): Avoid persisting stacktrace folding behaviour (#91719) by @leeandher
+- feat(dashboards): Newly added widgets should scroll into view (#91721) by @narsaynorath
+- ref(crons): Use dateAdded over dateCreated (#91667) by @evanpurkhiser
+- fix(utils): return 0% for null and undefined values in formatpercentage (#91710) by @shellmayr
+- ref: fix nullability of requires_org_level_access (#91694) by @asottile-sentry
+- feat(explore): Flatten visualize yaxes into multiple (#91664) by @Zylphrex
+- fix(widget-library): Hide filters at top of panel if not small screen (#91716) by @narsaynorath
+- feat(attachments): Include all attachment with screenshot in name (#91602) by @armenzg
+- fix(insights): show - instead of null when metric value is null (#91656) by @DominikB2014
+- feat(ourlogs): Add a "new" badge for logs in the sidebar (#91674) by @colin-sentry
+- fix(nextjs-insights): remove project icon from rage/dead click widget (#91711) by @shellmayr
+- fix(nextjs-insights): show 0% for failure_rate()==0 instead of <0% (#91709) by @shellmayr
+- feat(nextjs-insights): add avg & p95 duration to navigations table (#91708) by @shellmayr
+- fix(sandbox): for debugging add telex org to exclude from redirect (#91704) by @constantinius
+
+_Plus 1819 more_
+
 25.4.0
 ------
 

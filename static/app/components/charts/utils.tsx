@@ -13,7 +13,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -31,6 +31,7 @@ export const ONE_WEEK = 10080;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
+const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
 export const FIVE_MINUTES = 5;
 
@@ -190,6 +191,7 @@ const issuesFidelityLadder = new GranularityLadder([
   [FORTY_EIGHT_HOURS, '1h'],
   [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
+  [THREE_HOURS, '2m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
 ]);
@@ -400,12 +402,12 @@ export function computeEchartsAriaLabels(
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = computeShortInterval({
+  const isShortInterval = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
-  })
-    ? `MMMM D, h:mm A`
-    : 'MMMM Do';
+  });
+
+  const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
 
   function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Anchor} from 'sentry/components/core/link';
 import {DataSection} from 'sentry/components/events/styles';
-import Anchor from 'sentry/components/links/anchor';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -30,6 +30,7 @@ export interface EventDataSectionProps {
    * you want the overlay to be interactive)
    */
   isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Should the permalink be enabled for this section?
    *
@@ -147,8 +148,8 @@ const SectionHeader = styled('div')`
   & h3,
   & h3 a {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-size: ${p => p.theme.fontSize.md};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   & h3 {
@@ -158,16 +159,16 @@ const SectionHeader = styled('div')`
 
   & small {
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;

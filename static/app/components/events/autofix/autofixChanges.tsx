@@ -6,8 +6,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -25,7 +26,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
+import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -52,12 +53,14 @@ function AutofixRepoChange({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   const changeDescriptionHtml = useMemo(() => {
     return {
@@ -70,6 +73,7 @@ function AutofixRepoChange({
       <RepoChangesHeader>
         <div>
           <AutofixHighlightWrapper
+            ref={ref}
             groupId={groupId}
             runId={runId}
             stepIndex={previousDefaultStepIndex ?? 0}
@@ -164,7 +168,7 @@ const CopyButton = styled(Button)`
 const CodeText = styled('code')`
   font-family: ${p => p.theme.text.familyMono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -185,8 +189,21 @@ export function AutofixChanges({
   const {data} = useAutofixData({groupId});
   const isBusy = step.status === AutofixStatus.PROCESSING;
   const iconCodeRef = useRef<HTMLDivElement>(null);
+  const firstChangeRef = useRef<HTMLDivElement | null>(null);
   const [isPrProcessing, setIsPrProcessing] = useState(false);
   const [isBranchProcessing, setIsBranchProcessing] = useState(false);
+
+  const handleSelectFirstChange = () => {
+    if (firstChangeRef.current) {
+      // Simulate a click on the first change to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      firstChangeRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   useEffect(() => {
     if (step.status === AutofixStatus.COMPLETED) {
@@ -230,7 +247,7 @@ export function AutofixChanges({
               <MarkdownAlert
                 text={
                   step.termination_reason ||
-                  t('Autofix had trouble applying its code changes.')
+                  t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>
@@ -261,6 +278,16 @@ export function AutofixChanges({
                   <IconCode size="sm" color="blue400" />
                 </HeaderIconWrapper>
                 {t('Code Changes')}
+                <ChatButton
+                  size="zero"
+                  borderless
+                  title={t('Chat with Seer')}
+                  onClick={handleSelectFirstChange}
+                  analyticsEventName="Autofix: Changes Chat"
+                  analyticsEventKey="autofix.changes.chat"
+                >
+                  <IconChat size="xs" />
+                </ChatButton>
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
@@ -343,7 +370,7 @@ export function AutofixChanges({
                       : null
                   }
                   isAgentComment
-                  blockName={t('Autofix is uncertain of the code changes...')}
+                  blockName={t('Seer is uncertain of the code changes...')}
                 />
               )}
             </AnimatePresence>
@@ -356,6 +383,7 @@ export function AutofixChanges({
                   runId={runId}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  ref={i === 0 ? firstChangeRef : undefined}
                 />
               </Fragment>
             ))}
@@ -388,11 +416,11 @@ const ChangesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 0 ${space(1)};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;
@@ -429,7 +457,7 @@ const Separator = styled('hr')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -440,9 +468,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;
@@ -451,6 +476,11 @@ const HeaderIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const ChatButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
 `;
 
 function CreatePRsButton({
@@ -496,7 +526,12 @@ function CreatePRsButton({
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       setHasClicked(true);
     },
     onError: () => {
@@ -574,7 +609,12 @@ function CreateBranchButton({
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Failed to push to branches.'));

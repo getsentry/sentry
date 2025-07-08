@@ -9,15 +9,15 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -95,11 +95,9 @@ function GroupCheckbox({
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
 
-  const onChange = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
+  const handleToggle = useCallback(
+    (isShiftClick: boolean) => {
+      if (isShiftClick) {
         SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
@@ -108,8 +106,28 @@ function GroupCheckbox({
     [group.id]
   );
 
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+      handleToggle(mouseEvent.shiftKey);
+    },
+    [handleToggle]
+  );
+
   return (
     <GroupCheckBoxWrapper>
+      {!group.hasSeen && (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator
+            data-test-id="unread-issue-indicator"
+            onClick={(e: React.MouseEvent) => {
+              // Toggle checkbox on unread indicator misclick
+              e.stopPropagation();
+              handleToggle(e.shiftKey);
+            }}
+          />
+        </Tooltip>
+      )}
       <CheckboxLabel>
         <CheckboxWithBackground
           id={group.id}
@@ -119,11 +137,6 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
-      {group.hasSeen ? null : (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator data-test-id="unread-issue-indicator" />
-        </Tooltip>
-      )}
     </GroupCheckBoxWrapper>
   );
 }
@@ -646,14 +659,16 @@ export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;
-  top: 0;
+  top: -1px;
   left: 0;
   bottom: 0;
   height: 100%;
   width: 32px;
   padding-left: ${space(2)};
-  padding-top: 14px;
   margin: 0;
+  margin-top: -1px;
+  display: flex;
+  align-items: center;
 `;
 
 const UnreadIndicator = styled('div')`
@@ -661,8 +676,9 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
-  margin-left: ${space(3)};
-  margin-top: 10px;
+  margin-top: 1px;
+  margin-left: ${space(2)};
+  z-index: 1;
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -675,15 +691,8 @@ const Wrapper = styled(PanelItem)<{
   padding: ${space(1)} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
+  &:not(:has(:hover)):not(:has(input:checked)) {
     ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
-
-  &:hover,
-  &:focus-within {
-    ${UnreadIndicator} {
       ${p => p.theme.visuallyHidden};
     }
   }
@@ -749,7 +758,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: auto;
 `;
 
@@ -757,7 +766,10 @@ const GroupCheckBoxWrapper = styled('div')`
   align-self: flex-start;
   width: 32px;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding-top: ${space(1)};
   z-index: 1;
 `;
 
@@ -771,8 +783,8 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-export const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeMedium};
+const PrimaryCount = styled(Count)`
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -780,7 +792,7 @@ export const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   justify-content: right;
   color: ${p => p.theme.subText};
@@ -799,12 +811,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
 
   h4 {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};
@@ -906,7 +918,7 @@ const StartedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     width: 140px;
   }
@@ -919,7 +931,7 @@ const EventsReprocessedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 140px;
   }
 `;
@@ -929,7 +941,7 @@ const ProgressColumn = styled('div')`
   align-self: center;
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
     width: 160px;
   }

@@ -3,7 +3,7 @@ import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
 import Banner from 'sentry/components/banner';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -40,7 +40,7 @@ const StyledBanner = styled(Banner)`
 `;
 
 const DashboardBackground = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     background-image: url(${DashLeft}), url(${DashRight});
     background-position:
       left center,

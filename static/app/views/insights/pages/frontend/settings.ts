@@ -9,8 +9,6 @@ export const FRONTEND_LANDING_TITLE = t('Frontend');
 export const FRONTEND_SIDEBAR_LABEL = t('Frontend');
 
 export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
-  'pageload',
-  'navigation',
   'ui.render',
   'interaction',
   'ui.interaction',
@@ -34,7 +32,6 @@ export const MODULES = [
   ModuleName.HTTP,
   ModuleName.RESOURCE,
   ModuleName.SESSIONS,
-  ModuleName.UPTIME,
 ];
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py, except shared platforms are removed
@@ -48,3 +45,8 @@ export const DEFAULT_SORT: ValidSort = {
   field: 'sum_if(span.duration,is_transaction,true)' satisfies EAPSpanProperty,
   kind: 'desc',
 };
+
+export const PAGE_SPAN_OPS = ['all', 'pageload', 'navigation'] as const;
+export type PageSpanOps = (typeof PAGE_SPAN_OPS)[number];
+export const DEFAULT_SPAN_OP_SELECTION: PageSpanOps = 'all';
+export const SPAN_OP_QUERY_PARAM = 'span.op';

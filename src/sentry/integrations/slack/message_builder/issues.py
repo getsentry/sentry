@@ -40,7 +40,7 @@ from sentry.integrations.slack.utils.escape import (
     escape_slack_text,
 )
 from sentry.integrations.time_utils import get_approx_start_time, time_since
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
@@ -67,12 +67,12 @@ from sentry.users.services.user.model import RpcUser
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
-    "github",
+    IntegrationProviderSlug.GITHUB.value,
     "integrations:github",
     "integrations:github_enterprise",
     "integrations:vsts",
     "integrations:gitlab",
-    "bitbucket",
+    IntegrationProviderSlug.BITBUCKET.value,
     "integrations:bitbucket",
 )
 
@@ -458,30 +458,28 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     ) -> SlackBlock:
         summary_headline = self.get_issue_summary_headline(event_or_group)
         title = summary_headline or build_attachment_title(event_or_group)
-        title_emoji = self.get_title_emoji(has_action)
+        title_emojis = self.get_title_emoji(has_action)
 
-        title_text = f"{title_emoji}<{title_link}|*{escape_slack_text(title)}*>"
-        return self.get_markdown_block(title_text)
+        return self.get_rich_text_link(title_emojis, title, title_link)
 
-    def get_title_emoji(self, has_action: bool) -> str | None:
+    def get_title_emoji(self, has_action: bool) -> list[str]:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
 
-        title_emoji = None
+        title_emojis: list[str] = []
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
-            title_emoji = (
+            title_emojis = (
                 ACTION_EMOJI
                 if is_error_issue
-                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
             )
         elif is_error_issue:
             level_text = LOG_LEVELS[self.group.level]
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            title_emojis = LEVEL_TO_EMOJI.get(level_text, [])
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
-        title_emoji = title_emoji + " " if title_emoji else ""
-        return title_emoji
+        return title_emojis
 
     def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
         if self.issue_summary is None:
@@ -580,13 +578,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else:
                 footer_text = footer_text[:-4]  # chop off the empty space
 
-            if self.issue_summary:
-                footer_text += "    Powered by Seer"
-
             return self.get_context_block(text=footer_text)
         else:
-            if self.issue_summary:
-                footer += " | Powered by Seer"
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:

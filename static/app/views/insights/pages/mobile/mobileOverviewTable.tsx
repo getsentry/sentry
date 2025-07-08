@@ -1,10 +1,10 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -14,6 +14,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -29,11 +30,9 @@ type Row = Pick<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -43,11 +42,9 @@ type Column = GridColumnHeader<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -73,18 +70,13 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(span.duration)',
-    name: t('p50()'),
+    key: 'p75(measurements.frames_slow_rate)',
+    name: t('Slow Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(span.duration)',
-    name: t('p95()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'failure_rate()',
-    name: t('Failure Rate'),
+    key: 'p75(measurements.frames_frozen_rate)',
+    name: t('Frozen Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -93,9 +85,10 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
   },
 ];
 
@@ -105,11 +98,10 @@ const SORTABLE_FIELDS = [
   'span.op',
   'project',
   'epm()',
-  'p50(span.duration)',
-  'p95(span.duration)',
-  'failure_rate()',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum(span.duration)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -191,7 +183,7 @@ function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   return [
     <StarredSegmentCell
       key={row.transaction}
-      initialIsStarred={row.is_starred_transaction}
+      isStarred={row.is_starred_transaction}
       projectSlug={row.project}
       segmentName={row.transaction}
     />,

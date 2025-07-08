@@ -15,7 +15,7 @@ export default function QueuesSummaryLatencyChartWidget(props: LoadableChartWidg
     <LatencyChart
       {...props}
       id="queuesSummaryLatencyChartWidget"
-      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      referrer={Referrer.QUEUES_SUMMARY_LATENCY_CHART}
       destination={destination}
     />
   );

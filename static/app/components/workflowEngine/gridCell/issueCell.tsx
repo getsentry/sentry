@@ -1,9 +1,10 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {t} from 'sentry/locale';
@@ -47,17 +48,17 @@ const IssueWrapper = styled(Link)<{disabled: boolean}>`
 
   ${Wrapper} {
     color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 
   ${p =>
     !p.disabled &&
-    `
-    &:hover ${Wrapper} {
-      color: ${p.theme.textColor};
-      text-decoration: underline;
-    }
-  `}
+    css`
+      &:hover ${Wrapper} {
+        color: ${p.theme.textColor};
+        text-decoration: underline;
+      }
+    `}
 `;
 
 const LastSeenWrapper = styled(Flex)`

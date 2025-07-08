@@ -105,6 +105,7 @@ class Candidates extends Component<Props, State> {
           return false;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         if (!defined(info) || !String(info).trim()) {
           return false;
         }
@@ -378,7 +379,7 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     flex-direction: row;
   }
@@ -390,12 +391,12 @@ const Title = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
   height: 32px;
   flex: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -406,7 +407,7 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
     overflow: visible;
   }
 `;

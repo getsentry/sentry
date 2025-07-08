@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Sequence
 from typing import NotRequired, TypedDict
 
 from django.conf import settings
@@ -40,10 +43,8 @@ class BulkCreateGroupingRecordsResponse(TypedDict):
     reason: NotRequired[str | None]
 
 
-seer_grouping_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_BACKFILL_URL,
-    timeout=settings.SEER_GROUPING_TIMEOUT,
-)
+seer_grouping_backfill_connection_pool = connection_from_url(settings.SEER_GROUPING_BACKFILL_URL)
+seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
 
 
 def post_bulk_grouping_records(
@@ -64,7 +65,7 @@ def post_bulk_grouping_records(
 
     try:
         response = make_signed_seer_api_request(
-            seer_grouping_connection_pool,
+            seer_grouping_backfill_connection_pool,
             SEER_GROUPING_RECORDS_URL,
             body=json.dumps(grouping_records_request).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
@@ -124,7 +125,7 @@ def delete_project_grouping_records(
         return False
 
 
-def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
+def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> bool:
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}

@@ -1,27 +1,27 @@
-import {useCallback, useContext, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -41,7 +41,6 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -49,9 +48,11 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-const SESSION_DURATION_ALERT_TEXT = t(
-  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+const SESSION_DURATION_ALERT_TEXT = tct(
+  'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
+  {
+    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+  }
 );
 
 export const SESSION_DURATION_ALERT = (
@@ -70,6 +71,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
@@ -78,7 +80,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: string;
+  minTableColumnWidth?: number;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -87,10 +89,12 @@ type Props = WithRouterProps & {
   onSetTransactionsDataset?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
+  showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -98,7 +102,6 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
-  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -110,18 +113,24 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
-    const {isProgressivelyLoading, ...rest} = newData;
+    const {...rest} = newData;
     if (props.onDataFetched && rest.tableResults) {
       props.onDataFetched(rest.tableResults);
     }
 
     setData(prevData => ({...prevData, ...rest}));
-    if (defined(isProgressivelyLoading)) {
-      setIsProgressivelyLoading(isProgressivelyLoading);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
+    setIsLoadingTextVisible(false);
   };
 
   const {
@@ -145,6 +154,10 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    disableZoom,
+    showLoadingText,
+    router,
+    onWidgetTableSort,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -170,13 +183,27 @@ function WidgetCard(props: Props) {
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
-  const [isProgressivelyLoading, setIsProgressivelyLoading] = useState(false);
 
-  const handleProgressiveLoadingStart = useCallback(() => {
-    if (organization.features.includes('visibility-explore-progressive-loading')) {
-      setIsProgressivelyLoading(true);
+  const onDataFetchStart = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-  }, [organization.features]);
+
+    setIsLoadingTextVisible(false);
+    timeoutRef.current = setTimeout(() => {
+      setIsLoadingTextVisible(true);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -191,12 +218,15 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -227,12 +257,15 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,
         Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
+        location,
+        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
@@ -267,11 +300,6 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          titleBadges={getProgressiveLoadingIndicator(
-            organization.features.includes('visibility-explore-progressive-loading') &&
-              isProgressivelyLoading,
-            widget.displayType === DisplayType.TABLE ? 'table' : 'chart'
-          )}
         >
           <WidgetCardChartContainer
             location={location}
@@ -293,7 +321,10 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
-            onDataFetchStart={handleProgressiveLoadingStart}
+            disableZoom={disableZoom}
+            onDataFetchStart={onDataFetchStart}
+            showLoadingText={showLoadingText && isLoadingTextVisible}
+            onWidgetTableSort={onWidgetTableSort}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

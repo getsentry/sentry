@@ -192,17 +192,19 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         interval = 24 * 60 * 60 * 1000
         assert response.status_code == 200, response.content
 
+        rounded_start = seven_days_ago.replace(hour=0, minute=0)
+        rounded_end = rounded_start + timedelta(days=7)
         assert response.data["meta"] == {
             "dataset": "spans",
-            "start": seven_days_ago.timestamp() * 1000,
-            "end": self.end.timestamp() * 1000,
+            "start": rounded_start.timestamp() * 1000,
+            "end": rounded_end.timestamp() * 1000,
         }
         assert len(response.data["timeseries"]) == 4
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -217,7 +219,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -232,7 +234,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
@@ -247,7 +249,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
@@ -1421,28 +1423,17 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def test_interval_larger_than_period_uses_default_period(self):
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "12h",
-                "yAxis": "count()",
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(seconds=10),
+                "interval": "15s",
+                "query": "",
+                "yAxis": ["count()"],
                 "project": self.project.id,
                 "dataset": "spans",
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data["meta"] == {
-            "dataset": "spans",
-            "start": self.start.timestamp() * 1000,
-            "end": self.end.timestamp() * 1000,
-        }
-
-        timeseries = response.data["timeseries"][0]
-        assert timeseries["yAxis"] == "count()"
-        assert len(timeseries["values"]) == 73
-        assert timeseries["meta"] == {
-            "valueType": "integer",
-            "interval": 300_000,
-        }
+        assert response.status_code == 400, response.content
+        assert "Interval cannot be larger than the date range" in response.data["detail"]
 
     def test_cache_miss_rate(self):
         self.store_spans(
@@ -1790,4 +1781,323 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 0,
             "valueType": "integer",
             "interval": 60_000,
+        }
+
+    def test_simple_equation(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "equation|count() * 2",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() * 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 4.0, 2.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+        }
+
+    def test_equation_all_symbols(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process"},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process"},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish"},
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        equation = "equation|count() * 2 + 2 - 2 / 2"
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": equation,
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == equation
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 5.0, 3.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+        }
+
+    def test_simple_equation_with_multi_axis(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": ["equation|count() * 2", "equation|count() - 2"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 2
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() * 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 4.0, 2.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+        }
+
+        timeseries = response.data["timeseries"][1]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() - 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 0.0, -1.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+        }
+
+    def test_simple_equation_with_top_events(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                    },
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                    },
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                    },
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "description": "baz",
+                    },
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                    },
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                    },
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "equation|count() * 2",
+                "topEvents": 2,
+                "groupBy": ["description", "equation|count() * 2"],
+                "orderby": "-equation|count() * 2",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 3
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() * 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 6.0, 0.0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [
+            {"key": "description", "value": "foo"},
+        ]
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+            "isOther": False,
+            "order": 0,
+        }
+
+        timeseries = response.data["timeseries"][1]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() * 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 0.0, 4.0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [
+            {"key": "description", "value": "bar"},
+        ]
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+            "isOther": False,
+            "order": 1,
+        }
+
+        timeseries = response.data["timeseries"][2]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|count() * 2"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0.0, 2.0, 0.0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] is None
+        assert timeseries["meta"] == {
+            "valueType": "number",
+            "interval": 60_000,
+            "isOther": True,
+            "order": 2,
+        }
+
+    def test_disable_extrapolation(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"client_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans, is_eap=True)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "disableAggregateExtrapolation": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 3_600_000,
         }

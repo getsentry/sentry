@@ -66,6 +66,7 @@ export default function ReleaseTableSearch() {
 
   return (
     <StyledSearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       onSearch={handleSearch}
       initialQuery={getQuery() || ''}
       filterKeys={filterKeys}
@@ -78,7 +79,7 @@ export default function ReleaseTableSearch() {
 }
 
 const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-column: 1 / -1;
   }
 `;

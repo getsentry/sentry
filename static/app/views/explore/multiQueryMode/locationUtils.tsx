@@ -10,6 +10,7 @@ import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -46,8 +47,8 @@ function validateSortBys(
 ): Sort[] {
   const mode = getQueryMode(groupBys);
 
-  if (parsedSortBys.length > 0) {
-    if (mode === Mode.SAMPLES) {
+  if (mode === Mode.SAMPLES) {
+    if (parsedSortBys.length > 0) {
       if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
         return parsedSortBys;
       }
@@ -59,16 +60,24 @@ function validateSortBys(
       ];
     }
 
-    if (
-      mode === Mode.AGGREGATE &&
-      parsedSortBys.every(
-        sort => groupBys?.includes(sort.field) || yAxes?.includes(sort.field)
-      )
-    ) {
-      return parsedSortBys;
-    }
+    return defaultSortBys(fields ?? []);
   }
-  return defaultSortBys(mode, fields ?? [], yAxes ?? []);
+
+  if (mode === Mode.AGGREGATE) {
+    if (parsedSortBys.length > 0) {
+      if (
+        parsedSortBys.every(
+          sort => groupBys?.includes(sort.field) || yAxes?.includes(sort.field)
+        )
+      ) {
+        return parsedSortBys;
+      }
+    }
+
+    return defaultAggregateSortBys(yAxes ?? []);
+  }
+
+  return [];
 }
 
 function parseQuery(raw: string): ReadableExploreQueryParts {
@@ -212,6 +221,25 @@ export function useDeleteQueryAtIndex() {
   );
 }
 
+export function useDuplicateQueryAtIndex() {
+  const location = useLocation();
+  const queries = useReadQueriesFromLocation();
+  const navigate = useNavigate();
+
+  return useCallback(
+    (index: number) => {
+      const query = queries[index];
+      if (defined(query)) {
+        const duplicate = structuredClone(query);
+        const newQueries = queries.toSpliced(index + 1, 0, duplicate);
+        const target = getUpdatedLocationWithQueries(location, newQueries);
+        navigate(target);
+      }
+    },
+    [location, navigate, queries]
+  );
+}
+
 export function getSamplesTargetAtIndex(
   index: number,
   queries: ReadableExploreQueryParts[],
@@ -278,45 +306,45 @@ type CompareRouteProps = {
   location: Location;
   mode: Mode;
   organization: Organization;
-  chartType?: ChartType;
-  fields?: string[];
-  groupBys?: string[];
-  query?: string;
-  sortBys?: Sort[];
-  yAxes?: string[];
+  queries: WritableExploreQueryParts[];
+  referrer?: string;
 };
 
 export function generateExploreCompareRoute({
   organization,
   location,
   mode,
-  chartType,
-  groupBys,
-  query,
-  sortBys,
-  yAxes,
+  queries,
+  referrer,
 }: CompareRouteProps): LocationDescriptorObject {
   const url = getCompareBaseUrl(organization);
-  const compareQuery: WritableExploreQueryParts = {
-    chartType,
+  const compareQueries = queries.map(query => ({
+    ...query,
     // Filter out empty strings which are used to indicate no grouping
     // in Trace Explorer. The same assumption does not exist for the
     // comparison view.
-    groupBys: mode === Mode.AGGREGATE ? groupBys?.filter(Boolean) : [],
-    query,
-    sortBys,
-    yAxes,
+    groupBys: mode === Mode.AGGREGATE ? query.groupBys?.filter(Boolean) : [],
+  }));
+
+  if (compareQueries.length < 2) {
+    compareQueries.push(DEFAULT_QUERY);
+  }
+  const query = {
+    [URL_PARAM.END]: location.query.end,
+    [URL_PARAM.START]: location.query.start,
+    [URL_PARAM.UTC]: location.query.utc,
+    [URL_PARAM.PERIOD]: location.query.statsPeriod,
+    [URL_PARAM.PROJECT]: location.query.project,
+    [URL_PARAM.ENVIRONMENT]: location.query.environment,
+    queries: getQueriesAsUrlParam(compareQueries),
   };
+
+  if (referrer) {
+    query.referrer = referrer;
+  }
+
   return {
     pathname: url,
-    query: {
-      [URL_PARAM.END]: location.query.end,
-      [URL_PARAM.START]: location.query.start,
-      [URL_PARAM.UTC]: location.query.utc,
-      [URL_PARAM.PERIOD]: location.query.statsPeriod,
-      [URL_PARAM.PROJECT]: location.query.project,
-      [URL_PARAM.ENVIRONMENT]: location.query.environment,
-      queries: getQueriesAsUrlParam([compareQuery, DEFAULT_QUERY]),
-    },
+    query,
   };
 }

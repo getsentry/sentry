@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:53.163918+00:00'
+created: '2025-05-12T23:41:02.990228+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app:
                 "dostuff"
               function*
                 "do_other_stuff"
-            frame (marked in-app by the client)
+            frame (marked in-app by the client but ignored due to recursion)
               module*
                 "dostuff"
               function*

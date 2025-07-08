@@ -9,9 +9,9 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -183,9 +183,7 @@ function IssueListActions({
   const theme = useTheme();
 
   const disableActions = useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const numIssues = selectedIdsSet.size;
@@ -376,7 +374,7 @@ function IssueListActions({
       />
       {!allResultsVisible && pageSelected && (
         <Alert system type="warning">
-          <Flex justify="center" wrap="wrap">
+          <Flex justify="center" wrap="wrap" gap={space(1)}>
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -397,7 +395,8 @@ function IssueListActions({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink onClick={() => setAllInQuerySelected(true)}>
+
+                <a onClick={() => setAllInQuerySelected(true)}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -408,7 +407,7 @@ function IssueListActions({
                     : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </SelectAllLink>
+                </a>
               </Fragment>
             )}
           </Flex>
@@ -475,12 +474,6 @@ function shouldConfirm(
   }
 }
 
-export const HeaderDivider = styled(motion.div)`
-  background-color: ${p => p.theme.gray200};
-  width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
 
@@ -514,7 +507,7 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
 `;
 
 const HeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
   flex: 1;
@@ -527,7 +520,7 @@ const HeaderButtonsWrapper = styled(motion.div)`
 `;
 
 const NarrowHeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
   flex: 1;
@@ -538,10 +531,6 @@ const NarrowHeaderButtonsWrapper = styled(motion.div)`
   grid-auto-flow: column;
   justify-content: space-between;
   white-space: nowrap;
-`;
-
-const SelectAllLink = styled('a')`
-  margin-left: ${space(1)};
 `;
 
 const AnimatedHeaderItemsContainer = styled(motion.div)`

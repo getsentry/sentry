@@ -1,4 +1,12 @@
-import {createContext, type Dispatch, useContext, useMemo, useRef} from 'react';
+import {
+  createContext,
+  type Dispatch,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
@@ -19,28 +27,35 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  committedQuery: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  displaySeerResults: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
+  parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  filterKeyAliases?: TagCollection;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
    */
   portalTarget?: HTMLElement | null;
   recentSearches?: SavedSearchType;
+  replaceRawSearchKeys?: string[];
 }
 
 export function useSearchQueryBuilder() {
@@ -69,6 +84,7 @@ export function SearchQueryBuilderProvider({
   filterKeys,
   filterKeyMenuWidth = 360,
   filterKeySections,
+  getSuggestedFilterKey,
   getTagValues,
   onSearch,
   placeholder,
@@ -76,38 +92,57 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  replaceRawSearchKeys,
+  filterKeyAliases,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
   });
 
-  const parsedQuery = useMemo(
-    () =>
-      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter,
+    [fieldDefinitionGetter]
+  );
+
+  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+
+  const stableGetSuggestedFilterKey = useCallback(
+    (key: string) => {
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+    },
+    [getSuggestedFilterKey]
+  );
+
+  const parseQuery = useCallback(
+    (query: string) =>
+      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys,
+        filterKeys: stableFilterKeys,
         invalidMessages,
+        filterKeyAliases,
       }),
     [
-      state.query,
-      fieldDefinitionGetter,
       disallowFreeText,
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      filterKeys,
-      invalidMessages,
+      stableFieldDefinitionGetter,
+      stableFilterKeys,
       getFilterTokenWarning,
+      invalidMessages,
+      filterKeyAliases,
     ]
   );
+  const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
@@ -125,12 +160,14 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
-      filterKeys,
+      filterKeys: stableFilterKeys,
+      getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
+      getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
       actionBarRef,
@@ -140,18 +177,24 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
+      displaySeerResults,
+      setDisplaySeerResults,
+      replaceRawSearchKeys,
+      filterKeyAliases,
     };
   }, [
     state,
     disabled,
     disallowFreeText,
     disallowWildcard,
+    parseQuery,
     parsedQuery,
     filterKeySections,
     filterKeyMenuWidth,
-    filterKeys,
+    stableFilterKeys,
+    stableGetSuggestedFilterKey,
     getTagValues,
-    fieldDefinitionGetter,
+    stableFieldDefinitionGetter,
     dispatch,
     handleSearch,
     placeholder,
@@ -159,6 +202,10 @@ export function SearchQueryBuilderProvider({
     searchSource,
     size,
     portalTarget,
+    displaySeerResults,
+    setDisplaySeerResults,
+    replaceRawSearchKeys,
+    filterKeyAliases,
   ]);
 
   return (

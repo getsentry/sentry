@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -284,7 +285,7 @@ const Currency = styled('span')`
     position: absolute;
     content: '$';
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 

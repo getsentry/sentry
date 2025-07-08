@@ -185,6 +185,11 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(monitor_errors[0].errors) == 1
         assert monitor_errors[0].errors[0]["type"] == ProcessingErrorType.MONITOR_DISABLED
 
+        # verify that we can delete the remaining error
+        delete_errors_for_monitor_by_type(monitor, ProcessingErrorType.MONITOR_DISABLED)
+        project_errors = get_errors_for_monitor(monitor)
+        assert len(project_errors) == 0
+
     def test_delete_for_project_by_type(self):
         processing_error1 = build_checkin_processing_error(
             processing_errors=[{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
@@ -215,6 +220,13 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(project_errors) == 1
         assert len(project_errors[0].errors) == 1
         assert project_errors[0].errors[0]["type"] == ProcessingErrorType.CHECKIN_VALIDATION_FAILED
+
+        # verify that we can delete the remaining error
+        delete_errors_for_project_by_type(
+            self.project, ProcessingErrorType.CHECKIN_VALIDATION_FAILED
+        )
+        project_errors = get_errors_for_projects([self.project])
+        assert len(project_errors) == 0
 
 
 class HandleProcessingErrorsTest(TestCase):

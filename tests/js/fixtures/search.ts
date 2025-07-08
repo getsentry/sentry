@@ -1,4 +1,5 @@
-import {SavedSearch, SavedSearchVisibility} from 'sentry/types/group';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/group';
 
 export function SearchFixture(params: Partial<SavedSearch> = {}): SavedSearch {
   return {

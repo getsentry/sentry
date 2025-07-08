@@ -2,11 +2,11 @@ import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,20 +16,20 @@ import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerforman
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-const DATE_FORMAT = 'MMM DD, YYYY';
-
 // Returns the beggining of statsPeriod formatted like "Jan 1, 2022"
 // or absolute date range formatted like "Jan 1, 2022 - Jan 2, 2022"
 function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null {
   const {start, end, period} = dateTime;
+  const format = getFormat({dateOnly: true, year: true});
+
   if (period) {
     const periodToHours = parsePeriodToHours(period);
     const periodStartDate = new Date(Date.now() - periodToHours * 60 * 60 * 1000);
-    return getFormattedDate(periodStartDate, DATE_FORMAT);
+    return getFormattedDate(periodStartDate, format);
   }
 
   if (start && end) {
-    return `${getFormattedDate(new Date(start), DATE_FORMAT)} - ${getFormattedDate(new Date(end), DATE_FORMAT)}`;
+    return `${getFormattedDate(new Date(start), format)} - ${getFormattedDate(new Date(end), format)}`;
   }
 
   return null;

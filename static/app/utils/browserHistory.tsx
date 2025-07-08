@@ -1,4 +1,4 @@
-import type {Router} from '@remix-run/router/dist/router';
+import type {Router} from '@remix-run/router';
 import * as Sentry from '@sentry/react';
 import type {History} from 'history';
 

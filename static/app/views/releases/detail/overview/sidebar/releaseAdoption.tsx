@@ -71,16 +71,6 @@ function ReleaseAdoption({
       return [];
     }
 
-    const sessionsMarkLines = generateReleaseMarkLines(
-      release,
-      project,
-      theme,
-      location,
-      {
-        hideLabel: true,
-        axisIndex: sessionsAxisIndex,
-      }
-    );
     const sessionSeriesData = getAdoptionSeries(
       releaseSessions.groups,
       allSessions?.groups,
@@ -91,7 +81,12 @@ function ReleaseAdoption({
     // Usually, there is one data point because there is very little sessions data.
     const hasMultipleDataPoints = sessionSeriesData.length > 1;
     const series = [
-      ...(hasMultipleDataPoints ? sessionsMarkLines : []),
+      ...(hasMultipleDataPoints
+        ? generateReleaseMarkLines(release, project, theme, location, {
+            hideLabel: true,
+            axisIndex: sessionsAxisIndex,
+          })
+        : []),
       {
         seriesName: t('Sessions'),
         connectNulls: true,
@@ -102,10 +97,20 @@ function ReleaseAdoption({
     ];
 
     if (hasUsers) {
-      const usersMarkLines = generateReleaseMarkLines(release, project, theme, location, {
-        hideLabel: true,
-        axisIndex: usersAxisIndex,
-      });
+      const usersSeriesData = getAdoptionSeries(
+        releaseSessions.groups,
+        allSessions?.groups,
+        releaseSessions.intervals,
+        SessionFieldWithOperation.USERS
+      );
+      // See note re: sessions about why we need to check for a single data point.
+      const hasMultipleDataPointsUsers = usersSeriesData.length > 1;
+      const usersMarkLines = hasMultipleDataPointsUsers
+        ? generateReleaseMarkLines(release, project, theme, location, {
+            hideLabel: true,
+            axisIndex: usersAxisIndex,
+          })
+        : [];
 
       series.push(...usersMarkLines);
       series.push({
@@ -113,12 +118,7 @@ function ReleaseAdoption({
         connectNulls: true,
         yAxisIndex: usersAxisIndex,
         xAxisIndex: usersAxisIndex,
-        data: getAdoptionSeries(
-          releaseSessions.groups,
-          allSessions?.groups,
-          releaseSessions.intervals,
-          SessionFieldWithOperation.USERS
-        ),
+        data: usersSeriesData,
       });
     }
 
@@ -354,7 +354,7 @@ const TooltipWrapper = styled('span')`
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.textColor};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const RelativeBox = styled('div')`

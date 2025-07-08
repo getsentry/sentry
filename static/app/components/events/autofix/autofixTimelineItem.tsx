@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
@@ -60,6 +61,7 @@ interface AutofixTimelineItemProps {
   retainInsightCardIndex: number | null | undefined;
   runId: string;
   stepIndex: number;
+  codeUrl?: string | null;
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode | undefined;
 }
 
@@ -72,6 +74,7 @@ export function AutofixTimelineItem({
   retainInsightCardIndex,
   runId,
   stepIndex,
+  codeUrl,
 }: AutofixTimelineItemProps) {
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -100,7 +103,7 @@ export function AutofixTimelineItem({
           >
             <div dangerouslySetInnerHTML={titleHtml} />
           </AutofixHighlightWrapper>
-          <StyledIconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+          <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
         </StyledTimelineHeader>
       }
       isActive={isMostImportantEvent}
@@ -128,6 +131,11 @@ export function AutofixTimelineItem({
                   inline
                 />
               </AutofixHighlightWrapper>
+              {codeUrl && (
+                <SourcesWrapper>
+                  <AutofixInsightSources codeUrls={[codeUrl]} />
+                </SourcesWrapper>
+              )}
             </Timeline.Text>
           </AnimatedContent>
         )}
@@ -142,9 +150,14 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.sm};
+    background-color: transparent;
     display: inline-block;
   }
+`;
+
+const SourcesWrapper = styled('div')`
+  margin-top: ${space(2)};
 `;
 
 const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
@@ -155,7 +168,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
+  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
   gap: ${space(1)};
 
   & > span:first-of-type {

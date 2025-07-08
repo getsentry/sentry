@@ -5,8 +5,9 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Select} from 'sentry/components/core/select';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -150,40 +151,32 @@ class ActionsPanel extends PureComponent<Props> {
     const newAction = {...actions[index]};
     if (newAction.type === 'slack') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     if (newAction.type === 'discord') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     return null;
@@ -558,7 +551,7 @@ const RuleRowContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`
@@ -566,12 +559,12 @@ const PerformActionsListItem = styled(StyledListItem)`
   line-height: 1.3;
 `;
 
-const MarginlessAlert = styled(Alert)`
+const FooterAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.border} solid;
-  border-top-width: 0;
-  padding: ${space(1)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -1px; /* remove double border on panel bottom */
+  a {
+    white-space: nowrap;
+  }
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

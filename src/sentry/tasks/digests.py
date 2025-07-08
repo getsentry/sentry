@@ -1,6 +1,5 @@
 import logging
 import time
-from datetime import datetime
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -47,11 +46,14 @@ def schedule_digests() -> None:
     name="sentry.tasks.digests.deliver_digest",
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=digests_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=digests_tasks,
+        processing_deadline_duration=10 * 60,
+    ),
 )
 def deliver_digest(
     key: str,
-    schedule_timestamp: datetime | None = None,
+    schedule_timestamp: float | None = None,
     notification_uuid: str | None = None,
 ) -> None:
     from sentry import digests

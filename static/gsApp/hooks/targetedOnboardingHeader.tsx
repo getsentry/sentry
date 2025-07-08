@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -78,7 +78,7 @@ const HeaderActionBar = styled(ButtonBar)`
 `;
 
 const SecondaryCTAWrapper = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

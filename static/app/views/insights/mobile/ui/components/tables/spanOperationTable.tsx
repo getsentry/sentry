@@ -1,8 +1,8 @@
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -11,24 +11,21 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {APP_START_SPANS} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {
   ModuleName,
   SpanMetricsField,
@@ -45,9 +42,7 @@ export function SpanOperationTable({
   secondaryRelease,
 }: SpanOperationTableProps) {
   const moduleURL = useModuleURL('mobile-ui');
-  const screenRenderingModuleUrl = useModuleURL(ModuleName.SCREEN_RENDERING);
   const location = useLocation();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
@@ -56,8 +51,6 @@ export function SpanOperationTable({
   const subregions = decodeList(
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
-
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   // TODO: These filters seem to be too aggressive, check that they are ingesting properly
   const searchQuery = new MutableSearch([
@@ -104,12 +97,27 @@ export function SpanOperationTable({
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: true,
-    referrer: Referrer.SPAN_OPERATION_TABLE,
-    cursor,
-  });
+  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+    {
+      cursor,
+      search: queryStringPrimary,
+      orderby,
+      fields: [
+        PROJECT_ID,
+        SPAN_OP,
+        SPAN_GROUP,
+        SPAN_DESCRIPTION,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
+        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
+        `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
+      ],
+    },
+    Referrer.SPAN_OPERATION_TABLE
+  );
 
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
@@ -162,9 +170,7 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = isMobileScreensEnabled
-        ? `${moduleURL}/spans/`
-        : `${screenRenderingModuleUrl}/${SUMMARY_PAGE_BASE_URL}/`;
+      const pathname = `${moduleURL}/spans/`;
 
       const query = {
         ...location.query,
@@ -202,7 +208,7 @@ export function SpanOperationTable({
     <ScreensTable
       columnNameMap={columnNameMap}
       columnTooltipMap={columnTooltipMap}
-      data={data}
+      data={{data, meta}}
       eventView={eventView}
       isLoading={isPending}
       pageLinks={pageLinks}

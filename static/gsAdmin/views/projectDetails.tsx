@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,10 +16,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import {
-  CustomerStatsFilters,
-  DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import type {DataType} from 'admin/components/customers/customerStatsFilters';
+import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
@@ -36,7 +34,7 @@ function ProjectDetails() {
   }>();
   const {data, isPending, isError} = useApiQuery<Project>(
     [`/projects/${orgId}/${projectId}/`],
-    {staleTime: 0}
+    {staleTime: Infinity}
   );
   const api = useApi();
   const location = useLocation();
@@ -64,11 +62,7 @@ function ProjectDetails() {
   }
 
   const activeDataType = (): DataType => {
-    if (Object.values(DataType).includes(location.query.dataType as DataType)) {
-      return location.query.dataType as DataType;
-    }
-
-    return DataType.ERRORS;
+    return (location.query.dataType as DataType) ?? 'error';
   };
 
   const handleStatsTypeChange = (dataType: DataType) => {

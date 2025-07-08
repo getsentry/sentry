@@ -74,6 +74,58 @@ export enum CheckoutType {
   BUNDLE = 'bundle',
 }
 
+export enum ReservedBudgetCategoryType {
+  DYNAMIC_SAMPLING = 'dynamicSampling',
+  SEER = 'seer',
+}
+
+export type ReservedBudgetCategory = {
+  /**
+   * The API name of the budget
+   */
+  apiName: ReservedBudgetCategoryType;
+  /**
+   * The feature flag determining if the product is available for billing
+   */
+  billingFlag: string | null;
+  /**
+   * Backend name of the category (all caps, snake case)
+   */
+  budgetCategoryType: string;
+  /**
+   * whether a customer can use product trials for this budget
+   */
+  canProductTrial: boolean;
+  /**
+   * the categories that are included in the budget
+   */
+  dataCategories: DataCategory[];
+  /**
+   * Default budget for the category, in cents
+   */
+  defaultBudget: number | null;
+  /**
+   * Link to the quotas documentation for the budget
+   */
+  docLink: string;
+  /**
+   * Whether the budget is fixed or variable
+   */
+  isFixed: boolean;
+  /**
+   * Display name of the budget
+   */
+  name: string;
+  /**
+   * The name of the product to display in the checkout flow
+   */
+  productCheckoutName: string;
+  /**
+   * The name of the product associated with the budget
+   */
+  productName: string;
+};
+
 export type Plan = {
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
@@ -82,6 +134,9 @@ export type Plan = {
    * Can be used for category upsells.
    */
   availableCategories: DataCategory[];
+  availableReservedBudgetTypes: Partial<
+    Record<ReservedBudgetCategoryType, ReservedBudgetCategory>
+  >;
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
   budgetTerm: 'pay-as-you-go' | 'on-demand';
@@ -117,11 +172,7 @@ export type Plan = {
 
 type PendingChanges = {
   customPrice: number | null;
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
-  // TODO:categories remove customPrice{Categories}
   customPrices: Partial<Record<DataCategory, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
@@ -130,14 +181,9 @@ type PendingChanges = {
   plan: string;
   planDetails: Plan;
   planName: string;
-  // TODO:categories remove reserved{Categories}
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
-  reservedErrors: number | null;
-  reservedEvents: number;
-  reservedTransactions: number | null;
 };
 
 enum VatStatus {
@@ -193,9 +239,8 @@ type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
 export type PerCategoryOnDemandBudget = {
   attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
-  // TODO:categories remove {categories}Budget
+  // TODO(data categories): BIL-958
   budgets: Partial<Record<DataCategory, number>>;
-  // TODO(data categories): check if these can be removed
   errorsBudget: number;
   replaysBudget: number;
   transactionsBudget: number;
@@ -209,7 +254,7 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   attachmentSpendUsed: number;
   errorSpendUsed: number;
   transactionSpendUsed: number;
-  // TODO:categories remove {categories}SpendUsed
+  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 
@@ -260,6 +305,7 @@ export type Subscription = {
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
+  // TODO(data categories): BIL-960
   customPriceAttachments: number | null;
   customPriceErrors: number | null;
   customPricePcss: number | null;
@@ -275,7 +321,6 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasOverageNotificationsDisabled: boolean;
-  hasReservedBudgets: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
@@ -329,10 +374,10 @@ export type Subscription = {
    */
   prepaidEventsAllowed: number | null;
   renewalDate: string;
+  // TODO(data categories): BIL-960
   reservedAttachments: number | null;
-  reservedBudgetCategories: DataCategory[] | null;
   /**
-   * For am1 plan tier, null for previous tiers
+   * For AM plan tier, null for previous tiers
    */
   reservedErrors: number | null;
   /**
@@ -397,6 +442,7 @@ export type Subscription = {
   };
   stripeCustomerID?: string;
 
+  // TODO(data categories): BIL-960
   trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
 
   /**
@@ -585,6 +631,7 @@ export type InvoiceItem = BaseInvoiceItem & {
   periodStart: string;
 };
 
+// TODO(data categories): BIL-969
 export enum InvoiceItemType {
   UNKOWN = '',
   SUBSCRIPTION = 'subscription',
@@ -596,9 +643,8 @@ export enum InvoiceItemType {
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
   /**
-   * Used for am1 plans
+   * Used for AM plans
    */
-  // TODO(data categories): check if these can be parsed
   ATTACHMENTS = 'attachments',
   TRANSACTIONS = 'transactions',
   ONDEMAND_ATTACHMENTS = 'ondemand_attachments',
@@ -610,6 +656,8 @@ export enum InvoiceItemType {
   ONDEMAND_MONITOR_SEATS = 'ondemand_monitor_seats',
   ONDEMAND_UPTIME = 'ondemand_uptime',
   ONDEMAND_PROFILE_DURATION = 'ondemand_profile_duration',
+  ONDEMAND_SEER_AUTOFIX = 'ondemand_seer_autofix',
+  ONDEMAND_SEER_SCANNER = 'ondemand_seer_scanner',
   RESERVED_ATTACHMENTS = 'reserved_attachments',
   RESERVED_ERRORS = 'reserved_errors',
   RESERVED_TRANSACTIONS = 'reserved_transactions',
@@ -619,6 +667,8 @@ export enum InvoiceItemType {
   RESERVED_MONITOR_SEATS = 'reserved_monitor_seats',
   RESERVED_UPTIME = 'reserved_uptime',
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
+  RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
+  RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
 }
 
 export enum InvoiceStatus {
@@ -654,7 +704,6 @@ export type BillingMetricHistory = {
 export type BillingHistory = {
   categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
-  hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;
   links: {
@@ -670,7 +719,6 @@ export type BillingHistory = {
   plan: string;
   planName: string;
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedBudgetCategories: DataCategory[];
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
@@ -695,8 +743,8 @@ type PreviewInvoiceItem = BaseInvoiceItem & {
   period_start: string;
 };
 
+// TODO(data categories): BIL-970
 export enum CreditType {
-  // TODO(data categories): check if these can be parsed
   ERROR = 'error',
   TRANSACTION = 'transaction',
   SPAN = 'span',
@@ -731,8 +779,8 @@ interface RecurringPercentDiscount extends BaseRecurringCredit {
 
 interface RecurringEventCredit extends BaseRecurringCredit {
   totalAmountRemaining: null;
-  type: // TODO(data categories): check if these can be parsed
-  | CreditType.ERROR
+  type:
+    | CreditType.ERROR
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
@@ -756,6 +804,7 @@ export enum CohortId {
   EIGHTH = 8,
   NINTH = 9,
   TENTH = 10,
+  TEST_ONE = 111,
 }
 
 /** @internal exported for tests only */
@@ -769,13 +818,9 @@ export type NextPlanInfo = {
   contractPeriod: string;
   discountAmount: number;
   discountMonths: number;
-  errorCredits: number;
-  errorCreditsMonths: number;
   id: string;
   name: string;
   reserved: Partial<Record<DataCategory, number>>;
-  reservedAttachments: number;
-  reservedErrors: number;
   totalPrice: number;
   categoryCredits?: Partial<
     Record<
@@ -786,7 +831,6 @@ export type NextPlanInfo = {
       }
     >
   >;
-  reservedTransactions?: number;
 };
 
 export type PlanMigration = {
@@ -873,19 +917,37 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-type PendingReservedBudget = {
+export type PendingReservedBudget = {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };
 
 export type ReservedBudget = {
+  /**
+   * The categories included in the budget and their respective ReservedBudgetMetricHistory
+   */
   categories: Partial<Record<DataCategory, ReservedBudgetMetricHistory>>;
+  /**
+   * The amount of free budget gifted in the associated usage cycle
+   */
   freeBudget: number;
+  /**
+   * The id of the ReservedBudgetHistory object
+   */
   id: string;
+  /**
+   * The percentage of the budget used, including gifted budget
+   */
   percentUsed: number;
+  /**
+   * The amount of budget in the associated usage cycle, excluding gifted budget
+   */
   reservedBudget: number;
+  /**
+   * The amount of budget used in the associated usage cycle
+   */
   totalReservedSpend: number;
-};
+} & ReservedBudgetCategory;
 
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
@@ -893,6 +955,7 @@ export type ReservedBudgetMetricHistory = {
 };
 
 export type ReservedBudgetForCategory = {
+  apiName: string;
   freeBudget: number;
   prepaidBudget: number;
   reservedCpe: number; // in cents
@@ -958,6 +1021,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The event multiplier for gifts
    */
   freeEventsMultiple: number;
+  /**
+   * Whether the category has spike protection support
+   */
+  hasSpikeProtection: boolean;
   /**
    * The maximum number of free events that can be gifted
    */

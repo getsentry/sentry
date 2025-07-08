@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
 
 export enum MobileCursors {
   SPANS_TABLE = 'spansCursor',
@@ -27,7 +27,9 @@ export enum YAxis {
   FRAMES_DELAY = 10,
 }
 
-export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
+export const YAXIS_COLUMNS: Readonly<
+  Record<YAxis, MetricsProperty | SpanMetricsProperty>
+> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
   [YAxis.COLD_START]: 'avg(measurements.app_start_cold)',
   [YAxis.TTID]: 'avg(measurements.time_to_initial_display)',
@@ -55,18 +57,4 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAMES]: t('Slow Frames'),
   [YAxis.FROZEN_FRAMES]: t('Frozen Frames'),
   [YAxis.FRAMES_DELAY]: t('Frames Delay'),
-};
-
-export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
-  [YAxis.WARM_START]: 'duration',
-  [YAxis.COLD_START]: 'duration',
-  [YAxis.TTID]: 'duration',
-  [YAxis.TTFD]: 'duration',
-  [YAxis.SLOW_FRAME_RATE]: 'percentage',
-  [YAxis.FROZEN_FRAME_RATE]: 'percentage',
-  [YAxis.THROUGHPUT]: 'number',
-  [YAxis.COUNT]: 'number',
-  [YAxis.SLOW_FRAMES]: 'number',
-  [YAxis.FROZEN_FRAMES]: 'number',
-  [YAxis.FRAMES_DELAY]: 'duration',
 };

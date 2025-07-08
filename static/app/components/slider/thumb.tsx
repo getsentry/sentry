@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSliderThumb} from '@react-aria/slider';
@@ -83,33 +84,33 @@ const SliderThumbWrap = styled('div')<{
 
   ${p =>
     p.error &&
-    `
-    background: ${p.theme.error};
-    color: ${p.theme.errorText};
-
-    &:hover {
+    css`
       background: ${p.theme.error};
-    }
-  `}
+      color: ${p.theme.errorText};
+
+      &:hover {
+        background: ${p.theme.error};
+      }
+    `}
 
   ${p =>
     p.isFocused &&
-    `
+    css`
       box-shadow: 0 0 0 2px ${p.error ? p.theme.errorFocus : p.theme.focus};
-      z-index:1;
+      z-index: 1;
     `}
 
     ${p =>
     p.isDisabled &&
-    `
-        cursor: initial;
-        background: ${p.theme.subText};
-        color: ${p.theme.subText};
+    css`
+      cursor: initial;
+      background: ${p.theme.subText};
+      color: ${p.theme.subText};
 
-        &:hover {
-          background: ${p.theme.subText};
-        }
-      `};
+      &:hover {
+        background: ${p.theme.subText};
+      }
+    `};
 
   /* Extend click area */
   &::before {
@@ -128,7 +129,7 @@ const SliderThumbLabel = styled('span')`
   position: absolute;
   bottom: calc(100% + ${space(0.25)});
 
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-variant-numeric: tabular-nums;
 `;

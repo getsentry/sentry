@@ -30,7 +30,6 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -172,7 +171,7 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 )
 
         except IntegrityError:
-            incr_rollback_metrics(name="resolved_in_commit")
+            pass
         else:
             if repo is not None:
                 if repo.integration_id is not None:
@@ -248,7 +247,6 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
         except IntegrityError:
-            incr_rollback_metrics(name="resolved_in_pull_request")
             pass
         else:
             if repo is not None and repo.integration_id is not None:

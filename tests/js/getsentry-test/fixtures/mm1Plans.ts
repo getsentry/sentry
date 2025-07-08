@@ -1,5 +1,6 @@
+import {DataCategory} from 'sentry/types/core';
+
 import type {Plan} from 'getsentry/types';
-import { DataCategory } from 'sentry/types/core';
 
 const BUDGET_TERM = 'on-demand';
 
@@ -7,7 +8,7 @@ const MM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
-const MM1_CATEGORIES = [DataCategory.ERRORS]
+const MM1_CATEGORIES = [DataCategory.ERRORS];
 
 const MM1_PLANS: Record<string, Plan> = {
   e1_ac: {
@@ -53,6 +54,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   e1_auf: {
     isTestPlan: false,
@@ -96,6 +98,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   f1: {
     isTestPlan: false,
@@ -131,6 +134,7 @@ const MM1_PLANS: Record<string, Plan> = {
     retentionDays: 30,
     features: [],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   l1: {
     isTestPlan: false,
@@ -176,6 +180,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   l1_ac: {
     isTestPlan: false,
@@ -221,6 +226,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   l1_auf: {
     isTestPlan: false,
@@ -266,6 +272,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   m1: {
     isTestPlan: false,
@@ -308,6 +315,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   m1_ac: {
     isTestPlan: false,
@@ -350,6 +358,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   m1_auf: {
     isTestPlan: false,
@@ -392,6 +401,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   s1: {
     isTestPlan: false,
@@ -432,6 +442,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   s1_ac: {
     isTestPlan: false,
@@ -472,6 +483,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'extended-data-retention',
     ],
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
 };
 

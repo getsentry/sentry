@@ -8,6 +8,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -101,7 +102,7 @@ const onboarding: OnboardingConfig = {
       description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
         code: <code />,
       }),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[rq]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[rq]'}),
     },
   ],
   configure: (params: Params) => [
@@ -234,6 +235,7 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[rq]'}),
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import Literal
 
@@ -18,19 +19,28 @@ from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
-from sentry.search.eap.utils import PRIVATE_ATTRIBUTES, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    PRIVATE_ATTRIBUTES,
+    is_sentry_convention_replacement_attribute,
+    translate_internal_to_public_alias,
+    translate_to_sentry_conventions,
+)
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 
 
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
+    use_sentry_conventions: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
+    seen_sentry_conventions: set[str] = set()
     for attribute in attributes:
         internal_name = attribute["name"]
         if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
+            continue
+        if internal_name.startswith("sentry._meta"):
             continue
         source = attribute["value"]
         if len(source) == 0:
@@ -53,6 +63,17 @@ def convert_rpc_attribute_to_json(
                     internal_name, column_type, trace_item_type
                 )
 
+                if use_sentry_conventions and external_name:
+                    external_name = translate_to_sentry_conventions(external_name, trace_item_type)
+                    if external_name in seen_sentry_conventions:
+                        continue
+                    seen_sentry_conventions.add(external_name)
+                else:
+                    if external_name and is_sentry_convention_replacement_attribute(
+                        external_name, trace_item_type
+                    ):
+                        continue
+
                 if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
                     "sentry."
                 ):
@@ -73,6 +94,46 @@ def convert_rpc_attribute_to_json(
                 )
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
+
+
+def serialize_meta(
+    attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
+) -> dict:
+    internal_name = ""
+    attribute = {}
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name.startswith("sentry._meta"):
+            break
+
+    if not internal_name.startswith("sentry._meta") or "valStr" not in attribute["value"]:
+        return {}
+
+    try:
+        result = json.loads(attribute["value"]["valStr"])
+        attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
+        mapped_result = {}
+        for key, value in result.items():
+            if key in attribute_map:
+                item_type: Literal["string", "number"]
+                if (
+                    "valInt" in attribute_map[key]
+                    or "valFloat" in attribute_map[key]
+                    or "valDouble" in attribute_map[key]
+                ):
+                    item_type = "number"
+                else:
+                    item_type = "string"
+                external_name = translate_internal_to_public_alias(key, item_type, trace_item_type)
+                if external_name:
+                    key = external_name
+                elif item_type == "number":
+                    key = f"tags[{key},number]"
+            mapped_result[key] = value
+        return mapped_result
+    except json.JSONDecodeError:
+        return {}
 
 
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
@@ -102,12 +163,6 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
         """
-
-        if not features.has(
-            "organizations:discover-basic", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -130,7 +185,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         start_timestamp_proto.FromSeconds(0)
 
         end_timestamp_proto = ProtoTimestamp()
-        end_timestamp_proto.GetCurrentTime()
+
+        # due to clock drift, the end time can be in the future - add a week to be safe
+        end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
 
         trace_id = request.GET.get("trace_id")
         if not trace_id:
@@ -153,10 +210,19 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))
 
+        use_sentry_conventions = features.has(
+            "organizations:performance-sentry-conventions-fields",
+            project.organization,
+            actor=request.user,
+        )
+
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
-            "attributes": convert_rpc_attribute_to_json(resp["attributes"], item_type),
+            "attributes": convert_rpc_attribute_to_json(
+                resp["attributes"], item_type, use_sentry_conventions
+            ),
+            "meta": serialize_meta(resp["attributes"], item_type),
         }
 
         return Response(resp_dict)

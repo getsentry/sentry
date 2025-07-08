@@ -1,4 +1,6 @@
-from datetime import UTC, datetime
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -6,13 +8,16 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import EventType
+from sentry.testutils.factories import EventType, Factories
 from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.models import (
     Action,
@@ -25,7 +30,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    DataConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 try:
@@ -71,6 +81,50 @@ class MockActionHandler(ActionHandler):
     }
 
 
+class DataConditionHandlerMixin:
+    patches: list = []
+
+    def setup_condition_mocks(
+        self,
+        evaluate_value: Callable[[int, Any], DataConditionResult],
+        module_paths: list[str],
+    ):
+        """
+        Sets up a mock handler for a DataCondition. This method mocks out the registry of the class, and will
+        always return the `MockDataConditionHandler` class.
+
+        :param evaluate_value: The method you want to invoke when `evaluate_value` is called on the mock handler.
+        :param module_paths: A list of the paths to override for the data_condition_handler registry.
+        """
+
+        class MockDataConditionHandler(DataConditionHandler[int]):
+            @staticmethod
+            def evaluate_value(value: Any, comparison: Any) -> Any:
+                return evaluate_value(value, comparison)
+
+        for module_path in module_paths:
+            new_patch = mock.patch(
+                f"{module_path}.condition_handler_registry.get",
+                return_value=MockDataConditionHandler(),
+            )
+            self.patches.append(new_patch)
+            new_patch.start()
+
+        return Factories.create_data_condition(
+            type=Condition.LEVEL,  # this will be overridden by the mock, but it cannot be a operator
+            comparison=1.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+    def teardown_condition_mocks(self):
+        """
+        Removes the mocks / patches for the DataConditionHandler.
+        """
+        for patch in self.patches:
+            patch.stop()
+        self.patches = []
+
+
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     def create_snuba_query(self, **kwargs):
         return SnubaQuery.objects.create(
@@ -82,19 +136,33 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             **kwargs,
         )
 
+    def create_snuba_query_subscription(
+        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs
+    ):
+        if snuba_query_id is None:
+            snuba_query_id = self.create_snuba_query().id
+        if project_id is None:
+            project_id = self.project.id
+        return QuerySubscription.objects.create(
+            project_id=project_id,
+            snuba_query_id=snuba_query_id,
+            **kwargs,
+        )
+
     def create_event(
         self,
         project_id: int,
         timestamp: datetime,
         fingerprint: str,
         environment=None,
+        level="error",
         tags: list[list[str]] | None = None,
     ) -> Event:
         data = {
             "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
-            "level": "error",
+            "level": level,
             "user": {"id": uuid4().hex},
             "exception": {
                 "values": [
@@ -159,13 +227,30 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_test_query_data_source(self, detector: Detector) -> tuple[DataSource, DataPacket]:
         """
-        Create a DataSource and DataPacket for testing; this will create a fake QuerySubscriptionUpdate and link it to a data_source.
+        Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
         A detector is required to create this test data, so we can ensure that the detector
         has a condition to evaluate for the data_packet that evalutes to true.
         """
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            query_subscription = create_snuba_subscription(
+                project=detector.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+
         subscription_update: QuerySubscriptionUpdate = {
-            "subscription_id": "123",
+            "subscription_id": str(query_subscription.id),
             "values": {"value": 1},
             "timestamp": datetime.now(UTC),
             "entity": "test-entity",

@@ -10,13 +10,16 @@ export enum ReleasesDrawerFields {
   CHART = 'rdChart',
   COMMIT_CURSOR = 'rdCiCursor',
   FILES_CURSOR = 'rdFilesCursor',
+  FLAGS_CURSOR = 'rdFlagsCursor',
   END = 'rdEnd',
   ENVIRONMENT = 'rdEnv',
+  EVENT_ID = 'rdEvent',
   LIST_CURSOR = 'rdListCursor',
   PROJECT = 'rdProject',
   RELEASE = 'rdRelease',
   RELEASE_PROJECT_ID = 'rdReleaseProjectId',
   START = 'rdStart',
+  SOURCE = 'rdSource',
 }
 
 /**
@@ -28,12 +31,15 @@ export const RELEASES_DRAWER_FIELD_MAP = {
   [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.END]: decodeScalar,
   [ReleasesDrawerFields.ENVIRONMENT]: decodeList,
+  [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
   [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
+  [ReleasesDrawerFields.FLAGS_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.LIST_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.PROJECT]: decodeList,
   [ReleasesDrawerFields.RELEASE]: decodeScalar,
   [ReleasesDrawerFields.RELEASE_PROJECT_ID]: decodeScalar,
   [ReleasesDrawerFields.START]: decodeScalar,
+  [ReleasesDrawerFields.SOURCE]: decodeScalar,
 };
 
 const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_FIELD_MAP);

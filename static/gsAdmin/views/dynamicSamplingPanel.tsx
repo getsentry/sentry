@@ -355,6 +355,8 @@ function DynamicSamplingRulesTable({
         impact: evaluateRuleImpact(rule),
       };
     })
+
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     .filter(row => Object.values(row).join().toLowerCase().includes(searchQuery));
 
   return (
@@ -442,7 +444,7 @@ const ValueCell = styled('div')`
 const BaseSampleRateWrapper = styled(Alert)`
   padding: ${space(1)};
   margin-right: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   width: max-content;
   flex-basis: 50%;
@@ -461,7 +463,7 @@ const NameColumn = styled('div')`
 `;
 
 const NameColumnDetail = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   > strong {
     margin-right: ${space(0.5)};
   }

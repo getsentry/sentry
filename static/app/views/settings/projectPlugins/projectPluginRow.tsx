@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import {Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
@@ -58,8 +58,6 @@ class ProjectPluginRow extends PureComponent<Props> {
     return (
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => {
-          const LinkOrSpan = hasAccess ? Link : 'span';
-
           return (
             <PluginItem key={id} className={slug}>
               <PluginInfo>
@@ -84,9 +82,9 @@ class ProjectPluginRow extends PureComponent<Props> {
                       <span>
                         {' '}
                         &middot;{' '}
-                        <LinkOrSpan css={grayText} to={configureUrl}>
-                          {t('Configure plugin')}
-                        </LinkOrSpan>
+                        <Link css={grayText} to={configureUrl}>
+                          {hasAccess ? t('Configure plugin') : t('View plugin')}
+                        </Link>
                       </span>
                     )}
                   </div>

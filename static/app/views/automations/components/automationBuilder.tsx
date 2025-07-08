@@ -1,32 +1,53 @@
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/core/button';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Flex} from 'sentry/components/core/layout';
+import {Select} from 'sentry/components/core/select';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  FILTER_DATA_CONDITION_TYPES,
-  FILTER_MATCH_OPTIONS,
-} from 'sentry/views/automations/components/actionFilters/constants';
+import type {SelectValue} from 'sentry/types/core';
+import type {
+  ConflictingConditions,
+  DataConditionGroup,
+  DataConditionGroupLogicType,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
+import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
-import {
-  TRIGGER_DATA_CONDITION_TYPES,
-  TRIGGER_MATCH_OPTIONS,
-} from 'sentry/views/automations/components/triggers/constants';
+import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
+  const organization = useOrganization();
+  const api = useApi();
+
+  // Fetch org members for SelectMembers dropdowns
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug);
+  }, [api, organization]);
+
+  const {conflictingTriggers, conflictingActionFilters} =
+    useMemo((): ConflictingConditions => {
+      return findConflictingConditions(state.triggers, state.actionFilters);
+    }, [state]);
 
   return (
-    <Flex column gap={space(1)}>
+    <Flex direction="column" gap={space(1)}>
       <Step>
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
           {tct('[when:When] [selector] of the following occur', {
-            when: <Badge />,
+            when: <ConditionBadge />,
             selector: (
               <EmbeddedWrapper>
                 <EmbeddedSelectField
@@ -42,7 +63,9 @@ export default function AutomationBuilder() {
                   isClearable={false}
                   name="triggers.logicType"
                   value={state.triggers.logicType}
-                  onChange={logicType => actions.updateWhenLogicType(logicType)}
+                  onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                    actions.updateWhenLogicType(option.value)
+                  }
                   required
                   flexibleControlStateSize
                   options={TRIGGER_MATCH_OPTIONS}
@@ -54,20 +77,21 @@ export default function AutomationBuilder() {
         </StepLead>
       </Step>
       <DataConditionNodeList
-        // TODO: replace constant dataConditionTypes with DataConditions API response
-        dataConditionTypes={TRIGGER_DATA_CONDITION_TYPES}
+        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
         group="triggers"
         onAddRow={type => actions.addWhenCondition(type)}
         onDeleteRow={index => actions.removeWhenCondition(index)}
-        updateCondition={(index, comparison) =>
-          actions.updateWhenCondition(index, comparison)
-        }
+        updateCondition={(id, comparison) => actions.updateWhenCondition(id, comparison)}
+        conflictingConditionIds={conflictingTriggers}
       />
-
-      {state.actionFilters.map((_, index) => (
-        <ActionFilterBlock key={index} groupIndex={index} />
+      {state.actionFilters.map(actionFilter => (
+        <ActionFilterBlock
+          key={`actionFilters.${actionFilter.id}`}
+          actionFilter={actionFilter}
+          conflictingConditions={conflictingActionFilters[actionFilter.id] || []}
+        />
       ))}
       <span>
         <PurpleTextButton
@@ -79,29 +103,29 @@ export default function AutomationBuilder() {
           {t('If/Then Block')}
         </PurpleTextButton>
       </span>
-      <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-      </span>
     </Flex>
   );
 }
 
 interface ActionFilterBlockProps {
-  groupIndex: number;
+  actionFilter: DataConditionGroup;
+  conflictingConditions: string[];
 }
 
-function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
-  const {state, actions} = useAutomationBuilderContext();
-  const actionFilterBlock = state.actionFilters[groupIndex];
+function ActionFilterBlock({
+  actionFilter,
+  conflictingConditions = [],
+}: ActionFilterBlockProps) {
+  const {actions} = useAutomationBuilderContext();
 
   return (
-    <IfThenWrapper key={`actionFilter.${groupIndex}`}>
+    <IfThenWrapper>
       <Step>
-        <Flex column gap={space(0.75)}>
+        <Flex direction="column" gap={space(0.75)}>
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {
-                if: <Badge />,
+                if: <ConditionBadge />,
                 selector: (
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
@@ -115,57 +139,65 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
                       inline={false}
                       isSearchable={false}
                       isClearable={false}
-                      name={`actionFilters.${groupIndex}.logicType`}
+                      name={`actionFilters.${actionFilter.id}.logicType`}
                       required
                       flexibleControlStateSize
                       options={FILTER_MATCH_OPTIONS}
                       size="xs"
-                      value={actionFilterBlock?.logicType}
-                      onChange={value => actions.updateIfLogicType(groupIndex, value)}
+                      value={actionFilter.logicType}
+                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                        actions.updateIfLogicType(actionFilter.id, option.value)
+                      }
                     />
                   </EmbeddedWrapper>
                 ),
               })}
             </StepLead>
-            <DeleteButton
+            <Button
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
               borderless
-              onClick={() => actions.removeIf(groupIndex)}
+              onClick={() => actions.removeIf(actionFilter.id)}
+              className="delete-condition-group"
             />
           </Flex>
           <DataConditionNodeList
-            // TODO: replace constant dataConditionTypes with DataConditions API response
-            dataConditionTypes={FILTER_DATA_CONDITION_TYPES}
+            handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
             placeholder={t('Filter by...')}
-            group={`actionFilters.${groupIndex}`}
-            conditions={actionFilterBlock?.conditions || []}
-            onAddRow={type => actions.addIfCondition(groupIndex, type)}
-            onDeleteRow={index => actions.removeIfCondition(groupIndex, index)}
-            updateCondition={(index, comparison) =>
-              actions.updateIfCondition(groupIndex, index, comparison)
+            group={`actionFilters.${actionFilter.id}`}
+            conditions={actionFilter?.conditions || []}
+            onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
+            onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
+            updateCondition={(id, params) =>
+              actions.updateIfCondition(actionFilter.id, id, params)
             }
+            conflictingConditionIds={conflictingConditions}
           />
         </Flex>
       </Step>
       <Step>
         <StepLead>
           {tct('[then:Then] perform these actions', {
-            then: <Badge />,
+            then: <ConditionBadge />,
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
+        <ActionNodeList
+          placeholder={t('Select an action')}
+          group={`actionFilters.${actionFilter.id}`}
+          actions={actionFilter?.actions || []}
+          onAddRow={(id, type) => actions.addIfAction(actionFilter.id, id, type)}
+          onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
+          updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
+        />
       </Step>
+      <span>
+        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+      </span>
     </IfThenWrapper>
   );
 }
-
-const PurpleTextButton = styled(Button)`
-  color: ${p => p.theme.purple300};
-  font-weight: normal;
-  padding: 0;
-`;
 
 const Step = styled(Flex)`
   flex-direction: column;
@@ -177,22 +209,9 @@ const StepLead = styled(Flex)`
   gap: ${space(0.5)};
 `;
 
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
-`;
-
-const EmbeddedSelectField = styled(SelectField)`
+const EmbeddedSelectField = styled(Select)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 
@@ -208,13 +227,11 @@ const IfThenWrapper = styled(Flex)`
   padding: ${space(1.5)};
   padding-top: ${space(1)};
   margin-top: ${space(1)};
-`;
 
-const DeleteButton = styled(Button)`
-  flex-shrink: 0;
-  opacity: 0;
-
-  ${IfThenWrapper}:hover & {
+  .delete-condition-group {
+    opacity: 0;
+  }
+  :hover .delete-condition-group {
     opacity: 1;
   }
 `;

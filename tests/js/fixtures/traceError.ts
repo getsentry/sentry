@@ -1,4 +1,4 @@
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
 
 export function TraceErrorFixture(params: Partial<TraceError> = {}): TraceError {
   return {

@@ -8,8 +8,8 @@ import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
   display: block;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 `;
 
@@ -32,14 +32,14 @@ export const CrumbContainer = styled('div')`
 
 export const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 
 export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`
@@ -59,9 +59,25 @@ export const EventNavigator = styled('div')`
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
   background: ${p => p.theme.background};
-  z-index: 1;
+  z-index: 2; /* Just above EventStickyControls */
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+`;
+
+export const EventStickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
+  position: sticky;
+  top: -${space(2)};
+  margin-block: -${space(2)};
+  padding-block: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1; /* Just below EventNavigator */
+
+  /* Make this full-width inside DrawerBody */
+  margin-inline: -24px;
+  padding-inline: 24px;
 `;
 
 export const EventDrawerBody = styled(DrawerBody)`
@@ -72,7 +88,6 @@ export const EventDrawerBody = styled(DrawerBody)`
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
-  height: fit-content; /* makes drawer resize work better with flex */
   direction: rtl;
   * {
     direction: ltr;

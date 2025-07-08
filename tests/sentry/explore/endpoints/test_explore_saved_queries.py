@@ -1,12 +1,19 @@
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
+)
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:performance-trace-explorer"
+class ExploreSavedQueriesTest(APITestCase):
+    features = {
+        "organizations:visibility-explore-view": True,
+    }
 
     def setUp(self):
         super().setUp()
@@ -26,34 +33,75 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             name="Test query",
             query=query,
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(),
+        )
 
         model.set_projects(self.project_ids)
 
         self.url = reverse("sentry-api-0-explore-saved-queries", args=[self.org.slug])
 
     def test_get(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["name"] == "Test query"
-        assert response.data[0]["projects"] == self.project_ids
-        assert response.data[0]["range"] == "24h"
-        assert response.data[0]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
+        assert len(response.data) == 5
+
+        # Prebuilt query
+        assert response.data[0]["name"] == "All Transactions"
+        assert response.data[0]["projects"] == []
+        assert "range" not in response.data[0]
+        assert response.data[0]["query"] == [
+            {
+                "fields": [
+                    "id",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "transaction",
+                    "timestamp",
+                ],
+                "query": "is_transaction:true",
+                "mode": "samples",
+                "visualize": [
+                    {
+                        "chartType": 0,
+                        "yAxes": ["count()"],
+                    },
+                    {
+                        "chartType": 1,
+                        "yAxes": ["p75(span.duration)", "p90(span.duration)"],
+                    },
+                ],
+                "orderby": "-timestamp",
+            }
+        ]
         assert "createdBy" in response.data[0]
-        assert response.data[0]["createdBy"]["username"] == self.user.username
+        assert response.data[0]["createdBy"] is None
         assert not response.data[0]["expired"]
 
+        # User saved query
+        assert response.data[3]["name"] == "Test query"
+        assert response.data[3]["projects"] == self.project_ids
+        assert response.data[3]["range"] == "24h"
+        assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
+        assert "createdBy" in response.data[3]
+        assert response.data[3]["createdBy"]["username"] == self.user.username
+        assert not response.data[3]["expired"]
+
     def test_get_name_filter(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             # Also available as the name: filter.
             response = self.client.get(self.url, format="json", data={"query": "name:Test"})
 
@@ -61,7 +109,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "name:Nope"})
 
         assert response.status_code == 200, response.content
@@ -69,7 +117,10 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_get_all_paginated(self):
         for i in range(0, 10):
-            query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+            query = {
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+            }
             model = ExploreSavedQuery.objects.create(
                 organization=self.org,
                 created_by_id=self.user.id,
@@ -78,7 +129,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             )
             model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"per_page": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -104,7 +155,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             "-name": False,
         }
         for sorting, forward_sort in sort_options.items():
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
             assert response.status_code == 200
 
@@ -115,6 +166,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_get_sortby_most_popular(self):
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        ExploreSavedQuery.objects.filter(name="Test query").update(visits=2)
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -129,17 +181,19 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
             sorting = "mostPopular" if forward_sort else "-mostPopular"
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
             values = [row["name"] for row in response.data]
             expected = ["My query", "Test query"]
 
-            if not forward_sort:
-                expected = list(reversed(expected))
-
-            assert values == expected
+            if forward_sort:
+                assert values[0] == expected[0]
+                assert values[1] == expected[1]
+            else:
+                assert values[-1] == expected[0]
+                assert values[-2] == expected[1]
 
     def test_get_sortby_recently_viewed(self):
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
@@ -153,11 +207,17 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             date_updated=before_now(minutes=10),
             last_visited=before_now(minutes=5),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(minutes=5),
+        )
 
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
             sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
@@ -165,9 +225,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             expected = ["Test query", "My query"]
 
             if not forward_sort:
-                expected = list(reversed(expected))
-
-            assert values == expected
+                assert values[0] == expected[1]
+                assert values[1] == expected[0]
+            else:
+                assert values[0] == expected[0]
+                assert values[1] == expected[1]
 
     def test_get_sortby_myqueries(self):
         uhoh_user = self.create_user(username="uhoh")
@@ -197,16 +259,17 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "myqueries"})
         assert response.status_code == 200, response.content
-        values = [int(item["createdBy"]["id"]) for item in response.data]
-        assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+        assert response.data[0]["createdBy"]["id"] == str(self.user.id)
+        assert response.data[1]["createdBy"]["id"] == str(uhoh_user.id)
+        assert response.data[2]["createdBy"]["id"] == str(whoops_user.id)
 
     def test_get_expired_query(self):
         query = {
-            "start": before_now(days=90),
-            "end": before_now(days=61),
+            "start": str(before_now(days=90)),
+            "end": str(before_now(days=61)),
         }
         ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -216,14 +279,17 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             date_added=before_now(days=90),
             date_updated=before_now(minutes=10),
         )
-        with self.options({"system.event-retention-days": 60}), self.feature(self.feature_name):
+        with (
+            self.options({"system.event-retention-days": 60}),
+            self.feature(self.features),
+        ):
             response = self.client.get(self.url, {"query": "name:My expired query"})
 
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
     def test_get_my_queries(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -239,10 +305,10 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url, data={"exclude": "owned"})
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"exclude": "owned", "sortBy": "dateAdded"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
+        assert len(response.data) == 5
         assert response.data[0]["name"] == "Shared query"
 
     def test_get_query_last_visited(self):
@@ -255,16 +321,34 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             query=query,
             last_visited=last_visited,
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=last_visited,
+        )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"query": "name:Query with last visited"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["lastVisited"] == last_visited
 
     def test_get_no_starred_queries(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+
+        # Unstars prebuilt queries
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False)
+
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -305,11 +389,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             position=2,
         )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert (
-            len(response.data) == 1
+            len(response.data) == 5
         )  # Only one query should be returned because the other query is starred by a different user
         assert response.data[0]["name"] == "Starred query A"
         assert response.data[0]["starred"] is True
@@ -345,32 +429,59 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,
+            user_id=self.user.id + 2,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
             user_id=self.user.id,
             explore_saved_query=second_model,
             position=2,
         )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=second_model,
+            position=2,
+        )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "mostStarred"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
+        assert len(response.data) == 7
         assert response.data[0]["name"] == "Most starred query"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
         assert response.data[1]["name"] == "Second most starred query"
         assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 2
-        assert response.data[2]["name"] == "Test query"
-        assert response.data[2]["starred"] is False
-        assert response.data[2]["position"] is None
+        assert response.data[-1]["name"] == "Test query"
+        assert response.data[-1]["starred"] is False
+        assert response.data[-1]["position"] is None
 
     def test_get_sortby_multiple(self):
+        # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False, position=None)
+
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model_a = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
             name="Query A",
             query=query,
+            last_visited=before_now(minutes=30),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
             last_visited=before_now(minutes=30),
         )
         model_a.set_projects(self.project_ids)
@@ -382,6 +493,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             query=query,
             last_visited=before_now(minutes=20),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_b,
+            last_visited=before_now(minutes=20),
+        )
         model_b.set_projects(self.project_ids)
 
         model_c = ExploreSavedQuery.objects.create(
@@ -389,6 +506,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             created_by_id=self.user.id,
             name="Query C",
             query=query,
+            last_visited=before_now(minutes=10),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_c,
             last_visited=before_now(minutes=10),
         )
         model_c.set_projects(self.project_ids)
@@ -413,6 +536,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             query=query,
             last_visited=before_now(minutes=15),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_d,
+            last_visited=before_now(minutes=15),
+        )
         model_d.set_projects(self.project_ids)
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,
@@ -427,10 +556,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             position=1,
         )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
+
         assert response.status_code == 200, response.content
-        assert len(response.data) == 5
+        assert len(response.data) == 9
         assert response.data[0]["name"] == "Query B"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 2
@@ -450,7 +580,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data[4]["position"] is None
 
     def test_post_require_mode(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -464,7 +594,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert "This field is required." == response.data["query"]["mode"][0]
 
     def test_post_success(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -496,21 +626,26 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert data["dataset"] == "spans"
 
     def test_post_all_projects(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
                     "name": "New query",
                     "projects": [-1],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
 
     def test_save_with_project(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -532,7 +667,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_with_project_and_my_projects(self):
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -553,7 +688,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_save_with_org_projects(self):
         project = self.create_project(organization=self.org)
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -576,7 +711,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -598,14 +733,19 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_without_team(self):
         team = self.create_team(organization=self.org, members=[])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
                     "name": "without team query",
                     "projects": [],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
 
@@ -615,14 +755,19 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_with_team_and_without_project(self):
         team = self.create_team(organization=self.org, members=[self.user])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
                     "name": "with team query",
                     "projects": [],
                     "range": "24h",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
                 },
             )
 
@@ -633,7 +778,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
         project2 = self.create_project(organization=self.org)
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -652,7 +797,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -672,7 +817,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
     def test_save_interval(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -694,7 +839,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data["interval"] == "1m"
 
     def test_save_invalid_interval(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -714,7 +859,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_save_without_chart_type(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -741,3 +886,193 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data["query"][0]["visualize"] == [
             {"yAxes": ["count(span.duration)"]},
         ]
+
+    def test_save_aggregate_field_and_orderby(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "aggregateField": [
+                                {
+                                    "groupBy": "span.op",
+                                },
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                },
+                                {
+                                    "yAxes": ["avg(span.duration)"],
+                                    "chartType": 0,
+                                },
+                            ],
+                            "aggregateOrderby": "-avg(span.duration)",
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert len(response.data["query"]) == 1
+        assert "visualize" not in response.data["query"][0]
+        assert "groupby" not in response.data["query"][0]
+        assert response.data["query"][0]["aggregateField"] == [
+            {
+                "groupBy": "span.op",
+            },
+            {
+                "yAxes": ["count(span.duration)"],
+            },
+            {
+                "yAxes": ["avg(span.duration)"],
+                "chartType": 0,
+            },
+        ]
+        assert response.data["query"][0]["aggregateOrderby"] == "-avg(span.duration)"
+
+    def test_save_invalid_ambiguous_aggregate_field(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "aggregateField": [
+                                {
+                                    "groupBy": "span.op",
+                                    "yAxes": ["count(span.duration)"],
+                                    "chartType": 0,
+                                },
+                            ],
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": ErrorDetail(
+                "Ambiguous aggregate field. Must specify groupBy or yAxes, not both.",
+                code="parse_error",
+            ),
+        }
+
+    def test_save_invalid_aggregate_field(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "aggregateField": [{}],
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "query": {
+                "aggregateField": {
+                    "yAxes": [
+                        ErrorDetail(
+                            "This field is required.",
+                            code="required",
+                        ),
+                    ],
+                    "groupBy": [
+                        ErrorDetail(
+                            "This field is required.",
+                            code="required",
+                        ),
+                    ],
+                },
+            },
+        }
+
+    def test_save_invalid_aggregate_field_bad_y_axes(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "aggregateField": [
+                                {
+                                    "yAxes": "foobar",
+                                },
+                            ],
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "query": {
+                "aggregateField": {
+                    "yAxes": [
+                        ErrorDetail(
+                            'Expected a list of items but got type "str".',
+                            code="not_a_list",
+                        ),
+                    ],
+                },
+            },
+        }
+
+    def test_save_invalid_aggregate_field_bad_group_by(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "aggregateField": [
+                                {
+                                    "groupBy": [123],
+                                },
+                            ],
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "query": {
+                "aggregateField": {
+                    "groupBy": [
+                        ErrorDetail(
+                            "Not a valid string.",
+                            code="invalid",
+                        ),
+                    ],
+                },
+            },
+        }

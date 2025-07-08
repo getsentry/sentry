@@ -2,21 +2,17 @@ import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('StructuredEventData', story => {
+export default Storybook.story('StructuredEventData', story => {
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="StructuredEventData" /> component is used to render event
-          data in a way that is easy grok. This includes differentiation between boolean
-          and null values, as well as rendering collapsible objects and arrays.
+          The <Storybook.JSXNode name="StructuredEventData" /> component is used to render
+          event data in a way that is easy grok. This includes differentiation between
+          boolean and null values, as well as rendering collapsible objects and arrays.
         </p>
         <StructuredEventData data="foo" />
         <StructuredEventData data={100} />
@@ -29,7 +25,7 @@ export default storyBook('StructuredEventData', story => {
   });
 
   story('Auto-Expanded items', () => (
-    <Matrix
+    <Storybook.PropMatrix
       propMatrix={{
         data: [
           {
@@ -67,7 +63,7 @@ export default storyBook('StructuredEventData', story => {
       arr6: [1, 2, 3, 4, 5, 6],
     };
     return (
-      <SideBySide>
+      <Storybook.SideBySide>
         <div>
           <p>Nothing</p>
           <StructuredEventData data={data} initialExpandedPaths={[]} />
@@ -96,7 +92,7 @@ export default storyBook('StructuredEventData', story => {
             ]}
           />
         </div>
-      </SideBySide>
+      </Storybook.SideBySide>
     );
   });
 
@@ -110,8 +106,8 @@ export default storyBook('StructuredEventData', story => {
           scrolling list).
         </p>
         <p>
-          The <JSXProperty name="onToggleExpand" value={Function} /> callback is not
-          triggered on mount.
+          The <Storybook.JSXProperty name="onToggleExpand" value={Function} /> callback is
+          not triggered on mount.
         </p>
         <p>Current expanded state: {JSON.stringify(state, null, '\t')}</p>
         <StructuredEventData
@@ -126,9 +122,9 @@ export default storyBook('StructuredEventData', story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="meta" value /> property accepts the event{' '}
+          The <Storybook.JSXProperty name="meta" value /> property accepts the event{' '}
           <code>_meta</code> and can annotate filtered values with
-          <JSXProperty name="withAnnotatedText" value="true" />.
+          <Storybook.JSXProperty name="withAnnotatedText" value="true" />.
         </p>
         <StructuredEventData
           data={{obj: {foo: '[Filtered]'}}}
@@ -143,8 +139,8 @@ export default storyBook('StructuredEventData', story => {
     return (
       <Fragment>
         <p>
-          Using the <JSXProperty name="config" value /> property, you can customize when
-          and how certain data types are displayed.
+          Using the <Storybook.JSXProperty name="config" value /> property, you can
+          customize when and how certain data types are displayed.
         </p>
         <p>Input:</p>
         <CodeSnippet language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeSnippet>
@@ -167,7 +163,7 @@ export default storyBook('StructuredEventData', story => {
           By default, strings within object values will render without quotes around them,
           as you can see in the example above. In order to render values with quotes (or
           any other custom formatting), you can set the <code>isString</code>
-          <JSXProperty name=" config" value /> with something like this:
+          <Storybook.JSXProperty name=" config" value /> with something like this:
         </p>
         <CodeSnippet language="javascript">
           {`const config = {
@@ -184,9 +180,10 @@ export default storyBook('StructuredEventData', story => {
     return (
       <Fragment>
         <p>
-          Using the <JSXProperty name="showCopyButton" value /> property and
-          <JSXProperty name="onCopy" value /> callback, you can customize whether to show
-          a copy to clipboard button, and what happens when copy is pressed.
+          Using the <Storybook.JSXProperty name="showCopyButton" value /> property and
+          <Storybook.JSXProperty name="onCopy" value /> callback, you can customize
+          whether to show a copy to clipboard button, and what happens when copy is
+          pressed.
         </p>
         <StructuredEventData
           data={{red: 'fish', blue: 'fish'}}

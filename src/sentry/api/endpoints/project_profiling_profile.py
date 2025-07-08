@@ -84,6 +84,22 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
         return proxy_profiling_service(**kwargs)
 
 
+@region_silo_endpoint
+class ProjectProfilingRawChunkEndpoint(ProjectProfilingBaseEndpoint):
+    def get(
+        self, request: Request, project: Project, profiler_id: str, chunk_id: str
+    ) -> HttpResponse:
+        if not features.has(
+            "organizations:continuous-profiling", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+        kwargs: dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_chunks/{profiler_id}/{chunk_id}",
+        }
+        return proxy_profiling_service(**kwargs)
+
+
 class ProjectProfileEventSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
     package = serializers.CharField(required=False)

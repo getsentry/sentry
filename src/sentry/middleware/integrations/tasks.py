@@ -10,6 +10,7 @@ import sentry_sdk
 from requests import Response
 from rest_framework import status
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
@@ -121,7 +122,10 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
     record_timing=True,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
-        retry=Retry(times=2),
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
     ),
 )
 def convert_to_async_slack_response(
@@ -135,7 +139,7 @@ def convert_to_async_slack_response(
 class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
     @property
     def log_code(self) -> str:
-        return "discord"
+        return IntegrationProviderSlug.DISCORD.value
 
     def unpack_payload(self, response: Response) -> Any:
         # Region will return a response assuming it's meant to go directly to Discord. Since we're
@@ -153,7 +157,10 @@ class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
     default_retry_delay=5,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
-        retry=Retry(times=2),
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
     ),
 )
 def convert_to_async_discord_response(

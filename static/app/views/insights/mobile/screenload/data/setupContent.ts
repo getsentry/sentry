@@ -1,5 +1,3 @@
-import type {CodeSnippetTab} from 'sentry/views/insights/mobile/screenload/components/tabbedCodeSnippets';
-
 const swiftSetupSnippet = `// Step 1 - Enable Time to Full Display
 import Sentry
 
@@ -33,6 +31,14 @@ import * as Sentry from '@sentry/react-native';
 // Step 2 - Set \`record={true}\` when screen is to be fully drawn
 <Sentry.TimeToFullDisplay record={true} />
 `;
+
+interface CodeSnippetTab {
+  code: string;
+  label: string;
+  language: string;
+  value: string;
+  filename?: string;
+}
 
 export const SETUP_CONTENT: CodeSnippetTab[] = [
   {

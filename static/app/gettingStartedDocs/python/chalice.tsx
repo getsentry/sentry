@@ -5,6 +5,7 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -77,7 +78,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[chalice]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}),
     },
   ],
   configure: (params: Params) => [
@@ -122,6 +123,7 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[chalice]'}),
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

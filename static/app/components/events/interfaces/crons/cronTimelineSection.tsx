@@ -10,8 +10,8 @@ import {
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
@@ -107,6 +107,8 @@ export function CronTimelineSection({event, organization, project}: Props) {
           additionalUi={
             !isPending && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
           }
+          cursorOverlayAnchor="top"
+          cursorOverlayAnchorOffset={10}
         />
         {monitorStats && !isPending ? (
           <Fragment>
@@ -170,7 +172,7 @@ const EventLineLabel = styled(Overlay, {
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   position: absolute;
   bottom: ${space(1)};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));

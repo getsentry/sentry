@@ -1,5 +1,5 @@
 import {IndexRoute, Route} from 'sentry/components/route';
-import {makeLazyloadComponent as make} from 'sentry/routes';
+import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
 export const detectorRoutes = (
   <Route path="monitors/">
@@ -11,11 +11,9 @@ export const detectorRoutes = (
         component={make(() => import('sentry/views/detectors/new-settings'))}
       />
     </Route>
-    <Route path=":monitorId/">
+    <Route path=":detectorId/">
       <IndexRoute component={make(() => import('sentry/views/detectors/detail'))} />
       <Route path="edit/" component={make(() => import('sentry/views/detectors/edit'))} />
     </Route>
   </Route>
 );
-
-export const MONITORS_BASE_URL = '/issues/monitors';

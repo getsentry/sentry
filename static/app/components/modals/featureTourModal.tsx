@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -221,8 +222,8 @@ const TourButtonBar = styled(ButtonBar)`
 
 const StepCounter = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 

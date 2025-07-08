@@ -8,7 +8,6 @@ from typing import IO, Any
 
 import zstandard
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
@@ -34,13 +33,7 @@ def get_crashreport_key(group_id: int) -> str:
 def event_attachment_screenshot_filter(
     queryset: BaseQuerySet[EventAttachment],
 ) -> BaseQuerySet[EventAttachment]:
-    # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
-    return queryset.filter(
-        name__in=[
-            *[f"screenshot{f'-{i}' if i > 0 else ''}.jpg" for i in range(4)],
-            *[f"screenshot{f'-{i}' if i > 0 else ''}.png" for i in range(4)],
-        ]
-    )
+    return queryset.filter(models.Q(name__icontains="screenshot"))
 
 
 @dataclass(frozen=True)
@@ -48,7 +41,6 @@ class PutfileResult:
     content_type: str
     size: int
     sha1: str
-    file_id: int | None = None
     blob_path: str | None = None
 
 
@@ -64,11 +56,11 @@ def can_store_inline(data: bytes) -> bool:
 
 @region_silo_model
 class EventAttachment(Model):
-    """Attachment Metadata and Storage
+    """
+    Attachment Metadata and Storage
 
     The actual attachment data can be saved in different backing stores:
-    - Using the :class:`File` model using the `file_id` field.
-      This stores attachments chunked and deduplicated.
+    - When the attachment is empty (0-size), `blob_path is None`.
     - When the `blob_path` field has a `:` prefix:
       It is saved inline in `blob_path` following the `:` prefix.
       This happens for "small" and ASCII-only (see `can_store_inline`) attachments.
@@ -85,7 +77,7 @@ class EventAttachment(Model):
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
 
-    # attachment and file metadata
+    # attachment and file metadata:
     type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     content_type = models.TextField(null=True)
@@ -94,9 +86,7 @@ class EventAttachment(Model):
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
-    # the backing blob, either going through the `File` model,
-    # or directly to a backing blob store
-    file_id = BoundedBigIntegerField(null=True, db_index=True)
+    # storage:
     blob_path = models.TextField(null=True)
 
     class Meta:
@@ -120,51 +110,29 @@ class EventAttachment(Model):
 
         if self.blob_path:
             if self.blob_path.startswith(":"):
-                return rv
+                pass  # nothing to do for inline-stored attachments
             elif self.blob_path.startswith("eventattachments/v1/"):
                 storage = get_storage()
+                storage.delete(self.blob_path)
             else:
                 raise NotImplementedError()
-
-            storage.delete(self.blob_path)
-            return rv
-
-        try:
-            from sentry.models.files.file import File
-
-            file = File.objects.get(id=self.file_id)
-        except ObjectDoesNotExist:
-            # It's possible that the File itself was deleted
-            # before we were deleted when the object is in memory
-            # This seems to be a case that happens during deletion
-            # code.
-            pass
-        else:
-            file.delete()
 
         return rv
 
     def getfile(self) -> IO[bytes]:
-        if self.size == 0:
+        if not self.blob_path:
             return BytesIO(b"")
 
-        if self.blob_path:
-            if self.blob_path.startswith(":"):
-                return BytesIO(self.blob_path[1:].encode())
+        if self.blob_path.startswith(":"):
+            return BytesIO(self.blob_path[1:].encode())
 
-            elif self.blob_path.startswith("eventattachments/v1/"):
-                storage = get_storage()
-                compressed_blob = storage.open(self.blob_path)
-                dctx = zstandard.ZstdDecompressor()
-                return dctx.stream_reader(compressed_blob, read_across_frames=True)
+        elif self.blob_path.startswith("eventattachments/v1/"):
+            storage = get_storage()
+            compressed_blob = storage.open(self.blob_path)
+            dctx = zstandard.ZstdDecompressor()
+            return dctx.stream_reader(compressed_blob, read_across_frames=True)
 
-            else:
-                raise NotImplementedError()
-
-        from sentry.models.files.file import File
-
-        file = File.objects.get(id=self.file_id)
-        return file.getfile()
+        raise NotImplementedError()
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
@@ -177,7 +145,6 @@ class EventAttachment(Model):
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
 
         blob = BytesIO(data)
-
         size, checksum = get_size_and_checksum(blob)
 
         if can_store_inline(data):

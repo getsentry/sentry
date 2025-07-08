@@ -1,13 +1,14 @@
-import {Fragment, lazy, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
+import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -48,18 +49,18 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
+import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -67,6 +68,7 @@ import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {isJavascriptPlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -77,10 +79,6 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const LLMMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
-);
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -197,24 +195,6 @@ export function EventDetailsContent({
           ) : null}
         </InterimSection>
       )}
-      {event.type === EventOrGroupType.ERROR &&
-      organization.features.includes('insights-addon-modules') &&
-      event?.entries
-        ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
-        .flatMap(x => x.data.values ?? [])
-        .some(({value}) => {
-          const lowerText = value?.toLowerCase();
-          return (
-            lowerText &&
-            (lowerText.includes('api key') || lowerText.includes('429')) &&
-            (lowerText.includes('openai') ||
-              lowerText.includes('anthropic') ||
-              lowerText.includes('cohere') ||
-              lowerText.includes('langchain'))
-          );
-        }) ? (
-        <LazyLoad LazyComponent={LLMMonitoringSection} />
-      ) : null}
       {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
@@ -225,7 +205,8 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {event.contexts?.metric_alert?.alert_rule_id && (
+      {(event.contexts?.metric_alert?.alert_rule_id ||
+        event?.occurrence?.evidenceData?.alertId) && (
         <MetricIssuesSection
           organization={organization}
           group={group}
@@ -293,16 +274,6 @@ export function EventDetailsContent({
           </GuideAnchor>
         )}
       </ClassNames>
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
-      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
@@ -406,7 +377,10 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <Feature features="ourlogs-enabled" organization={organization}>
+        <OurlogsSection event={event} group={group} project={project} />
+      </Feature>
       {hasStreamlinedUI &&
         event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
@@ -437,14 +411,25 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
+      <EventViewHierarchy event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
-      <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
+      {defined(eventEntries[EntryType.DEBUGMETA]) &&
+        !isJavascriptPlatform(event.platform) && (
+          <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+            <DebugMeta
+              event={event}
+              projectSlug={projectSlug}
+              groupId={group?.id}
+              data={eventEntries[EntryType.DEBUGMETA].data}
+            />
+          </EntryErrorBoundary>
+        )}
       {event.groupID && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
@@ -521,7 +506,7 @@ const NotFoundMessage = styled('div')`
 const StyledDataSection = styled(DataSection)`
   padding: ${space(0.5)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(4)};
   }
 

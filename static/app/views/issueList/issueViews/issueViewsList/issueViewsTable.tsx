@@ -1,11 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
+import {RenameIssueViewModal} from 'sentry/views/issueList/issueViews/renameIssueViewModal';
 import {
   canEditIssueView,
   confirmDeleteIssueView,
@@ -14,12 +17,14 @@ import {
   type GroupSearchView,
   GroupSearchViewCreatedBy,
 } from 'sentry/views/issueList/types';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;
   handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
   isPending: boolean;
+  onRenameView: (view: GroupSearchView) => void;
   type: GroupSearchViewCreatedBy;
   views: GroupSearchView[];
   hideCreatedBy?: boolean;
@@ -31,11 +36,13 @@ export function IssueViewsTable({
   isError,
   handleStarView,
   handleDeleteView,
+  onRenameView,
   type,
   hideCreatedBy = false,
 }: IssueViewsTableProps) {
   const organization = useOrganization();
   const user = useUser();
+  const hasIssueViews = useHasIssueViews();
 
   return (
     <SavedEntityTableWithColumns
@@ -138,6 +145,36 @@ export function IssueViewsTable({
               <SavedEntityTable.CellActions
                 items={[
                   {
+                    key: 'rename',
+                    label: t('Rename'),
+                    onAction: () => {
+                      openModal(props => (
+                        <RenameIssueViewModal
+                          {...props}
+                          view={view}
+                          analyticsSurface="issue-views-list"
+                          onRename={onRenameView}
+                        />
+                      ));
+                    },
+                    hidden: !canEdit || !hasIssueViews,
+                  },
+                  {
+                    key: 'duplicate',
+                    label: t('Duplicate'),
+                    onAction: () => {
+                      openModal(props => (
+                        <CreateIssueViewModal
+                          {...props}
+                          {...view}
+                          name={`${view.name} (Copy)`}
+                          analyticsSurface="issue-views-list"
+                        />
+                      ));
+                    },
+                    hidden: !hasIssueViews,
+                  },
+                  {
                     key: 'delete',
                     label: t('Delete'),
                     priority: 'danger',
@@ -151,14 +188,13 @@ export function IssueViewsTable({
                         surface: 'issue-views-list',
                       });
                       confirmDeleteIssueView({
-                        handleDelete: () => handleDeleteView(view),
+                        handleDelete: () => {
+                          handleDeleteView(view);
+                        },
                         groupSearchView: view,
                       });
                     },
-                    disabled: !canEdit,
-                    details: canEdit
-                      ? undefined
-                      : t('You do not have permission to delete this view.'),
+                    hidden: !canEdit,
                   },
                 ]}
               />
@@ -185,7 +221,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
         auto auto 48px;
     `}
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-areas: 'star name project query creator actions';
     grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
 
@@ -204,7 +240,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-areas: 'star name query actions';
     grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
 

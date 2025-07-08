@@ -2,10 +2,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {IconProject} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -46,7 +45,7 @@ function CustomerProjects({orgId}: Props) {
               href={`/${orgId}/${row.slug}/`}
               icon={<IconProject size="xs" />}
               title="View in Sentry"
-              aria-label={t('View in Sentry')}
+              aria-label={'View in Sentry'}
             />
             <Link to={`/_admin/customers/${orgId}/projects/${row.slug}/`}>
               {row.slug}

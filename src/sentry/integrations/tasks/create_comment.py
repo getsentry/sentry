@@ -23,7 +23,10 @@ from sentry.types.activity import ActivityType
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist))

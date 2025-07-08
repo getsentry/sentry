@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -11,10 +11,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
@@ -31,7 +30,8 @@ export default function ApiNewToken() {
     Organization: 'no-access',
     Alerts: 'no-access',
   });
-  const [newToken, setNewToken] = useState<NewInternalAppApiToken | null>(null);
+  const navigate = useNavigate();
+  const [hasNewToken, setHasnewToken] = useState(false);
   const [preview, setPreview] = useState<string>('');
 
   const getPreview = () => {
@@ -46,21 +46,18 @@ export default function ApiNewToken() {
     return previewString;
   };
 
-  const onCancel = () => {
-    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
-  };
-
-  const handleGoBack = () => {
-    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
-  };
+  const handleGoBack = useCallback(
+    () => navigate(normalizeUrl(API_INDEX_ROUTE)),
+    [navigate]
+  );
 
   return (
-    <SentryDocumentTitle title={t('Create User Auth Token')}>
+    <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
-        <SettingsPageHeader title={t('Create New User Auth Token')} />
+        <SettingsPageHeader title={t('Create New Personal Token')} />
         <TextBlock>
           {t(
-            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           )}
         </TextBlock>
         <TextBlock>
@@ -71,66 +68,58 @@ export default function ApiNewToken() {
             }
           )}
         </TextBlock>
-        {newToken === null ? (
-          <div>
-            <ApiForm
-              apiMethod="POST"
-              apiEndpoint="/api-tokens/"
-              initialData={{scopes: [], name: ''}}
-              onSubmitSuccess={setNewToken}
-              onCancel={onCancel}
-              footerStyle={{
-                marginTop: 0,
-                paddingRight: 20,
-              }}
-              submitDisabled={Object.values(permissions).every(
-                value => value === 'no-access'
-              )}
-              submitLabel={t('Create Token')}
-            >
-              <Panel>
-                <PanelHeader>{t('General')}</PanelHeader>
-                <PanelBody>
-                  <TextField
-                    name="name"
-                    label={t('Name')}
-                    help={t('A name to help you identify this token.')}
-                  />
-                </PanelBody>
-              </Panel>
-              <Panel>
-                <PanelHeader>{t('Permissions')}</PanelHeader>
-                <PanelBody>
-                  <PermissionSelection
-                    appPublished={false}
-                    permissions={permissions}
-                    onChange={p => {
-                      setPermissions(p);
-                      setPreview(getPreview());
-                    }}
-                  />
-                </PanelBody>
-                <TextareaField
-                  name="permissions-preview"
-                  label={t('Permissions Preview')}
-                  help={t('Your token will have the following scopes.')}
-                  rows={3}
-                  autosize
-                  placeholder={preview}
-                  disabled
-                />
-              </Panel>
-            </ApiForm>
-          </div>
-        ) : (
-          <NewTokenHandler
-            token={
-              getDynamicText({value: newToken.token, fixed: 'CI_AUTH_TOKEN'}) ||
-              'CI_AUTH_TOKEN'
-            }
-            handleGoBack={handleGoBack}
-          />
-        )}
+        <ApiForm
+          apiMethod="POST"
+          apiEndpoint="/api-tokens/"
+          initialData={{scopes: [], name: ''}}
+          onSubmitSuccess={(token: NewInternalAppApiToken) => {
+            setHasnewToken(true);
+            displayNewToken(token.token, handleGoBack);
+          }}
+          onCancel={handleGoBack}
+          footerStyle={{
+            marginTop: 0,
+            paddingRight: 20,
+          }}
+          submitDisabled={
+            !!hasNewToken ||
+            Object.values(permissions).every(value => value === 'no-access')
+          }
+          submitLabel={t('Create Token')}
+        >
+          <Panel>
+            <PanelHeader>{t('General')}</PanelHeader>
+            <PanelBody>
+              <TextField
+                name="name"
+                label={t('Name')}
+                help={t('A name to help you identify this token.')}
+              />
+            </PanelBody>
+          </Panel>
+          <Panel>
+            <PanelHeader>{t('Permissions')}</PanelHeader>
+            <PanelBody>
+              <PermissionSelection
+                appPublished={false}
+                permissions={permissions}
+                onChange={p => {
+                  setPermissions(p);
+                  setPreview(getPreview());
+                }}
+              />
+            </PanelBody>
+            <TextareaField
+              name="permissions-preview"
+              label={t('Permissions Preview')}
+              help={t('Your token will have the following scopes.')}
+              rows={3}
+              autosize
+              placeholder={preview}
+              disabled
+            />
+          </Panel>
+        </ApiForm>
       </div>
     </SentryDocumentTitle>
   );

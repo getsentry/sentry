@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
@@ -211,11 +211,15 @@ export function Slider({
           <SliderLabelWrapper className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
-              {nThumbs > 1
-                ? `${getFormattedValue(selectedRange[0]!)}–${getFormattedValue(
-                    selectedRange[1]!
-                  )}`
-                : getFormattedValue(selectedRange[1]!)}
+              {nThumbs > 1 ? (
+                <Fragment>
+                  {getFormattedValue(selectedRange[0]!)}
+                  {'-'}
+                  {getFormattedValue(selectedRange[1]!)}
+                </Fragment>
+              ) : (
+                getFormattedValue(selectedRange[1]!)
+              )}
             </SliderLabelOutput>
           </SliderLabelWrapper>
         )}
@@ -310,7 +314,7 @@ const SliderLabelWrapper = styled('div')`
 `;
 
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 
@@ -396,5 +400,5 @@ const SliderTickLabel = styled('small')`
   margin: 0 -1px;
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

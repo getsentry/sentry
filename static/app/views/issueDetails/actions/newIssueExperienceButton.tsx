@@ -277,4 +277,7 @@ const TryNewButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.white};
   }
+  ::after {
+    background: linear-gradient(90deg, #3468d8, #248574);
+  }
 `;

@@ -1,10 +1,10 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,14 +32,13 @@ type Row = Pick<
   | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
   | 'sentry.normalized_description'
   | 'epm()'
   | 'avg(span.self_time)'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -59,16 +58,16 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'epm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'epm()', 'sum(span.self_time)'];
 
 type ValidSort = Sort & {
-  field: 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: 'epm()' | 'avg(span.self_time)' | 'sum(span.self_time)';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

@@ -1,4 +1,6 @@
 import {
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -37,6 +39,21 @@ const missingInstrumentationSpans = [
   }),
 ];
 
+const eapMissingInstrumentationSpans = [
+  makeEAPSpan({
+    op: 'db',
+    description: 'redis',
+    start_timestamp: start,
+    end_timestamp: start + 1,
+  }),
+  makeEAPSpan({
+    op: 'db',
+    description: 'redis',
+    start_timestamp: start + 2,
+    end_timestamp: start + 4,
+  }),
+];
+
 const childrenMissingInstrumentationSpans = [
   makeSpan({
     op: 'db',
@@ -52,6 +69,26 @@ const childrenMissingInstrumentationSpans = [
     parent_span_id: 'redis',
     start_timestamp: start + 2,
     timestamp: start + 4,
+  }),
+];
+
+const eapChildrenMissingInstrumentationSpans = [
+  makeEAPSpan({
+    op: 'db',
+    description: 'redis',
+    event_id: 'redis',
+    start_timestamp: start,
+    end_timestamp: start + 1,
+    children: [
+      makeEAPSpan({
+        op: 'http',
+        description: 'request',
+        event_id: 'other redis',
+        parent_span_id: 'redis',
+        start_timestamp: start + 2,
+        end_timestamp: start + 4,
+      }),
+    ],
   }),
 ];
 
@@ -180,5 +217,49 @@ describe('missing instrumentation', () => {
     const initial = tree.build().serialize();
     expect(tree.build().serialize()).toMatchSnapshot();
     expect(tree.build().serialize()).toEqual(initial);
+  });
+
+  describe('eap traces', () => {
+    it('adds missing instrumentation between sibling eap spans', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace(eapMissingInstrumentationSpans),
+        traceMetadata
+      );
+
+      TraceTree.DetectMissingInstrumentation(tree.root);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('adds missing instrumentation between eap children spans', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace(eapChildrenMissingInstrumentationSpans),
+        traceMetadata
+      );
+
+      TraceTree.DetectMissingInstrumentation(tree.root);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('removes missing instrumentation nodes', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace(eapMissingInstrumentationSpans),
+        traceMetadata
+      );
+
+      const snapshot = tree.build().serialize();
+
+      TraceTree.DetectMissingInstrumentation(tree.root);
+
+      // Assert that missing instrumentation nodes exist
+      expect(
+        TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
+      ).not.toBeNull();
+
+      // Remove it and assert that the tree is back to the original state
+      TraceTree.RemoveMissingInstrumentationNodes(tree.root);
+
+      expect(tree.build().serialize()).toEqual(snapshot);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
   });
 });

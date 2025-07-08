@@ -72,7 +72,7 @@ import {
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {BuildStep} from './buildSteps/buildStep';
@@ -114,6 +114,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.ERRORS]: DataSet.ERRORS,
   [WidgetType.TRANSACTIONS]: DataSet.TRANSACTIONS,
   [WidgetType.SPANS]: DataSet.SPANS,
+  [WidgetType.LOGS]: DataSet.LOGS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
@@ -124,6 +125,7 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.ERRORS]: WidgetType.ERRORS,
   [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
   [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
 };
 
 interface RouteParams {
@@ -221,14 +223,8 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const defaultWidgetType =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? WidgetType.ERRORS
-      : WidgetType.DISCOVER;
-  const defaultDataset =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? DataSet.ERRORS
-      : DataSet.EVENTS;
+  const defaultWidgetType = WidgetType.ERRORS;
+  const defaultDataset = DataSet.ERRORS;
   const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
@@ -306,9 +302,9 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const {tags: numericSpanTags} = useSpanTags('number');
-  const {tags: stringSpanTags} = useSpanTags('string');
-  if (state.dataSet === DataSet.SPANS) {
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
+  if (state.dataSet === DataSet.SPANS || state.dataSet === DataSet.LOGS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
 
@@ -320,7 +316,7 @@ function WidgetBuilder({
       from: source,
     });
 
-    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
+    if (isEmptyObject(tags) && ![DataSet.SPANS, DataSet.LOGS].includes(dataSet)) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -1072,7 +1068,7 @@ function WidgetBuilder({
 
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
-    state.dataSet !== DataSet.SPANS &&
+    ![DataSet.SPANS, DataSet.LOGS].includes(state.dataSet) &&
     state.queries.length < 3;
 
   const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
@@ -1430,11 +1426,11 @@ const Body = styled(Layout.Body)`
 
   grid-template-rows: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -1449,11 +1445,11 @@ const Main = styled(Layout.Main)`
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.lg} + ${space(4)})) {
     ${ListItem} {
       width: calc(100% - ${space(4)});
     }
@@ -1463,14 +1459,14 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.gray200};
     grid-row: 2/2;
     grid-column: 1/-1;
     max-width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
@@ -1483,7 +1479,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: 1/-1;
   }
 `;

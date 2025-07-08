@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 import {CompositeSelect} from './composite';
@@ -45,7 +45,7 @@ const ADJ_OPTIONS = [
   {value: 'awesome', label: 'awesome'},
 ];
 
-export default storyBook('CompositeSelect', story => {
+export default Storybook.story('CompositeSelect', story => {
   story('Introduction', () => {
     return (
       <Fragment>

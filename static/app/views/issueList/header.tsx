@@ -6,12 +6,12 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -189,7 +189,7 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: ${space(2)};
     margin-bottom: 0;
   }

@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "<hello", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "<hello",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "<512.1.0", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "<512.1.0",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -39,7 +49,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "2018-01-01", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "2018-01-01",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -54,7 +69,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "+7d", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "+7d",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -69,7 +89,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">2018-01-01", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">2018-01-01",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -84,7 +109,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "hello", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "hello",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -99,7 +129,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "123", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

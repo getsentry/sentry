@@ -7,6 +7,7 @@ event_processing_store = LazyServiceWrapper(
     EventProcessingStore,
     settings.SENTRY_EVENT_PROCESSING_STORE,
     settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS,
+    metrics_path="event_processing_store",
 )
 
 
@@ -18,6 +19,7 @@ if (
         EventProcessingStore,
         settings.SENTRY_TRANSACTION_PROCESSING_STORE,
         settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS,
+        metrics_path="transaction_processing_store",
     )
 else:
     transaction_processing_store = LazyServiceWrapper(

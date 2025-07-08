@@ -504,7 +504,7 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const CloseButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   height: 100%;
   border-bottom: 2px solid transparent;
@@ -681,7 +681,7 @@ const TabButton = styled('button')`
   border-radius: 0;
   margin: 0;
   padding: 0 ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
   background: transparent;
 `;
@@ -700,26 +700,22 @@ function TabPinButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
+  const theme = useTheme();
   return (
-    <PinButton
-      size="zero"
+    <StyledButton
       data-test-id="trace-drawer-tab-pin-button"
+      size="zero"
       onClick={props.onClick}
-    >
-      <StyledIconPin size="xs" isSolid={props.pinned} />
-    </PinButton>
+      priority={theme.isChonk ? 'transparent' : 'default'}
+      aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
+      icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
+    />
   );
 }
 
-const PinButton = styled(Button)`
-  padding: ${space(0.5)};
-  margin: 0;
-  background-color: transparent;
+const StyledButton = styled(Button)`
   border: none;
-
-  &:hover {
-    background-color: transparent;
-  }
+  box-shadow: none;
 `;
 
 const StyledIconPin = styled(IconPin)`

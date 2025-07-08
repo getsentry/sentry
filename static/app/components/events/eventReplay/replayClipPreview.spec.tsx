@@ -50,15 +50,18 @@ const mockReplay = ReplayReader.factory({
 
 mockUseLoadReplayReader.mockImplementation(() => {
   return {
+    attachmentError: undefined,
     attachments: [],
     errors: [],
     fetchError: undefined,
-    fetching: false,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
+    status: 'success' as const,
   };
 });
 
@@ -124,15 +127,18 @@ describe('ReplayClipPreview', () => {
     // Change the mocked hook to return a loading state
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: undefined,
-        fetching: true,
+        isError: false,
+        isPending: true,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'pending' as const,
       };
     });
 
@@ -145,21 +151,70 @@ describe('ReplayClipPreview', () => {
     // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: {status: 400} as RequestError,
-        fetching: false,
+        isError: true,
+        isPending: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
       };
     });
 
     render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetch returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: {status: 429} as RequestError,
+        attachmentError: undefined,
+        isError: true,
+        isPending: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetching an attachment returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: undefined,
+        attachmentError: [{status: 429} as RequestError],
+        isError: true,
+        isPending: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {

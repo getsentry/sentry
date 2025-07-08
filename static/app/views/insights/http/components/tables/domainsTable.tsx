@@ -1,10 +1,10 @@
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,7 +33,6 @@ type Row = Pick<
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
@@ -44,7 +43,7 @@ type Column = GridColumnHeader<
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -84,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -96,7 +95,7 @@ const SORTABLE_FIELDS = [
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
-  'time_spent_percentage()',
+  'sum(span.self_time)',
 ] as const;
 
 type ValidSort = Sort & {

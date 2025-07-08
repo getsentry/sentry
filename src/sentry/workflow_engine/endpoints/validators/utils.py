@@ -4,6 +4,17 @@ from django.forms import ValidationError
 from jsonschema import ValidationError as JsonValidationError
 from jsonschema import validate
 
+from sentry.constants import ObjectStatus
+from sentry.issues import grouptype
+from sentry.models.organization import Organization
+from sentry.workflow_engine.models.detector import Detector
+
+
+def toggle_detector(detector: Detector, enabled: bool) -> None:
+    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+    detector.update(status=updated_detector_status)
+    detector.update(enabled=enabled)
+
 
 def validate_json_schema(value, schema):
     try:
@@ -33,3 +44,18 @@ def remove_items_by_api_input(
     if has_items_removed:
         filter_kwargs = {f"{values_list_field}__in": data_ids}
         instance.exclude(**filter_kwargs).delete()
+
+
+def get_unknown_detector_type_error(bad_value: str, organization: Organization) -> str:
+    available_types = [
+        gt.slug
+        for gt in grouptype.registry.get_visible(organization)
+        if gt.detector_settings is not None and gt.detector_settings.validator is not None
+    ]
+    available_types.sort()
+
+    if available_types:
+        available_str = ", ".join(available_types)
+        return f"Unknown detector type '{bad_value}'. Must be one of: {available_str}"
+    else:
+        return f"Unknown detector type '{bad_value}'. No detector types are available."

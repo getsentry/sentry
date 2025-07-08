@@ -72,6 +72,19 @@ jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMetric');
 
+jest.mock('sentry/utils/testableWindowLocation', () => ({
+  /**
+   * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
+   * instead of mocking properties on the testableLocation object.
+   * Use this mock for checking if window.location.assign was called.
+   */
+  testableWindowLocation: {
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+  },
+}));
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
@@ -153,6 +166,15 @@ jest.mock('@sentry/react', function sentryReact() {
 });
 
 ConfigStore.loadInitialData(ConfigFixture());
+
+// Default browser timezone to UTC
+jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+}));
 
 /**
  * Test Globals

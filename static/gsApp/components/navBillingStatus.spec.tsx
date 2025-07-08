@@ -91,7 +91,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // set localStorage to prevent auto-popup
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans' // exceeded categories
+      'errors-replays-spans-profileDuration' // exceeded categories
     );
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
@@ -106,7 +106,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   function assertLocalStorageStateAfterAutoOpen() {
     expect(
       localStorage.getItem(`billing-status-last-shown-categories-${organization.id}`)
-    ).toBe('errors-replays-spans');
+    ).toBe('errors-replays-spans-profileDuration');
     expect(
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
     ).toBe('Mon Jun 06 2022');
@@ -121,11 +121,10 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // doesn't show categories with <=1 reserved tier and no PAYG
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, and spans for this billing cycle./
+        /You’ve run out of errors, replays, spans, and continuous profile hours for this billing cycle./
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/cron monitors/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/continuous profile hours/)).not.toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
@@ -196,7 +195,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   it('should render PAYG categories with per category PAYG', async function () {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats' // exceeded categories
+      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
     );
     subscription.onDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -221,7 +220,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, and cron monitors for this billing cycle./
+        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
@@ -253,7 +252,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // stop the alert from animating
     await userEvent.click(screen.getByRole('checkbox'));
-    expect(promptMock).toHaveBeenCalledTimes(3); // one for each category
+    expect(promptMock).toHaveBeenCalledTimes(4); // one for each category
   });
 
   it('should update prompts when non-billing user takes action', async function () {
@@ -266,7 +265,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // click the button
     await userEvent.click(screen.getByText('Request Additional Quota'));
-    expect(promptMock).toHaveBeenCalledTimes(3);
+    expect(promptMock).toHaveBeenCalledTimes(4);
     expect(requestUpgradeMock).toHaveBeenCalled();
   });
 
@@ -331,6 +330,9 @@ describe('PrimaryNavigationQuotaExceeded', function () {
             snoozed_ts: MOCK_PERIOD_START,
           },
           spans_overage_alert: {
+            snoozed_ts: MOCK_PERIOD_START,
+          },
+          profile_duration_overage_alert: {
             snoozed_ts: MOCK_PERIOD_START,
           },
         },

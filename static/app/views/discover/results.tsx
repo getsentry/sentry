@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -13,9 +13,9 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -53,11 +53,13 @@ import {
 import localStorage from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,
@@ -902,7 +904,7 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }
@@ -918,50 +920,59 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-type SavedQueryState = DeprecatedAsyncComponent['state'] & {
-  savedQuery?: SavedQuery | null;
-};
+function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
+  const queryClient = useQueryClient();
+  const {organization, location} = props;
 
-class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
-  shouldReload = true;
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
-
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
-    if (location.query.id) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-      ]);
-      return endpoints;
+  const queryKey = useMemo(
+    (): ApiQueryKey => [
+      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+    ],
+    [organization, location.query.id]
+  );
+  const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
+    queryKey,
+    {
+      enabled: Boolean(location.query.id),
+      staleTime: 0,
     }
-    return endpoints;
+  );
+
+  const setSavedQuery = useCallback(
+    (newQuery?: SavedQuery) => {
+      setApiQueryData(queryClient, queryKey, newQuery);
+      queryClient.refetchQueries({queryKey});
+    },
+    [queryClient, queryKey]
+  );
+
+  if (isFetching) {
+    return <LoadingIndicator />;
   }
 
-  setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
-  };
-
-  renderBody(): React.ReactNode {
-    const {organization} = this.props;
-    const {savedQuery, loading} = this.state;
-    let savedQueryWithDataset = savedQuery;
-    if (hasDatasetSelector(organization) && savedQuery) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
-    }
-    return (
-      <Results
-        {...this.props}
-        savedQuery={savedQueryWithDataset ?? undefined}
-        loading={loading}
-        setSavedQuery={this.setSavedQuery}
-      />
-    );
+  if (isError) {
+    return <LoadingError message={t('Failed to load saved query')} onRetry={refetch} />;
   }
+
+  return (
+    <Results
+      {...props}
+      savedQuery={
+        hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
+      }
+      loading={isFetching}
+      setSavedQuery={setSavedQuery}
+    />
+  );
 }
 
-function ResultsContainer(props: Props) {
+export default function ResultsContainer(
+  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
+) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
    * requests being performed on mount.
@@ -976,22 +987,25 @@ function ResultsContainer(props: Props) {
   return (
     <PageFiltersContainer
       disablePersistence={
-        props.organization.features.includes('discover-query') &&
+        organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
       skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
+        organization.features.includes('global-views') && !!props.savedQuery
       }
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <SavedQueryAPI {...props} />
+      <SavedQueryAPI
+        api={api}
+        organization={organization}
+        selection={selection}
+        {...props}
+      />
     </PageFiltersContainer>
   );
 }
-
-export default withApi(withOrganization(withPageFilters(ResultsContainer)));
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;

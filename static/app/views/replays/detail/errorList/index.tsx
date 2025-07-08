@@ -8,6 +8,7 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
@@ -30,7 +31,7 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function ErrorList() {
+export default function ErrorList() {
   const {currentTime, replay} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
@@ -124,7 +125,7 @@ function ErrorList() {
   };
 
   return (
-    <FluidHeight>
+    <PaddedFluidHeight>
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
@@ -177,9 +178,13 @@ function ErrorList() {
           <Placeholder height="100%" />
         )}
       </ErrorTable>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
 
 const OverflowHidden = styled('div')`
   position: relative;
@@ -228,5 +233,3 @@ const ErrorTable = styled(FluidHeight)`
     width: 999999999%;
   }
 `;
-
-export default ErrorList;

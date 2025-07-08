@@ -5,7 +5,7 @@ import random
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jsonschema
 
@@ -25,6 +25,7 @@ from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,9 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
+    environment = event_data.get("environment")
+    ret_event["environment"] = environment or "production"
+
     release_value = event_data.get("release")
     if release_value:
         ret_event["release"] = release_value
@@ -200,32 +203,15 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
+                "platform": project.platform,
                 "reason": "missing_context",
                 "referrer": source.value,
             },
         )
-        # Temporary log for debugging.
-        if random.random() < 0.1:
-            project = Project.objects.get_from_cache(id=project_id)
-            contexts = event.get("contexts") or {}
-            feedback = contexts.get("feedback") or {}
-            feedback_msg = feedback.get("message")
-            logger.info(
-                "Filtered missing context or message.",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": project.organization_id,
-                    "has_contexts": bool(contexts),
-                    "has_feedback": bool(feedback),
-                    "event_type": event.get("type"),
-                    "feedback_message": feedback_msg,
-                    "platform": project.platform,
-                    "referrer": source.value,
-                },
-            )
         return True, "Missing Feedback Context"
 
     message = event["contexts"]["feedback"]["message"]
@@ -241,21 +227,12 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
-                "reason": "empty",
-                "referrer": source.value,
-            },
-        )
-        # Temporary log for debugging.
-        project = Project.objects.get_from_cache(id=project_id)
-        logger.info(
-            "Filtered empty feedback message.",
-            extra={
-                "project_id": project_id,
-                "organization_id": project.organization_id,
                 "platform": project.platform,
+                "reason": "empty",
                 "referrer": source.value,
             },
         )
@@ -283,6 +260,20 @@ def should_filter_feedback(
                 },
             )
         return True, "Too Large"
+
+    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
+    if associated_event_id:
+        try:
+            UUID(str(associated_event_id))
+        except ValueError:
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={
+                    "reason": "invalid_associated_event_id",
+                    "referrer": source.value,
+                },
+            )
+            return True, "Invalid Event ID"
 
     return False, None
 
@@ -379,7 +370,7 @@ def create_feedback_issue(
         event_fixed["tags"]["user.email"] = user_email
 
     # add the associated_event_id and has_linked_error to tags
-    associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
+    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
     if associated_event_id:
         event_fixed["tags"]["associated_event_id"] = associated_event_id
         event_fixed["tags"]["has_linked_error"] = "true"
@@ -393,17 +384,10 @@ def create_feedback_issue(
     validate_issue_platform_event_schema(event_fixed)
 
     # Analytics
-    if not project.flags.has_feedbacks:
-        first_feedback_received.send_robust(project=project, sender=Project)
+    set_project_flag_and_signal(project, "has_feedbacks", first_feedback_received)
 
-    if (
-        source
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-        ]
-        and not project.flags.has_new_feedbacks
-    ):
-        first_new_feedback_received.send_robust(project=project, sender=Project)
+    if source == FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE:
+        set_project_flag_and_signal(project, "has_new_feedbacks", first_new_feedback_received)
 
     # Send to issue platform for processing.
     produce_occurrence_to_kafka(
@@ -486,17 +470,24 @@ def shim_to_feedback(
         return
 
     try:
+        name = (
+            report.get("name")
+            or get_path(event.data, "user", "name")
+            or get_path(event.data, "user", "username")
+            or ""
+        )
+        contact_email = report.get("email") or get_path(event.data, "user", "email") or ""
+
         feedback_event: dict[str, Any] = {
             "contexts": {
                 "feedback": {
-                    "name": report.get("name", ""),
-                    "contact_email": report.get("email", ""),
+                    "name": name,
+                    "contact_email": contact_email,
                     "message": report["comments"],
+                    "associated_event_id": event.event_id,
                 },
             },
         }
-
-        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
         if get_path(event.data, "contexts", "replay", "replay_id"):
             feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]

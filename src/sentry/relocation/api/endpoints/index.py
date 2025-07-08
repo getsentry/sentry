@@ -4,7 +4,6 @@ from datetime import timedelta
 from functools import reduce
 from string import Template
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router
 from django.db.models import Q
 from django.utils import timezone
@@ -100,6 +99,9 @@ def validate_new_relocation_request(
     if not options.get("relocation.enabled") and not elevated_user:
         return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
+    if not request.user.is_authenticated:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     # Only superuser/staff can start relocations for other users.
     creator = user_service.get_user(user_id=request.user.id)
     if creator is None:
@@ -129,7 +131,7 @@ def validate_new_relocation_request(
     return None
 
 
-def validate_relocation_uniqueness(owner: RpcUser | AnonymousUser | User) -> Response | None:
+def validate_relocation_uniqueness(owner: RpcUser | User) -> Response | None:
     # Check that this `owner` does not have more than one active `Relocation` in flight.
     if Relocation.objects.filter(
         owner_id=owner.id,
@@ -176,6 +178,9 @@ class RelocationIndexEndpoint(Endpoint):
         """
 
         logger.info("relocations.index.get.start", extra={"caller": request.user.id})
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         queryset = Relocation.objects.all()
 
@@ -237,6 +242,9 @@ class RelocationIndexEndpoint(Endpoint):
         """
 
         logger.info("relocations.index.post.start", extra={"caller": request.user.id})
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = RelocationsPostSerializer(data=request.data)
         if not serializer.is_valid():

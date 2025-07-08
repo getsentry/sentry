@@ -297,5 +297,5 @@ export function analyzeFrameForRootCause(
 }
 
 const Bold = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

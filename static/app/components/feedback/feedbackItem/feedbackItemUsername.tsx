@@ -1,8 +1,8 @@
 import {type CSSProperties, Fragment, useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -60,6 +60,9 @@ export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBag
 };
 
 interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+  /**
+   * Extra data that gets passed to the renderer function for every attribute in the tree. If any of your field renderers rely on data that isn't related to the attributes (e.g., the current theme or location) or data that lives in another attribute (e.g., using the log level attribute to render the log text attribute) you should pass that data as here.
+   */
   rendererExtra: RendererExtra;
   renderers?: Record<
     string,
@@ -69,13 +72,15 @@ interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
 
 interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   extends AttributesFieldRender<RendererExtra> {
+  /**
+   * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
+   */
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
-  hiddenAttributes?: string[];
 }
 
 interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
@@ -182,6 +187,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
         rendererExtra,
+        getCustomActions,
       });
       return rows.concat(branchRows);
     },
@@ -211,7 +217,6 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
 function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
-  hiddenAttributes = [],
   renderers = {},
   rendererExtra: renderExtra,
   config = {},
@@ -225,7 +230,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
 
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
-      .map(key => getAttribute(key, hiddenAttributes, getAdjustedAttributeKey))
+      .map(key => getAttribute(key, getAdjustedAttributeKey))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -288,7 +293,6 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   }, [
     attributes,
     columnCount,
-    hiddenAttributes,
     renderers,
     renderExtra,
     config,
@@ -489,18 +493,12 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
 }
 
 /**
- * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
+ * Replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
-  hiddenAttributes: string[],
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
-  // Filter out hidden attributes
-  if (hiddenAttributes.includes(attribute.name)) {
-    return undefined;
-  }
-
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
 
@@ -612,7 +610,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};

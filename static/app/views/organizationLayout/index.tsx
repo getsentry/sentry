@@ -5,6 +5,7 @@ import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
@@ -14,10 +15,10 @@ import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useDevToolbar from 'sentry/utils/useDevToolbar';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -34,16 +35,9 @@ const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function DevToolInit() {
-  const isEmployee = useIsSentryEmployee();
-  const organization = useOrganization();
-  const showDevToolbar = organization.features.includes('devtoolbar');
-  useDevToolbar({enabled: showDevToolbar && isEmployee});
-  return null;
-}
-
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
+  useRegisterDomainViewUsage();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be
@@ -56,12 +50,16 @@ function OrganizationLayout({children}: Props) {
     prefers_stacked_navigation: prefersStackedNav,
   });
 
+  useInitSentryToolbar(organization);
+
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
-        <App organization={organization}>{children}</App>
+        <GlobalDrawer>
+          <App organization={organization}>{children}</App>
+        </GlobalDrawer>
       </OrganizationContainer>
-      <ScrollRestoration />
+      <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
   );
 }
@@ -70,7 +68,7 @@ interface LayoutProps extends Props {
   organization: Organization | null;
 }
 
-function AppLayout({children, organization}: LayoutProps) {
+function AppDrawers() {
   useFeedbackOnboardingDrawer();
   useReplaysOnboardingDrawer();
   usePerformanceOnboardingDrawer();
@@ -78,6 +76,10 @@ function AppLayout({children, organization}: LayoutProps) {
   useFeatureFlagOnboardingDrawer();
   useReleasesDrawer();
 
+  return null;
+}
+
+function AppLayout({children, organization}: LayoutProps) {
   return (
     <NavContextProvider>
       <AppContainer>
@@ -86,12 +88,12 @@ function AppLayout({children, organization}: LayoutProps) {
         <BodyContainer id="main">
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
-            {organization && <DevToolInit />}
             <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
         </BodyContainer>
       </AppContainer>
+      {organization ? <AppDrawers /> : null}
     </NavContextProvider>
   );
 }
@@ -103,7 +105,6 @@ function LegacyAppLayout({children, organization}: LayoutProps) {
     <div className="app">
       <DemoHeader />
       {organization && <OrganizationHeader organization={organization} />}
-      {organization && <DevToolInit />}
       <Sidebar />
       <AppBodyContent>
         <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
@@ -119,7 +120,7 @@ const AppContainer = styled('div')`
   flex-direction: column;
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;

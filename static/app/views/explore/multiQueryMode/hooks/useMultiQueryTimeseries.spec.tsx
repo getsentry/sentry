@@ -77,7 +77,7 @@ describe('useMultiQueryTimeseries', () => {
       url: '/organizations/org-slug/events-stats/',
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options.query.sampling === undefined;
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
         },
       ],
       method: 'GET',
@@ -89,11 +89,7 @@ describe('useMultiQueryTimeseries', () => {
           index: 0,
         }),
       {
-        wrapper: createWrapper(
-          OrganizationFixture({
-            features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-          })
-        ),
+        wrapper: createWrapper(OrganizationFixture()),
       }
     );
 
@@ -103,7 +99,7 @@ describe('useMultiQueryTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.NORMAL,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
@@ -115,8 +111,8 @@ describe('useMultiQueryTimeseries', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          sampling: undefined,
-          query: 'test value !transaction.span_id:00',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value',
         }),
       })
     );

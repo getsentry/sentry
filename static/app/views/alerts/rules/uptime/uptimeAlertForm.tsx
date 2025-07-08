@@ -45,6 +45,8 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
+
 const MINUTE = 60;
 
 const VALID_INTERVALS_SEC = [
@@ -55,6 +57,10 @@ const VALID_INTERVALS_SEC = [
   MINUTE * 30,
   MINUTE * 60,
 ];
+
+function methodHasBody(model: FormModel) {
+  return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
+}
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
@@ -95,7 +101,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue('projectSlug');
+        const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -125,6 +131,11 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      onPreSubmit={() => {
+        if (!methodHasBody(formModel)) {
+          formModel.setValue('body', null);
+        }
+      }}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -220,9 +231,9 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="timeoutMs"
               label={t('Timeout')}
               min={1000}
-              max={30_000}
+              max={60_000}
               step={250}
-              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
+              tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
               defaultValue={5_000}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
@@ -256,9 +267,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
+              visible={({model}: any) => methodHasBody(model)}
               rows={4}
               maxRows={15}
               autosize
@@ -299,7 +308,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 url={formModel.getValue('url')}
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
-                body={formModel.getValue('body')}
+                body={methodHasBody(formModel) ? formModel.getValue('body') : null}
                 traceSampling={formModel.getValue('traceSampling')}
               />
             )}
@@ -341,8 +350,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 

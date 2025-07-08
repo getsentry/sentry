@@ -1,5 +1,4 @@
 import type {Dispatch, SetStateAction} from 'react';
-import styled from '@emotion/styled';
 
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconSearch} from 'sentry/icons';
@@ -18,7 +17,7 @@ export default function GroupDistributionsSearchInput({
 }: Props) {
   return (
     <InputGroup>
-      <SearchInput
+      <InputGroup.Input
         size="xs"
         value={search}
         onChange={e => {
@@ -36,9 +35,3 @@ export default function GroupDistributionsSearchInput({
     </InputGroup>
   );
 }
-
-const SearchInput = styled(InputGroup.Input)`
-  border: 0;
-  box-shadow: unset;
-  color: inherit;
-`;

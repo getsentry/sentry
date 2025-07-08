@@ -1,49 +1,44 @@
-/* eslint-disable no-alert */
-import {Fragment} from 'react';
-
-import {Button} from 'sentry/components/core/button';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import {useParams} from 'sentry/utils/useParams';
+import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
+import {canEditDetector} from 'sentry/views/detectors/components/forms/config';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
 export default function DetectorEdit() {
+  const params = useParams<{detectorId: string}>();
   useWorkflowEngineFeatureGate({redirect: true});
 
-  return (
-    <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
-        <ActionsProvider actions={<Actions />}>
-          <EditLayout>
-            <h2>Edit Monitor</h2>
-          </EditLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
-    </SentryDocumentTitle>
-  );
-}
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetectorQuery(params.detectorId);
 
-function Actions() {
-  const disable = () => {
-    window.alert('disable');
-  };
-  const del = () => {
-    window.alert('delete');
-  };
-  const save = () => {
-    window.alert('save');
-  };
-  return (
-    <Fragment>
-      <Button onClick={disable}>{t('Disable')}</Button>
-      <Button onClick={del} priority="danger">
-        {t('Delete')}
-      </Button>
-      <Button onClick={save} priority="primary">
-        {t('Save')}
-      </Button>
-    </Fragment>
-  );
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const detectorType = detector.type;
+  if (!canEditDetector(detectorType)) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingError message={t('This monitor type is not editable')} />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  return <EditExistingDetectorForm detector={detector} detectorType={detectorType} />;
 }

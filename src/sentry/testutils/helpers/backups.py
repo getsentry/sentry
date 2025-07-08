@@ -15,8 +15,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
 from django.utils import timezone
+from fido2.ctap2 import AuthenticatorData
+from fido2.utils import sha256
 from sentry_relay.auth import generate_key_pair
 
+from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
@@ -40,20 +43,14 @@ from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
-from sentry.incidents.models.incident import (
-    IncidentActivity,
-    IncidentSnapshot,
-    IncidentTrigger,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
-)
+from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -116,7 +113,7 @@ from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
-from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -378,7 +375,38 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1)
+        Authenticator.objects.create(
+            user=user,
+            type=1,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "name": "Alert Escargot",
+                        "ts": 1512505334,
+                        "binding": AuthenticatorData.create(
+                            sha256(b"test"),
+                            0x41,
+                            1,
+                            create_credential_object(
+                                {
+                                    "publicKey": "webauthn",
+                                    "keyHandle": "webauthn",
+                                }
+                            ),
+                        ),
+                    },
+                ]
+            },
+        )
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -467,12 +495,6 @@ class ExhaustiveFixtures(Fixtures):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is
-        # finally removed. Until then, it is included for completeness.
-        ProjectIntegration.objects.create(
-            project=project, integration_id=integration_id, config='{"hello":"hello"}'
-        )
-
         # Rule*
         rule = self.create_project_rule(project=project, owner_user_id=owner_id)
         RuleActivity.objects.create(
@@ -528,26 +550,10 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=timezone.now() - timedelta(hours=24),
-                end=timezone.now(),
-                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
-                period=1,
-            ),
-            unique_users=1,
-            total_events=1,
-        )
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
             status=1,
-        )
-
-        # *Snapshot
-        PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -558,7 +564,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
-            user_id=owner.id,
+            user_id=owner_id,
+            organization=org,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -696,7 +703,9 @@ class ExhaustiveFixtures(Fixtures):
 
         self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
         self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
-        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        WorkflowActionGroupStatus.objects.create(
+            action=send_notification_action, group=group, workflow=workflow
+        )
         DataConditionAlertRuleTrigger.objects.create(
             data_condition=data_condition, alert_rule_trigger_id=trigger.id
         )
@@ -727,6 +736,13 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             position=0,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            last_visited=timezone.now(),
         )
 
         InsightsStarredSegment.objects.create(

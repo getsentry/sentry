@@ -1,3 +1,4 @@
+import re
 from typing import TypedDict
 
 from parsimonious import NodeVisitor
@@ -6,12 +7,39 @@ from sentry.api.event_search import event_search_grammar
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
+
 
 class QueryParts(TypedDict):
     selected_columns: list[str]
     query: str
     equations: list[str] | None
     orderby: list[str] | None
+
+
+def format_percentile_term(term):
+    function, args, alias = fields.parse_function(term)
+
+    percentile_replacement_function = {
+        0.5: "p50",
+        0.75: "p75",
+        0.90: "p90",
+        0.95: "p95",
+        0.99: "p99",
+        1.0: "p100",
+    }
+    try:
+        translated_column = column_switcheroo(args[0])[0]
+        percentile_value = args[1]
+        numeric_percentile_value = float(percentile_value)
+        new_function = percentile_replacement_function.get(numeric_percentile_value, function)
+    except (IndexError, ValueError):
+        return term
+
+    if new_function == function:
+        return term
+
+    return f"{new_function}({translated_column})"
 
 
 def apply_is_segment_condition(query: str) -> str:
@@ -26,15 +54,21 @@ def column_switcheroo(term):
     if parsed_mri:
         term = parsed_mri.name
 
-    swapped_term = term
-    if term == "transaction.duration":
-        swapped_term = "span.duration"
+    column_swap_map = {
+        "transaction.duration": "span.duration",
+        "http.method": "transaction.method",
+        "title": "transaction",
+        "url": "request.url",
+        "http.url": "request.url",
+        "transaction.status": "trace.status",
+        "geo.city": "user.geo.city",
+        "geo.country_code": "user.geo.country_code",
+        "geo.region": "user.geo.region",
+        "geo.subdivision": "user.geo.subdivision",
+        "geo.subregion": "user.geo.subregion",
+    }
 
-    if term == "http.method":
-        swapped_term = "transaction.method"
-
-    if term == "title":
-        swapped_term = "transaction"
+    swapped_term = column_swap_map.get(term, term)
 
     return swapped_term, swapped_term != term
 
@@ -44,6 +78,16 @@ def function_switcheroo(term):
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
+    elif term.startswith("percentile("):
+        swapped_term = format_percentile_term(term)
+    elif term == "apdex()":
+        swapped_term = "apdex(span.duration,300)"
+    elif term == "user_misery()":
+        swapped_term = "user_misery(span.duration,300)"
+
+    match = re.match(APDEX_USER_MISERY_PATTERN, term)
+    if match:
+        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
 
     return swapped_term, swapped_term != term
 

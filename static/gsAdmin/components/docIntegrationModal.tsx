@@ -13,7 +13,6 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -111,7 +110,7 @@ function DocIntegrationModal(props: Props) {
               return existingResources;
             });
           }}
-          aria-label={t('Close')}
+          aria-label={'Close'}
         />
       </ResourceContainer>
     ));
@@ -179,7 +178,7 @@ function DocIntegrationModal(props: Props) {
     onSuccess: (response: Record<string, any>) => void,
     onError: (error: any) => void
   ) => {
-    addLoadingMessage(t('Saving changes\u2026'));
+    addLoadingMessage('Saving changes\u2026');
     api.request(
       docIntegration ? `/doc-integrations/${docIntegration.slug}/` : '/doc-integrations/',
       {
@@ -279,8 +278,7 @@ function DocIntegrationModal(props: Props) {
           {docIntegration && (
             <AvatarChooser
               type="docIntegration"
-              allowGravatar={false}
-              allowLetter={false}
+              supportedTypes={['upload']}
               endpoint={`/doc-integrations/${docIntegration.slug}/avatar/`}
               model={docIntegration.avatar ? docIntegration : {}}
               onSave={() => {}}

@@ -1,0 +1,192 @@
+[
+  {
+    "query": "count_unique(tags[foo]):>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_unique", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "tags[foo]",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "avg(tags[foo,number]):>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "tags[foo,number]",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "avg(tags[foo:bar,number]):>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "tags[foo:bar,number]",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "count_unique(tags[foo,string]):>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_unique", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "tags[foo,string]",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "count_unique(tags[foo:bar,string]):>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_unique", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "tags[foo:bar,string]",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

@@ -26,7 +26,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
 
   return (
     <TagPanel>
-      <TagHeader>
+      <TagHeader data-underline-on-hover="true">
         <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
           {tag.key}
         </Tooltip>
@@ -110,8 +110,8 @@ const TagPanel = styled('div')`
 
 const TagHeader = styled('h5')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
   ${p => p.theme.overflowEllipsis}
 `;

@@ -57,7 +57,6 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -103,7 +102,6 @@ def handle_discard(
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
-                incr_rollback_metrics(GroupTombstone)
                 # in this case, a tombstone has already been created
                 # for a group, so no hash updates are necessary
                 pass
@@ -647,8 +645,8 @@ def process_group_resolution(
         update_group_open_period(
             group=group,
             new_status=GroupStatus.RESOLVED,
-            activity=activity,
-            should_reopen_open_period=False,
+            resolution_time=now,
+            resolution_activity=activity,
         )
 
 
@@ -658,8 +656,8 @@ def merge_groups(
     acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
-    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+    issue_stream_regex = r"^(\/organizations\/[^/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^/]+)?\/issues\/\d+\/similar\/$"
 
     metrics.incr(
         "grouping.merge_issues",

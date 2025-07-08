@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
@@ -102,7 +101,7 @@ export function IntegrationReposAddRepository({
     );
     return repositoryOptions.map(repo => ({
       value: repo.identifier,
-      label: <RepoName>{repo.name}</RepoName>,
+      label: repo.name,
       textValue: repo.name,
     }));
   }, [currentRepositories, searchResult]);
@@ -126,39 +125,31 @@ export function IntegrationReposAddRepository({
   }
 
   return (
-    <DropdownWrapper>
-      <CompactSelect
-        size="xs"
-        menuWidth={250}
-        options={dropdownItems}
-        onChange={addRepo}
-        disabled={false}
-        menuTitle={t('Repositories')}
-        triggerLabel={t('Add Repository')}
-        emptyMessage={
-          query.isFetching
-            ? t('Searching\u2026')
-            : debouncedSearch
-              ? t('No repositories found')
-              : t('Please enter a repository name')
-        }
-        searchPlaceholder={t('Search Repositories')}
-        loading={query.isFetching}
-        searchable
-        onSearch={setSearch}
-        triggerProps={{
-          busy: adding,
-        }}
-        disableSearchFilter
-      />
-    </DropdownWrapper>
+    <CompactSelect
+      size="xs"
+      menuWidth={250}
+      options={dropdownItems}
+      onChange={addRepo}
+      disabled={false}
+      menuTitle={t('Repositories')}
+      triggerLabel={t('Add Repository')}
+      emptyMessage={
+        query.isFetching
+          ? t('Searching\u2026')
+          : debouncedSearch
+            ? t(
+                'No repositories found. Newly added repositories may take a few minutes to appear.'
+              )
+            : t('Please enter a repository name')
+      }
+      searchPlaceholder={t('Search Repositories')}
+      loading={query.isFetching}
+      searchable
+      onSearch={setSearch}
+      triggerProps={{
+        busy: adding,
+      }}
+      disableSearchFilter
+    />
   );
 }
-
-const DropdownWrapper = styled('div')`
-  text-transform: none;
-`;
-
-const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;

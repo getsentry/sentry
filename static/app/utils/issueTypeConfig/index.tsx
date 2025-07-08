@@ -10,20 +10,17 @@ import {
 import feedbackConfig from 'sentry/utils/issueTypeConfig/feedbackConfig';
 import frontendConfig from 'sentry/utils/issueTypeConfig/frontendConfig';
 import httpClientConfig from 'sentry/utils/issueTypeConfig/httpClientConfig';
+import metricConfig from 'sentry/utils/issueTypeConfig/metricConfig';
 import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
 import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
-import performanceBestPracticeConfig from 'sentry/utils/issueTypeConfig/performanceBestPracticeConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
-import performanceRegressionConfig from 'sentry/utils/issueTypeConfig/performanceRegressionConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
-import responsivenessConfig from 'sentry/utils/issueTypeConfig/responsivenessConfig';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
-import userExperienceConfig from 'sentry/utils/issueTypeConfig/userExperienceConfig';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
@@ -99,15 +96,12 @@ const issueTypeConfig: Config = {
   [IssueCategory.UPTIME]: uptimeConfig,
   [IssueCategory.METRIC_ALERT]: metricIssueConfig,
   [IssueCategory.OUTAGE]: outageConfig,
-  [IssueCategory.PERFORMANCE_BEST_PRACTICE]: performanceBestPracticeConfig,
-  [IssueCategory.PERFORMANCE_REGRESSION]: performanceRegressionConfig,
-  [IssueCategory.RESPONSIVENESS]: responsivenessConfig,
-  [IssueCategory.USER_EXPERIENCE]: userExperienceConfig,
   [IssueCategory.FEEDBACK]: feedbackConfig,
   [IssueCategory.FRONTEND]: frontendConfig,
   [IssueCategory.HTTP_CLIENT]: httpClientConfig,
   [IssueCategory.DB_QUERY]: dbQueryConfig,
   [IssueCategory.MOBILE]: mobileConfig,
+  [IssueCategory.METRIC]: metricConfig,
 };
 
 /**
@@ -159,6 +153,11 @@ export const getConfigForIssueType = (
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
+  const refinedIssueType: IssueType | undefined = issueType?.replace(
+    '_experimental',
+    ''
+  ) as IssueType | undefined;
+
   const categoryMap = issueTypeConfig[issueCategory];
 
   if (!categoryMap) {
@@ -166,7 +165,8 @@ export const getConfigForIssueType = (
   }
 
   const categoryConfig = categoryMap._categoryDefaults;
-  const overrideConfig = issueType ? categoryMap[issueType] : {};
+
+  const overrideConfig = refinedIssueType ? categoryMap[refinedIssueType] : {};
   const errorResourceConfig = shouldShowCustomErrorResourceConfig(params, project)
     ? getErrorHelpResource({title: title!, project})
     : null;

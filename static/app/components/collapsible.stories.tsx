@@ -2,21 +2,17 @@ import {Fragment} from 'react';
 
 import Collapsible from 'sentry/components/collapsible';
 import {Button} from 'sentry/components/core/button';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('Collapsible', story => {
+export default Storybook.story('Collapsible', story => {
   story('Default', () => (
     <Fragment>
       <p>
-        After passing in a list of children, <JSXNode name="Collapsible" /> will truncate
-        the list to be a max of <JSXProperty name="maxVisibleItems" value={Number} />{' '}
-        long.
+        After passing in a list of children, <Storybook.JSXNode name="Collapsible" /> will
+        truncate the list to be a max of{' '}
+        <Storybook.JSXProperty name="maxVisibleItems" value={Number} /> long.
       </p>
-      <SizingWindow display="block">
+      <Storybook.SizingWindow display="block">
         <Collapsible maxVisibleItems={3}>
           <div>Item 1</div>
           <div>Item 2</div>
@@ -24,17 +20,18 @@ export default storyBook('Collapsible', story => {
           <div>Item 4</div>
           <div>Item 5</div>
         </Collapsible>
-      </SizingWindow>
+      </Storybook.SizingWindow>
     </Fragment>
   ));
 
   story('Bugs', () => (
     <Fragment>
       <p>
-        It's possible to use <JSXNode name="ul" /> or <JSXNode name="ol" />, but beware
-        that the button will appear inside the list as well.
+        It's possible to use <Storybook.JSXNode name="ul" /> or{' '}
+        <Storybook.JSXNode name="ol" />, but beware that the button will appear inside the
+        list as well.
       </p>
-      <SideBySide>
+      <Storybook.SideBySide>
         <ol>
           <Collapsible maxVisibleItems={2}>
             <li>Item 1</li>
@@ -49,7 +46,7 @@ export default storyBook('Collapsible', story => {
             <li>Item 3</li>
           </Collapsible>
         </ul>
-      </SideBySide>
+      </Storybook.SideBySide>
     </Fragment>
   ));
 
@@ -61,21 +58,21 @@ export default storyBook('Collapsible', story => {
     return (
       <Fragment>
         <p>
-          <JSXProperty name="maxVisibleItems" value={Number} /> will show/hide and
-          pluralize the button label as needed.
+          <Storybook.JSXProperty name="maxVisibleItems" value={Number} /> will show/hide
+          and pluralize the button label as needed.
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           {[3, 4, 5, 6].map(maxVisibleItems => (
             <div key={maxVisibleItems}>
               <p>
-                <JSXProperty name="maxVisibleItems" value={maxVisibleItems} />
+                <Storybook.JSXProperty name="maxVisibleItems" value={maxVisibleItems} />
               </p>
-              <SizingWindow display="block">
+              <Storybook.SizingWindow display="block">
                 <Collapsible maxVisibleItems={maxVisibleItems}>{allItems}</Collapsible>
-              </SizingWindow>
+              </Storybook.SizingWindow>
             </div>
           ))}
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -83,9 +80,10 @@ export default storyBook('Collapsible', story => {
   story('Custom Buttons', () => (
     <Fragment>
       <p>
-        You can set custom <JSXProperty name="collapseButton" value={Function} /> &{' '}
-        <JSXProperty name="expandeButton" value={Function} />, and they will always be
-        rendered in the same spot, at the bottom of the list.
+        You can set custom{' '}
+        <Storybook.JSXProperty name="collapseButton" value={Function} /> &{' '}
+        <Storybook.JSXProperty name="expandeButton" value={Function} />, and they will
+        always be rendered in the same spot, at the bottom of the list.
       </p>
       <Collapsible
         maxVisibleItems={2}

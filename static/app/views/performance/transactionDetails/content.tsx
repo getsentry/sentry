@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
@@ -207,7 +208,6 @@ function EventDetailsContent(props: Props) {
                         projectId={projectId}
                         location={location}
                         errorDest="issue"
-                        transactionDest="performance"
                       />
                     </Layout.Main>
                   )}

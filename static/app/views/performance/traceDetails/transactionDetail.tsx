@@ -5,10 +5,10 @@ import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
-import Link from 'sentry/components/links/link';
 import {
   ErrorDot,
   ErrorLevel,
@@ -144,7 +144,7 @@ class TransactionDetail extends Component<Props> {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 

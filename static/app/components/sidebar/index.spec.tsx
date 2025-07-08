@@ -35,8 +35,8 @@ const ALL_AVAILABLE_FEATURES = [
   'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
-  'performance-trace-explorer',
   'profiling',
+  'visibility-explore-view',
 ];
 
 jest.mock('sentry/utils/demoMode');
@@ -44,10 +44,7 @@ jest.mock('sentry/utils/demoMode');
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
-  const userMock = UserFixture();
-  const user = UserFixture({
-    options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
-  });
+  const user = UserFixture();
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
@@ -377,8 +374,8 @@ describe('Sidebar', function () {
         'Backend',
         'Mobile',
         'AI',
-        'User Feedback',
         'Crons',
+        'User Feedback',
         'Alerts',
         'Dashboards',
         'Releases',

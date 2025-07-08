@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,9 +65,9 @@ const StacktraceIntegrationBannerWrapper = styled('div')`
 `;
 
 const IntegationBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const IntegationBannerDescription = styled('div')`
@@ -91,7 +92,7 @@ const IntegrationBannerImage = styled('img')`
   right: 4rem;
   pointer-events: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

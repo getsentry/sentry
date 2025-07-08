@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
+import sentry_sdk
 from celery import Task
 from django.conf import settings
 from django.db.models import Model
@@ -19,7 +20,6 @@ from sentry.taskworker.retry import retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
-from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -75,17 +75,12 @@ def taskworker_override(
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
         rollout_rate = 0
         option_flag = f"taskworker.{namespace}.rollout"
-        check_option = True
-        if namespace in settings.TASKWORKER_HIGH_THROUGHPUT_NAMESPACES:
-            check_option = settings.TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES
-
-        if check_option:
-            rollout_map = options.get(option_flag)
-            if rollout_map:
-                if task_name in rollout_map:
-                    rollout_rate = rollout_map.get(task_name, 0)
-                elif "*" in rollout_map:
-                    rollout_rate = rollout_map.get("*", 0)
+        rollout_map = options.get(option_flag)
+        if rollout_map:
+            if task_name in rollout_map:
+                rollout_rate = rollout_map.get(task_name, 0)
+            elif "*" in rollout_map:
+                rollout_rate = rollout_map.get("*", 0)
 
         if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
@@ -180,7 +175,7 @@ def instrumented_task(
                     "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("task_name", name)
             scope.set_tag("transaction_id", transaction_id)
 
@@ -215,6 +210,10 @@ def instrumented_task(
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
+        else:
+            raise Exception(
+                f"taskworker_config must be defined, please add TaskworkerConfig to instrumented_task call for {name}"
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -248,12 +247,12 @@ def retry(
             except ignore:
                 return
             except ignore_and_capture:
-                capture_exception(level="info")
+                sentry_sdk.capture_exception(level="info")
                 return
             except exclude:
                 raise
             except on as exc:
-                capture_exception()
+                sentry_sdk.capture_exception()
                 retry_task(exc)
 
         return wrapped

@@ -10,20 +10,17 @@ import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
   frame: Parameters<typeof useStacktraceLink>[0]['frame'];
-  eventId?: string;
+  event?: Parameters<typeof useStacktraceLink>[0]['event'];
   projectId?: string;
 }
 
-export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
+export function StackTraceMiniFrame({frame, event, projectId}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-
-  const {data: event} = useEventDetails({eventId, projectSlug: project?.slug});
 
   return (
     <FrameContainer>
@@ -88,7 +85,7 @@ export const FrameContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   border-top: 1px solid ${p => p.theme.border};
 

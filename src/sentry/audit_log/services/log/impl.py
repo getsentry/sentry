@@ -14,7 +14,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.audit_log_rpc_service")
 
@@ -29,7 +28,6 @@ class DatabaseBackedLogService(LogService):
                 entry.save()
         except Exception as e:
             if isinstance(e, IntegrityError):
-                incr_rollback_metrics(AuditLogEntry)
                 error_message = str(e)
                 if '"auth_user"' in error_message:
                     # It is possible that a user existed at the time of serialization but was deleted by the time of consumption

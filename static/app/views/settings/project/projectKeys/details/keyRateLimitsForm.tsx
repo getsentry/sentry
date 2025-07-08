@@ -43,28 +43,27 @@ type Props = {
 function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   function handleChangeWindow(
     onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
-    onBlur: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
     currentValueObj: RateLimitValue,
     value: number,
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const valueObj = {...currentValueObj, window: value};
-
-    onChange(valueObj, event);
-    onBlur(valueObj, event);
+    if (currentValueObj.window !== value) {
+      const valueObj = {...currentValueObj, window: value};
+      onChange(valueObj, event);
+    }
   }
 
   function handleChangeCount(
-    callback: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
-    value: RateLimitValue,
+    onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
+    currentValueObj: RateLimitValue,
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const valueObj = {
-      ...value,
-      count: Number(event.target.value),
-    };
+    const value = Number(event.target.value);
 
-    callback(valueObj, event);
+    if (currentValueObj.count !== value) {
+      const valueObj = {...currentValueObj, count: value};
+      onChange(valueObj, event);
+    }
   }
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
@@ -160,7 +159,6 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                 help={t(
                   'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
                 )}
-                inline={false}
               >
                 {({onChange, onBlur, value}: any) => {
                   const window = typeof value === 'object' ? value.window : undefined;
@@ -192,14 +190,9 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                           return undefined;
                         }}
                         disabled={disabled || !hasFeature}
+                        onBlur={e => onBlur(value, e)}
                         onChange={(rangeValue, event) =>
-                          handleChangeWindow(
-                            onChange,
-                            onBlur,
-                            value,
-                            Number(rangeValue),
-                            event
-                          )
+                          handleChangeWindow(onChange, value, Number(rangeValue), event)
                         }
                       />
                     </RateLimitRow>
@@ -218,9 +211,9 @@ export default KeyRateLimitsForm;
 
 const RateLimitRow = styled('div')`
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr;
+  grid-template-columns: 100px max-content 1fr;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(2)};
 `;
 
 const EventsIn = styled('small')`

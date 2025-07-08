@@ -6,7 +6,6 @@ import BooleanField from 'sentry/components/forms/fields/booleanField';
 import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -50,7 +49,7 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
       <Body>
         <Form
           onSubmit={(data, onSuccess, onError) => {
-            addLoadingMessage(t('Saving changes\u2026'));
+            addLoadingMessage('Saving changes\u2026');
 
             // XXX(dcramer): why did i optimize the api for individual idempotent perm changes..
 

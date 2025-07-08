@@ -82,7 +82,6 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={undefined}
         currentPlatformKey={'lua' as PlatformKey}
         project={project}
@@ -120,7 +119,6 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={platform}
         project={project}
         currentPlatformKey={platform.id}
@@ -163,7 +161,6 @@ describe('ProjectInstallPlatform', function () {
       <ProjectInstallPlatform
         {...routerProps}
         project={project}
-        loading={false}
         platform={platform}
         currentPlatformKey={platform.id}
       />

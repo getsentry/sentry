@@ -1,119 +1,95 @@
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import type {LineSeriesOption} from 'echarts';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {getFormattedDate} from 'sentry/utils/dates';
-import {getShortEventId} from 'sentry/utils/events';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
-function useEventMarklineSeries({
-  events,
-  group,
-  markLineProps = {},
-}: {
-  events: Event[];
+interface UseEventMarklineSeriesProps {
+  event: Event | undefined;
+  /**
+   * The event series is used to place the mark line on the nearest bar
+   * This is to ensure the mark line is always visible.
+   */
+  eventSeries: Array<{name: number; value: number}>;
   group: Group;
-  markLineProps?: Partial<LineSeriesOption['markLine']>;
-}) {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const organization = useOrganization();
-  const eventView = useIssueDetailsEventView({group});
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
-  const markLine = events.length
-    ? MarkLine({
-        animation: false,
-        lineStyle: {
-          color: theme.pink200,
-          type: 'solid',
-        },
-        label: {
-          show: false,
-        },
-        data: events.map(event => ({
-          xAxis: +new Date(event.dateCreated ?? event.dateReceived),
-          name: getShortEventId(event.id),
-          value: getShortEventId(event.id),
-          onClick: () => {
-            navigate({
-              pathname: `${baseEventsPath}${event.id}/`,
-            });
-          },
-          label: {
-            formatter: () => getShortEventId(event.id),
-          },
-        })),
-        tooltip: {
-          trigger: 'item',
-          formatter: ({data}: any) => {
-            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-              local: !eventView.utc,
-            });
-            return [
-              '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
-              '</div>',
-              `<div class="tooltip-footer">${time}</div>`,
-              '<div class="tooltip-arrow"></div>',
-            ].join('');
-          },
-        },
-        ...markLineProps,
-      })
-    : undefined;
-
-  return {
-    seriesName: t('Specific Events'),
-    data: [],
-    markLine,
-    color: theme.pink200,
-    type: 'line',
-  };
 }
 
 export function useCurrentEventMarklineSeries({
   event,
   group,
-  markLineProps = {},
-}: {
-  group: Group;
-  event?: Event;
-  markLineProps?: Partial<LineSeriesOption['markLine']>;
-}) {
+  eventSeries,
+}: UseEventMarklineSeriesProps) {
+  const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
 
-  const result = useEventMarklineSeries({
-    events: event ? [event] : [],
-    group,
-    markLineProps: {
+  return useMemo(() => {
+    if (!event) {
+      return undefined;
+    }
+
+    const eventDateCreated = new Date(event.dateCreated!).getTime();
+    const closestEventSeries = eventSeries.reduce<
+      {name: number; value: number} | undefined
+    >((acc, curr) => {
+      // Find the first bar that would contain the current event
+      if (curr.value && curr.name <= eventDateCreated) {
+        if (!acc || curr.name > acc.name) {
+          return curr;
+        }
+      }
+      return acc;
+    }, undefined);
+
+    if (!closestEventSeries) {
+      return undefined;
+    }
+
+    const markLine = MarkLine({
+      animation: false,
+      lineStyle: {
+        color: theme.isChonk ? theme.tokens.graphics.promotion : theme.pink200,
+        type: 'solid',
+      },
+      label: {
+        show: false,
+      },
+      data: [
+        {
+          xAxis: closestEventSeries.name,
+          name: event.id,
+        },
+      ],
       tooltip: {
         trigger: 'item',
-        formatter: ({data}: any) => {
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-            local: !eventView.utc,
-          });
+        formatter: () => {
+          // Do not use date from xAxis here since we've placed it on the nearest bar
+          const time = getFormattedDate(
+            event.dateCreated,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: !eventView.utc,
+            }
+          );
           return [
             '<div class="tooltip-series">',
-            `<div><span class="tooltip-label"><strong>${t(
-              'Current Event'
-            )}</strong></span></div>`,
+            `<div><span class="tooltip-label"><strong>${t('Current Event')}</strong></span></div>`,
             '</div>',
             `<div class="tooltip-footer">${time}</div>`,
             '<div class="tooltip-arrow"></div>',
           ].join('');
         },
       },
-      ...markLineProps,
-    },
-  });
-  return {
-    ...result,
-    seriesName: t('Current Event'),
-  };
+    });
+
+    return {
+      seriesName: 'Current Event',
+      data: [],
+      markLine,
+      type: 'line',
+    };
+  }, [event, theme, eventView.utc, eventSeries]);
 }

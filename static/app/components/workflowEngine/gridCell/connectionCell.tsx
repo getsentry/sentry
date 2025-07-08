@@ -2,12 +2,15 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 export type ConnectionCellProps = {
   ids: string[];
@@ -20,13 +23,16 @@ const labels: Record<ConnectionCellProps['type'], (n: number) => string> = {
   detector: count => tn('%s monitor', '%s monitors', count),
   workflow: count => tn('%s automation', '%s automations', count),
 };
-const links: Record<ConnectionCellProps['type'], (id: string) => string> = {
-  detector: id => `/issues/monitors/${id}/`,
-  workflow: id => `/issues/automations/${id}/`,
+const links: Record<
+  ConnectionCellProps['type'],
+  (orgSlug: string, id: string) => string
+> = {
+  detector: (orgSlug, id) => makeMonitorDetailsPathname(orgSlug, id),
+  workflow: (orgSlug, id) => makeAutomationDetailsPathname(orgSlug, id),
 };
 
 export function ConnectionCell({
-  ids: items,
+  ids: items = [],
   type,
   disabled = false,
   className,
@@ -46,10 +52,12 @@ export function ConnectionCell({
 
 function Overlay(props: ConnectionCellProps) {
   const {ids, type} = props;
+  const organization = useOrganization();
+
   const createLink = links[type];
   // TODO(natemoo-re): fetch data for each id
   return ids.map((id, index) => {
-    const link = createLink(id);
+    const link = createLink(organization.slug, id);
     const description = 'description';
     return (
       <Fragment key={id}>
@@ -97,12 +105,12 @@ const MonitorDetails = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;

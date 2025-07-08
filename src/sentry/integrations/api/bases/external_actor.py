@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.bases import OrganizationPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.api.parsers.external_actor import (
     is_valid_provider,
@@ -172,6 +173,14 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
     class Meta:
         model = ExternalActor
         fields = ["team_id", "external_id", "external_name", "provider", "integration_id"]
+
+
+class ExternalUserPermission(OrganizationPermission):
+    scope_map = {
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
+    }
 
 
 class ExternalActorEndpointMixin:

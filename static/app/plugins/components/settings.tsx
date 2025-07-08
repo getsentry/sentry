@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -223,11 +223,11 @@ class PluginSettings<
       >
         <Flex>
           {this.state.errors.__all__ && (
-            <div className="alert alert-block alert-error">
+            <Alert type="error">
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>
-            </div>
+            </Alert>
           )}
           {this.state.fieldList?.map(f =>
             this.renderField({

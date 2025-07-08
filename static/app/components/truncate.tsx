@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -109,9 +110,9 @@ const FullValue = styled('span')<{
 
   ${p =>
     p.expanded &&
-    `
-    z-index: ${p.theme.zIndex.truncationFullValue};
-    display: block;
+    css`
+      z-index: ${p.theme.zIndex.truncationFullValue};
+      display: block;
     `}
 `;
 

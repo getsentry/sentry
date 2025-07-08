@@ -903,14 +903,13 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    is_superuser = is_active_superuser(request)
     is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
             rpc_user_org_context=rpc_user_org_context,
-            is_superuser=is_superuser,
+            is_superuser=is_active_superuser(request),
             is_staff=is_staff,
             scopes=scopes,
         )
@@ -918,12 +917,12 @@ def from_request_org_and_scopes(
     if getattr(request.user, "is_sentry_app", False):
         return _from_rpc_sentry_app(rpc_user_org_context)
 
-    if is_superuser:
+    if is_active_superuser(request):
         member = rpc_user_org_context.member
         auth_state = access_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=rpc_user_org_context.organization.id,
-            is_superuser=is_superuser,
+            is_superuser=True,
             is_staff=is_staff,
             org_member=member,
         )
@@ -999,7 +998,6 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
-    is_superuser = is_active_superuser(request)
     is_staff = is_active_staff(request)
 
     if not organization:
@@ -1007,14 +1005,14 @@ def from_request(
             request.user,
             organization=organization,
             scopes=scopes,
-            is_superuser=is_superuser,
+            is_superuser=is_active_superuser(request),
             is_staff=is_staff,
         )
 
     if getattr(request.user, "is_sentry_app", False):
         return _from_sentry_app(request.user, organization=organization)
 
-    if is_superuser:
+    if is_active_superuser(request):
         member: OrganizationMember | None = None
         try:
             member = OrganizationMember.objects.get(
@@ -1025,7 +1023,7 @@ def from_request(
         auth_state = access_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=organization.id,
-            is_superuser=is_superuser,
+            is_superuser=True,
             is_staff=is_staff,
             org_member=(summarize_member(member) if member is not None else None),
         )

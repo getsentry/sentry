@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Collapsible from 'sentry/components/collapsible';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -74,10 +75,10 @@ const Row = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>
-      p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
+      p.theme.breakpoints.lg}) {
     grid-template-columns: 200px max-content;
   }
 `;

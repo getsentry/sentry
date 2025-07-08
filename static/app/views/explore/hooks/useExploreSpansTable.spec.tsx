@@ -73,7 +73,7 @@ describe('useExploreTimeseries', () => {
       url: '/organizations/org-slug/events/',
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options.query.sampling === undefined;
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
         },
       ],
       method: 'GET',
@@ -86,11 +86,7 @@ describe('useExploreTimeseries', () => {
           limit: 10,
         }),
       {
-        wrapper: createWrapper(
-          OrganizationFixture({
-            features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-          })
-        ),
+        wrapper: createWrapper(OrganizationFixture()),
       }
     );
 
@@ -100,7 +96,7 @@ describe('useExploreTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.NORMAL,
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
@@ -112,15 +108,16 @@ describe('useExploreTimeseries', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'test value !transaction.span_id:00',
+          query: 'test value',
         }),
       })
     );
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.not.objectContaining({
-          sampling: expect.anything(),
+        query: expect.objectContaining({
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value',
         }),
       })
     );

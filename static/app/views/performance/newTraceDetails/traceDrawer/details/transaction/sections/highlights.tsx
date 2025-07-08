@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,6 +12,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -24,6 +25,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.Transaction>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 };
 
 export function TransactionHighlights(props: HighlightProps) {
@@ -85,6 +87,12 @@ export function TransactionHighlights(props: HighlightProps) {
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
+      hideNodeActions={props.hideNodeActions}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization: props.organization,
+        attributes: props.event.contexts.trace?.data,
+        op: props.node.value['transaction.op'],
+      })}
     />
   );
 }
@@ -100,7 +108,7 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
 `;

@@ -194,6 +194,15 @@ describe('utils/tokenizeSearch', function () {
           ],
         },
       },
+      {
+        name: 'should handle explicit tags keys containing colons when quoted',
+        string: 'tags["foo:bar",string]:asdf',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags["foo:bar",string]', value: 'asdf'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {

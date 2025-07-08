@@ -8,14 +8,15 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -23,20 +24,20 @@ import useApi from 'sentry/utils/useApi';
 import PlanList from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {CheckoutType, PlanTier} from 'getsentry/types';
+import {CheckoutType, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
 type Props = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 } & ModalRenderProps;
 
 function ChangePlanAction({
   subscription,
-  orgId,
+  organization,
   partnerPlanId,
   onSuccess,
   closeModal,
@@ -46,6 +47,24 @@ function ChangePlanAction({
   const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
+  const orgId = organization.slug;
+
+  /**
+   * Check if the current subscription has Seer budget enabled
+   */
+  const hasCurrentSeerBudget = useMemo(() => {
+    return (
+      subscription.reservedBudgets?.some(
+        budget =>
+          budget.apiName === ReservedBudgetCategoryType.SEER && budget.reservedBudget > 0
+      ) ?? false
+    );
+  }, [subscription.reservedBudgets]);
+
+  // Initialize Seer budget value in form model
+  React.useEffect(() => {
+    formModel.setValue('seer', hasCurrentSeerBudget);
+  }, [formModel, hasCurrentSeerBudget]);
 
   const api = useApi({persistInFlight: true});
   const {
@@ -89,6 +108,7 @@ function ChangePlanAction({
       return planList.filter(
         plan =>
           plan.isTestPlan &&
+          plan.price !== 0 && // filter out enterprise, trial, and free test plans
           plan.billingInterval === billingInterval &&
           plan.contractInterval === contractInterval
       );
@@ -156,7 +176,10 @@ function ChangePlanAction({
     }
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (metricHistory.reserved) {
+      if (
+        metricHistory.reserved &&
+        plan.checkoutCategories.includes(category as DataCategory)
+      ) {
         const closestTier = findClosestTier(
           plan,
           category as DataCategory,
@@ -191,11 +214,17 @@ function ChangePlanAction({
       return;
     }
 
+    // Add Seer budget parameter for AM plans and TEST tier
+    const submitData = {
+      ...data,
+      seer: formModel.getValue('seer'),
+    };
+
     if (activeTier === PlanTier.MM2) {
       try {
         await api.requestPromise(`/customers/${orgId}/`, {
           method: 'PUT',
-          data,
+          data: submitData,
         });
         onSubmitSuccess(data);
       } catch (error) {
@@ -208,7 +237,7 @@ function ChangePlanAction({
     try {
       await api.requestPromise(`/customers/${orgId}/subscription/`, {
         method: 'PUT',
-        data,
+        data: submitData,
       });
       onSubmitSuccess(data);
       onSuccess?.();
@@ -252,6 +281,7 @@ function ChangePlanAction({
             setActiveTier(tab);
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
+            formModel.setValue('seer', hasCurrentSeerBudget);
           }}
         >
           <TabList>
@@ -319,6 +349,7 @@ function ChangePlanAction({
         formModel={formModel}
         activePlan={activePlan}
         subscription={subscription}
+        organization={organization}
         onSubmit={handleSubmit}
         onCancel={closeModal}
         onSubmitSuccess={(data: Data) => {
@@ -340,7 +371,7 @@ function ChangePlanAction({
 
 type Options = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 };

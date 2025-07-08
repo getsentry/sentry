@@ -31,6 +31,7 @@ import {
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
@@ -158,12 +159,39 @@ const DoubleChevronWrapper = styled('div')`
   display: flex;
 `;
 
-export function LandingAggregateFlamegraph(): React.ReactNode {
+interface LandingAggregateFlamegraphProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+export function LandingAggregateFlamegraph({
+  onDataState,
+}: LandingAggregateFlamegraphProps): React.ReactNode {
   const location = useLocation();
 
-  const {data, status} = useAggregateFlamegraphQuery({
+  const {
+    data,
+    isPending: isLoading,
+    isError,
+    status,
+  } = useAggregateFlamegraphQuery({
     dataSource: 'profiles',
   });
+
+  const hasData = (data?.profiles?.length || 0) > 0;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -200,9 +228,9 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);

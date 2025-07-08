@@ -32,7 +32,7 @@ export const EXPLORE_SPANS_TOUR_GUIDE_KEY = 'tour.explore.spans';
 export const ExploreSpansTourContext =
   createContext<TourContextType<ExploreSpansTour> | null>(null);
 
-export function useExploreSpansTour(): TourContextType<ExploreSpansTour> {
+function useExploreSpansTour(): TourContextType<ExploreSpansTour> {
   const tourContext = useContext(ExploreSpansTourContext);
   if (!tourContext) {
     throw new Error('Must be used within a TourContextProvider<ExploreSpansTour>');
@@ -79,7 +79,6 @@ function ExploreSpansTourModal({
               handleStartTour();
               closeModal();
             }}
-            borderless
             autoFocus
           >
             {t('Take a tour')}
@@ -157,7 +156,7 @@ export function useExploreSpansTourModal() {
 // XXX: The negative margin is to undo the global modal styling
 const TourContainer = styled('div')`
   margin: -${space(4)} -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
@@ -179,19 +178,19 @@ const TextContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.tour.header};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Header = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.white};
   opacity: 0.8;
 `;

@@ -1,11 +1,13 @@
 from typing import Any, TypeVar
 
+from django.conf import settings
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.db import models
+from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
@@ -57,7 +59,9 @@ class WorkflowValidator(CamelSnakeSerializer):
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
 
             for action in actions:
-                BaseActionValidator(data=action).is_valid(raise_exception=True)
+                BaseActionValidator(data=action, context=self.context).is_valid(
+                    raise_exception=True
+                )
 
         return value
 
@@ -147,9 +151,29 @@ class WorkflowValidator(CamelSnakeSerializer):
             instance.update(**validated_data)
             return instance
 
+    def _validate_workflow_limits(self) -> None:
+        """
+        Validate that the organization has not exceeded the maximum number of workflows.
+        Raise a validation error if the limit is exceeded.
+        """
+        org = self.context["organization"]
+        assert isinstance(org, Organization)
+        workflow_count = Workflow.objects.filter(organization_id=org.id).count()
+        if features.has("organizations:more-workflows", org):
+            max_workflows = settings.MAX_MORE_WORKFLOWS_PER_ORG
+        else:
+            max_workflows = settings.MAX_WORKFLOWS_PER_ORG
+
+        if workflow_count >= max_workflows:
+            raise serializers.ValidationError(
+                f"You may not exceed {max_workflows} workflows per organization."
+            )
+
     def create(self, validated_value: InputData) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)
+
+        self._validate_workflow_limits()
 
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
@@ -161,6 +185,7 @@ class WorkflowValidator(CamelSnakeSerializer):
                 organization_id=self.context["organization"].id,
                 environment_id=validated_value.get("environment_id"),
                 when_condition_group=when_condition_group,
+                created_by_id=self.context["request"].user.id,
             )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?

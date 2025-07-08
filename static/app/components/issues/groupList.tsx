@@ -197,6 +197,7 @@ class GroupList extends Component<Props, State> {
   };
 
   getGroupListEndpoint() {
+    // TODO: Split up the query parameters and the URL. This will make it much easier to mock the endpoint.
     const {organization, endpointPath, queryParams} = this.props;
     const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
     const queryParameters = queryParams ?? this.getQueryParams();

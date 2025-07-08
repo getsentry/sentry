@@ -8,6 +8,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.exceptions import ApiError
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
@@ -21,7 +22,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
 
     @property
     def integration_provider(self):
-        return "gitlab"
+        return IntegrationProviderSlug.GITLAB.value
 
     @property
     def installation_class(self):

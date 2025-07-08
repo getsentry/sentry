@@ -9,6 +9,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.tasks import pr_comment_workflow
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -57,6 +58,12 @@ def github_comment_reactions():
             repo = Repository.objects.get(id=pr.repository_id)
         except Repository.DoesNotExist:
             metrics.incr("pr_comment.comment_reactions.missing_repo")
+            continue
+
+        # Add check for GitHub provider before proceeding
+        # TODO: nuke comment reactions or implement for all providers
+        if repo.provider not in (IntegrationProviderSlug.GITHUB.value, "integrations:github"):
+            metrics.incr("pr_comment.comment_reactions.skipped_non_github")
             continue
 
         integration = integration_service.get_integration(

@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -349,6 +349,7 @@ export function TraceEventDataSection({
       type={type}
       showPermalink={!hasStreamlinedUI}
       title={title}
+      disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
@@ -453,8 +454,8 @@ const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 

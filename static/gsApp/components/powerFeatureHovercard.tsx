@@ -2,8 +2,11 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Hovercard} from 'sentry/components/hovercard';
+import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -46,6 +49,12 @@ type Props = {
   partial?: boolean;
 
   upsellDefaultSelection?: string;
+
+  /**
+   * Replaces the default learn more button with a more subtle link text that
+   * opens the upsell modal.
+   */
+  useLearnMoreLink?: boolean;
 };
 
 class PowerFeatureHovercard extends Component<Props> {
@@ -91,21 +100,24 @@ class PowerFeatureHovercard extends Component<Props> {
           }
 
           return (
-            <HovercardBody data-test-id="power-hovercard">
-              <Text>
-                {partial
-                  ? t('Better With %s Plan', planName)
-                  : t('Requires %s Plan', planName)}
-              </Text>
-              <UpsellModalButton
-                priority="primary"
-                size="sm"
-                onClick={this.handleClick}
-                data-test-id="power-learn-more"
-              >
-                {t('Learn More')}
-              </UpsellModalButton>
-            </HovercardBody>
+            <LearnMoreTextBody data-test-id="power-hovercard">
+              <Flex direction="column" gap={space(1)}>
+                <div>
+                  {partial
+                    ? t('Better With %s Plan', planName)
+                    : t('Requires %s Plan', planName)}
+                </div>
+                <Button
+                  priority="primary"
+                  onClick={this.handleClick}
+                  data-test-id="power-learn-more"
+                  size="xs"
+                  icon={<IconLightning size="xs" />}
+                >
+                  {t('Learn More')}
+                </Button>
+              </Flex>
+            </LearnMoreTextBody>
           );
         }}
       </PlanFeature>
@@ -126,19 +138,8 @@ class PowerFeatureHovercard extends Component<Props> {
   }
 }
 
-const UpsellModalButton = styled(Button)`
-  height: auto;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  white-space: pre;
-  margin-top: -1px;
-  margin-bottom: -1px;
-  margin-right: -1px;
-  box-shadow: none;
-`;
-
-const HovercardBody = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const LearnMoreTextBody = styled('div')`
+  padding: ${space(1)};
 `;
 
 const StyledHovercard = styled(Hovercard)`
@@ -148,12 +149,6 @@ const StyledHovercard = styled(Hovercard)`
     padding: 0;
     align-items: center;
   }
-`;
-
-const Text = styled('span')`
-  margin: 10px;
-  font-size: 14px;
-  white-space: pre;
 `;
 
 export default withOrganization(

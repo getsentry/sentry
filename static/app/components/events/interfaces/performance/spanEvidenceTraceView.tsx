@@ -1,14 +1,14 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
-  loadTraceViewPreferences,
+  getInitialTracePreferences,
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -29,7 +29,6 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace grid height': 150,
     },
     layoutOptions: [],
   },
@@ -53,8 +52,10 @@ interface SpanEvidenceTraceViewProps {
 export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
   const preferences = useMemo(
     () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+      getInitialTracePreferences(
+        TRACE_WATERFALL_PREFERENCES_KEY,
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+      ),
     []
   );
 
@@ -80,8 +81,7 @@ function SpanEvidenceTraceViewImpl({
     traceSlug: traceId,
     limit: 10000,
   });
-  const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
-  const tree = useIssuesTraceTree({trace, meta, replay: null});
+  const tree = useIssuesTraceTree({trace, replay: null});
 
   const rootEventResults = useTraceRootEvent({
     tree,
@@ -108,7 +108,6 @@ function SpanEvidenceTraceViewImpl({
           rootEventResults={rootEventResults}
           organization={organization}
           traceEventView={traceEventView}
-          meta={meta}
           source="issues"
           replay={null}
           event={event}

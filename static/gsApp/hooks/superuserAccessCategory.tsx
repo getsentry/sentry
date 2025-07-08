@@ -1,49 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import TextField from 'sentry/components/forms/fields/textField';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-const StyledRadioField = styled(RadioField)`
-  display: flex;
-  padding-left: 0;
-  flex-direction: column;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding-left: 0;
-`;
-
-const StyledTextBlock = styled(TextBlock)`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledTitleBlock = styled(TextBlock)`
-  font-size: 18px;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-`;
-const Left = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Right = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Span = styled('span')`
-  font-size: 18px;
-`;
 
 type SuperuserAccessCategories = [string, React.ReactNode];
 
@@ -68,59 +32,54 @@ const ProactiveSupportCategories: SuperuserAccessCategories[] = [
 
 const OtherCategory: SuperuserAccessCategories[] = [['other', 'Other']];
 
+const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7aecacf97a';
+
 function SuperuserAccessCategory() {
   return (
     <Fragment>
-      <StyledTextBlock>
+      <Alert type="muted">
         For more information on these categories, please{' '}
-        <a href="https://www.notion.so/sentry/Superuser-Access-Documentation-aae9a918b5814fe0918d8e7aecacf97a">
-          {' '}
-          read this doc
-        </a>
-        .
-      </StyledTextBlock>
-      <StyledTitleBlock>
-        {t('Categories of Superuser Access:')}
+        <ExternalLink href={DOCUMENTATION_URL}>see this Notion document</ExternalLink>.
+      </Alert>
+      <CategoriesLabel>
+        Categories of Superuser Access
         <FieldRequiredBadge />
-      </StyledTitleBlock>
-      <FlexBox>
-        <Left>
-          <StyledRadioField
-            name="superuserAccessCategory"
-            inline={false}
-            label={t('Engineering')}
-            choices={EngineeringCategories}
-            stacked
-          />
-          <StyledRadioField
-            name="superuserAccessCategory"
-            inline={false}
-            label={t('Reactive Support')}
-            choices={ReactiveSupportCategories}
-            stacked
-          />
-        </Left>
-        <Right>
-          <StyledRadioField
-            name="superuserAccessCategory"
-            inline={false}
-            label={t('Proactive Support')}
-            choices={ProactiveSupportCategories}
-            stacked
-          />
-          <StyledRadioField
-            name="superuserAccessCategory"
-            inline={false}
-            label={t('Others')}
-            choices={OtherCategory}
-            stacked
-          />
-        </Right>
-      </FlexBox>
-      <StyledTextField
-        inline={false}
-        label={<Span>{t('Reason for Access:')}</Span>}
+      </CategoriesLabel>
+      <CategoryGrid>
+        <RadioField
+          name="superuserAccessCategory"
+          inline={false}
+          label="Engineering"
+          choices={EngineeringCategories}
+          stacked
+        />
+        <RadioField
+          name="superuserAccessCategory"
+          inline={false}
+          label="Reactive Support"
+          choices={ReactiveSupportCategories}
+          stacked
+        />
+        <RadioField
+          name="superuserAccessCategory"
+          inline={false}
+          label="Proactive Support"
+          choices={ProactiveSupportCategories}
+          stacked
+        />
+        <RadioField
+          name="superuserAccessCategory"
+          inline={false}
+          label="Others"
+          choices={OtherCategory}
+          stacked
+        />
+      </CategoryGrid>
+      <TextField
         name="superuserReason"
+        label="Reason for Access"
+        inline={false}
+        stacked
         flexibleControlStateSize
         required
         maxLength={128}
@@ -130,5 +89,15 @@ function SuperuserAccessCategory() {
     </Fragment>
   );
 }
+
+const CategoriesLabel = styled(TextBlock)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const CategoryGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+`;
 
 export default SuperuserAccessCategory;

@@ -3,8 +3,9 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -168,7 +169,7 @@ const Instruction = styled('div')`
 `;
 
 const modalCss = (theme: Theme) => css`
-  @media (min-width: ${theme.breakpoints.medium}) {
+  @media (min-width: ${theme.breakpoints.md}) {
     width: auto;
     max-width: 900px;
   }

@@ -1,4 +1,4 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
@@ -94,8 +94,6 @@ export const getChonkStylesConfig = ({
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
-      top: '100%',
-      marginTop: '8px',
     }),
     noOptionsMessage: provided => ({
       ...provided,
@@ -271,31 +269,27 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   justify-content: center;
   align-items: center;
   width: 1em;
-  height: 1.2em;
+  height: 1.4em;
 
   ${p =>
     p.isMultiple
-      ? `
-      padding: 1px;
-      border: solid 1px ${p.theme.border};
-      background: ${p.theme.backgroundElevated};;
-      border-radius: 2px;
-      height: 1em;
-      margin-top: 2px;
-      ${
-        p.isSelected &&
+      ? css`
+          padding: 1px;
+          border: solid 1px ${p.theme.border};
+          background: ${p.theme.backgroundElevated};
+          border-radius: 2px;
+          height: 1em;
+          margin-top: 2px;
+          ${p.isSelected &&
+          css`
+            background: ${p.theme.purple300};
+            border-color: ${p.theme.purple300};
+          `}
         `
-        background: ${p.theme.purple300};
-        border-color: ${p.theme.purple300};
-       `
-      }
-    `
-      : `
-      ${
-        p.isSelected &&
-        `
-        color: ${p.theme.colors.content.accent};
-       `
-      }
-    `}
+      : css`
+          ${p.isSelected &&
+          css`
+            color: ${p.theme.colors.content.accent};
+          `}
+        `}
 `;

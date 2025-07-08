@@ -70,7 +70,9 @@ describe('AccountSecurityDetails', function () {
         }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
 
       // has created and last used dates
       expect(screen.getByText('Created at')).toBeInTheDocument();
@@ -241,7 +243,10 @@ describe('AccountSecurityDetails', function () {
         }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
+
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -24,12 +24,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Datasource} from 'sentry/views/alerts/rules/metric/types';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
 
 type Props = {
-  buttonProps: BaseButtonProps;
+  buttonProps: Partial<ButtonProps>;
   eventView: EventView;
   numSamples: number | null | undefined;
 };
@@ -173,9 +174,9 @@ function useCreateInvestigationRuleMutation() {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -193,7 +194,8 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
 
-  if (organization.features.includes('performance-transaction-summary-eap')) {
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  if (shouldUseOTelFriendlyUI) {
     query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
   }
 

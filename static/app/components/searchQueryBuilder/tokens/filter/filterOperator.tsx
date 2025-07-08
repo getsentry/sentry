@@ -1,15 +1,24 @@
 import {type ReactNode, useMemo} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  DATE_OP_LABELS,
+  DATE_OPTIONS,
+  getLabelAndOperatorFromToken,
+  getValidOpsForFilter,
+  OP_LABELS,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {type SearchQueryBuilderOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -36,32 +45,6 @@ interface FilterOperatorProps {
 
 const MENU_OFFSET: [number, number] = [0, 12];
 
-const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
-};
-
-const DATE_OP_LABELS = {
-  [TermOperator.GREATER_THAN]: 'is after',
-  [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',
-  [TermOperator.LESS_THAN]: 'is before',
-  [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
-  [TermOperator.EQUAL]: 'is',
-  [TermOperator.DEFAULT]: 'is',
-};
-
-const DATE_OPTIONS: TermOperator[] = [
-  TermOperator.GREATER_THAN,
-  TermOperator.GREATER_THAN_EQUAL,
-  TermOperator.LESS_THAN,
-  TermOperator.LESS_THAN_EQUAL,
-  TermOperator.EQUAL,
-];
-
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {
     case FilterType.DATE:
@@ -76,39 +59,41 @@ function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   }
 }
 
-function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
-  if (token.negated) {
-    return TermOperator.NOT_EQUAL;
-  }
-
-  return token.operator;
-}
-
 function FilterKeyOperatorLabel({
+  keyValue,
   keyLabel,
   opLabel,
   includeKeyLabel,
 }: {
+  keyLabel: string;
+  keyValue: string;
   includeKeyLabel?: boolean;
-  keyLabel?: string;
   opLabel?: string;
 }) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
+  const fieldDefinition = getFieldDefinition(keyValue);
+
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
   }
 
   return (
     <KeyOpLabelWrapper>
-      <span>{keyLabel}</span>
-      {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
+      <Tooltip title={fieldDefinition?.desc}>
+        <span>{keyLabel}</span>
+        {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
+      </Tooltip>
     </KeyOpLabelWrapper>
   );
 }
 
-export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+export function getOperatorInfo(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+): {
   label: ReactNode;
-  operator: TermOperator;
-  options: Array<SelectOption<TermOperator>>;
+  operator: SearchQueryBuilderOperators;
+  options: Array<SelectOption<SearchQueryBuilderOperators>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
@@ -118,8 +103,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      options: DATE_OPTIONS.map((op): SelectOption<SearchQueryBuilderOperators> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
@@ -131,13 +115,14 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     };
   }
 
-  const operator = getTermOperatorFromToken(token);
+  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
 
   if (token.filter === FilterType.IS) {
     return {
       operator,
       label: (
         <FilterKeyOperatorLabel
+          keyValue={token.key.value}
           keyLabel={token.key.text}
           opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
@@ -146,7 +131,13 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel={token.key.text} includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={token.key.text}
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'is',
         },
         {
@@ -154,6 +145,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
+              keyValue={token.key.value}
               opLabel="not"
               includeKeyLabel
             />
@@ -169,6 +161,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       operator,
       label: (
         <FilterKeyOperatorLabel
+          keyValue={token.key.value}
           keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
           includeKeyLabel
         />
@@ -176,12 +169,24 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel="has" includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel="has"
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'has',
         },
         {
           value: TermOperator.NOT_EQUAL,
-          label: <FilterKeyOperatorLabel keyLabel="does not have" includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel="does not have"
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'does not have',
         },
       ],
@@ -189,15 +194,13 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   }
 
   const keyLabel = token.key.text;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const opLabel = OP_LABELS[operator] ?? operator;
 
   return {
     operator,
-    label: <OpLabel>{opLabel}</OpLabel>,
-    options: getValidOpsForFilter(token)
+    label: <OpLabel>{label}</OpLabel>,
+    options: getValidOpsForFilter(token, hasWildcardOperators)
       .filter(op => op !== TermOperator.EQUAL)
-      .map((op): SelectOption<TermOperator> => {
+      .map((op): SelectOption<SearchQueryBuilderOperators> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {
@@ -215,7 +218,14 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
+  const {operator, label, options} = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators),
+    [token, hasWildcardOperators]
+  );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
@@ -258,7 +268,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   );
 }
 
-const OpButton = styled(UnstyledButton)<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {
+  shouldForwardProp: isPropValid,
+})<{onlyOperator?: boolean}>`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
   height: 100%;
   border-left: 1px solid transparent;

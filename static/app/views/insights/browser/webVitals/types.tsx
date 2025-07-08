@@ -1,3 +1,4 @@
+import type {ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -60,9 +61,7 @@ type SpanSampleRow = {
   [SpanIndexedField.CLS_SOURCE]?: string;
 };
 
-export type SpanSampleRowWithScore = SpanSampleRow & {
-  totalScore: number;
-};
+export type SpanSampleRowWithScore = SpanSampleRow & Score;
 
 export type Opportunity = {
   opportunity: number;
@@ -139,3 +138,36 @@ export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
   field: 'timestamp',
 };
+
+export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
+  WebVitals,
+  Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
+> = {
+  lcp: [
+    'performance_render_blocking_asset_span',
+    'performance_uncompressed_assets',
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  fcp: [
+    'performance_render_blocking_asset_span',
+    'performance_uncompressed_assets',
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  inp: [
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  cls: [],
+  ttfb: ['performance_http_overhead'],
+} as const;

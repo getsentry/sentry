@@ -16,6 +16,7 @@ import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
@@ -90,6 +91,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "500",
         "_admin",
         "_static",
+        "a",
         "about",
         "accept",
         "access",
@@ -108,6 +110,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "avatar",
         "billing",
         "blog",
+        "bounce",
         "branding",
         "careers",
         "client",
@@ -120,6 +123,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "debug",
         "devinfra",
         "docs",
+        "email",
         "enterprise",
         "eu",
         "events",
@@ -130,9 +134,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "features",
         "finance",
         "for",
+        "forum",
         "from",
         "get-cli",
         "github-deployment-gate",
+        "gsnlink",
+        "go",
         "guide",
         "help",
         "ingest",
@@ -144,13 +151,17 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ja",
         "jobs",
         "legal",
+        "live",
         "login",
         "logout",
         "lp",
         "mail",
         "manage",
+        "marketing",
+        "md",
         "my",
         "onboarding",
+        "open",
         "organization-avatar",
         "organizations",
         "out",
@@ -173,7 +184,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sa1",
         "sales",
         "security",
+        "securityportal",
         "sentry-apps",
+        "services",
         "settings",
         "signup",
         "sponsorship",
@@ -182,6 +195,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "swag",
         "syntax",
         "syntaxfm",
         "team-avatar",
@@ -193,6 +207,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "us",
         "vs",
         "welcome",
+        "www",
+        "www2",
     )
 )
 
@@ -623,6 +639,7 @@ class InsightModules(Enum):
     CACHE = "cache"
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
+    AGENTS = "agents"
 
 
 INSIGHT_MODULE_FILTERS = {
@@ -655,6 +672,9 @@ INSIGHT_MODULE_FILTERS = {
     ),
     InsightModules.LLM_MONITORING: lambda spans: any(
         span.get("op").startswith("ai.pipeline") for span in spans
+    ),
+    InsightModules.AGENTS: lambda spans: any(
+        span.get("op").startswith("gen_ai.") for span in spans
     ),
 }
 
@@ -706,6 +726,9 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
+DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
+DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
+INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

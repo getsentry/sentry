@@ -10,10 +10,12 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 
 
-class TestDataConditionSerializer(TestWorklowEngineSerializer):
+class TestDataConditionSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
         self.add_warning_trigger()
@@ -99,7 +101,7 @@ class TestDataConditionSerializer(TestWorklowEngineSerializer):
             alert_rule_trigger=comparison_delta_trigger
         )
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(comparison_delta_rule)
-        comparison_detector_trigger, _ = migrate_metric_data_conditions(comparison_delta_trigger)
+        comparison_detector_trigger, _, _ = migrate_metric_data_conditions(comparison_delta_trigger)
         migrate_resolve_threshold_data_condition(comparison_delta_rule)
         action, _, _ = migrate_metric_action(comparison_delta_trigger_action)
 
@@ -129,8 +131,8 @@ class TestDataConditionSerializer(TestWorklowEngineSerializer):
             self.create_rule_triggers_and_actions()
         )
         migrate_alert_rule(alert_rule)
-        critical_detector_trigger, _ = migrate_metric_data_conditions(critical_trigger)
-        warning_detector_trigger, _ = migrate_metric_data_conditions(warning_trigger)
+        critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+        warning_detector_trigger, _, _ = migrate_metric_data_conditions(warning_trigger)
         migrate_resolve_threshold_data_condition(alert_rule)
         migrate_metric_action(critical_action)
         migrate_metric_action(warning_action)

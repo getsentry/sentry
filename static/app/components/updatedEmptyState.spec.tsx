@@ -27,7 +27,7 @@ describe('UpdatedEmptyState', function () {
 
     render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
     expect(await screen.findByText('Get Started with Sentry Issues')).toBeInTheDocument();
-    expect(await screen.findByText('Set up the Sentry SDK')).toBeInTheDocument();
+    expect(await screen.findByText(/Set up the Sentry SDK/)).toBeInTheDocument();
     expect(await screen.findByText('Preview a Sentry Issue')).toBeInTheDocument();
 
     expect(
@@ -56,6 +56,12 @@ describe('UpdatedEmptyState', function () {
       await screen.findByText('Waiting to receive first event to continue')
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Take me to my error'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Take me to my error'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Take me to my error'})).not.toHaveAttribute(
+      'href'
+    );
   });
 });

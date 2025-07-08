@@ -7,10 +7,12 @@ import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticRe
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {t} from 'sentry/locale';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -59,20 +61,22 @@ export default function GroupReplaysPlayer({
 
         return (
           <PlayerContainer data-test-id="player-container">
-            {replay?.hasProcessingErrors() ? (
-              <ReplayProcessingError processingErrors={replay.processingErrors()} />
-            ) : (
-              <ReplayPreviewPlayer
-                errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
-                replayId={replayReaderResult.replayId}
-                replayRecord={replayReaderResult.replayRecord!}
-                handleBackClick={handleBackClick}
-                handleForwardClick={handleForwardClick}
-                overlayContent={overlayContent}
-                showNextAndPrevious
-                playPausePriority="default"
-              />
-            )}
+            <ReplayPlayerPluginsContextProvider>
+              <ReplayReaderProvider replay={replay}>
+                <ReplayPlayerStateContextProvider>
+                  <ReplayPreviewPlayer
+                    errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
+                    replayId={replayReaderResult.replayId}
+                    replayRecord={replayReaderResult.replayRecord!}
+                    handleBackClick={handleBackClick}
+                    handleForwardClick={handleForwardClick}
+                    overlayContent={overlayContent}
+                    showNextAndPrevious
+                    playPausePriority="default"
+                  />
+                </ReplayPlayerStateContextProvider>
+              </ReplayReaderProvider>
+            </ReplayPlayerPluginsContextProvider>
           </PlayerContainer>
         );
       }}
@@ -83,7 +87,7 @@ export default function GroupReplaysPlayer({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   }
 `;

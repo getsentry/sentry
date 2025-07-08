@@ -1,32 +1,13 @@
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 describe('ScreenLoadSpansTable', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
-
-  jest.mocked(useLocation).mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/performance/mobile/screens/',
-    query: {},
-    search: '',
-    state: undefined,
-  } as Location);
-
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   let eventsMock: jest.Mock;
   beforeEach(function () {
@@ -55,7 +36,15 @@ describe('ScreenLoadSpansTable', function () {
         primaryRelease="io.sentry.samples.android@7.0.0+2"
         secondaryRelease="io.sentry.samples.android@6.27.0+2"
       />,
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/performance/mobile/screens/',
+          location: {
+            pathname: '/organizations/org-slug/performance/mobile/screens/',
+          },
+        },
+      }
     );
 
     expect(eventsMock).toHaveBeenCalledTimes(2);
@@ -72,7 +61,7 @@ describe('ScreenLoadSpansTable', function () {
           per_page: 25,
           project: [],
           query:
-            'transaction.op:ui.load transaction:MainActivity span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] has:span.description ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
+            'transaction.op:[ui.load,navigation] transaction:MainActivity span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] has:span.description ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.starfish.get-span-operations',
           statsPeriod: '14d',
         }),
@@ -97,15 +86,14 @@ describe('ScreenLoadSpansTable', function () {
             'ttid_contribution_rate()',
             'ttfd_contribution_rate()',
             'count()',
-            'time_spent_percentage()',
             'sum(span.self_time)',
           ],
           per_page: 25,
           project: [],
           query:
-            'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
+            'transaction.op:[ui.load,navigation] transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.starfish.mobile-span-table',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '14d',
         }),
       })
@@ -122,23 +110,22 @@ describe('ScreenLoadSpansTable', function () {
   });
 
   it('sorts ttfd contribution', async function () {
-    jest.mocked(useLocation).mockReturnValue({
-      action: 'PUSH',
-      hash: '',
-      key: '',
-      pathname: '/organizations/org-slug/performance/mobile/screens/',
-      query: {spansSort: '-ttid_contribution_rate()'},
-      search: '',
-      state: undefined,
-    } as Location);
-
     render(
       <ScreenLoadSpansTable
         transaction="MainActivity"
         primaryRelease="io.sentry.samples.android@7.0.0+2"
         secondaryRelease="io.sentry.samples.android@6.27.0+2"
       />,
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/performance/mobile/screens/',
+          location: {
+            pathname: '/organizations/org-slug/performance/mobile/screens/',
+            query: {spansSort: '-ttid_contribution_rate()'},
+          },
+        },
+      }
     );
 
     const header = await screen.findAllByTestId('grid-head-row');

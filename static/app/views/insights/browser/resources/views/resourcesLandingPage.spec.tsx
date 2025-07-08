@@ -22,7 +22,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
 } = SpanMetricsField;
-const {EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {EPM} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -77,7 +77,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:sentry.normalized_description span.module:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
         "sort": "-count()",
         "statsPeriod": "10d",
@@ -113,14 +113,13 @@ describe('ResourcesLandingPage', function () {
           "span.group",
           "avg(http.response_content_length)",
           "project.id",
-          "time_spent_percentage()",
           "sum(span.self_time)",
         ],
         "per_page": 100,
         "project": [],
         "query": "!sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.performance.browser.resources.main-table",
-        "sort": "-time_spent_percentage()",
+        "sort": "-sum(span.self_time)",
         "statsPeriod": "10d",
       },
       "skipAbort": undefined,
@@ -191,7 +190,6 @@ const setupMockRequests = (organization: Organization) => {
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
           [`${EPM}()`]: 123,
-          [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
         },
@@ -205,7 +203,6 @@ const setupMockRequests = (organization: Organization) => {
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
           [`${EPM}()`]: 123,
-          [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
         },
@@ -254,7 +251,11 @@ const setupMockRequests = (organization: Organization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-stats/`,
     method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.starfish.span-time-charts'})],
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing-series',
+      }),
+    ],
     body: {
       [`${EPM}()`]: {
         data: [

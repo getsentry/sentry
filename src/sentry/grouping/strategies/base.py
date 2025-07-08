@@ -11,7 +11,8 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -74,7 +75,7 @@ def strategy(
         in the event, only exception will be used for hash
     """
 
-    name = interface.path
+    name = interface.external_type
 
     if not ids:
         raise TypeError("no ids given")
@@ -94,10 +95,11 @@ def strategy(
 
 
 class GroupingContext:
-    def __init__(self, strategy_config: StrategyConfiguration):
+    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
+        self.event = event
         self.push()
         self["variant"] = None
 
@@ -227,16 +229,17 @@ class Strategy(Generic[ConcreteInterface]):
         self, event: Event, context: GroupingContext, variant: str | None = None
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
-        args = []
         iface = event.interfaces.get(self.interface_name)
+
         if iface is None:
             return None
-        args.append(iface)
+
         with context:
             # If a variant is passed put it into the context
             if variant is not None:
                 context["variant"] = variant
-            return self(event=event, context=context, *args)
+
+            return self(iface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
@@ -303,9 +306,20 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements.from_rules_text("")
+            enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
-            enhancements_instance = Enhancements.from_base64_string(enhancements)
+            # If the enhancements string has been loaded from an existing event, it may be from an
+            # obsolete enhancements version, in which case we just use the default enhancements for
+            # this grouping config
+            try:
+                enhancements_instance = Enhancements.from_base64_string(
+                    enhancements, referrer="strategy_config"
+                )
+            except InvalidEnhancerConfig:
+                enhancements_instance = ENHANCEMENT_BASES[
+                    self.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_BASE
+                ]
+
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:
@@ -313,7 +327,7 @@ class StrategyConfiguration:
 
     def iter_strategies(self) -> Iterator[Strategy[Any]]:
         """Iterates over all strategies by highest score to lowest."""
-        return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
+        return iter(sorted(self.strategies.values(), key=lambda x: -x.score if x.score else 0))
 
     @classmethod
     def as_dict(cls) -> dict[str, Any]:

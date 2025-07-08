@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,6 +21,15 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
   const navigate = useNavigate();
   const organization = useOrganization();
 
+  const {referrer, groupId} = useLocationQuery({
+    fields: {
+      referrer: decodeScalar,
+      groupId: decodeScalar,
+    },
+  });
+
+  const issueReferrer = Boolean(referrer?.includes('issues') && groupId);
+
   const handleDelete = useCallback(async () => {
     if (!projectSlug || !replayId) {
       return;
@@ -32,19 +43,21 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
         }
       );
       navigate(
-        makeReplaysPathname({
-          path: '/',
-          organization,
-        }),
+        issueReferrer
+          ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
+          : makeReplaysPathname({
+              path: '/',
+              organization,
+            }),
         {replace: true}
       );
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);
     }
-  }, [api, navigate, organization, projectSlug, replayId]);
+  }, [api, navigate, organization, projectSlug, replayId, issueReferrer, groupId]);
 
-  const confirmDelte = useCallback(() => {
+  const confirmDelete = useCallback(() => {
     if (!projectSlug || !replayId) {
       return;
     }
@@ -55,5 +68,5 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
     });
   }, [handleDelete, projectSlug, replayId]);
 
-  return confirmDelte;
+  return confirmDelete;
 }

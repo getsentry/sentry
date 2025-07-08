@@ -33,6 +33,7 @@ export default function useReplayInit() {
         replayRef = replayIntegration({
           maskAllText: true,
           _experiments: {
+            autoFlushOnFeedback: true,
             captureExceptions: true,
             traceInternals: true,
           },

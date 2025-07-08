@@ -1,16 +1,15 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
-} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -27,7 +26,6 @@ import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/c
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useSpanSamplesCategorizedQuery} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesCategorizedQuery';
@@ -40,6 +38,7 @@ import type {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -49,8 +48,8 @@ type Column = GridColumnHeader;
 
 const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Transaction')},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
@@ -86,6 +85,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
+  const useEap = useInsightsEap();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = location.query[
@@ -128,7 +128,10 @@ export function PageOverviewWebVitalsDetailPanel({
     useTransactionSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && (!isInp || (!isSpansWebVital && useSpansWebVitals)),
+      enabled:
+        Boolean(webVital) &&
+        !useEap &&
+        (!isInp || (!isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -137,7 +140,8 @@ export function PageOverviewWebVitalsDetailPanel({
     useSpanSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && (isInp || (isSpansWebVital && useSpansWebVitals)),
+      enabled:
+        Boolean(webVital) && (useEap || isInp || (isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -145,20 +149,6 @@ export function PageOverviewWebVitalsDetailPanel({
   const {profileExists} = useProfileExists(
     spansTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
   );
-
-  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({transaction, browserTypes, subregions});
-
-  const webVitalData: LineChartSeries = {
-    data:
-      !isTimeseriesLoading && webVital
-        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-    seriesName: webVital ?? '',
-  };
 
   const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
     return project && !Array.isArray(location.query.project) ? project.slug : row.project;
@@ -236,7 +226,6 @@ export function PageOverviewWebVitalsDetailPanel({
         eventId: row.id,
         traceSlug: row.trace,
         timestamp: row.timestamp,
-        projectSlug,
         organization,
         location,
         view: domainViewFilters.view,
@@ -331,7 +320,7 @@ export function PageOverviewWebVitalsDetailPanel({
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
           'transaction.duration':
-            isInp || (isSpansWebVital && useSpansWebVitals)
+            useEap || isInp || (isSpansWebVital && useSpansWebVitals)
               ? row[SpanIndexedField.SPAN_SELF_TIME]
               : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 row['transaction.duration'],
@@ -406,7 +395,6 @@ export function PageOverviewWebVitalsDetailPanel({
           eventId: row.id,
           traceSlug: row.trace,
           timestamp: row.timestamp,
-          projectSlug: project.slug,
           organization,
           location,
           view: domainViewFilters.view,
@@ -415,7 +403,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return (
         <NoOverflow>
           {eventTarget ? (
-            <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
+            <Link to={eventTarget}>{getShortEventId(row.trace)}</Link>
           ) : (
             <span>{getShortEventId(row.id)}</span>
           )}
@@ -451,7 +439,14 @@ export function PageOverviewWebVitalsDetailPanel({
           />
         )}
         <ChartContainer>
-          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+          {webVital && (
+            <WebVitalStatusLineChart
+              webVital={webVital}
+              transaction={transaction}
+              browserTypes={browserTypes}
+              subregions={subregions}
+            />
+          )}
         </ChartContainer>
         <TableContainer>
           {isInp ? (
@@ -465,11 +460,15 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderBodyCell: renderSpansBodyCell,
               }}
             />
-          ) : isSpansWebVital && useSpansWebVitals ? (
+          ) : useEap || (isSpansWebVital && useSpansWebVitals) ? (
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
+              columnOrder={
+                isSpansWebVital && useSpansWebVitals
+                  ? SPANS_SAMPLES_COLUMN_ORDER
+                  : PAGELOADS_COLUMN_ORDER
+              }
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,

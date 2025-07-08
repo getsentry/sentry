@@ -12,7 +12,7 @@ import type {ALLOWED_SCOPES} from 'sentry/constants';
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
   avatarUrl?: string | null;
   color?: boolean;
@@ -78,6 +78,7 @@ export enum DataCategory {
   TRANSACTIONS_INDEXED = 'transactionsIndexed',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
+  PROFILES_INDEXED = 'profilesIndexed',
   REPLAYS = 'replays',
   MONITOR = 'monitors',
   MONITOR_SEATS = 'monitorSeats',
@@ -90,6 +91,9 @@ export enum DataCategory {
   UPTIME = 'uptime',
   LOG_ITEM = 'logItems',
   LOG_BYTE = 'logBytes',
+  SEER_AUTOFIX = 'seerAutofix',
+  SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 /**
@@ -102,6 +106,7 @@ export enum DataCategoryExact {
   TRANSACTION = 'transaction',
   ATTACHMENT = 'attachment',
   PROFILE = 'profile',
+  PROFILE_INDEXED = 'profileIndexed',
   REPLAY = 'replay',
   // TODO: Update processed and indexed transactions to camel case"
   TRANSACTION_PROCESSED = 'transaction_processed',
@@ -110,12 +115,16 @@ export enum DataCategoryExact {
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   PROFILE_DURATION_UI = 'profileDurationUI',
+  PROFILE_CHUNK = 'profileChunk',
+  PROFILE_CHUNK_UI = 'profileChunkUI',
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',
-
   LOG_ITEM = 'logItem',
   LOG_BYTE = 'logByte',
+  SEER_AUTOFIX = 'seerAutofix',
+  SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 export interface DataCategoryInfo {
@@ -125,10 +134,14 @@ export interface DataCategoryInfo {
   name: DataCategoryExact;
   plural: DataCategory;
   productName: string;
+  statsInfo: {
+    showExternalStats: boolean;
+    showInternalStats: boolean;
+    yAxisMinInterval: number;
+  };
   titleName: string;
   uid: number;
   docsUrl?: string;
-  snakeCasePlural?: string;
 }
 
 export enum Outcome {

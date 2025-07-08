@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -14,14 +14,21 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-export interface TraceSummaryData {
+interface SpanInsight {
+  explanation: string;
+  spanId: string;
+  spanOp: string;
+}
+
+interface TraceSummaryData {
+  anomalousSpans: SpanInsight[];
   keyObservations: string;
   performanceCharacteristics: string;
-  suggestedInvestigations: string;
+  suggestedInvestigations: SpanInsight[];
   summary: string;
   traceId: string;
 }
@@ -34,7 +41,7 @@ const makeTraceSummaryQueryKey = (
   {method: 'POST', data: {traceSlug}},
 ];
 
-export function useTraceSummary(traceSlug: string) {
+function useTraceSummary(traceSlug: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const queryKey = makeTraceSummaryQueryKey(organization.slug, traceSlug);
@@ -64,33 +71,10 @@ export function useTraceSummary(traceSlug: string) {
 }
 
 export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
-  return (
-    <InterimSection
-      key="trace-summary"
-      type={TraceContextSectionKeys.SUMMARY}
-      title={
-        <TitleWrapper>
-          {t('Trace Summary')}
-          <FeatureBadge type="alpha" />
-        </TitleWrapper>
-      }
-      data-test-id="trace-summary-section"
-      initialCollapse={false}
-    >
-      <TraceSummaryContent traceSlug={traceSlug} />
-    </InterimSection>
-  );
-}
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
   const traceContent = useTraceSummary(traceSlug);
   const openFeedbackForm = useFeedbackForm();
+  const organization = useOrganization();
+  const location = useLocation();
 
   if (traceContent.isPending) {
     return <LoadingIndicator />;
@@ -122,6 +106,8 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
       </ErrorContainer>
     );
   }
+
+  const investigations = traceContent.data?.suggestedInvestigations ?? [];
 
   return (
     <SummaryContainer>
@@ -155,7 +141,29 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Suggested Investigations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent text={traceContent.data?.suggestedInvestigations ?? ''} />
+
+      {investigations.length > 0 ? (
+        <StyledList>
+          {investigations.map((span, idx) => (
+            <StyledListItem key={span.spanId || idx}>
+              <StyledLink
+                to={getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  location,
+                  spanId: span.spanId,
+                  dateSelection: {},
+                })}
+              >
+                {span.spanOp}
+              </StyledLink>
+              - {span.explanation}
+            </StyledListItem>
+          ))}
+        </StyledList>
+      ) : (
+        <SectionContent text={''} />
+      )}
 
       {openFeedbackForm && (
         <FeedbackButtonContainer>
@@ -201,7 +209,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -209,7 +217,7 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 
@@ -237,4 +245,20 @@ const FeedbackButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-top: ${space(2)};
+`;
+
+const StyledList = styled('ul')`
+  margin: 0;
+  padding-left: 20px;
+`;
+
+const StyledListItem = styled('li')`
+  margin-bottom: 8px;
+`;
+
+const StyledLink = styled(Link)`
+  text-decoration: none;
+  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  margin-right: 6px;
 `;

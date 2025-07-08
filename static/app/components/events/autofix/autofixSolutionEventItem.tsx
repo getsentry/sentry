@@ -6,6 +6,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -146,7 +147,7 @@ export function SolutionEventItem({
           </AutofixHighlightWrapper>
           <IconWrapper>
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
-              <StyledIconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+              <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
             )}
             <SelectionButtonWrapper>
               <Tooltip
@@ -193,6 +194,11 @@ export function SolutionEventItem({
                 >
                   <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
+                {event.relevant_code_file && event.relevant_code_file.url && (
+                  <SourcesWrapper>
+                    <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
+                  </SourcesWrapper>
+                )}
               </Timeline.Text>
             </AnimatedContent>
           )}
@@ -201,6 +207,10 @@ export function SolutionEventItem({
     </Timeline.Item>
   );
 }
+
+const SourcesWrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
@@ -256,7 +266,8 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.sm};
+    background-color: transparent;
     display: inline-block;
   }
 `;
@@ -269,7 +280,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
+  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p => (p.isSelected ? 'none' : 'line-through')};

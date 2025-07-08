@@ -150,7 +150,6 @@ class TaskNamespace:
             name=activation.taskname,
             origin="taskworker",
         ) as span:
-            # TODO(taskworker) add monitor headers
             span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
             span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
             span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
@@ -160,6 +159,14 @@ class TaskNamespace:
                 KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
             )
 
+        metrics.incr(
+            "taskworker.registry.send_task.scheduled",
+            tags={
+                "namespace": activation.namespace,
+                "taskname": activation.taskname,
+                "topic": topic.value,
+            },
+        )
         # We know this type is futures.Future, but cannot assert so,
         # because it is also mock.Mock in tests.
         produce_future.add_done_callback(  # type:ignore[union-attr]
@@ -240,6 +247,8 @@ class TaskRegistry:
 
         Namespaces can define default behavior for tasks defined within a namespace.
         """
+        if name in self._namespaces:
+            raise ValueError(f"Task namespace with name {name} already exists.")
         namespace = TaskNamespace(
             name=name,
             router=self._router,

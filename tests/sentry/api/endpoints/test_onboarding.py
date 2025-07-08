@@ -1,4 +1,5 @@
 from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
@@ -34,7 +35,7 @@ class SkipOnboardingTaskTest(APITestCase):
             # Mark the task as skipped via API call
             self.get_success_response(
                 self.organization.slug,
-                task=OrganizationOnboardingTask.TASK_KEY_MAP.get(task_id),
+                task=OrganizationOnboardingTask.TASK_KEY_MAP.get(OnboardingTask(task_id)),
                 status="skipped",
             )
 

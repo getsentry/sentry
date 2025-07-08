@@ -45,7 +45,7 @@ type OpStats = {
 
 const TOP_N_SPANS = 4;
 
-export type OpBreakdownType = OpStats[];
+type OpBreakdownType = OpStats[];
 
 type Props = {
   event: Event | AggregateEventTransaction;
@@ -295,12 +295,12 @@ function OpsBreakdown({
 }
 
 const StyledBreakdown = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} ${space(3)};
 `;
 

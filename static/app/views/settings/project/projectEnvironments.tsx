@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -12,7 +13,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

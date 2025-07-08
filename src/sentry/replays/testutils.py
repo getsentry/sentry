@@ -114,12 +114,23 @@ def mock_expected_response(
             "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
             "version": kwargs.pop("sdk_version", "6.18.1"),
         },
+        "ota_updates": {
+            "channel": kwargs.pop("ota_updates_channel", "test-channel"),
+            "runtime_version": kwargs.pop("ota_updates_runtime_version", "test-runtime-version"),
+            "update_id": kwargs.pop("ota_updates_update_id", "test-update-id"),
+        },
         "user": {
             "id": kwargs.pop("user_id", "123"),
             "display_name": kwargs.pop("user_display_name", "username"),
             "email": kwargs.pop("user_email", "username@example.com"),
             "username": kwargs.pop("user_name", "username"),
             "ip": kwargs.pop("user_ip", "127.0.0.1"),
+            "geo": {
+                "city": kwargs.pop("user_geo_city", "San Francisco"),
+                "country_code": kwargs.pop("user_geo_country_code", "USA"),
+                "region": kwargs.pop("user_geo_region", "United States"),
+                "subdivision": kwargs.pop("user_geo_subdivision", "California"),
+            },
         },
         "tags": kwargs.pop("tags", {}),
         "activity": kwargs.pop("activity", 0),
@@ -180,6 +191,12 @@ def mock_replay(
                             "username": kwargs.pop("user_name", "username"),
                             "email": kwargs.pop("user_email", "username@example.com"),
                             "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+                            "geo": {
+                                "city": kwargs.pop("user_geo_city", "San Francisco"),
+                                "country_code": kwargs.pop("user_geo_country_code", "USA"),
+                                "region": kwargs.pop("user_geo_region", "United States"),
+                                "subdivision": kwargs.pop("user_geo_subdivision", "California"),
+                            },
                         },
                         "sdk": {
                             "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
@@ -206,6 +223,13 @@ def mock_replay(
                                 "brand": kwargs.pop("device_brand", "Apple"),
                                 "family": kwargs.pop("device_family", "iPhone"),
                                 "model": kwargs.pop("device_model", "13 Pro"),
+                            },
+                            "ota_updates": {
+                                "channel": kwargs.pop("ota_updates_channel", "test-channel"),
+                                "runtime_version": kwargs.pop(
+                                    "ota_updates_runtime_version", "test-runtime-version"
+                                ),
+                                "update_id": kwargs.pop("ota_updates_update_id", "test-update-id"),
                             },
                         },
                         "request": {
@@ -424,9 +448,11 @@ def mock_segment_rageclick(
         {
             "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
             "type": "default",
-            "category": "ui.multiClick",
+            "category": "ui.slowClickDetected",
             "message": message,
             "data": {
+                "endReason": "timeout",
+                "timeAfterClickMs": 7000,
                 "node": {
                     "tagName": tagName,
                     "attributes": {

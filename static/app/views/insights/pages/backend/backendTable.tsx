@@ -2,10 +2,10 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,6 +17,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -36,7 +37,6 @@ type Row = Pick<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -51,7 +51,6 @@ type Column = GridColumnHeader<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -102,9 +101,10 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
   },
 ];
 
@@ -119,7 +119,7 @@ const SORTABLE_FIELDS = [
   'p95(span.duration)',
   'failure_rate()',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum(span.duration)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -201,7 +201,7 @@ function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   return [
     <StarredSegmentCell
       key={row.transaction}
-      initialIsStarred={row.is_starred_transaction}
+      isStarred={row.is_starred_transaction}
       projectSlug={row.project}
       segmentName={row.transaction}
     />,

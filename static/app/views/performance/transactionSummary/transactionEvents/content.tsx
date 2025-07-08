@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -27,6 +27,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -161,9 +162,9 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
-  const table = isEAP ? (
+  const table = shouldUseOTelFriendlyUI ? (
     <OverviewSpansTable
       eventView={eventView}
       totalValues={null}
@@ -235,11 +236,11 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   return (
     <FilterActions>
-      {isEAP ? (
+      {shouldUseOTelFriendlyUI ? (
         <SpanCategoryFilter serviceEntrySpanName={transactionName} />
       ) : (
         <Filter
@@ -288,22 +289,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(4, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

@@ -11,8 +11,8 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -192,7 +192,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Text = styled('div')`

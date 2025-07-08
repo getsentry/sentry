@@ -114,7 +114,7 @@ export function SuspectFunctionsTable({
 
   const fields = COLUMNS.map(column => column.value);
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
+  const {initialTableStyles} = useTableStyles(fields.length, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -142,7 +142,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </TableHeader>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {
@@ -217,11 +217,16 @@ function TableEntry({
           const items = metric[column.value].map(example => {
             return {
               value: getShortEventId(getProfileTargetId(example)),
-              onClick: () =>
+              onClick: () => {
+                const source =
+                  analyticsPageSource === 'performance_transaction'
+                    ? 'performance.transactions_summary.suspect_functions'
+                    : 'unknown';
                 trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
-                  source: `${analyticsPageSource}.suspect_functions_table`,
-                }),
+                  source,
+                });
+              },
               target: generateProfileRouteFromProfileReference({
                 organization,
                 projectSlug: project?.slug || '',

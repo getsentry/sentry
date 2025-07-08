@@ -31,11 +31,12 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
 from sentry.users.services.user.serial import serialize_generic_user
@@ -62,9 +63,12 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = False
+    column: str,
+    index: int = 0,
+    transform_alias_to_input_format: bool = False,
+    use_rpc: bool = False,
 ) -> str:
-    if is_equation(column):
+    if is_equation(column) and not use_rpc:
         return f"equation[{index}]"
 
     # Function columns on input have names like `"p95(duration)"`. By default, we convert them to their aliases like `"p95_duration"`. Here, we want to preserve the original name, so we return the column as-is
@@ -86,10 +90,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_equation_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
-            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+            strip_equation(field)
+            for field in request.GET.getlist(param_name)[:]
+            if is_equation(field)
         ]
 
     def get_field_list(
@@ -108,7 +116,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return [team for team in teams]
 
     def get_dataset(self, request: Request) -> Any:
-        dataset_label = request.GET.get("dataset", "discover")
+        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
@@ -246,21 +254,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
-            if features.has(
-                "organizations:performance-discover-dataset-selector", organization, actor=user
-            ):
-                # In the case that neither side has data, or both sides have data, default to errors.
-                decision = DashboardWidgetTypes.ERROR_EVENTS
-                source = DashboardDatasetSourcesTypes.FORCED.value
-                sentry_sdk.set_tag("discover.split_reason", "default")
-            else:
-                # This branch can be deleted once the feature flag for the discover split is removed
-                if has_errors and has_transactions_data:
-                    decision = DashboardWidgetTypes.DISCOVER
-                else:
-                    # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
-                    # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-                    decision = None
+            # In the case that neither side has data, or both sides have data, default to errors.
+            decision = DashboardWidgetTypes.ERROR_EVENTS
+            source = DashboardDatasetSourcesTypes.FORCED.value
+            sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:
@@ -458,6 +455,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
         # If the user sends an invalid interval, use the default instead
         except InvalidSearchQuery:
+            # on RPC don't use default interval on error
+            if use_rpc:
+                raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
@@ -516,6 +516,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
+                if use_rpc and snuba_params.date_range.total_seconds() < min(VALID_GRANULARITIES):
+                    raise InvalidSearchQuery(
+                        f"Timeseries queries must be for periods of at least {min(VALID_GRANULARITIES)} seconds"
+                    )
                 rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
                 snuba_params.granularity_secs = rollup
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -549,6 +553,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                             transform_alias_to_input_format=transform_alias_to_input_format,
+                            use_rpc=use_rpc,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -556,7 +561,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format
+                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
                         )
                         results[key] = serializer.serialize(
                             event_result,
@@ -589,6 +594,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -596,7 +602,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
-                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
+                column = resolve_axis_column(
+                    query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                )
                 serialized_result = serializer.serialize(
                     result,
                     column=column,
@@ -646,6 +654,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
@@ -661,7 +670,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                resolve_axis_column(
+                    query_column, equations, transform_alias_to_input_format, use_rpc
+                ),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,

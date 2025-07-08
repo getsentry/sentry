@@ -1,14 +1,15 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+
+import {TeamAvatar} from './teamAvatar';
+import {UserAvatar, type UserAvatarProps} from './userAvatar';
 
 type Props = {
   avatarSize?: number;
@@ -39,9 +40,9 @@ export function CollapsedAvatars({
 
   if (hasStreamlinedUI) {
     return (
-      <CollapsedAvatarPill ref={ref} data-test-id="avatarList-collapsedavatars">
+      <Tag ref={ref} data-test-id="avatarList-collapsedavatars">
         {children}
-      </CollapsedAvatarPill>
+      </Tag>
     );
   }
   return (
@@ -102,7 +103,7 @@ function AvatarList({
               size={avatarSize}
               data-test-id="avatarList-collapsedavatars"
             >
-              {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+              {numCollapsedAvatars < 99 && '+'}
               {numCollapsedAvatars}
             </CollapsedAvatars>
           </Tooltip>
@@ -194,7 +195,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.subText};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
@@ -202,30 +203,4 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   border-radius: 50%;
   ${AvatarStyle};
-`;
-
-const CollapsedAvatarPill = styled('div')`
-  ${AvatarStyle};
-
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
-  height: 24px;
-  padding: 0 ${space(1)};
-  background-color: ${p => p.theme.surface400};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 24px;
-
-  ${AvatarListWrapper}:hover & {
-    background-color: ${p => p.theme.surface100};
-    cursor: pointer;
-  }
-`;
-
-const Plus = styled('span')`
-  font-size: 10px;
-  margin-left: 1px;
-  margin-right: -1px;
 `;

@@ -41,6 +41,15 @@ static_search_config: dict[str, FieldProtocol] = {
     "dist": StringColumnField("dist", parse_str, NonEmptyStringScalar),
     "environment": StringColumnField("environment", parse_str, NonEmptyStringScalar),
     "id": StringColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
+    "ota_updates.channel": StringColumnField(
+        "ota_updates_channel", parse_str, NonEmptyStringScalar
+    ),
+    "ota_updates.runtime_version": StringColumnField(
+        "ota_updates_runtime_version", parse_str, NonEmptyStringScalar
+    ),
+    "ota_updates.update_id": StringColumnField(
+        "ota_updates_update_id", parse_str, NonEmptyStringScalar
+    ),
     "os.name": StringColumnField("os_name", parse_str, NonEmptyStringScalar),
     "os.version": StringColumnField("os_version", parse_str, NonEmptyStringScalar),
     "platform": StringColumnField("platform", parse_str, NonEmptyStringScalar),

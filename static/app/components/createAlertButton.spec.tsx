@@ -1,10 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton, {
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
@@ -14,8 +12,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 const onClickMock = jest.fn();
-
-jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
   const organization = OrganizationFixture();
@@ -40,10 +36,7 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -74,11 +67,13 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        deprecatedRouterMocks: true,
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the button for org-owner/manager', () => {
@@ -102,7 +97,6 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -142,7 +136,6 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -163,7 +156,6 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -184,7 +176,6 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: adminAccessOrg,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -192,17 +183,23 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to alert wizard with no project', async () => {
-    render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
-      organization,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <CreateAlertButton aria-label="Create Alert" organization={organization} />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/alerts/wizard/',
+          },
+          route: `/organizations/:orgId/alerts/wizard/`,
+        },
+      }
+    );
     await userEvent.click(screen.getByRole('button'));
-    expect(navigateTo).toHaveBeenCalledWith(
-      `/organizations/org-slug/alerts/wizard/?`,
+    expect(router.location).toEqual(
       expect.objectContaining({
-        params: expect.objectContaining({
-          orgId: 'org-slug',
-        }),
+        pathname: `/organizations/org-slug/alerts/wizard/`,
+        query: {},
       })
     );
   });
@@ -216,7 +213,6 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -227,8 +223,6 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const router = RouterFixture();
-
     const projects = [ProjectFixture()];
     ProjectsStore.loadInitialData(projects);
 
@@ -237,25 +231,23 @@ describe('CreateAlertFromViewButton', () => {
       query: 'event.type:error project:project-slug',
       projects: [2],
     });
-    render(
+    const {router} = render(
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
         projects={projects}
         onClick={onClickMock}
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
     await userEvent.click(screen.getByRole('button'));
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/org-slug/alerts/new/metric/`,
-      query: expect.objectContaining({
-        query: 'event.type:error ',
-        project: 'project-slug',
-      }),
-    });
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/org-slug/alerts/new/metric/`,
+        query: expect.objectContaining({
+          query: 'event.type:error ',
+          project: 'project-slug',
+        }),
+      })
+    );
   });
 });

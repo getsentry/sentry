@@ -54,7 +54,7 @@ describe('Dashboards > WidgetCard', function () {
     description: 'Valid widget description',
     interval: '5m',
     displayType: DisplayType.LINE,
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.ERRORS,
     queries: [
       {
         conditions: 'event.type:error',
@@ -92,7 +92,7 @@ describe('Dashboards > WidgetCard', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([multipleQueryWidget]),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
   beforeEach(function () {
@@ -164,7 +164,7 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
@@ -223,7 +223,7 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
@@ -258,7 +258,7 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -294,7 +294,7 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
+      '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
 
@@ -482,7 +482,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('has sticky table headers', async function () {
+  it('has sticky table headers and scroll', async function () {
     const tableWidget: Widget = {
       title: 'Table Widget',
       interval: '5m',
@@ -532,7 +532,16 @@ describe('Dashboards > WidgetCard', function () {
       interval: '5m',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
-      queries: [],
+      queries: [
+        {
+          conditions: '',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          name: '',
+          orderby: '',
+        },
+      ],
     };
     renderWithProviders(
       <WidgetCard
@@ -560,7 +569,16 @@ describe('Dashboards > WidgetCard', function () {
       interval: '5m',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.DISCOVER,
-      queries: [],
+      queries: [
+        {
+          conditions: '',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          name: '',
+          orderby: '',
+        },
+      ],
     };
     renderWithProviders(
       <WidgetCard

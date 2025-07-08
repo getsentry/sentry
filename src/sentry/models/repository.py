@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.fields.array import ArrayField
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -44,7 +44,7 @@ class Repository(Model):
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    languages = ArrayField(null=True)
+    languages = ArrayField(models.TextField(), default=list)
 
     class Meta:
         app_label = "sentry"

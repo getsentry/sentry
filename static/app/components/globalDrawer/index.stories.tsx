@@ -6,18 +6,17 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('GlobalDrawer', story => {
+export default Storybook.story('GlobalDrawer', story => {
   story('Getting Started', () => (
     <Fragment>
       <p>
-        <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
-        side of the UI. It's an application-wide singleton component, which means that
-        only one drawer can be open at any given time and its position is always the same.
-        The drawer is opened and closed via React hooks. The contents of the drawer are
-        unstyled.
+        <Storybook.JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on
+        the right side of the UI. It's an application-wide singleton component, which
+        means that only one drawer can be open at any given time and its position is
+        always the same. The drawer is opened and closed via React hooks. The contents of
+        the drawer are unstyled.
       </p>
       <p>
         By default the drawer can be closed with an "Escape" key press, with an outside
@@ -253,10 +252,11 @@ function ModalContent() {
     return (
       <Fragment>
         <p>
-          <JSXNode name="DrawerHeader" /> and <JSXNode name="DrawerBody" /> are helper
-          components. You can use them to make your drawers look consistent with the rest
-          of the application. <JSXNode name="DrawerHeader" /> includes a "Close" button
-          and a spot to render a title. <JSXNode name="DrawerBody" /> specifies correct
+          <Storybook.JSXNode name="DrawerHeader" /> and{' '}
+          <Storybook.JSXNode name="DrawerBody" /> are helper components. You can use them
+          to make your drawers look consistent with the rest of the application.{' '}
+          <Storybook.JSXNode name="DrawerHeader" /> includes a "Close" button and a spot
+          to render a title. <Storybook.JSXNode name="DrawerBody" /> specifies correct
           padding, scrolling, and overflow.
         </p>
 

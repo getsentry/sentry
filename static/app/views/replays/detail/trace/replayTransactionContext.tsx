@@ -1,12 +1,5 @@
 import type {ReactNode} from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
@@ -21,19 +14,15 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {
-  getTraceRequestPayload,
-  makeEventView,
-} from 'sentry/utils/performance/quickTrace/utils';
 import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
   children: ReactNode;
-  replayRecord: undefined | ReplayRecord;
+  replayRecord: undefined | HydratedReplayRecord;
 };
 
 type InternalState = {
@@ -80,7 +69,7 @@ const TxnContext = createContext<TxnContextProps>({
   state: {didInit: false, errors: [], isFetching: false, traces: []},
 });
 
-function ReplayTransactionContext({children, replayRecord}: Options) {
+export default function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const organization = useOrganization();
   useEmitTimestampChanges();
@@ -115,24 +104,13 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     async (dataRow: any) => {
       try {
         const {trace: traceId, timestamp} = dataRow;
-        const start = getUtcDateString(replayRecord?.started_at.getTime());
-        const end = getUtcDateString(replayRecord?.finished_at.getTime());
-        const eventView = makeEventView({start, end});
-        let payload: any;
-
-        if (organization.features.includes('replay-trace-view-v1')) {
-          payload = {
-            limit: 10000,
-            useSpans: 1,
-            timestamp,
-          };
-        } else {
-          payload = getTraceRequestPayload({eventView, location: {} as Location});
-        }
-
         const [trace, _traceResp] = await doDiscoverQuery<
           TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
-        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, payload);
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, {
+          limit: 10000,
+          useSpans: 1,
+          timestamp,
+        } as any);
 
         const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
           trace,
@@ -159,7 +137,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, organization, replayRecord]
+    [api, orgSlug, organization]
   );
 
   const fetchTracesInBatches = useCallback(
@@ -304,21 +282,3 @@ function internalToExternalState({
     orphanErrors,
   };
 }
-
-export default ReplayTransactionContext;
-
-export const useFetchTransactions = () => {
-  const {fetchTransactionData, state} = useContext(TxnContext);
-
-  useEffect(() => {
-    if (!state.isFetching && state.traces === undefined) {
-      fetchTransactionData();
-    }
-  }, [fetchTransactionData, state]);
-};
-
-export const useTransactionData = () => {
-  const {eventView, state} = useContext(TxnContext);
-  const data = useMemo(() => ({eventView, state}), [eventView, state]);
-  return data;
-};

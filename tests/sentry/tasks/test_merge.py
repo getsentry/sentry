@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
@@ -23,7 +24,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
 
-        eventstream_state = object()
+        eventstream_state: dict[str, Any] = {"key": "value"}
 
         with self.tasks():
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
@@ -81,10 +82,12 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group1.id).exists()
 
         event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
+        assert event1 is not None
         assert event1.group_id == group2.id
         assert event1.data["extra"]["foo"] == "bar"
 
         event2 = eventstore.backend.get_event_by_id(project.id, event2.event_id)
+        assert event2 is not None
         assert event2.group_id == group2.id
         assert event2.data["extra"]["foo"] == "baz"
 

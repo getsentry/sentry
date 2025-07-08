@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -63,9 +63,13 @@ export function useReleaseMarkLineSeries({
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-          local: !eventView.utc,
-        });
+        const time = getFormattedDate(
+          data.value,
+          getFormat({timeZone: true, year: true}),
+          {
+            local: !eventView.utc,
+          }
+        );
         const version = escape(formatVersion(data.name, true));
         return [
           '<div class="tooltip-series">',

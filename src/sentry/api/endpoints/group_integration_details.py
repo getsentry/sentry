@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,8 +15,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
     ProjectManagementEvent,
@@ -30,7 +35,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
-from sentry.utils.rollback_metrics import incr_rollback_metrics
+from sentry.users.services.user.model import RpcUser
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -47,7 +52,11 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.config = config
 
     def serialize(
-        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self,
+        obj: Integration | RpcIntegration,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
@@ -69,7 +78,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def _has_issue_feature(self, organization, user):
+    def _has_issue_feature(self, organization, user) -> bool:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user
         )
@@ -80,16 +89,24 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
-    def _has_issue_feature_on_integration(self, integration: RpcIntegration):
+    def _has_issue_feature_on_integration(self, integration: RpcIntegration) -> bool:
         return integration.has_feature(
             feature=IntegrationFeatures.ISSUE_BASIC
         ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
+
+    def _get_installation(
+        self, integration: RpcIntegration, organization_id: int
+    ) -> IssueBasicIntegration:
+        installation = integration.get_installation(organization_id=organization_id)
+        if not isinstance(installation, IssueBasicIntegration):
+            raise ValueError(installation)
+        return installation
 
     def create_issue_activity(
         self,
         request: Request,
         group: Group,
-        installation: IntegrationInstallation,
+        installation: IssueBasicIntegration,
         external_issue: ExternalIssue,
         new: bool,
     ):
@@ -109,7 +126,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
     def get(self, request: Request, group, integration_id) -> Response:
-        if not self._has_issue_feature(group.organization, request.user):
+        if not request.user.is_authenticated:
+            return Response(status=400)
+        elif not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         # Keep link/create separate since create will likely require
@@ -133,16 +152,16 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration.get_installation(organization_id=organization_id)
-        config = None
+        installation = self._get_installation(integration, organization_id)
         try:
             if action == "link":
                 config = installation.get_link_issue_config(group, params=request.GET)
-
-            if action == "create":
+            elif action == "create":
                 config = installation.get_create_issue_config(
                     group, request.user, params=request.GET
                 )
+            else:
+                raise AssertionError("unreachable")
         except IntegrationError as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -157,7 +176,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request: Request, group, integration_id) -> Response:
-        if not self._has_issue_feature(group.organization, request.user):
+        if not request.user.is_authenticated:
+            return Response(status=400)
+        elif not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         external_issue_id = request.data.get("externalIssue")
@@ -182,7 +203,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     {"detail": "This feature is not supported for this integration."}, status=400
                 )
 
-            installation = integration.get_installation(organization_id=organization_id)
+            installation = self._get_installation(integration, organization_id)
 
             try:
                 data = installation.get_issue(external_issue_id, data=request.data)
@@ -237,7 +258,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError as exc:
-                incr_rollback_metrics(GroupLink)
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
@@ -256,7 +276,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201)
 
     def post(self, request: Request, group, integration_id) -> Response:
-        if not self._has_issue_feature(group.organization, request.user):
+        if not request.user.is_authenticated:
+            return Response(status=400)
+        elif not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
@@ -273,7 +295,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration.get_installation(organization_id=organization_id)
+        installation = self._get_installation(integration, organization_id)
 
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
@@ -320,7 +342,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     relationship=GroupLink.Relationship.references,
                 )
         except IntegrityError:
-            incr_rollback_metrics(GroupLink)
             return Response({"detail": "That issue is already linked"}, status=400)
 
         if created:

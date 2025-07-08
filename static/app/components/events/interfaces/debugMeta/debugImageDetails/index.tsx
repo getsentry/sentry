@@ -6,8 +6,8 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -342,7 +342,7 @@ export function DebugImageDetails({
 const Content = styled('div')`
   display: grid;
   gap: ${space(3)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Title = styled('div')`
@@ -350,7 +350,7 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   max-width: calc(100% - 40px);
   word-break: break-all;
 `;
@@ -368,15 +368,15 @@ export const modalCss = (theme: Theme) => css`
     overflow: initial;
   }
 
-  @media (min-width: ${theme.breakpoints.small}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 90%;
   }
 
-  @media (min-width: ${theme.breakpoints.xlarge}) {
+  @media (min-width: ${theme.breakpoints.xl}) {
     width: 70%;
   }
 
-  @media (min-width: ${theme.breakpoints.xxlarge}) {
+  @media (min-width: ${theme.breakpoints['2xl']}) {
     width: 50%;
   }
 `;

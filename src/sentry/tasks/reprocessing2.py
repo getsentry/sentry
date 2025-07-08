@@ -1,6 +1,4 @@
 import time
-from collections.abc import Sequence
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sentry_sdk
@@ -107,7 +105,7 @@ def reprocess_group(
                         start_time=start_time,
                     )
                 except CannotReprocess as e:
-                    logger.error("reprocessing2.%s", str(e))
+                    logger.warning("reprocessing2.%s", str(e))
                 except Exception:
                     sentry_sdk.capture_exception()
                 else:
@@ -161,13 +159,8 @@ def handle_remaining_events(
     project_id: int,
     new_group_id: int,
     remaining_events: str,
-    # TODO(markus): Should be mandatory arguments.
-    event_ids_redis_key: str | None = None,
-    old_group_id: int | None = None,
-    # TODO(markus): Deprecated arguments, can remove in next version.
-    event_ids: Sequence[str] | None = None,
-    from_timestamp: datetime | None = None,
-    to_timestamp: datetime | None = None,
+    event_ids_redis_key: str,
+    old_group_id: int,
 ) -> None:
     """
     Delete or merge/move associated per-event data: nodestore, event

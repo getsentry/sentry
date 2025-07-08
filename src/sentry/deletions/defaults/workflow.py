@@ -3,6 +3,8 @@ from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 
 
 class WorkflowDeletionTask(ModelDeletionTask[Workflow]):
+    manager_name = "objects_for_deletion"
+
     def get_child_relations(self, instance: Workflow) -> list[BaseRelation]:
         model_relations: list[BaseRelation] = []
 

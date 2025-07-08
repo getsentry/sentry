@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -319,7 +319,7 @@ function IncidentsListContainer(props: Props) {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   & > div {
     padding: ${space(1.5)} ${space(2)};
@@ -331,7 +331,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const EmptyStateAction = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export default IncidentsListContainer;

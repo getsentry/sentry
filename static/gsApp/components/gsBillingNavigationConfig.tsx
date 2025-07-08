@@ -58,6 +58,14 @@ class GSBillingNavigationConfig extends Component<Props> {
         id: 'spike',
       },
       {
+        path: `${prefix}/seer/`,
+        title: t('Seer Automation'),
+        show: () =>
+          organization.features.includes('trigger-autofix-on-issue-summary') &&
+          !organization.hideAiFeatures,
+        id: 'seer',
+      },
+      {
         path: `${prefix}/subscription/redeem-code/`,
         title: t('Redeem Promo Code'),
         id: 'promo',
@@ -70,6 +78,7 @@ class GSBillingNavigationConfig extends Component<Props> {
     ];
 
     return {
+      id: 'settings-usage-billing',
       name: t('Usage & Billing'),
       items,
     };

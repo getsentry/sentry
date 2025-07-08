@@ -12,7 +12,6 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.models.broadcast import Broadcast, BroadcastSeen
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry")
 
@@ -61,6 +60,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         return self._serialize_response(request, broadcast)
 
     def put(self, request: Request, broadcast_id) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         broadcast = self._get_broadcast(request, broadcast_id)
         validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():
@@ -104,7 +106,6 @@ class BroadcastDetailsEndpoint(Endpoint):
                 with transaction.atomic(using=router.db_for_write(Broadcast)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
-                incr_rollback_metrics(BroadcastSeen)
                 pass
 
         return self._serialize_response(request, broadcast)

@@ -2,25 +2,22 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import Matrix from 'sentry/components/stories/matrix';
 import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 import {InputGroup} from './inputGroup';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/inputGroup';
 
-export default storyBook('InputGroup', (story, APIReference) => {
+export default Storybook.story('InputGroup', (story, APIReference) => {
   APIReference(types.InputGroup);
 
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="InputGroup" /> component comes in different sizes:
+          The <Storybook.JSXNode name="InputGroup" /> component comes in different sizes:
         </p>
         <Grid>
           <div>
@@ -93,7 +90,7 @@ export default storyBook('InputGroup', (story, APIReference) => {
   story('Matrix', () => {
     return (
       <Fragment>
-        <Matrix
+        <Storybook.PropMatrix
           render={({leadingItems, trailingItems}) => {
             return (
               <InputGroup>

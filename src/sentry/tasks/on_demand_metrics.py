@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -196,7 +197,7 @@ def schedule_on_demand_check() -> None:
         processing_deadline_duration=120,
     ),
 )
-def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
+def process_widget_specs(widget_query_ids: list[int], **kwargs: Any) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -465,10 +466,8 @@ def check_field_cardinality(
                 if not column_low_cardinality:
                     scope.set_tag("widget_query.column_name", column)
                     if widget_query:
-                        sentry_sdk.capture_exception(
-                            HighCardinalityWidgetException(
-                                f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                            )
+                        sentry_sdk.capture_message(
+                            f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                         )
         except SoftTimeLimitExceeded as error:
             scope.set_tag("widget_soft_deadline", True)

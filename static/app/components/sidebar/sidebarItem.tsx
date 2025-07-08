@@ -4,12 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/container/flex';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -118,10 +118,6 @@ export type SidebarItemProps = {
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
-  /**
-   * Content to render at the end of the item.
-   */
-  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
@@ -144,7 +140,6 @@ function SidebarItem({
   isNewSeenKeySuffix,
   onClick,
   trailingItems,
-  variant,
   isNested,
   isMainItem,
   isOpenInFloatingSidebar,
@@ -200,15 +195,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && (
-        <FeatureBadge type="new" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isBeta && (
-        <FeatureBadge type="beta" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isAlpha && (
-        <FeatureBadge type="alpha" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
+      {showIsNew && <FeatureBadge type="new" tooltipProps={{title: badgeTitle}} />}
+      {isBeta && <FeatureBadge type="beta" tooltipProps={{title: badgeTitle}} />}
+      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{title: badgeTitle}} />}
     </Fragment>
   );
 
@@ -282,25 +271,13 @@ function SidebarItem({
                 </SidebarItemLabel>
               )}
               {isInCollapsedState && showIsNew && (
-                <CollapsedFeatureBadge
-                  type="new"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="new" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isBeta && (
-                <CollapsedFeatureBadge
-                  type="beta"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="beta" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isAlpha && (
-                <CollapsedFeatureBadge
-                  type="alpha"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="alpha" tooltipProps={tooltipDisabledProps} />
               )}
               {badge !== undefined && badge > 0 && (
                 <SidebarItemBadge collapsed={isInCollapsedState}>
@@ -392,17 +369,17 @@ const getActiveStyle = ({
     `;
   }
   return css`
-    color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+    color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
 
     &:active,
     &:focus,
     &:hover {
-      color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+      color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
     }
 
     &:before {
       background-color: ${!!theme && isChonkTheme(theme)
-        ? theme.colors.chonk.blue400
+        ? theme.tokens.graphics.accent
         : theme.active};
     }
   `;
@@ -450,7 +427,7 @@ const StyledSidebarItem = styled(Link, {
     `;
   }}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     &:before {
       top: auto;
       left: 5px;
@@ -472,7 +449,7 @@ const StyledSidebarItem = styled(Link, {
         `;
       }
       return css`
-        color: ${isChonkTheme(p.theme) ? p.theme.colors.chonk.blue400 : p.theme.white};
+        color: ${isChonkTheme(p.theme) ? p.theme.colors.content.accent : p.theme.white};
       `;
     }}
   }
@@ -497,7 +474,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boole
   ${p => p.hasNewNav && 'flex-direction: column;'}
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding-right: 0;
   }
 `;
@@ -518,7 +495,7 @@ const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   ${p =>
     p.hasNewNav &&
     css`
-      @media (max-width: ${p.theme.breakpoints.medium}) {
+      @media (max-width: ${p.theme.breakpoints.md}) {
         display: none;
       }
     `};
@@ -545,13 +522,19 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
+const getCollapsedBadgeStyle = ({
+  collapsed,
+  theme,
+}: {
+  collapsed: boolean | undefined;
+  theme: Theme;
+}) => {
   if (!collapsed) {
     return '';
   }
 
   return css`
-    background: ${theme.red300};
+    background: ${isChonkTheme(theme) ? theme.colors.chonk.red400 : theme.red300};
     text-indent: -99999em;
     position: absolute;
     right: 0;
@@ -560,12 +543,11 @@ const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
     height: 11px;
     border-radius: 11px;
     line-height: 11px;
-    box-shadow: ${theme.isChonk ? 'none' : '0 3px 3px #2f2936'};
+    box-shadow: ${isChonkTheme(theme) ? 'none' : '0 3px 3px #2f2936'};
   `;
 };
 
-// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
-const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
+const SidebarItemBadge = styled('span')<{collapsed: boolean | undefined}>`
   color: ${p => p.theme.white};
   background: ${p =>
     isChonkTheme(p.theme) ? p.theme.colors.chonk.red400 : p.theme.red300};
@@ -576,7 +558,7 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   height: 22px;
   border-radius: 22px;
   line-height: 22px;
-
+  font-variant-numeric: tabular-nums;
   ${getCollapsedBadgeStyle};
 `;
 

@@ -879,9 +879,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
             "workflow_engine.action": [DateUpdatedComparator("date_updated", "date_added")],
-            "workflow_engine.actiongroupstatus": [
-                DateUpdatedComparator("date_updated", "date_added")
-            ],
             "workflow_engine.datacondition": [DateUpdatedComparator("date_updated", "date_added")],
             "workflow_engine.dataconditiongroup": [
                 DateUpdatedComparator("date_updated", "date_added")
@@ -919,6 +916,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "explore.exploresavedquerylastvisited": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "insights.insightsstarredsegment": [

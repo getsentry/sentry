@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -83,5 +84,5 @@ export default function OrganizationFeatureFlagsIndexRoute() {
 }
 
 const Large = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;

@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
@@ -66,6 +66,7 @@ function DetailsHeader({
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
     });
 
   return (

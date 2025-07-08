@@ -5,7 +5,7 @@ import round from 'lodash/round';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -251,7 +251,7 @@ export default TeamStability;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;

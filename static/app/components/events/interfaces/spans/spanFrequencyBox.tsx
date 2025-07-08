@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -48,37 +48,37 @@ export function SpanFrequencyBox({span}: Props) {
 
 function getBoxColors(theme: Theme, frequency?: number) {
   if (!frequency || frequency >= 0.9) {
-    return `
+    return css`
       background: ${purples[3]};
       color: ${theme.white};
     `;
   }
 
   if (frequency >= 0.7) {
-    return `
+    return css`
       background: ${purples[2]};
       color: ${theme.white};
     `;
   }
 
   if (frequency >= 0.5) {
-    return `
+    return css`
       background: ${purples[1]};
       color: ${theme.black};
     `;
   }
 
   if (frequency >= 0.3) {
-    return `
+    return css`
       background: ${purples[0]};
       color: ${theme.black};
     `;
   }
 
-  return `
-      background: ${theme.white};
-      color: ${theme.black};
-    `;
+  return css`
+    background: ${theme.white};
+    color: ${theme.black};
+  `;
 }
 
 const StyledBox = styled('div')<{frequency?: number}>`
@@ -93,7 +93,7 @@ const StyledBox = styled('div')<{frequency?: number}>`
   border-right: 1px solid ${p => p.theme.gray200};
   padding-right: ${space(1)};
 
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   ${p => getBoxColors(p.theme, p.frequency)}
 
   z-index: 9;

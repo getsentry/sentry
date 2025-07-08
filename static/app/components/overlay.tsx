@@ -123,7 +123,14 @@ export function Overlay({
       : {style};
 
   return (
-    <OverlayInner {...props} {...animationProps} data-overlay ref={ref}>
+    <OverlayInner
+      {...props}
+      {...animationProps}
+      data-overlay
+      ref={ref}
+      // @ts-expect-error type inference is broken with motion.div and chonk props
+      placement={placement}
+    >
       {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
@@ -134,6 +141,7 @@ const OverlayInner = withChonk(
   styled(motion.div)<{
     animated?: boolean;
     overlayStyle?: React.CSSProperties | SerializedStyles;
+    placement?: OverlayProps['placement'];
   }>`
     position: relative;
     border-radius: ${p => p.theme.borderRadius};
@@ -141,7 +149,7 @@ const OverlayInner = withChonk(
     box-shadow:
       0 0 0 1px ${p => p.theme.translucentBorder},
       ${p => p.theme.dropShadowHeavy};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
 
     /* Override z-index from useOverlayPosition */
     z-index: ${p => p.theme.zIndex.dropdown} !important;
@@ -155,14 +163,15 @@ const OverlayInner = withChonk(
   `,
   chonkStyled(motion.div)<{
     overlayStyle?: React.CSSProperties | SerializedStyles;
+    placement?: OverlayProps['placement'];
   }>`
     position: relative;
     background: ${p => p.theme.colors.background.primary};
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.colors.border.primary};
     box-shadow:
-      0 2px 0 0 ${p => p.theme.colors.border.primary};
-    font-size: ${p => p.theme.fontSizeMedium};
+      0 2px 0 ${p => p.theme.colors.border.primary};
+    font-size: ${p => p.theme.fontSize.md};
 
     /* Override z-index from useOverlayPosition */
     z-index: ${p => p.theme.zIndex.dropdown} !important;
@@ -181,6 +190,7 @@ interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
    * Determines the zindex over the position wrapper
    */
   zIndex: number;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -207,9 +217,7 @@ export function PositionWrapper({
   zIndex,
   style,
   ...props
-}: PositionWrapperProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: PositionWrapperProps) {
   const isPresent = useIsPresent();
   return (
     <motion.div

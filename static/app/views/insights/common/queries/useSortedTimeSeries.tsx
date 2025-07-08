@@ -14,6 +14,7 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -175,7 +176,8 @@ export function transformToSeriesMap(
         return convertEventsStatsToTimeSeriesData(
           hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
           result[seriesOrGroupName]!,
-          hasMultipleYAxes ? undefined : seriesOrGroupName
+          hasMultipleYAxes ? undefined : seriesOrGroupName,
+          hasMultipleYAxes ? undefined : result[seriesOrGroupName]!.order
         );
       }
     );
@@ -191,7 +193,7 @@ export function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        acc[series.field] = [series];
+        acc[series.yAxis] = [series];
         return acc;
       }, {} as SeriesMap);
   }
@@ -211,12 +213,13 @@ export function transformToSeriesMap(
 
   return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [groupName, , groupData]) => {
+    .reduce((acc, [groupName, groupOrder, groupData]) => {
       Object.keys(groupData).forEach(seriesName => {
         const [, series] = convertEventsStatsToTimeSeriesData(
           seriesName,
           groupData[seriesName]!,
-          groupName
+          groupName,
+          groupOrder
         );
 
         if (acc[seriesName]) {
@@ -232,25 +235,35 @@ export function transformToSeriesMap(
 export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
-  alias?: string
+  alias?: string,
+  order?: number
 ): [number, TimeSeries] {
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
+  const values = seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+    timestamp: timestamp * 1000,
+    value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+  }));
+
+  const interval = getTimeSeriesInterval(values);
+
   const serie: TimeSeries = {
-    field: label,
-    values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      timestamp: timestamp * 1000,
-      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-    })),
+    yAxis: label,
+    values,
     meta: {
       valueType: seriesData.meta?.fields?.[seriesName]!,
       valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      interval,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,
     samplingRate: seriesData.meta?.accuracy?.samplingRate,
     dataScanned: seriesData.meta?.dataScanned,
   };
+
+  if (defined(order)) {
+    serie.meta.order = order;
+  }
 
   return [seriesData.order ?? 0, serie];
 }

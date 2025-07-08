@@ -21,6 +21,15 @@ interface Options {
    */
   labelText: (positionX: number) => string;
   /**
+   * Whether to anchor the cursor overlay to the top or bottom of the container. Defaults to 'top'
+   */
+  anchor?: 'top' | 'bottom';
+  /**
+   * The offset of the cursor overlay. If anchor is 'top', this will be added to the top offset.
+   * If anchor is 'bottom', this will be added to the bottom offset.
+   */
+  anchorOffset?: number;
+  /**
    * May be set to false to disable rendering the timeline cursor
    */
   enabled?: boolean;
@@ -31,7 +40,7 @@ interface Options {
    */
   offsets?: CursorOffsets;
   /**
-   * Should the label stick to teh top of the screen?
+   * Should the label stick to the top of the screen?
    */
   sticky?: boolean;
 }
@@ -41,6 +50,8 @@ function useTimelineCursor<E extends HTMLElement>({
   sticky,
   offsets,
   labelText,
+  anchor = 'top',
+  anchorOffset = 0,
 }: Options) {
   const rafIdRef = useRef<number | null>(null);
 
@@ -65,11 +76,16 @@ function useTimelineCursor<E extends HTMLElement>({
       // within the containerRect. This proves to be less glitchy as some
       // elements within the container may trigger an onMouseLeave even when
       // the mouse is still "inside" of the container
+      //
+      // Also tests that the mouse is not occluded by a overlay element.
       const isInsideContainer =
         e.clientX > containerRect.left &&
         e.clientX < containerRect.right &&
         e.clientY > containerRect.top &&
-        e.clientY < containerRect.bottom;
+        e.clientY < containerRect.bottom &&
+        !document
+          .elementsFromPoint(e.clientX, e.clientY)
+          .some(el => el.hasAttribute('data-overlay'));
 
       if (isInsideContainer !== isVisible) {
         setIsVisible(isInsideContainer);
@@ -108,7 +124,14 @@ function useTimelineCursor<E extends HTMLElement>({
   }, [enabled, handleMouseMove]);
 
   const labelOverlay = (
-    <CursorLabel ref={labelRef} animated placement="right" offsets={offsets} />
+    <CursorLabel
+      ref={labelRef}
+      animated
+      placement="right"
+      offsets={offsets}
+      anchor={anchor}
+      anchorOffset={anchorOffset}
+    />
   );
   const cursorLabel = sticky ? <StickyLabel>{labelOverlay}</StickyLabel> : labelOverlay;
 
@@ -149,15 +172,20 @@ const Cursor = styled(motion.div)`
   z-index: 3;
 `;
 
-const CursorLabel = styled(Overlay)<{offsets?: CursorOffsets}>`
+const CursorLabel = styled(Overlay)<{
+  anchor: 'top' | 'bottom';
+  anchorOffset: number;
+  offsets?: CursorOffsets;
+}>`
   font-variant-numeric: tabular-nums;
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   position: absolute;
-  top: 12px;
+  ${p =>
+    p.anchor === 'top' ? `top: ${p.anchorOffset}px;` : `bottom: ${p.anchorOffset}px;`}
   left: clamp(
     0px,
     calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),

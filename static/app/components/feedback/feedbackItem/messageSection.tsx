@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Flex} from 'sentry/components/container/flex';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
-import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
@@ -73,12 +72,6 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
           />
         ) : null}
       </Blockquote>
-      <Flex justify="flex-end">
-        <Flex gap={space(1)} align="center">
-          <SeenBy>{t('Seen by')}</SeenBy>
-          <FeedbackViewers feedbackItem={feedbackItem} />
-        </Flex>
-      </Flex>
     </Fragment>
   );
 }
@@ -88,11 +81,6 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   align-self: center;
   white-space: nowrap;
-`;
-
-const SeenBy = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Blockquote = styled('blockquote')`
@@ -110,7 +98,7 @@ const Blockquote = styled('blockquote')`
     margin-bottom: 0;
     background: none;
     font-family: inherit;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     line-height: 1.6;
     padding: 0;
     word-break: break-word;

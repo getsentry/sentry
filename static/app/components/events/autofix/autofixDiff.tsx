@@ -5,6 +5,7 @@ import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
@@ -13,7 +14,6 @@ import {
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,7 +28,7 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
-  isExpandable?: boolean;
+  integratedStyle?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   repoId?: string;
@@ -120,7 +120,6 @@ function detectLanguageFromPath(filePath: string): string {
 
 const SyntaxHighlightedCode = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
   white-space: pre;
 
   pre,
@@ -218,7 +217,12 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));
@@ -576,10 +580,8 @@ function DiffHunkContent({
             </OverlayContent>
             <OverlayFooter>
               <OverlayButtonGroup>
-                <Button size="xs" onClick={handleCancelEdit}>
-                  {t('Cancel')}
-                </Button>
-                <Button size="xs" priority="primary" onClick={handleSaveEdit}>
+                <Button onClick={handleCancelEdit}>{t('Cancel')}</Button>
+                <Button priority="primary" onClick={handleSaveEdit}>
                   {t('Save')}
                 </Button>
               </OverlayButtonGroup>
@@ -597,12 +599,12 @@ function FileDiff({
   runId,
   repoId,
   editable,
-  isExpandable,
+  integratedStyle,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
-  isExpandable: boolean;
+  integratedStyle: boolean;
   runId: string;
   repoId?: string;
 }) {
@@ -611,18 +613,15 @@ function FileDiff({
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <FileDiffWrapper>
-      <FileHeader
-        isExpandable={isExpandable}
-        onClick={() => (isExpandable ? setIsExpanded(value => !value) : undefined)}
-      >
-        {isExpandable && <InteractionStateLayer />}
-        <FileAddedRemoved>
-          <FileAdded>+{file.added}</FileAdded>
-          <FileRemoved>-{file.removed}</FileRemoved>
-        </FileAddedRemoved>
-        <FileName title={file.path}>{file.path}</FileName>
-        {isExpandable && (
+    <FileDiffWrapper integratedStyle={integratedStyle}>
+      {!integratedStyle && (
+        <FileHeader onClick={() => setIsExpanded(value => !value)}>
+          <InteractionStateLayer />
+          <FileAddedRemoved>
+            <FileAdded>+{file.added}</FileAdded>
+            <FileRemoved>-{file.removed}</FileRemoved>
+          </FileAddedRemoved>
+          <FileName title={file.path}>{file.path}</FileName>
           <Button
             icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
             aria-label={t('Toggle file diff')}
@@ -630,10 +629,10 @@ function FileDiff({
             size="zero"
             borderless
           />
-        )}
-      </FileHeader>
+        </FileHeader>
+      )}
       {isExpanded && (
-        <DiffContainer ref={containerRef}>
+        <DiffContainer ref={containerRef} integratedStyle={integratedStyle}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
             return (
               <DiffHunkContent
@@ -663,7 +662,7 @@ export function AutofixDiff({
   editable,
   previousDefaultStepIndex,
   previousInsightCount,
-  isExpandable = true,
+  integratedStyle = false,
 }: AutofixDiffProps) {
   if (!diff?.length) {
     return null;
@@ -690,7 +689,7 @@ export function AutofixDiff({
             runId={runId}
             repoId={repoId}
             editable={editable}
-            isExpandable={isExpandable}
+            integratedStyle={integratedStyle}
           />
         </AutofixHighlightWrapper>
       ))}
@@ -704,18 +703,22 @@ const DiffsColumn = styled('div')`
   gap: ${space(1)};
 `;
 
-const FileDiffWrapper = styled('div')`
+const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
+  & code {
+    font-size: ${p => (p.integratedStyle ? p.theme.fontSize.sm : p.theme.codeFontSize)};
+  }
   line-height: 20px;
   vertical-align: middle;
   border: 1px solid ${p => p.theme.border};
+  border-color: ${p => (p.integratedStyle ? 'transparent' : p.theme.border)};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   background-color: ${p => p.theme.background};
 `;
 
-const FileHeader = styled('div')<{isExpandable?: boolean}>`
+const FileHeader = styled('div')`
   position: relative;
   display: grid;
   align-items: center;
@@ -723,7 +726,7 @@ const FileHeader = styled('div')<{isExpandable?: boolean}>`
   gap: ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};
-  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
+  cursor: pointer;
 `;
 
 const FileAddedRemoved = styled('div')`
@@ -748,8 +751,8 @@ const FileName = styled('div')`
   text-align: left;
 `;
 
-const DiffContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
+  border-top: ${p => (p.integratedStyle ? 'none' : '1px solid ' + p.theme.innerBorder)};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
@@ -860,7 +863,7 @@ const EditOverlay = styled('div')`
   flex-direction: column;
   max-height: calc(100vh - 18rem);
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     left: ${space(2)};
   }
 `;
@@ -876,7 +879,7 @@ const OverlayContent = styled('div')`
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
@@ -899,12 +902,10 @@ const RemovedLine = styled('div')`
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
   white-space: pre-wrap;
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.border};
   position: relative;
@@ -929,7 +930,7 @@ const TextAreaWrapper = styled('div')`
 
 const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
@@ -943,7 +944,7 @@ const NoChangesMessage = styled('p')`
 
 const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: bold;
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};

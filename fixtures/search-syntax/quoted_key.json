@@ -9,7 +9,12 @@
         "key": {"quoted": true, "type": "keySimple", "value": "hi:there"},
         "operator": "",
         "type": "filter",
-        "value": {"quoted": false, "type": "valueText", "value": "value"}
+        "value": {
+          "quoted": false,
+          "type": "valueText",
+          "value": "value",
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "key": {"quoted": true, "type": "keySimple", "value": "hi:there"},
         "operator": "",
         "type": "filter",
-        "value": {"quoted": false, "type": "valueText", "value": "value"}
+        "value": {
+          "quoted": false,
+          "type": "valueText",
+          "value": "value",
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

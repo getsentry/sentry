@@ -1,5 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -15,7 +15,7 @@ export default function SavedQueriesView() {
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Layout.Page>
-        <Layout.Header>
+        <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>

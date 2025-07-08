@@ -230,14 +230,12 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
-  /**
-   * Display explicit tags with `tags[name]` instead of `name`
-   */
-  showExplicitTagPrefix?: boolean;
 };
 
 /**
- * Utility to get the string name of any type of key.
+ * Utility to get the internal string name of any type of key.
+ * Used to do lookups and is the underlying value that should
+ * be passed through to the API.
  */
 export const getKeyName = (
   key: TokenResult<
@@ -252,27 +250,59 @@ export const getKeyName = (
   >,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
+  const {aggregateWithArgs} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
     case Token.KEY_EXPLICIT_TAG:
-      if (showExplicitTagPrefix) {
-        return key.text;
-      }
       return key.key.value;
     case Token.KEY_AGGREGATE:
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
-      // number tags always need to be expressed with the
-      // explicit tag prefix + type
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
-      if (showExplicitTagPrefix) {
-        return key.text;
-      }
+      return key.text;
+    case Token.KEY_EXPLICIT_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return key.text;
+    default:
+      return '';
+  }
+};
+
+/**
+ * Utility to get the public facing label of any type of key.
+ * Used to format a key in a user friendly way. This value
+ * should only be used for display, and not passed to the API.
+ * For the value to use in the API, see `getKeyName`.
+ */
+export const getKeyLabel = (
+  key: TokenResult<
+    | Token.KEY_SIMPLE
+    | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_NUMBER_TAG
+    | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
+  >
+) => {
+  switch (key.type) {
+    case Token.KEY_SIMPLE:
+      return key.value;
+    case Token.KEY_EXPLICIT_TAG:
+      return key.text;
+    case Token.KEY_AGGREGATE:
+      return key.name.value;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      return key.key.value;
+    case Token.KEY_EXPLICIT_STRING_TAG:
       return key.key.value;
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
@@ -328,7 +358,12 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return token.value;
     case Token.VALUE_TEXT_LIST: {
       const textListItems = token.items
-        .map(item => item.value?.text ?? '')
+        .map(item => {
+          if (item.value?.value) {
+            return item.value.quoted ? `"${item.value.value}"` : item.value.value;
+          }
+          return '';
+        })
         .filter(text => text.length > 0);
       return `[${textListItems.join(',')}]`;
     }

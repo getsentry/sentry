@@ -1,5 +1,5 @@
 import type {SavedQuery} from 'sentry/types/organization';
-import { SavedQueryDatasets } from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 export function DiscoverSavedQueryFixture(params = {}): SavedQuery {
   return {

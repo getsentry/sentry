@@ -5,7 +5,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
-import {tct} from 'sentry/locale';
 
 type Props = {
   // TODO(ts): Type customer when available
@@ -63,9 +62,12 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
             label="ARR"
             stacked
             inline={false}
-            help={tct('Their new annual contract value will be [newAvc]', {
-              newAvc: <strong>${this.state.newAcv.toLocaleString()}</strong>,
-            })}
+            help={
+              <Fragment>
+                Their new annual contract value will be{' '}
+                <strong>${this.state.newAcv.toLocaleString()}</strong>
+              </Fragment>
+            }
             defaultValue={this.props.customer.acv / 100}
             onChange={this.onChange}
           />

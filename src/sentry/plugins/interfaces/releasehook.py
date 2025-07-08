@@ -1,5 +1,7 @@
 __all__ = ["ReleaseHook"]
 
+import logging
+
 from django.db import IntegrityError, router, transaction
 from django.http.response import HttpResponseBase
 from django.utils import timezone
@@ -9,7 +11,8 @@ from sentry.exceptions import HookValidationError
 from sentry.models.activity import Activity
 from sentry.models.release import Release
 from sentry.types.activity import ActivityType
-from sentry.utils.rollback_metrics import incr_rollback_metrics
+
+logger = logging.getLogger(__name__)
 
 
 class ReleaseHook:
@@ -35,7 +38,6 @@ class ReleaseHook:
                     organization_id=project.organization_id, version=version
                 )
         except IntegrityError:
-            incr_rollback_metrics(Release)
             release = Release.objects.get(organization_id=project.organization_id, version=version)
         release.add_project(project)
 
@@ -55,7 +57,6 @@ class ReleaseHook:
                     version=version, organization_id=self.project.organization_id, **values
                 )
         except IntegrityError:
-            incr_rollback_metrics(Release)
             release = Release.objects.get(
                 version=version, organization_id=self.project.organization_id
             )
@@ -69,6 +70,12 @@ class ReleaseHook:
             ident=Activity.get_version_ident(version),
             data={"version": version},
             datetime=values["date_released"],
+        )
+        logger.info(
+            "heroku.plugin_release_update",
+            extra={
+                "project_id": self.project.id,
+            },
         )
         self.set_refs(release=release, **values)
 

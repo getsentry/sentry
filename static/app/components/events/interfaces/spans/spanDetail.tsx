@@ -5,14 +5,15 @@ import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ErrorDot,
@@ -400,7 +401,16 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: span.span_id,
+          start_timestamp: span.start_timestamp,
+          end_timestamp: span.timestamp,
+        }}
+        event={event}
+      />
+    );
   }
 
   function renderSpanDetails() {
@@ -644,7 +654,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} 0;
 `;
 

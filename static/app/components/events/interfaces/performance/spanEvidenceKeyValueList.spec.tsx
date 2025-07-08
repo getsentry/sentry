@@ -7,6 +7,7 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {EventTransaction} from 'sentry/types/event';
 import {IssueType} from 'sentry/types/group';
 
 import {
@@ -69,7 +70,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -143,7 +144,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -198,6 +199,15 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
+      const event = builder.getEventFixture();
+      event.occurrence = {
+        ...event.occurrence,
+        evidenceData: {
+          patternSize: 2,
+          patternSpanIds: ['aaa', 'bbb'],
+        },
+      } as EventTransaction['occurrence'];
+
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
@@ -217,7 +227,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -230,13 +240,22 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
       ).toHaveTextContent('SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'db.sql.active_record - SELECT * FROM books WHERE id = %s'
+        'SELECT * FROM books WHERE id = %s'
       );
 
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();
+
+      expect(screen.getByRole('cell', {name: 'Pattern Size'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.pattern-size')
+      ).toHaveTextContent('2');
+      expect(screen.getByRole('cell', {name: 'Pattern Span IDs'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.pattern-span-i-ds')
+      ).toHaveTextContent('aaa, bbb');
     });
   });
 
@@ -301,7 +320,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.65'
       );
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
@@ -409,7 +428,7 @@ describe('SpanEvidenceKeyValueList', () => {
       startTimestamp: 10,
       endTimestamp: 2100,
       op: 'http.client',
-      description: 'GET /book/?book_id=8&sort=down',
+      description: 'GET /user/123/book/?book_id=8&sort=down',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
@@ -425,6 +444,15 @@ describe('SpanEvidenceKeyValueList', () => {
     );
 
     it('Renders relevant fields', () => {
+      const event = builder.getEventFixture();
+      event.occurrence = {
+        ...event.occurrence,
+        subtitle: '/user/*/book/?book_id=*',
+        evidenceData: {
+          pathParameters: ['123'],
+        },
+      } as EventTransaction['occurrence'];
+
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
@@ -444,22 +472,29 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2100'
       );
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/book/[Parameters]');
+      ).toHaveTextContent('/user/*/book/?book_id=*');
 
-      expect(screen.getByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Query Parameters'})).toBeInTheDocument();
 
-      const parametersKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.parameters'
+      const queryParamsKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.query-parameters'
       );
 
-      expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
-      expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
+      expect(queryParamsKeyValue).toHaveTextContent('book_id:{7,8}');
+      expect(queryParamsKeyValue).toHaveTextContent('sort:{up,down}');
+
+      expect(screen.getByRole('cell', {name: 'Path Parameters'})).toBeInTheDocument();
+      const pathParamsKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.path-parameters'
+      );
+
+      expect(pathParamsKeyValue).toHaveTextContent('123');
     });
 
     describe('extractSpanURLString', () => {
@@ -597,7 +632,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
@@ -650,7 +685,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=3'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
@@ -714,7 +749,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.931'
       );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
@@ -814,7 +849,7 @@ describe('SpanEvidenceKeyValueList', () => {
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project:a1/'
+        '/organizations/org-slug/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.487'
       );
 
       expect(

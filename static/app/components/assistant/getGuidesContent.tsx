@@ -1,6 +1,6 @@
 import type {GuidesContent} from 'sentry/components/assistant/types';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -189,38 +189,6 @@ export default function getGuidesContent(
           ),
         },
       ],
-    },
-    {
-      guide: 'crons_backend_insights',
-      requiredTargets: ['crons_backend_insights'],
-      steps: [
-        {
-          title: t('Crons are now Alerts'),
-          target: 'crons_backend_insights',
-          description: tct(
-            'Crons are now a type of Sentry Alert and can be managed there. The detailed timeline is now here under Insights\u00A0→\u00A0Backend. [link:Learn more].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/crons/alerts-backend-insights-migration/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'issue_views_page_filters_persistence',
-      requiredTargets: ['issue_views_page_filters_persistence'],
-      steps: [
-        {
-          title: t('Save Filters to Issue Views'),
-          target: 'issue_views_page_filters_persistence',
-          description: t(
-            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
-          ),
-        },
-      ],
-      dateThreshold: new Date('2025-02-11'),
     },
   ];
 }

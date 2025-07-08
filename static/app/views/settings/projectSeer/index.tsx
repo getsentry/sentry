@@ -1,263 +1,307 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {RepoSettings} from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {NoAccess} from 'sentry/components/noAccess';
+import Placeholder from 'sentry/components/placeholder';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
-import {AutofixRepoItem} from './autofixRepoItem';
-import {MAX_REPOS_LIMIT} from './constants';
+import {AutofixRepositories} from './autofixRepositories';
+
+const AiSetupDataConsent = HookOrDefault({
+  hookName: 'component:ai-setup-data-consent',
+  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+});
 
 interface ProjectSeerProps {
   project: Project;
 }
 
-function ProjectSeer({project}: ProjectSeerProps) {
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
-  const {
-    preference,
-    codeMappingRepos,
-    isPending: isLoadingPreferences,
-  } = useProjectSeerPreferences(project);
+export const SEER_THRESHOLD_MAP = [
+  'off',
+  'super_low',
+  'low',
+  'medium',
+  'high',
+  'always',
+] as const;
+
+const SeerSelectLabel = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+export const seerScannerAutomationField = {
+  name: 'seerScannerAutomation',
+  label: t('Automate Issue Scans'),
+  help: () =>
+    t(
+      'Seer will scan all new issues in your project, helping you focus on the most actionable and quick-to-fix ones, giving more context in Slack alerts, and enabling automatic Issue Fixes.'
+    ),
+  type: 'boolean',
+  saveOnBlur: true,
+} satisfies FieldObject;
+
+export const autofixAutomatingTuningField = {
+  name: 'autofixAutomationTuning',
+  label: t('Automate Issue Fixes'),
+  help: () =>
+    t(
+      "Seer will automatically find a root cause and solution for incoming issues if it thinks the issue is actionable enough. By default, it won't open PRs without your approval."
+    ),
+  type: 'choice',
+  options: [
+    {
+      value: 'off',
+      label: <SeerSelectLabel>{t('Off')}</SeerSelectLabel>,
+      details: t('Seer will never analyze any issues without manually clicking Start.'),
+    },
+    {
+      value: 'super_low',
+      label: <SeerSelectLabel>{t('Only the Most Actionable Issues')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'low',
+      label: <SeerSelectLabel>{t('Highly Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "high" or above. This targets around 10% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'medium',
+      label: <SeerSelectLabel>{t('Moderately Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "medium" or above. This targets around 30% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'high',
+      label: <SeerSelectLabel>{t('Minimally Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 70% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'always',
+      label: <SeerSelectLabel>{t('All Issues')}</SeerSelectLabel>,
+      details: t('Seer will automatically run on all new issues.'),
+    },
+  ],
+  saveOnBlur: true,
+  saveMessage: t('Automatic Seer settings updated'),
+  visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
+} satisfies FieldObject;
+
+function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
-  const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
-  const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
-  const [showSaveNotice, setShowSaveNotice] = useState(false);
+  const canWriteProject = hasEveryAccess(['project:write'], {organization, project});
 
-  useEffect(() => {
-    if (repositories) {
-      if (preference?.repositories) {
-        // Handle existing preferences
-        const preferencesMap = new Map(
-          preference.repositories.map(repo => [
-            repo.external_id,
-            {
-              branch: repo.branch_name || '',
-              instructions: repo.instructions || '',
-            },
-          ])
-        );
+  const handleSubmitSuccess = useCallback(
+    (resp: Project) => {
+      const projectId = project.slug;
 
-        setSelectedRepoIds(preference.repositories.map(repo => repo.external_id));
+      const projectSettingsQueryKey: ApiQueryKey = [
+        `/projects/${organization.slug}/${projectId}/`,
+      ];
+      setApiQueryData(queryClient, projectSettingsQueryKey, resp);
+      ProjectsStore.onUpdateSuccess(resp);
+    },
+    [project.slug, queryClient, organization.slug]
+  );
 
-        const initialSettings: Record<string, RepoSettings> = {};
-        repositories.forEach(repo => {
-          initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
-            branch: '',
-            instructions: '',
-          };
-        });
-
-        setRepoSettings(initialSettings);
-      } else if (codeMappingRepos?.length) {
-        // Set default settings using codeMappingRepos when no preferences exist
-        const repoIds = codeMappingRepos.map(repo => repo.external_id);
-        setSelectedRepoIds(repoIds);
-
-        const initialSettings: Record<string, RepoSettings> = {};
-        repositories.forEach(repo => {
-          initialSettings[repo.externalId] = {
-            branch: '',
-            instructions: '',
-          };
-        });
-
-        setRepoSettings(initialSettings);
-      }
-    }
-  }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
-
-  const updatePreferences = useCallback(
-    (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
-      if (!repositories) {
-        return;
-      }
-
-      const idsToUse = updatedIds || selectedRepoIds;
-      const settingsToUse = updatedSettings || repoSettings;
-      const selectedRepos = repositories.filter(repo =>
-        idsToUse.includes(repo.externalId)
-      );
-
-      const reposData = selectedRepos.map(repo => {
-        const [owner, name] = (repo.name || '/').split('/');
-        return {
-          provider: repo.provider?.name?.toLowerCase() || '',
-          owner: owner || '',
-          name: name || repo.name || '',
-          external_id: repo.externalId,
-          branch_name: settingsToUse[repo.externalId]?.branch || '',
-          instructions: settingsToUse[repo.externalId]?.instructions || '',
-        };
-      });
-
+  const handleStoppingPointChange = useCallback(
+    (value: 'solution' | 'code_changes' | 'open_pr') => {
       updateProjectSeerPreferences({
-        repositories: reposData,
-      });
-
-      setShowSaveNotice(true);
-    },
-    [repositories, selectedRepoIds, repoSettings, updateProjectSeerPreferences]
-  );
-
-  const handleSaveModalSelections = useCallback(
-    (modalSelectedIds: string[]) => {
-      setSelectedRepoIds(modalSelectedIds);
-      updatePreferences(modalSelectedIds);
-    },
-    [updatePreferences]
-  );
-
-  const removeRepository = useCallback(
-    (repoId: string) => {
-      setSelectedRepoIds(prevSelectedIds => {
-        const newIds = prevSelectedIds.filter(id => id !== repoId);
-        updatePreferences(newIds);
-        return newIds;
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: value,
       });
     },
-    [updatePreferences]
+    [updateProjectSeerPreferences, preference?.repositories]
   );
 
-  const updateRepoSettings = useCallback(
-    (repoId: string, settings: RepoSettings) => {
-      setRepoSettings(prev => {
-        const newSettings = {
-          ...prev,
-          [repoId]: settings,
-        };
+  const automatedRunStoppingPointField = {
+    name: 'automated_run_stopping_point',
+    label: t('Stopping Point for Automatic Fixes'),
+    help: () =>
+      t(
+        'Choose how far Seer should go without your approval when running automatically. This does not affect Issue Fixes that you manually start.'
+      ),
+    type: 'choice',
+    options: [
+      {
+        value: 'solution',
+        label: <SeerSelectLabel>{t('Solution (default)')}</SeerSelectLabel>,
+        details: t('Seer will stop after planning out a solution.'),
+      },
+      {
+        value: 'code_changes',
+        label: <SeerSelectLabel>{t('Code Changes')}</SeerSelectLabel>,
+        details: t('Seer will stop after writing the code changes.'),
+      },
+      {
+        value: 'open_pr',
+        label: <SeerSelectLabel>{t('Pull Request')}</SeerSelectLabel>,
+        details: t('Seer will go all the way and open a pull request automatically.'),
+      },
+    ],
+    saveOnBlur: true,
+    saveMessage: t('Stopping point updated'),
+    onChange: handleStoppingPointChange,
+    visible: ({model}) =>
+      model?.getValue('seerScannerAutomation') === true &&
+      model?.getValue('autofixAutomationTuning') !== 'off',
+  } satisfies FieldObject;
 
-        updatePreferences(undefined, newSettings);
-
-        return newSettings;
-      });
+  const seerFormGroups: JsonFormObject[] = [
+    {
+      title: t('Automation'),
+      fields: [
+        seerScannerAutomationField,
+        autofixAutomatingTuningField,
+        automatedRunStoppingPointField,
+      ],
     },
-    [updatePreferences]
-  );
-
-  const {unselectedRepositories, filteredSelectedRepositories} = useMemo(() => {
-    if (!repositories || repositories.length === 0) {
-      return {
-        unselectedRepositories: [],
-        filteredSelectedRepositories: [],
-      };
-    }
-
-    const selected = repositories.filter(repo =>
-      selectedRepoIds.includes(repo.externalId)
-    );
-    const unselected = repositories.filter(
-      repo => !selectedRepoIds.includes(repo.externalId)
-    );
-
-    const filteredSelected = selected.filter(
-      repo => repo.provider?.id && repo.provider.id !== 'unknown'
-    );
-
-    return {
-      unselectedRepositories: unselected,
-      filteredSelectedRepositories: filteredSelected,
-    };
-  }, [repositories, selectedRepoIds]);
-
-  const isRepoLimitReached = selectedRepoIds.length >= MAX_REPOS_LIMIT;
-
-  const openAddRepoModal = useCallback(() => {
-    openModal(deps => (
-      <AddAutofixRepoModalContent
-        {...deps}
-        repositories={repositories || []}
-        selectedRepoIds={selectedRepoIds}
-        onSave={handleSaveModalSelections}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
-      />
-    ));
-  }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
+  ];
 
   return (
-    <Panel>
-      <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
-          {t('Autofix Repositories')}
-          <QuestionTooltip
-            title={t(
-              'Below are the repositories that Autofix will work on. Autofix will only be able to see code from and make PRs to the repositories that you select here.'
-            )}
-            size="sm"
-          />
-        </Flex>
-        <div>
-          <Button
-            size="xs"
-            icon={<IconAdd />}
-            title={
-              isRepoLimitReached
-                ? t('Max repositories reached')
-                : unselectedRepositories?.length === 0
-                  ? t('No repositories to add')
-                  : ''
-            }
-            disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
-            onClick={openAddRepoModal}
-          >
-            {t('Add Repos')}
-          </Button>
-        </div>
-      </PanelHeader>
-
-      {showSaveNotice && (
-        <Alert type="info" showIcon system>
-          {t(
-            'Changes will apply on the next Autofix run or hit "Start Over" in the Autofix panel to start a new run and use your changes.'
+    <Fragment>
+      <Form
+        key={preference?.automated_run_stopping_point ?? 'solution'}
+        saveOnBlur
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+        allowUndo
+        initialData={{
+          seerScannerAutomation: project.seerScannerAutomation ?? false,
+          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+          automated_run_stopping_point:
+            preference?.automated_run_stopping_point ?? 'solution',
+        }}
+        onSubmitSuccess={handleSubmitSuccess}
+        additionalFieldProps={{organization}}
+      >
+        <JsonForm
+          forms={seerFormGroups}
+          disabled={!canWriteProject}
+          renderHeader={() => (
+            <Fragment>
+              <Alert type="info" system>
+                {tct(
+                  "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
+                  {
+                    link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                    spendlink: (
+                      <Link
+                        to={getPricingDocsLinkForEventType(
+                          DataCategoryExact.SEER_AUTOFIX
+                        )}
+                      />
+                    ),
+                    break: <br />,
+                    bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
+                  }
+                )}
+              </Alert>
+              <ProjectPermissionAlert project={project} system />
+            </Fragment>
           )}
-        </Alert>
-      )}
-      {isFetchingRepositories || isLoadingPreferences ? (
-        <LoadingContainer>
-          <StyledLoadingIndicator size={36} />
-          <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-        </LoadingContainer>
-      ) : filteredSelectedRepositories.length === 0 ? (
-        <EmptyMessage>
-          {t('No repositories selected. Click "Add Repos" to get started.')}
-        </EmptyMessage>
-      ) : (
-        <ReposContainer>
-          {filteredSelectedRepositories.map(repo => (
-            <AutofixRepoItem
-              key={repo.id}
-              repo={repo}
-              settings={repoSettings[repo.externalId] || {branch: '', instructions: ''}}
-              onSettingsChange={settings => {
-                updateRepoSettings(repo.externalId, settings);
-              }}
-              onRemove={() => {
-                removeRepository(repo.externalId);
+        />
+      </Form>
+    </Fragment>
+  );
+}
+
+function ProjectSeer({project}: ProjectSeerProps) {
+  const organization = useOrganization();
+  const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
+
+  const needsSetup =
+    !setupAcknowledgement.orgHasAcknowledged ||
+    (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
+
+  if (organization.hideAiFeatures) {
+    return <NoAccess />;
+  }
+
+  if (isLoading) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <Placeholder height="60px" />
+        <br />
+        <Placeholder height="200px" />
+        <br />
+        <Placeholder height="200px" />
+      </Fragment>
+    );
+  }
+
+  if (needsSetup) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <AiSetupDataConsent />
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={t('Project Seer Settings')}
+        projectSlug={project.slug}
+      />
+      <SettingsPageHeader
+        title={tct('Seer Settings for [projectName]', {
+          projectName: (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(`\`${project.slug}\``),
               }}
             />
-          ))}
-        </ReposContainer>
+          ),
+        })}
+      />
+      {organization.features.includes('trigger-autofix-on-issue-summary') && (
+        <ProjectSeerGeneralForm project={project} />
       )}
-    </Panel>
+      <AutofixRepositories project={project} />
+    </Fragment>
   );
 }
 
@@ -277,38 +321,3 @@ export default function ProjectSeerContainer({project}: ProjectSeerProps) {
 
   return <ProjectSeer project={project} />;
 }
-
-const ReposContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-
-  & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;
-
-const EmptyMessage = styled('div')`
-  padding: ${space(2)};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
-`;
-
-const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;

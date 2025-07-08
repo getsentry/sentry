@@ -93,7 +93,7 @@ class SlackNotifyActionTest(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert event.title in blocks[0]["text"]["text"]
+        assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
 
     def test_render_label_with_notes(self):
         rule = self.get_rule(
@@ -279,9 +279,8 @@ class SlackNotifyActionTest(RuleTestCase):
 
             form = rule.get_form_instance()
             assert not form.is_valid()
-            assert (
-                "Received channel name my-channel does not match inputted channel name my-chanel."
-                in str(form.errors.values())
+            assert "Slack: Slack channel name from ID does not match input channel name." in str(
+                form.errors.values()
             )
 
     def test_invalid_workspace(self):
@@ -364,7 +363,7 @@ class SlackNotifyActionTest(RuleTestCase):
             blocks = mock_post.call_args.kwargs["blocks"]
             blocks = orjson.loads(blocks)
 
-            assert event.title in blocks[0]["text"]["text"]
+            assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
             assert blocks[5]["text"]["text"] == self.organization.slug
             assert blocks[6]["text"]["text"] == self.integration.id
             mock_record.assert_called_with(

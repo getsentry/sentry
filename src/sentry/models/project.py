@@ -49,7 +49,6 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -106,6 +105,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-gatsby",
     "javascript-nextjs",
     "javascript-react",
+    "javascript-react-router",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
@@ -236,7 +236,7 @@ class Project(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
+    slug = SentrySlugField(max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -345,6 +345,9 @@ class Project(Model):
 
         # This Project has sent feature flags
         has_flags: bool
+
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
 
         bitfield_default = 10
         bitfield_null = True
@@ -639,7 +642,6 @@ class Project(Model):
             with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
-            incr_rollback_metrics(ProjectTeam)
             return False
         else:
             return True

@@ -2,12 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import type {Alignments} from 'sentry/components/gridEditable/sortLink';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -19,10 +19,9 @@ import {
   fieldAlignment,
   parseFunction,
   prettifyParsedFunction,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   TableBody,
   TableHead,
@@ -31,7 +30,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -52,7 +51,6 @@ const TABLE_HEIGHT = 258;
 interface MultiQueryTableBaseProps {
   confidences: Confidence[];
   index: number;
-  isProgressivelyLoading: boolean;
   mode: Mode;
   query: ReadableExploreQueryParts;
 }
@@ -85,7 +83,6 @@ function AggregatesTable({
   aggregatesTableResult,
   query: queryParts,
   index,
-  isProgressivelyLoading,
 }: AggregateTableProps) {
   const theme = useTheme();
   const location = useLocation();
@@ -98,30 +95,26 @@ function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
+  const {initialTableStyles} = useTableStyles(fields.length, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent>
-                <LoadingIndicatorWrapper>
-                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
-                </LoadingIndicatorWrapper>
-              </TableHeadCellContent>
+              <TableHeadCellContent />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -198,7 +191,7 @@ function AggregatesTable({
                       <TableBodyCell key={j}>
                         <MultiQueryFieldRenderer
                           index={index}
-                          column={columns[j]!}
+                          column={columns[j]}
                           data={row}
                           unit={meta?.units?.[field]}
                           meta={meta}
@@ -238,17 +231,17 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     [fields]
   );
 
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
+  const {initialTableStyles} = useTableStyles(visibleFields.length, tableRef, {
     minimumColumnWidth: 50,
   });
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -305,7 +298,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     <TableBodyCell key={j}>
                       <MultiQueryFieldRenderer
                         index={index}
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -343,13 +336,13 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   height: 33px;
 `;
 
@@ -357,11 +350,4 @@ const TableHeadCellContent = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const LoadingIndicatorWrapper = styled('div')`
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 `;

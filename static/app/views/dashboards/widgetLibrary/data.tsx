@@ -18,9 +18,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('Duration Distribution'),
       description: t('Compare transaction durations across different percentiles.'),
       displayType: DisplayType.LINE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -46,9 +44,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
       displayType: DisplayType.TOP_N,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -103,9 +99,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('LCP by Country'),
       description: t('Table showing page load times by country.'),
       displayType: DisplayType.TABLE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -123,9 +117,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('Miserable Users'),
       description: t('Unique users who have experienced slow load times.'),
       displayType: DisplayType.BIG_NUMBER,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -145,9 +137,7 @@ const getDefaultWidgets = (organization: Organization) => {
         'Percentage breakdown of transaction durations over and under 300ms.'
       ),
       displayType: DisplayType.BAR,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -163,6 +153,127 @@ const getDefaultWidgets = (organization: Organization) => {
           ],
           columns: [],
           orderby: '',
+        },
+      ],
+    },
+  ];
+  const spanWidgets = [
+    {
+      id: 'duration-distribution',
+      title: t('Duration Distribution'),
+      description: t('Compare transaction durations across different percentiles.'),
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: 'is_transaction:True',
+          fields: ['p50(span.duration)', 'p75(span.duration)', 'p95(span.duration)'],
+          aggregates: ['p50(span.duration)', 'p75(span.duration)', 'p95(span.duration)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    },
+    {
+      id: 'high-throughput-transactions',
+      title: t('High Throughput Transactions'),
+      description: t('Top 5 transactions with the largest volume.'),
+      displayType: DisplayType.TOP_N,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: 'is_transaction:True',
+          fields: ['transaction', 'count(span.duration)'],
+          aggregates: ['count(span.duration)'],
+          columns: ['transaction'],
+          orderby: '-count(span.duration)',
+        },
+      ],
+    },
+    {
+      id: 'crash-rates-recent-releases',
+      title: t('Crash Rates for Recent Releases'),
+      description: t('Percentage of crashed sessions for latest releases.'),
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.RELEASE,
+      interval: '5m',
+      limit: 8,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['crash_rate(session)', 'release'],
+          aggregates: ['crash_rate(session)'],
+          columns: ['release'],
+          orderby: '-release',
+        },
+      ],
+    },
+    {
+      id: 'session-health',
+      title: t('Session Health'),
+      description: t('Number of abnormal, crashed, errored and healthy sessions.'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.RELEASE,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['session.status', 'sum(session)'],
+          aggregates: ['sum(session)'],
+          columns: ['session.status'],
+          orderby: '-sum(session)',
+        },
+      ],
+    },
+    {
+      id: 'lcp-country',
+      title: t('LCP by Country'),
+      description: t('Table showing page load times by country.'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: 'is_transaction:True span.op:pageload has:user.geo.country_code',
+          fields: ['user.geo.country_code', 'user.geo.region', 'p75(measurements.lcp)'],
+          aggregates: ['p75(measurements.lcp)'],
+          columns: ['user.geo.country_code', 'user.geo.region'],
+          orderby: '-p75(measurements.lcp)',
+        },
+      ],
+    },
+    {
+      id: 'slow-vs-fast',
+      title: t('Slow vs. Fast Transactions'),
+      description: t('Count breakdown of transaction durations over and under 300ms.'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: 'Slow Transactions',
+          fields: ['count(span.duration)'],
+          columns: [],
+          fieldAliases: [],
+          aggregates: ['count(span.duration)'],
+          conditions: 'span.duration:>300ms is_transaction:true',
+          orderby: 'count(span.duration)',
+        },
+        {
+          name: 'Fast Transactions',
+          fields: ['count(span.duration)'],
+          columns: [],
+          fieldAliases: [],
+          aggregates: ['count(span.duration)'],
+          conditions: 'span.duration:<=300ms is_transaction:true',
+          orderby: 'count(span.duration)',
         },
       ],
     },
@@ -191,9 +302,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),
       displayType: DisplayType.TOP_N,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.ERRORS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       interval: '5m',
       queries: [
         {
@@ -211,9 +320,7 @@ const getDefaultWidgets = (organization: Organization) => {
       title: t('Users Affected by Errors'),
       description: t('Footprint of unique users affected by errors.'),
       displayType: DisplayType.LINE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.ERRORS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       interval: '5m',
       queries: [
         {
@@ -227,9 +334,12 @@ const getDefaultWidgets = (organization: Organization) => {
       ],
     },
   ];
+
   return isSelfHostedErrorsOnly
     ? errorsWidgets
-    : [...transactionsWidgets, ...errorsWidgets];
+    : organization.features.includes('visibility-explore-view')
+      ? [...spanWidgets, ...errorsWidgets]
+      : [...transactionsWidgets, ...errorsWidgets];
 };
 
 export function getTopNConvertedDefaultWidgets(

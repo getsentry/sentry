@@ -9,11 +9,8 @@ import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-  updateVisualizeAggregate,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   type ReadableExploreQueryParts,
@@ -31,32 +28,16 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const [yAxis, parsedFunction] = findFirstFunction(query.yAxes);
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
 
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions =
-    defined(parsedFunction) &&
-    parsedFunction.name === DEFAULT_VISUALIZATION_AGGREGATE &&
-    parsedFunction.arguments.length === 1 &&
-    parsedFunction.arguments[0] === DEFAULT_VISUALIZATION_FIELD;
+  const parsedFunction = findFirstFunction(query.yAxes);
 
-  const countFieldOptions: Array<SelectOption<string>> = useMemo(
-    () => [
-      {
-        label: t('spans'),
-        value: DEFAULT_VISUALIZATION_FIELD,
-        textValue: DEFAULT_VISUALIZATION_FIELD,
-      },
-    ],
-    []
-  );
-  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({
-    yAxes: query.yAxes,
-    yAxis,
+  const options: Array<SelectOption<string>> = useVisualizeFields({
+    numberTags,
+    stringTags,
+    parsedFunction,
   });
-  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
   const updateYAxis = useUpdateQueryAtIndex(index);
 
@@ -85,7 +66,7 @@ export function VisualizeSection({query, index}: Props) {
         <StyledPageFilterBar>
           <CompactSelect
             options={aggregateOptions}
-            value={parsedFunction?.name}
+            value={parsedFunction?.name ?? ''}
             onChange={newAggregate => {
               const newYAxis = updateVisualizeAggregate({
                 newAggregate: newAggregate.value,
@@ -97,13 +78,13 @@ export function VisualizeSection({query, index}: Props) {
           />
           <CompactSelect
             searchable
-            options={fieldOptions}
-            value={parsedFunction?.arguments?.[0]}
+            options={options}
+            value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {
               const newYAxis = `${parsedFunction!.name}(${newField.value})`;
               updateYAxis({yAxes: [newYAxis]});
             }}
-            disabled={lockOptions}
+            disabled={options.length === 1}
           />
         </StyledPageFilterBar>
       </Fragment>
@@ -113,15 +94,15 @@ export function VisualizeSection({query, index}: Props) {
 
 function findFirstFunction(
   yAxes: ReadableExploreQueryParts['yAxes']
-): [string | undefined, ParsedFunction | undefined] {
+): ParsedFunction | undefined {
   for (const yAxis of yAxes) {
     const parsed = parseFunction(yAxis);
     if (defined(parsed)) {
-      return [yAxis, parsed];
+      return parsed;
     }
   }
 
-  return [undefined, undefined];
+  return undefined;
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`

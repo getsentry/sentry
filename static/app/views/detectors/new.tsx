@@ -1,5 +1,12 @@
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import styled from '@emotion/styled';
+
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import * as Layout from 'sentry/components/layouts/thirds';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -7,26 +14,87 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
-import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+
+interface NewDetectorFormData {
+  detectorType: DetectorType;
+  project: string;
+}
 
 export default function DetectorNew() {
+  const navigate = useNavigate();
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const location = useLocation();
+  const {projects} = useProjects();
+  const detectorType = location.query.detectorType as DetectorType;
 
+  const projectIdFromLocation =
+    typeof location.query.project === 'string' ? location.query.project : undefined;
+  const defaultProject = projects.find(p => p.isMember) ?? projects[0];
+
+  const newMonitorName = t('New Monitor');
   return (
-    <NewDetectorLayout>
-      <DetectorTypeForm />
+    <FullHeightForm
+      onSubmit={formData => {
+        // Form doesn't allow type to be defined, cast to the expected shape
+        const data = formData as NewDetectorFormData;
+        navigate({
+          pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
+          query: {
+            detectorType: data.detectorType,
+            project: data.project,
+          },
+        });
+      }}
+      hideFooter
+      initialData={
+        {
+          detectorType,
+          project: projectIdFromLocation ?? defaultProject?.id ?? '',
+        } satisfies NewDetectorFormData
+      }
+    >
+      <SentryDocumentTitle title={newMonitorName} />
+      <Layout.Page>
+        <StyledLayoutHeader>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {label: newMonitorName},
+              ]}
+            />
+            <Layout.Title>{newMonitorName}</Layout.Title>
+          </Layout.HeaderContent>
+        </StyledLayoutHeader>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <DetectorTypeForm />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/issues/monitors">
+          <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
             {t('Cancel')}
           </LinkButton>
-          <LinkButton priority="primary" to="settings">
+          <Button priority="primary" type="submit">
             {t('Next')}
-          </LinkButton>
+          </Button>
         </Flex>
       </StickyFooter>
-    </NewDetectorLayout>
+    </FullHeightForm>
   );
 }
+
+const StyledLayoutHeader = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
+`;

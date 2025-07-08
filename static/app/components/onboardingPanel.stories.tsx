@@ -6,22 +6,20 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('OnboardingPanel', story => {
+export default Storybook.story('OnboardingPanel', story => {
   story('Basics', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="OnboardingPanel" /> component is used for creating an empty
-          state layout or onboarding display. It can be used to show an empty state image
-          side-by-side with onboarding content.
+          The <Storybook.JSXNode name="OnboardingPanel" /> component is used for creating
+          an empty state layout or onboarding display. It can be used to show an empty
+          state image side-by-side with onboarding content.
         </p>
         <p>
-          An example <JSXNode name="OnboardingPanel" /> with an image looks like this:
+          An example <Storybook.JSXNode name="OnboardingPanel" /> with an image looks like
+          this:
         </p>
 
         <OnboardingPanel image={<img src={emptyStateImg} />}>
@@ -41,7 +39,7 @@ export default storyBook('OnboardingPanel', story => {
           the component.
         </p>
         <p>The panel also automatically resizes correctly for narrow screens:</p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <OnboardingPanel image={<img src={emptyStateImg} />}>
             <h3>What do users think?</h3>
             <p>
@@ -49,7 +47,7 @@ export default storyBook('OnboardingPanel', story => {
               impact of their crashes or bugs and you shall receive.
             </p>
           </OnboardingPanel>
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </Fragment>
     );
   });
@@ -58,15 +56,15 @@ export default storyBook('OnboardingPanel', story => {
     return (
       <Fragment>
         <p>
-          You're not required to specify an <JSXProperty name="image" value /> with this
-          component, in which case your <JSXNode name="OnboardingPanel" /> might look
-          something like this.
+          You're not required to specify an <Storybook.JSXProperty name="image" value />{' '}
+          with this component, in which case your{' '}
+          <Storybook.JSXNode name="OnboardingPanel" /> might look something like this.
         </p>
         <p>
           Here, we've specified the optional property
-          <JSXProperty name="noCenter" value="true" />, which makes the content
-          left-aligned. Note that the <JSXProperty name="noCenter" value /> prop is only
-          valid if there isn't an image specified!
+          <Storybook.JSXProperty name="noCenter" value="true" />, which makes the content
+          left-aligned. Note that the <Storybook.JSXProperty name="noCenter" value /> prop
+          is only valid if there isn't an image specified!
         </p>
         <OnboardingPanel noCenter>
           <h3>What do users think?</h3>

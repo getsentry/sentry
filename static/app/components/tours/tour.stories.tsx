@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {
   TourContextProvider,
   type TourContextProviderProps,
@@ -18,7 +16,7 @@ import {
 } from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
@@ -38,7 +36,7 @@ function useMyTour(): TourContextType<MyTour> {
   return tourContext;
 }
 
-export default storyBook('Tours', story => {
+export default Storybook.story('Tours', story => {
   story('Getting Started', () => (
     <Fragment>
       <p>
@@ -131,8 +129,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
     <Fragment>
       <p>
         Now, to implement your tour, you need to wrap your components in the{' '}
-        <JSXNode name="TourContextProvider" /> and pass in the context, and ordered steps
-        you created earlier.
+        <Storybook.JSXNode name="TourContextProvider" /> and pass in the context, and
+        ordered steps you created earlier.
       </p>
       <CodeSnippet language="tsx">
         {`<TourContextProvider<MyTour>
@@ -145,8 +143,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       </CodeSnippet>
 
       <p>
-        Now, you can use the <JSXNode name="TourElement" /> component to wrap the
-        component you wish to highlight.
+        Now, you can use the <Storybook.JSXNode name="TourElement" /> component to wrap
+        the component you wish to highlight.
       </p>
       <CodeSnippet language="tsx">
         {`// Before...
@@ -170,8 +168,9 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       </p>
       <Alert type="warning">
         <strong>Note:</strong> The tour will not start until all of the steps are present
-        in the DOM! The <JSXNode name="TourContextProvider" /> component you created
-        earlier will be keeping track of this internally. You can check this with the
+        in the DOM! The <Storybook.JSXNode name="TourContextProvider" /> component you
+        created earlier will be keeping track of this internally. You can check this with
+        the
         <code>isRegistered</code> property of the context.
       </Alert>
       <br />
@@ -327,7 +326,7 @@ function TourProvider({
   tourProviderProps?: Partial<TourContextProviderProps<MyTour>>;
 }) {
   return (
-    <SizingWindow>
+    <Storybook.SizingWindow>
       <BlurBoundary>
         <TourContextProvider<MyTour>
           isCompleted={false}
@@ -336,7 +335,12 @@ function TourProvider({
           {...tourProviderProps}
         >
           <Flex gap={space(2)} align="center">
-            <Flex gap={space(2)} justify="space-between" column align="flex-start">
+            <Flex
+              gap={space(2)}
+              justify="space-between"
+              direction="column"
+              align="flex-start"
+            >
               <StartTourButton />
               {children}
             </Flex>
@@ -350,7 +354,7 @@ function TourProvider({
           </Flex>
         </TourContextProvider>
       </BlurBoundary>
-    </SizingWindow>
+    </Storybook.SizingWindow>
   );
 }
 

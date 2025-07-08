@@ -243,6 +243,11 @@ class Monitor(Model):
     Human readable name of the monitor. Used for display purposes.
     """
 
+    is_upserting = models.BooleanField(default=False, db_default=False)
+    """
+    Indicates that the most recently received check-in was an upsert check-in.
+    """
+
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     """
     The user assigned as the owner of this model.
@@ -465,14 +470,23 @@ class MonitorCheckIn(Model):
     check-in.
     """
 
+    date_created = models.DateTimeField(default=timezone.now, null=True)
+    """
+    Represents when the check-in was actually recorded into the database. This
+    is a real wall-clock time and is not tied to the "clock" time that
+    check-ins are processed in the context of.
+    """
+
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
     """
-    Represents the time the checkin was made. This CAN BE back-dated in some
-    cases, and does not necessarily represent the insertion time of the row in
-    the database.
+    Represents the time the checkin was made. This date comes from the time
+    relay received the envelope containing the check-in.
+    """
 
-    This date comes from the time relay reiceved the envelope containing the
-    check-in.
+    date_updated = models.DateTimeField(default=timezone.now)
+    """
+    Represents the last time a check-in was updated. This will typically be by
+    the terminal state.
     """
 
     date_clock = models.DateTimeField(null=True)
@@ -484,18 +498,10 @@ class MonitorCheckIn(Model):
     as detecting misses)
     """
 
-    date_created = models.DateTimeField(default=timezone.now, null=True)
+    date_in_progress = models.DateTimeField(null=True)
     """
-    Represents when the check-in was actually recorded into the database. This
-    is a real wall-clock time and is not tied to the "clock" time that
-    check-ins are processed in the contenxt of.
-    """
-
-    date_updated = models.DateTimeField(default=timezone.now)
-    """
-    Currently only updated when a in_progress check-in is sent with this
-    check-in's guid. Can be used to extend the lifetime of a check-in so that
-    it does not time out.
+    Records the time when the first in_progress check-in was received by relay.
+    If no in_progress check-in was ever sent this will remain null.
     """
 
     expected_time = models.DateTimeField(null=True)

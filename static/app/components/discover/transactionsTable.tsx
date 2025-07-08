@@ -3,12 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -257,12 +257,10 @@ function TransactionsTable(props: Props) {
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
   return () => {
-    let source: any;
-    if (referrer === 'performance.transactions_summary') {
-      source = 'performance.transactions_summary.overview';
-    } else {
-      source = 'discover.transactions_table';
-    }
+    const source =
+      referrer === 'performance.transactions_summary'
+        ? ('performance.transactions_summary.overview' as const)
+        : ('discover.transactions_table' as const);
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source,

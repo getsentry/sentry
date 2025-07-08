@@ -2,7 +2,7 @@ import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
 import type {Organization} from 'sentry/types/organization';
 
-export function OrganizationFixture( params: Partial<Organization> = {}): Organization {
+export function OrganizationFixture(params: Partial<Organization> = {}): Organization {
   const slug = params.slug ?? 'org-slug';
   return {
     id: '3',
@@ -58,6 +58,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     githubNudgeInvite: false,
     githubOpenPRBot: false,
     githubPRBot: false,
+    gitlabPRBot: false,
     hideAiFeatures: false,
     isDefault: false,
     isDynamicallySampled: true,
@@ -84,6 +85,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     aggregatedDataConsent: false,
     storeCrashReports: 0,
     trustedRelays: [],
+    defaultAutofixAutomationTuning: 'off',
     ...params,
 
     orgRoleList: OrgRoleListFixture(),

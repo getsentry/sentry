@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
-import {TabList, TabPanels, TabStateProvider} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';

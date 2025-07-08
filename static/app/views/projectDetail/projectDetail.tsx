@@ -7,8 +7,8 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -301,7 +301,7 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }
 `;

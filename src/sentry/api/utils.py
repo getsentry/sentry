@@ -44,7 +44,7 @@ from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -454,7 +454,7 @@ def update_snuba_params_with_timestamp(
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
         time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        set_span_attribute("trace_view.transactions.time_buffer", time_buffer)
         example_start = example_timestamp - timedelta(days=time_buffer)
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
@@ -462,3 +462,11 @@ def update_snuba_params_with_timestamp(
 
         params.start = max(params.start_date, example_start)
         params.end = min(params.end_date, example_end)
+
+
+def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
+    """
+    `timestamp_ms` arrives from Snuba in a slightly different format (no `T` and no timezone), so we convert to datetime and
+    back to isoformat to keep it standardized with other timestamp fields
+    """
+    return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()

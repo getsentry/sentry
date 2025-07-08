@@ -1,5 +1,5 @@
 ---
-created: '2025-03-13T12:25:04.085418+00:00'
+created: '2025-05-23T05:31:14.868491+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -27,6 +27,7 @@ config:
       - ms-browser-extension
       - chrome://*
       - chrome-extension://*
+      - chrome-extension
       - chromeinvokeimmediate://*
       - chromenull://*
       - data:text/html,chromewebdata
@@ -153,31 +154,8 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
+    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
-  metrics:
-    cardinalityLimits:
-    - id: transactions
-      limit: 10000
-      namespace: transactions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: sessions
-      limit: 10000
-      namespace: sessions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: spans
-      limit: 10000
-      namespace: spans
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
   performanceScore:
     profiles:
     - condition:

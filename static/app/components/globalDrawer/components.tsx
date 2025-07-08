@@ -41,6 +41,7 @@ interface DrawerPanelProps {
   drawerCss?: DrawerOptions['drawerCss'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
+  ref?: React.Ref<HTMLDivElement>;
   resizable?: DrawerOptions['resizable'];
   transitionProps?: AnimationProps['transition'];
 }
@@ -55,9 +56,7 @@ function DrawerPanel({
   drawerKey,
   resizable = true,
   drawerCss,
-}: DrawerPanelProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
@@ -117,6 +116,7 @@ interface DrawerHeaderProps {
    * If true, hides the close button
    */
   hideCloseButton?: boolean;
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
 export function DrawerHeader({
@@ -125,9 +125,7 @@ export function DrawerHeader({
   children = null,
   hideBar = false,
   hideCloseButton = false,
-}: DrawerHeaderProps & {
-  ref?: React.Ref<HTMLHeadingElement>;
-}) {
+}: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
 
   return (
@@ -178,7 +176,7 @@ const Header = styled('header')`
 
 export const DrawerBody = styled('aside')`
   padding: ${space(2)} 24px;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const DrawerContainer = styled('div')`
@@ -219,7 +217,6 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
     /* Apply to all scrollable children */
     * {
-      overflow: hidden !important;
       scrollbar-width: none;
 
       &::-webkit-scrollbar {

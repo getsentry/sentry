@@ -1,23 +1,19 @@
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.tasks.open_pr_comment import (
-    format_issue_table,
-    format_open_pr_comment,
-    get_issue_table_contents,
-    get_pr_files,
-    get_projects_and_filenames_from_source_file,
-    get_top_5_issues_by_count_for_file,
-    open_pr_comment_workflow,
-    safe_for_comment,
-)
-from sentry.integrations.github.tasks.utils import PullRequestFile, PullRequestIssue
+from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
+from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.commit_context import (
+    PullRequestFile,
+    PullRequestIssue,
+)
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
 from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.group import Group, GroupStatus
@@ -25,6 +21,8 @@ from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComme
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.github.tasks.test_pr_comment import GithubCommentTestCase
@@ -87,9 +85,17 @@ class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch(
-            "sentry.integrations.github.tasks.open_pr_comment.metrics"
-        ).start()
+
+        mock_metrics_patcher = patch(
+            "sentry.integrations.source_code_management.commit_context.metrics"
+        )
+        self.mock_metrics = mock_metrics_patcher.start()
+        self.addCleanup(mock_metrics_patcher.stop)
+
+        mock_integration_metrics_patcher = patch("sentry.integrations.github.integration.metrics")
+        self.mock_integration_metrics = mock_integration_metrics_patcher.start()
+        self.addCleanup(mock_integration_metrics_patcher.stop)
+
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = installation.get_client()
@@ -104,6 +110,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+            {"filename": "raj.cs", "changes": 100, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -112,12 +119,64 @@ class TestSafeForComment(GithubCommentTestCase):
             json=data,
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_simple_with_csharp(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.js", "changes": 0, "status": "renamed"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:go-open-pr-comments")
+    def test_simple_with_go(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -139,9 +198,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_called_with(
+        self.mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
         )
 
@@ -157,9 +216,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_called_with(
+        self.mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
 
@@ -182,9 +241,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_any_call(
+        self.mock_integration_metrics.incr.assert_any_call(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
 
@@ -200,9 +259,9 @@ class TestSafeForComment(GithubCommentTestCase):
             },
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_called_with(
+        self.mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
         )
 
@@ -212,9 +271,9 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_called_with(
+        self.mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error",
             tags={"type": "missing_gh_pull_request", "code": 404},
         )
@@ -225,9 +284,9 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == []  # not safe
-        self.mock_metrics.incr.assert_called_with(
+        self.mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
         )
 
@@ -236,9 +295,13 @@ class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch(
+
+        mock_metrics_patcher = patch(
             "sentry.integrations.source_code_management.commit_context.metrics"
-        ).start()
+        )
+        self.mock_metrics = mock_metrics_patcher.start()
+        self.addCleanup(mock_metrics_patcher.stop)
+
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = installation.get_client()
@@ -250,7 +313,7 @@ class TestGetFilenames(GithubCommentTestCase):
             {"filename": "baz.py", "status": "modified"},
         ]
 
-        pr_files = get_pr_files(data)
+        pr_files = self.open_pr_comment_workflow.get_pr_files(data)
         assert len(pr_files) == 1
 
         pr_file = pr_files[0]
@@ -308,8 +371,10 @@ class TestGetFilenames(GithubCommentTestCase):
             "sentry/tasks/integrations/github/open_pr_comment.py",
         ]
 
-        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, self.gh_repo.id, filename
+        project_list, sentry_filenames = (
+            self.open_pr_comment_workflow.get_projects_and_filenames_from_source_file(
+                organization=self.organization, repo=self.gh_repo, pr_filename=filename
+            )
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
@@ -355,15 +420,27 @@ class TestGetFilenames(GithubCommentTestCase):
             "sentry/tasks/integrations/github/open_pr_comment.py",
         ]
 
-        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, self.gh_repo.id, filename
+        project_list, sentry_filenames = (
+            self.open_pr_comment_workflow.get_projects_and_filenames_from_source_file(
+                organization=self.organization, repo=self.gh_repo, pr_filename=filename
+            )
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
 
 
-class TestGetCommentIssues(CreateEventTestCase):
+class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+
     def setUp(self):
+        super().setUp()
+
+        self.installation = get_installation_of_type(
+            GitHubIntegration, integration=self.integration, org_id=self.organization.id
+        )
+        self.open_pr_comment_workflow = self.installation.get_open_pr_comment_workflow()
+
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
         self.another_org = self.create_organization()
         self.another_org_project = self.create_project(organization=self.another_org)
@@ -372,8 +449,8 @@ class TestGetCommentIssues(CreateEventTestCase):
         group_id = [
             self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
         ][0].group.id
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.py"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
         )
 
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
@@ -399,8 +476,8 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
             for i in range(6)
         ][0].group.id
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.js"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.js"], function_names=["world", "planet"]
         )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
@@ -425,8 +502,10 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
             for i in range(6)
         ][0].group.id
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.php"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project],
+            sentry_filenames=["baz.php"],
+            function_names=["world", "planet"],
         )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
@@ -451,13 +530,66 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
             for i in range(6)
         ][0].group.id
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.rb"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.rb"], function_names=["world", "planet"]
         )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_csharp_simple(self):
+        group_id_1 = [
+            self._create_event(
+                function_names=["test.planet", "test/component.blue"],
+                filenames=["baz.cs", "foo.cs"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["test/component.blue", "world"],
+                filenames=["foo.cs", "baz.cs"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.cs"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:go-open-pr-comments")
+    def test_go_simple(self):
+        # should match function name exactly or struct.functionName
+        group_id_1 = [
+            self._create_event(
+                function_names=["handler.planet", "service.blue"],
+                filenames=["baz.go", "foo.go"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["service.blue", "world"],
+                filenames=["foo.go", "baz.go"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.go"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["handler.planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]
@@ -466,13 +598,17 @@ class TestGetCommentIssues(CreateEventTestCase):
         group.substatus = None
         group.save()
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         assert len(top_5_issues) == 0
 
     def test_filters_handled_issue(self):
         group_id = self._create_event(filenames=["bar.py", "baz.py"], handled=True).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -481,7 +617,9 @@ class TestGetCommentIssues(CreateEventTestCase):
         # we fetch all group_ids that belong to the projects passed into the function
         self._create_event(project_id=self.another_org_project.id)
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
 
@@ -490,7 +628,9 @@ class TestGetCommentIssues(CreateEventTestCase):
             filenames=["foo.py", "bar.py"],
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -500,7 +640,9 @@ class TestGetCommentIssues(CreateEventTestCase):
             function_names=["world", "hello"],
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -510,7 +652,9 @@ class TestGetCommentIssues(CreateEventTestCase):
             function_names=["world", "hello"], filenames=["baz.py", "bar.py"], culprit="hi"
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert group_id != self.group_id
@@ -522,7 +666,9 @@ class TestGetCommentIssues(CreateEventTestCase):
         filenames = ["baz.py"] + ["foo.py" for _ in range(STACKFRAME_COUNT)]
         group_id = self._create_event(function_names=function_names, filenames=filenames).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -532,7 +678,9 @@ class TestGetCommentIssues(CreateEventTestCase):
             timestamp=before_now(days=15).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -559,8 +707,8 @@ class TestGetCommentIssues(CreateEventTestCase):
             for i in range(5)
         ][0].group_id
 
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.py"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
         )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
@@ -613,8 +761,8 @@ class TestGetCommentIssues(CreateEventTestCase):
         # unrelated issue with same stack trace in different project
         self._create_event(project_id=self.another_org_project.id)
 
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.py"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
         )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
@@ -665,14 +813,16 @@ class TestGetCommentIssues(CreateEventTestCase):
             for i in range(2)
         ][0].group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file(
-            [self.project], ["baz.py"], ["world", "planet"]
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
         )
         affected_users = [6, 5, 4, 3, 2]
         event_count = [issue["event_count"] for issue in top_5_issues]
         function_names = [issue["function_name"] for issue in top_5_issues]
 
-        comment_table_contents = get_issue_table_contents(top_5_issues)
+        comment_table_contents = self.open_pr_comment_workflow.get_issue_table_contents(
+            top_5_issues
+        )
         group_ids = [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
 
         for i in range(5):
@@ -690,9 +840,16 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
 
 
-class TestFormatComment(TestCase):
+class TestFormatComment(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+
     def setUp(self):
         super().setUp()
+        self.installation = get_installation_of_type(
+            GitHubIntegration, integration=self.integration, org_id=self.organization.id
+        )
+        self.open_pr_comment_workflow = self.installation.get_open_pr_comment_workflow()
 
     def test_comment_format_python(self):
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.py"
@@ -722,31 +879,37 @@ class TestFormatComment(TestCase):
             for i in range(2)
         ]
 
-        issue_table = format_issue_table(file1, file1_issues, PATCH_PARSERS, toggle=False)
-        toggle_issue_table = format_issue_table(file2, file2_issues, PATCH_PARSERS, toggle=True)
-        comment = format_open_pr_comment([issue_table, toggle_issue_table])
+        issue_table = self.open_pr_comment_workflow.format_issue_table(
+            diff_filename=file1, issues=file1_issues, patch_parsers=PATCH_PARSERS, toggle=False
+        )
+        toggle_issue_table = self.open_pr_comment_workflow.format_issue_table(
+            diff_filename=file2, issues=file2_issues, patch_parsers=PATCH_PARSERS, toggle=True
+        )
+        comment = self.open_pr_comment_workflow.format_open_pr_comment(
+            [issue_table, toggle_issue_table]
+        )
 
         assert (
             comment
-            == """## 🔍 Existing Issues For Review
+            == f"""## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 📄 File: **tests/sentry/tasks/integrations/github/test_open_pr_comment.py**
 
 | Function | Unhandled Issue |
 | :------- | :----- |
-| **`function_0`** | [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Event Count:` **5k** |
-| **`function_1`** | [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Event Count:` **4k** |
-| **`function_2`** | [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Event Count:` **3k** |
-| **`function_3`** | [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Event Count:` **2k** |
-| **`function_4`** | [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Event Count:` **1k** |
+| **`function_0`** | [**file1 0**](http://testserver/organizations/{self.organization.slug}/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Event Count:` **5k** |
+| **`function_1`** | [**file1 1**](http://testserver/organizations/{self.organization.slug}/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Event Count:` **4k** |
+| **`function_2`** | [**file1 2**](http://testserver/organizations/{self.organization.slug}/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Event Count:` **3k** |
+| **`function_3`** | [**file1 3**](http://testserver/organizations/{self.organization.slug}/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Event Count:` **2k** |
+| **`function_4`** | [**file1 4**](http://testserver/organizations/{self.organization.slug}/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Event Count:` **1k** |
 <details>
 <summary><b>📄 File: tests/sentry/tasks/integrations/github/test_pr_comment.py (Click to Expand)</b></summary>
 
 | Function | Unhandled Issue |
 | :------- | :----- |
-| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** |
-| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** |
+| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** |
+| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** |
 </details>
 ---
 
@@ -781,31 +944,37 @@ Your pull request is modifying functions with the following pre-existing issues:
             for i in range(2)
         ]
 
-        issue_table = format_issue_table(file1, file1_issues, PATCH_PARSERS, toggle=False)
-        toggle_issue_table = format_issue_table(file2, file2_issues, PATCH_PARSERS, toggle=True)
-        comment = format_open_pr_comment([issue_table, toggle_issue_table])
+        issue_table = self.open_pr_comment_workflow.format_issue_table(
+            diff_filename=file1, issues=file1_issues, patch_parsers=PATCH_PARSERS, toggle=False
+        )
+        toggle_issue_table = self.open_pr_comment_workflow.format_issue_table(
+            diff_filename=file2, issues=file2_issues, patch_parsers=PATCH_PARSERS, toggle=True
+        )
+        comment = self.open_pr_comment_workflow.format_open_pr_comment(
+            [issue_table, toggle_issue_table]
+        )
 
         assert (
             comment
-            == """## 🔍 Existing Issues For Review
+            == f"""## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 📄 File: **tests/sentry/tasks/integrations/github/test_open_pr_comment.js**
 
 | Function | Unhandled Issue |
 | :------- | :----- |
-| **`function_0`** | [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Event Count:` **5k** `Affected Users:` **5k** |
-| **`function_1`** | [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Event Count:` **4k** `Affected Users:` **4k** |
-| **`function_2`** | [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Event Count:` **3k** `Affected Users:` **3k** |
-| **`function_3`** | [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Event Count:` **2k** `Affected Users:` **2k** |
-| **`function_4`** | [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Event Count:` **1k** `Affected Users:` **1k** |
+| **`function_0`** | [**file1 0**](http://testserver/organizations/{self.organization.slug}/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Event Count:` **5k** `Affected Users:` **5k** |
+| **`function_1`** | [**file1 1**](http://testserver/organizations/{self.organization.slug}/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Event Count:` **4k** `Affected Users:` **4k** |
+| **`function_2`** | [**file1 2**](http://testserver/organizations/{self.organization.slug}/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Event Count:` **3k** `Affected Users:` **3k** |
+| **`function_3`** | [**file1 3**](http://testserver/organizations/{self.organization.slug}/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Event Count:` **2k** `Affected Users:` **2k** |
+| **`function_4`** | [**file1 4**](http://testserver/organizations/{self.organization.slug}/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Event Count:` **1k** `Affected Users:` **1k** |
 <details>
 <summary><b>📄 File: tests/sentry/tasks/integrations/github/test_pr_comment.js (Click to Expand)</b></summary>
 
 | Function | Unhandled Issue |
 | :------- | :----- |
-| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** `Affected Users:` **20k** |
-| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** `Affected Users:` **10k** |
+| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/{self.organization.slug}/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** `Affected Users:` **20k** |
+| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/{self.organization.slug}/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** `Affected Users:` **10k** |
 </details>
 ---
 
@@ -815,20 +984,24 @@ Your pull request is modifying functions with the following pre-existing issues:
     def test_comment_format_missing_language(self):
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.docx"
 
-        issue_table = format_issue_table(file1, [], PATCH_PARSERS, toggle=False)
+        issue_table = self.open_pr_comment_workflow.format_issue_table(
+            diff_filename=file1, issues=[], patch_parsers=PATCH_PARSERS, toggle=False
+        )
 
         assert issue_table == ""
 
 
-@patch("sentry.integrations.github.tasks.open_pr_comment.get_pr_files")
+@patch("sentry.integrations.github.integration.GitHubOpenPRCommentWorkflow.get_pr_files")
 @patch(
-    "sentry.integrations.github.tasks.open_pr_comment.get_projects_and_filenames_from_source_file"
+    "sentry.integrations.github.integration.GitHubOpenPRCommentWorkflow.get_projects_and_filenames_from_source_file"
 )
 @patch(
     "sentry.integrations.source_code_management.language_parsers.PythonParser.extract_functions_from_patch"
 )
-@patch("sentry.integrations.github.tasks.open_pr_comment.get_top_5_issues_by_count_for_file")
-@patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
+@patch(
+    "sentry.integrations.github.integration.GitHubOpenPRCommentWorkflow.get_top_5_issues_by_count_for_file"
+)
+@patch("sentry.integrations.github.integration.GitHubOpenPRCommentWorkflow.safe_for_comment")
 @patch("sentry.integrations.source_code_management.commit_context.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
@@ -836,11 +1009,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     def setUp(self):
         self.user_id = "user_1"
         self.app_id = "app_1"
-
-        self.group_id_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
+        self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
             0
-        ].group.id
-        self.group_id_2 = [
+        ].group
+        self.group_id_1 = self.group_1.id
+        self.group_2 = [
             self._create_event(
                 culprit="issue2",
                 filenames=["foo.py", "bar.py"],
@@ -848,7 +1021,8 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 user_id=str(i),
             )
             for i in range(6)
-        ][0].group.id
+        ][0].group
+        self.group_id_2 = self.group_2.id
 
         self.gh_repo = self.create_repo(
             name="getsentry/sentry",
@@ -868,7 +1042,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 "event_count": 1000 * (i + 1),
                 "function_name": "function_" + str(i),
             }
-            for i, g in enumerate(Group.objects.all())
+            for i, g in enumerate([self.group_1, self.group_2])
         ]
         self.groups.reverse()
 
@@ -901,14 +1075,28 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             json={"id": 1},
             headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
         )
-
         open_pr_comment_workflow(self.pr.id)
 
-        assert (
-            f'"body": "## \\ud83d\\udd0d Existing Issues For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
-            in responses.calls[0].request.body
+        expected_body = (
+            "## 🔍 Existing Issues For Review\n"
+            "Your pull request is modifying functions with the following pre-existing issues:\n\n"
+            "📄 File: **foo.py**\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "<details>\n"
+            "<summary><b>📄 File: bar.py (Click to Expand)</b></summary>\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "</details>\n"
+            "---\n\n"
+            "<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         )
 
+        assert orjson.loads(responses.calls[0].request.body.decode())["body"] == expected_body
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         comment = pull_request_comment_query[0]
@@ -977,10 +1165,12 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_early_return(
         self,
+        mock_integration_metrics,
         mock_metrics,
         mock_analytics,
         _,
@@ -996,7 +1186,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
 
@@ -1034,7 +1224,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
@@ -1115,7 +1305,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         )
         assert not mock_analytics.called
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_pr(
         self,
         mock_metrics,
@@ -1132,10 +1322,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_pr"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_pr"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_org(
         self,
         mock_metrics,
@@ -1153,10 +1343,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_org"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_repo(
         self,
         mock_metrics,
@@ -1174,10 +1364,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_repo"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_repo"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_integration(
         self,
         mock_metrics,
@@ -1196,13 +1386,13 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_integration"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_integration"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     def test_comment_workflow_not_safe_for_comment(
         self,
-        mock_metrics,
+        mock_integration_metrics,
         _,
         mock_safe_for_comment,
         mock_issues,
@@ -1214,6 +1404,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         open_pr_comment_workflow(self.pr.id)
 
         assert not mock_pr_filenames.called
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )

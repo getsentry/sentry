@@ -17,7 +17,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
     def setUp(self):
         super().setUp()
         self.group.times_seen_pending = 0
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -79,8 +79,10 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         self.group.update(times_seen=8)
         self.assert_does_not_pass(self.dc, self.event_data)
 
-        self.group.times_seen_pending = 3
-        self.assert_passes(self.dc, self.event_data)
+    def test_handles_missing_pending(self):
+        delattr(self.group, "_times_seen_pending")
+        self.group.update(times_seen=9)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_fails_on_bad_data(self):
         self.dc.update(comparison={"value": "bad data"})

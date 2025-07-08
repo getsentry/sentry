@@ -1,10 +1,16 @@
 import type {
   AxisPointerComponentOption,
+  Color,
   ECharts as EChartsType,
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
-import type ReactEchartsCore from 'echarts-for-react/lib/core';
+import type {
+  Dictionary,
+  OptionDataItemObject,
+  OptionDataValue,
+} from 'echarts/types/src/util/types';
+import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
 
@@ -38,7 +44,7 @@ export type Series = {
   z?: number;
 };
 
-export type ReactEchartsRef = ReactEchartsCore;
+export type ReactEchartsRef = EChartsReact;
 
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
@@ -66,14 +72,13 @@ export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventPar
 
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
+type EChartMouseEventData = string | number | Record<string, any>;
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
  *
  * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
  */
-interface EChartMouseEventParam {
-  // color of component (make sense when componentType is 'series')
-  color: string;
+interface EChartMouseEventParam<T = EChartMouseEventData> {
   // subtype of the component to which the clicked glyph belongs
   // i.e. 'scatter', 'line', etc
   componentSubType: string;
@@ -81,36 +86,50 @@ interface EChartMouseEventParam {
   // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
   componentType: string;
   // incoming raw data item
-  data: Record<string, any>;
+  data: T;
   // data index in incoming data array
   dataIndex: number;
+  // data name, category name
+  name: string;
+  // incoming data value
+  value:
+    | number
+    | string
+    | OptionDataValue[]
+    | Date
+    | Dictionary<OptionDataValue>
+    | OptionDataItemObject<OptionDataValue>;
+  // color of component (make sense when componentType is 'series')
+  color?: Color;
+
   // Some series, such as sankey or graph, maintains more than
   // one types of data (nodeData and edgeData), which can be
   // distinguished from each other by dataType with its value
   // 'node' and 'edge'.
   // On the other hand, most series has only one type of data,
   // where dataType is not needed.
-  dataType: string;
-  // data name, category name
-  name: string;
-
-  seriesId: string;
+  dataType?: string;
+  seriesId?: string;
   // series index in incoming option.series (make sense when componentType is 'series')
-  seriesIndex: number;
+  seriesIndex?: number;
   // series name (make sense when componentType is 'series')
-  seriesName: string;
+  seriesName?: string;
   // series type (make sense when componentType is 'series')
   // i.e., 'line', 'bar', 'pie'
-  seriesType: string;
-  // incoming data value
-  value: number | number[];
+  seriesType?: string;
 }
 
-export type EChartMouseOutHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartMouseOutHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
-export type EChartMouseOverHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartMouseOverHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
-export type EChartClickHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartClickHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
 export type EChartDataZoomHandler = EChartEventHandler<{
   /**
@@ -142,7 +161,7 @@ export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
-type EchartBrushAreas = Array<{
+export type EchartBrushAreas = Array<{
   coordRange: number[][];
   range: number[][];
 }>;

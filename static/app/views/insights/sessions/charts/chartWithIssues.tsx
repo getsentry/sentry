@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/container/flex';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -20,8 +21,8 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
@@ -32,6 +33,7 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   isPending: boolean;
   plottables: Plottable[];
   series: DiscoverSeries[];
+  hideReleaseLines?: boolean;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
 }
@@ -40,6 +42,7 @@ export default function ChartWithIssues(props: Props) {
   const {
     description,
     error,
+    hideReleaseLines,
     interactiveTitle,
     isPending,
     legendSelection,
@@ -54,7 +57,9 @@ export default function ChartWithIssues(props: Props) {
   });
   const pageFilters = usePageFilters();
 
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection, {
+    enabled: !hideReleaseLines,
+  });
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -137,7 +142,8 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
-                        releases={releases ?? []}
+                        showReleaseAs={hideReleaseLines ? 'none' : 'line'}
+                        releases={releases}
                         plottables={plottables}
                         legendSelection={legendSelection}
                       />

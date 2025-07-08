@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import orjson
@@ -24,8 +24,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -167,7 +169,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
 
 class PagerDutyIntegrationProvider(IntegrationProvider):
-    key = "pagerduty"
+    key = IntegrationProviderSlug.PAGERDUTY.value
     name = "PagerDuty"
     metadata = metadata
     features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])
@@ -175,7 +177,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [PagerDutyInstallationRedirect()]
 
     def post_install(
@@ -217,7 +219,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         }
 
 
-class PagerDutyInstallationRedirect(PipelineView):
+class PagerDutyInstallationRedirect:
     def get_app_url(self, account_name=None):
         if not account_name:
             account_name = "app"
@@ -227,7 +229,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

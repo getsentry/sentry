@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
@@ -56,8 +56,6 @@ type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
 };
 
 function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
-  const organization = useOrganization();
-
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       let seriesConfidence: Confidence | null;
@@ -100,147 +98,12 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  if (
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    !organization.features.includes(
-      'visibility-explore-progressive-loading-normal-sampling-mode'
-    )
-  ) {
-    return (
-      <SpansWidgetQueriesProgressiveLoadingImpl
-        {...props}
-        getConfidenceInformation={getConfidenceInformation}
-      />
-    );
-  }
-
   return (
     <SpansWidgetQueriesSingleRequestImpl
       {...props}
       getConfidenceInformation={getConfidenceInformation}
     />
   );
-}
-
-function SpansWidgetQueriesProgressiveLoadingImpl({
-  children,
-  api,
-  selection,
-  widget,
-  cursor,
-  limit,
-  dashboardFilters,
-  onDataFetched,
-  getConfidenceInformation,
-  onDataFetchStart,
-}: SpansWidgetQueriesImplProps) {
-  const config = SpansConfig;
-  const organization = useOrganization();
-
-  const [confidence, setConfidence] = useState<Confidence | null>(null);
-  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
-  const [isSampled, setIsSampled] = useState<boolean | null>(null);
-
-  // The best effort response props are stored to render after the preflight
-  const [bestEffortChildrenProps, setBestEffortChildrenProps] =
-    useState<GenericWidgetQueriesChildrenProps | null>(null);
-
-  const afterFetchSeriesData = (result: SeriesResult) => {
-    const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
-      getConfidenceInformation(result);
-
-    setConfidence(seriesConfidence);
-    setSampleCount(seriesSampleCount);
-    setIsSampled(seriesIsSampled);
-
-    onDataFetched?.({
-      confidence: seriesConfidence,
-      sampleCount: seriesSampleCount,
-      isSampled: seriesIsSampled,
-    });
-  };
-
-  return getDynamicText({
-    value: (
-      <GenericWidgetQueries<SeriesResult, TableResult>
-        config={config}
-        api={api}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={SAMPLING_MODE.PREFLIGHT}
-        onDataFetchStart={onDataFetchStart}
-        onDataFetched={() => {
-          setBestEffortChildrenProps(null);
-        }}
-      >
-        {preflightProps => (
-          <Fragment>
-            {preflightProps.loading || defined(bestEffortChildrenProps) ? (
-              // This state is returned when the preflight query is running, or when
-              // the best effort query has completed.
-              children({
-                ...(bestEffortChildrenProps ?? preflightProps),
-                loading: preflightProps.loading,
-                confidence,
-                sampleCount,
-                isSampled,
-              })
-            ) : (
-              <GenericWidgetQueries<SeriesResult, TableResult>
-                config={config}
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                cursor={cursor}
-                limit={limit}
-                dashboardFilters={dashboardFilters}
-                afterFetchSeriesData={afterFetchSeriesData}
-                samplingMode={SAMPLING_MODE.BEST_EFFORT}
-                onDataFetched={results => {
-                  setBestEffortChildrenProps({
-                    ...results,
-                    confidence,
-                    sampleCount,
-                    isSampled,
-                    loading: false,
-                    isProgressivelyLoading: false,
-                  });
-                  onDataFetched?.({...results, isProgressivelyLoading: false});
-                }}
-              >
-                {bestEffortProps => {
-                  if (bestEffortProps.loading) {
-                    return children({
-                      ...preflightProps,
-                      loading: true,
-                      isProgressivelyLoading:
-                        !preflightProps.errorMessage && !bestEffortProps.errorMessage,
-                      confidence,
-                      sampleCount,
-                      isSampled,
-                    });
-                  }
-                  return children({
-                    ...bestEffortProps,
-                    confidence,
-                    sampleCount,
-                    isSampled,
-                  });
-                }}
-              </GenericWidgetQueries>
-            )}
-          </Fragment>
-        )}
-      </GenericWidgetQueries>
-    ),
-    fixed: <div />,
-  });
 }
 
 function SpansWidgetQueriesSingleRequestImpl({
@@ -252,6 +115,7 @@ function SpansWidgetQueriesSingleRequestImpl({
   limit,
   dashboardFilters,
   onDataFetched,
+  onDataFetchStart,
   getConfidenceInformation,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
@@ -287,14 +151,9 @@ function SpansWidgetQueriesSingleRequestImpl({
         limit={limit}
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={
-          organization.features.includes(
-            'visibility-explore-progressive-loading-normal-sampling-mode'
-          )
-            ? SAMPLING_MODE.NORMAL
-            : undefined
-        }
+        samplingMode={SAMPLING_MODE.NORMAL}
       >
         {props =>
           children({

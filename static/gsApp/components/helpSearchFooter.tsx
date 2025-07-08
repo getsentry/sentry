@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -21,10 +21,10 @@ function HelpSearchFooter({organization, closeModal}: Props) {
         organization={organization}
         Component={({href, onClick}) => (
           <LinkButton
-            href={href}
+            href={href ?? ''}
             size="sm"
             onClick={e => {
-              onClick(e);
+              onClick?.(e);
               closeModal();
             }}
           >
@@ -43,7 +43,7 @@ const Container = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default HelpSearchFooter;

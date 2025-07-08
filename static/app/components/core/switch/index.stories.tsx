@@ -2,47 +2,43 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Switch, type SwitchProps} from 'sentry/components/core/switch';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/switch';
 
-export default storyBook('Switch', (story, APIReference) => {
+export default Storybook.story('Switch', (story, APIReference) => {
   APIReference(types.Switch);
 
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Switch" /> component is a checkbox button. It doesn't have
-          any property to specify a text label, so you'll need to add your own
-          accompanying label if you need one.
+          The <Storybook.JSXNode name="Switch" /> component is a checkbox button. It
+          doesn't have any property to specify a text label, so you'll need to add your
+          own accompanying label if you need one.
         </p>
         <p>
           Here we are specifying the label with an HTML <code>label</code> element, which
           is also accessibility friendly -- clicking the label also affects the toggle!
         </p>
         <p>
-          <JSXProperty name="size" value="lg" />
+          <Storybook.JSXProperty name="size" value="lg" />
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <SwitchCase checked size="lg" />
           <SwitchCase checked={false} disabled size="lg" />
           <SwitchCase checked disabled size="lg" />
-        </SideBySide>
+        </Storybook.SideBySide>
 
         <p>
-          <JSXProperty name="size" value="sm" />
+          <Storybook.JSXProperty name="size" value="sm" />
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <SwitchCase checked />
           <SwitchCase checked={false} disabled />
           <SwitchCase checked disabled />
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });

@@ -1,36 +1,23 @@
-import {Fragment, useRef, useState} from 'react';
+import React, {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
-  AutofixStatus,
-  AutofixStepType,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
-import {
-  type AutofixResponse,
-  makeAutofixQueryKey,
-} from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
+import {IconChat, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -41,7 +28,6 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
-  feedback?: AutofixFeedback;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -69,89 +55,6 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const orgSlug = useOrganization().slug;
-
-  return useMutation({
-    mutationFn: (
-      params:
-        | {
-            causeId: string;
-            instruction?: string;
-          }
-        | {
-            customRootCause: string;
-          }
-    ) => {
-      return api.requestPromise(
-        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
-        {
-          method: 'POST',
-          data:
-            'customRootCause' in params
-              ? {
-                  run_id: runId,
-                  payload: {
-                    type: 'select_root_cause',
-                    custom_root_cause: params.customRootCause,
-                  },
-                }
-              : {
-                  run_id: runId,
-                  payload: {
-                    type: 'select_root_cause',
-                    cause_id: params.causeId,
-                    instruction: params.instruction,
-                  },
-                },
-        }
-      );
-    },
-    onSuccess: (_, params) => {
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(orgSlug, groupId),
-        data => {
-          if (!data?.autofix) {
-            return data;
-          }
-
-          return {
-            ...data,
-            autofix: {
-              ...data.autofix,
-              status: AutofixStatus.PROCESSING,
-              steps: data.autofix.steps?.map(step => {
-                if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-                  return step;
-                }
-
-                return {
-                  ...step,
-                  selection:
-                    'customRootCause' in params
-                      ? {
-                          custom_root_cause: params.customRootCause,
-                        }
-                      : {
-                          cause_id: params.causeId,
-                        },
-                };
-              }),
-            },
-          };
-        }
-      );
-      addSuccessMessage('On it.');
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when selecting the root cause.'));
-    },
-  });
-}
-
 export function replaceHeadersWithBold(markdown: string) {
   const headerRegex = /^(#{1,6})\s+(.*)$/gm;
   const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
@@ -167,17 +70,20 @@ function RootCauseDescription({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   cause: AutofixRootCauseData;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <CauseDescription>
       {cause.description && (
         <AutofixHighlightWrapper
+          ref={ref}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -195,6 +101,7 @@ function RootCauseDescription({
       {cause.root_cause_reproduction && (
         <AutofixTimeline
           events={cause.root_cause_reproduction}
+          eventCodeUrls={cause.reproduction_urls}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -257,15 +164,10 @@ export function formatRootCauseText(
 function CopyRootCauseButton({
   cause,
   customRootCause,
-  isEditing,
 }: {
   cause?: AutofixRootCauseData;
   customRootCause?: string;
-  isEditing?: boolean;
 }) {
-  if (isEditing) {
-    return null;
-  }
   const text = formatRootCauseText(cause, customRootCause);
   return (
     <CopyToClipboardButton
@@ -273,6 +175,8 @@ function CopyRootCauseButton({
       text={text}
       borderless
       title="Copy root cause as Markdown"
+      analyticsEventName="Autofix: Copy Root Cause as Markdown"
+      analyticsEventKey="autofix.root_cause.copy"
     />
   );
 }
@@ -285,13 +189,22 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
-  feedback,
 }: AutofixRootCauseProps) {
-  const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
-  const [isEditing, setIsEditing] = useState(false);
-  const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectDescription = () => {
+    if (descriptionRef.current) {
+      // Simulate a click on the description to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      descriptionRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   if (!cause) {
     return (
@@ -312,10 +225,7 @@ function AutofixRootCauseDisplay({
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
-            <CopyRootCauseButton
-              customRootCause={rootCauseSelection.custom_root_cause}
-              isEditing={isEditing}
-            />
+            <CopyRootCauseButton customRootCause={rootCauseSelection.custom_root_cause} />
           </HeaderWrapper>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
         </CustomRootCausePadding>
@@ -332,50 +242,19 @@ function AutofixRootCauseDisplay({
               <IconFocus size="sm" color="pink400" />
             </IconWrapper>
             {t('Root Cause')}
+            <ChatButton
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+              analyticsEventName="Autofix: Root Cause Chat"
+              analyticsEventKey="autofix.root_cause.chat"
+            >
+              <IconChat size="xs" />
+            </ChatButton>
           </HeaderText>
           <ButtonBar>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="root_cause"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
-            <CopyRootCauseButton cause={cause} isEditing={isEditing} />
-            <EditButton
-              size="sm"
-              borderless
-              data-test-id="autofix-root-cause-edit-button"
-              title={isEditing ? t('Cancel') : t('Propose your own root cause')}
-              onClick={() => {
-                if (isEditing) {
-                  setIsEditing(false);
-                  setCustomRootCause('');
-                } else {
-                  setIsEditing(true);
-                }
-              }}
-            >
-              {isEditing ? <IconClose size="sm" /> : <IconInput size="sm" />}
-            </EditButton>
-            {isEditing && (
-              <Button
-                size="sm"
-                priority="primary"
-                title={t('Rethink with your new root cause')}
-                data-test-id="autofix-root-cause-save-edit-button"
-                onClick={() => {
-                  if (customRootCause.trim()) {
-                    handleContinue({customRootCause: customRootCause.trim()});
-                  }
-                }}
-                busy={isPending}
-              >
-                <IconCheckmark size="sm" />
-              </Button>
-            )}
+            <CopyRootCauseButton cause={cause} />
           </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
@@ -392,34 +271,21 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the root cause...')}
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
         <Content>
-          {isEditing ? (
-            <TextArea
-              value={customRootCause}
-              onChange={e => {
-                setCustomRootCause(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              rows={5}
-              autoFocus
-              placeholder={t('Propose your own root cause...')}
+          <Fragment>
+            <RootCauseDescription
+              cause={cause}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+              ref={descriptionRef}
             />
-          ) : (
-            <Fragment>
-              <RootCauseDescription
-                cause={cause}
-                groupId={groupId}
-                runId={runId}
-                previousDefaultStepIndex={previousDefaultStepIndex}
-                previousInsightCount={previousInsightCount}
-              />
-            </Fragment>
-          )}
+          </Fragment>
         </Content>
       </ClippedBox>
     </CausesContainer>
@@ -479,9 +345,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
   flex-wrap: wrap;
 `;
@@ -494,7 +357,7 @@ const IconWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -505,32 +368,15 @@ const CustomRootCausePadding = styled('div')`
 `;
 
 const CauseDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSize.md};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 `;
 
-const TextArea = styled('textarea')`
-  width: 100%;
-  min-height: 150px;
-  border: none;
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
-  resize: none;
-  overflow: hidden;
-  &:focus {
-    outline: none;
-  }
-`;
-
-const EditButton = styled(Button)`
+const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(1)};
+  margin-left: -${space(0.5)};
 `;

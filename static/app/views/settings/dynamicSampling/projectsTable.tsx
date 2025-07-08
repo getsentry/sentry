@@ -4,7 +4,7 @@ import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -336,7 +336,7 @@ const TableRow = memo(function TableRow({
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
+              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>
@@ -386,7 +386,7 @@ const SizingWrapper = styled('div')`
 `;
 
 const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   line-height: 1.5;
   text-align: right;
@@ -401,7 +401,7 @@ const Ellipsis = styled('span')`
 
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.error};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   line-height: 1.5;
   text-align: right;
 `;
@@ -459,7 +459,7 @@ const FirstCellLine = styled('div')`
 
 const SubContent = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: right;
   white-space: nowrap;
 
@@ -533,8 +533,8 @@ const SettingsButton = styled(LinkButton)`
 
 const TableHeader = styled(TableRowWrapper)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};

@@ -11,14 +11,14 @@ PLACEHOLDER_TEMPLATE = '<form method="POST"><input type="email" name="email" /><
 
 
 class AskEmail(AuthView):
-    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
         if "email" in request.POST:
             if "id" in request.POST:
-                helper.bind_state("id", request.POST.get("id"))
-            helper.bind_state("email", request.POST.get("email"))
-            helper.bind_state("legacy_email", request.POST.get("legacy_email"))
-            helper.bind_state("email_verified", bool(request.POST.get("email_verified")))
-            return helper.next_step()
+                pipeline.bind_state("id", request.POST.get("id"))
+            pipeline.bind_state("email", request.POST.get("email"))
+            pipeline.bind_state("legacy_email", request.POST.get("legacy_email"))
+            pipeline.bind_state("email_verified", bool(request.POST.get("email_verified")))
+            return pipeline.next_step()
 
         return HttpResponse(PLACEHOLDER_TEMPLATE)
 

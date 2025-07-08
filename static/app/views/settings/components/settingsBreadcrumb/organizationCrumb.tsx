@@ -7,6 +7,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -52,7 +53,7 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     const resolvedUrl = resolveRoute(path, organization, itemOrg);
     // If we have a shift in domains, we can't use history
     if (resolvedUrl.startsWith('http')) {
-      window.location.assign(resolvedUrl);
+      testableWindowLocation.assign(resolvedUrl);
     } else {
       navigate(resolvedUrl);
     }
@@ -80,6 +81,7 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       items={sortBy(organizations, ['name']).map((org, index) => ({
         index,
         value: org,
+        searchKey: org.name,
         label: (
           <MenuItem>
             <IdBadge organization={org} />

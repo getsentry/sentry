@@ -27,6 +27,7 @@ from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
@@ -327,6 +328,25 @@ class ConvertPriorityValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+class ConvertSeerActionabilityValueTest(TestCase):
+    def test_valid(self):
+        for fixability_score in FixabilityScoreThresholds:
+            filters = [
+                SearchFilter(
+                    SearchKey("issue.seer_actionability"),
+                    "=",
+                    SearchValue([fixability_score.name.lower()]),
+                )
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [fixability_score.value]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("issue.seer_actionability"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
         assert convert_actor_or_none_value(
@@ -422,8 +442,8 @@ class ConvertCategoryValueTest(TestCase):
             convert_category_value(["outage"], [self.project], self.user, None)
         ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.OUTAGE.value)
         assert set(
-            convert_category_value(["performance_best_practice"], [self.project], self.user, None)
-        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value)
+            convert_category_value(["DB_QUERY"], [self.project], self.user, None)
+        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
 
         # Should raise an error for invalid values
         with pytest.raises(InvalidSearchQuery):

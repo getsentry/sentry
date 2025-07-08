@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
@@ -29,8 +29,8 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
@@ -250,6 +250,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               {tct('I use a Feature Flag SDK from [sdkSelect]', {
                 sdkSelect: (
                   <CompactSelect
+                    size="xs"
                     triggerLabel={sdkProvider.label}
                     value={sdkProvider.value}
                     onChange={value => {
@@ -403,9 +404,9 @@ const TaskList = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

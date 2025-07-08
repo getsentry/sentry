@@ -237,7 +237,7 @@ class OrganizationMember(ReplicatedRegionModel):
     user_is_active = models.BooleanField(null=False, default=True, db_default=True)
     # Note, this is the email of the user that may or may not be associated with the member, not the email used to
     # invite the user.
-    user_email = models.CharField(max_length=75, null=True, blank=True)
+    user_email = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

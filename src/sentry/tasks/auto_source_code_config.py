@@ -16,8 +16,10 @@ from sentry.taskworker.retry import Retry
     max_retries=3,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=5 * 60,
         retry=Retry(
             times=3,
+            delay=60 * 10,
         ),
     ),
 )

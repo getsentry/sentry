@@ -1,22 +1,23 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
 import {IconFilter} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {SummaryFilterKey} from 'sentry/views/codecov/tests/config';
 
 // exporting for testing purposes
-export function useCreateSummaryFilterLink(f_b_type: string) {
+export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
   const location = useLocation();
-  const isFiltered = location.query.f_b_type === f_b_type;
+  const isFiltered = location.query.filterBy === filterBy;
 
   const filterLink = {
     ...location,
     query: {
       ...location.query,
-      f_b_type,
+      filterBy,
     },
   };
 
@@ -24,7 +25,7 @@ export function useCreateSummaryFilterLink(f_b_type: string) {
     ...location,
     query: {
       ...location.query,
-      f_b_type: undefined,
+      filterBy: undefined,
     },
   };
 
@@ -35,8 +36,8 @@ export function useCreateSummaryFilterLink(f_b_type: string) {
 }
 
 const StyledSummaryEntryLabel = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray300};
 `;
 
@@ -56,7 +57,7 @@ const SummaryEntryBase = css`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: 1.875rem;
+  font-size: 2.25rem;
 `;
 
 export const SummaryEntryValue = styled('span')`
@@ -67,7 +68,7 @@ export const SummaryEntryValue = styled('span')`
 const StyledSummaryEntryValueLink = styled('span')`
   font-variant-numeric: tabular-nums;
   color: ${p => p.theme.blue300};
-  font-size: 1.875rem;
+  font-size: 2.25rem;
 
   /* This stops the text from jumping when becoming bold */
   &::after {
@@ -76,12 +77,12 @@ const StyledSummaryEntryValueLink = styled('span')`
     visibility: hidden;
     overflow: hidden;
     pointer-events: none;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     display: block;
   }
 
   &[data-is-filtered='true'] {
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   &:hover {
@@ -91,7 +92,7 @@ const StyledSummaryEntryValueLink = styled('span')`
 
 type SummaryEntryValueLinkProps = {
   children: React.ReactNode;
-  filterBy: string;
+  filterBy: SummaryFilterKey;
 };
 
 export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLinkProps) {
@@ -109,12 +110,12 @@ export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLin
   );
 }
 
-export const SummaryEntry = styled('div')`
+export const SummaryEntry = styled('div')<{columns?: number}>`
   display: flex;
   flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  grid-column: span 1;
+  grid-column: span ${p => p.columns ?? 1};
 `;
 
 export const SummaryEntries = styled('div')<{
@@ -131,7 +132,7 @@ export const SummaryEntries = styled('div')<{
   padding-bottom: ${space(1)};
   grid-template-columns: repeat(${p => p.smallColumnSpan}, 1fr);
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(${p => p.largeColumnSpan}, 1fr);
   }
 `;
@@ -139,5 +140,5 @@ export const SummaryEntries = styled('div')<{
 export const SummaryContainer = styled('div')<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, 1fr);
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;

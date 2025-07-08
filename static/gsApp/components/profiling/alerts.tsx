@@ -86,7 +86,6 @@ interface GraceAlertProps {
   action: {
     label: string;
     onClick?: () => void;
-    to?: string | Record<PropertyKey, unknown>;
   };
   children: React.ReactNode;
   dismiss: undefined | (() => void);
@@ -97,14 +96,9 @@ interface GraceAlertProps {
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
   const trailingItems = (
     <Fragment>
-      <StyledButton
-        size="xs"
-        onClick={action.onClick}
-        to={action.to}
-        disabled={disableAction}
-      >
+      <Button size="xs" onClick={action.onClick} disabled={disableAction}>
         {action.label}
-      </StyledButton>
+      </Button>
       {dismiss ? (
         <StyledButton priority="link" size="sm" onClick={dismiss}>
           <IconClose color="gray500" size="sm" />
@@ -310,7 +304,7 @@ function ContinuousProfilingBetaAlertBannerInner({
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
               {bold: <b />}
             )
-        : isEnterprise(subscription)
+        : isEnterprise(subscription.plan)
           ? tct(
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
               {bold: <b />}

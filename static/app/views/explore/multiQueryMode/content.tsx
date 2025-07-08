@@ -26,9 +26,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -37,6 +36,7 @@ import {
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export const MAX_QUERIES_ALLOWED = 5;
@@ -46,8 +46,7 @@ function Content() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const datePageFilterProps = limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
@@ -113,14 +112,7 @@ function Content() {
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={({arbitraryOptions}) => ({
-                ...arbitraryOptions,
-                ...relativeOptions,
-              })}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
           <DropdownMenu
             items={[
@@ -212,11 +204,10 @@ function Content() {
 }
 
 export function MultiQueryModeContent() {
-  const dataset = useExploreDataset();
   return (
-    <SpanTagsProvider dataset={dataset} enabled>
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       <Content />
-    </SpanTagsProvider>
+    </TraceItemAttributeProvider>
   );
 }
 

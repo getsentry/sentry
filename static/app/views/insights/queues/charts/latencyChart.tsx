@@ -3,8 +3,11 @@ import cloneDeep from 'lodash/cloneDeep';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+// Our loadable chart widgets use this to render, so this import is ok
+// eslint-disable-next-line no-restricted-imports
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
-import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
@@ -17,15 +20,24 @@ interface Props {
 }
 
 export function LatencyChart({id, error, destination, referrer, pageFilters}: Props) {
+  const search = new MutableSearch('span.op:queue.process');
+  if (destination) {
+    search.addFilterValue('messaging.destination.name', destination, false);
+  }
+
   const {
     data,
     isPending,
     error: latencyError,
-  } = useProcessQueuesTimeSeriesQuery({
-    destination,
+  } = useSpanMetricsSeries(
+    {
+      yAxis: ['avg(span.duration)', 'avg(messaging.message.receive.latency)'],
+      search,
+      transformAliasToInputFormat: true,
+    },
     referrer,
-    pageFilters,
-  });
+    pageFilters
+  );
 
   const messageReceiveLatencySeries = cloneDeep(
     data['avg(messaging.message.receive.latency)']
@@ -56,6 +68,7 @@ export function LatencyChart({id, error, destination, referrer, pageFilters}: Pr
   return (
     <InsightsAreaChartWidget
       id={id}
+      queryInfo={{search, referrer}}
       title={t('Average Duration')}
       series={[messageReceiveLatencySeries, data['avg(span.duration)']]}
       aliases={FIELD_ALIASES}

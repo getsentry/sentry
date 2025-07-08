@@ -154,18 +154,17 @@ function BreadcrumbsContainer({
   function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
     const filterTypes: SelectOptionWithLevels[] = [];
 
-    for (const index in crumbs) {
-      const breadcrumb = crumbs[index];
+    for (const breadcrumb of crumbs) {
       const foundFilterType = filterTypes.findIndex(
-        f => f.value === `type-${breadcrumb!.type}`
+        f => f.value === `type-${breadcrumb.type}`
       );
 
       if (foundFilterType === -1) {
         filterTypes.push({
-          value: `type-${breadcrumb!.type}`,
-          leadingItems: <Type type={breadcrumb!.type} color={breadcrumb!.color} />,
-          label: breadcrumb!.description,
-          levels: breadcrumb!.level ? [breadcrumb!.level] : [],
+          value: `type-${breadcrumb.type}`,
+          leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
+          label: breadcrumb.description,
+          levels: breadcrumb.level ? [breadcrumb.level] : [],
         });
         continue;
       }
@@ -184,11 +183,8 @@ function BreadcrumbsContainer({
   function getFilterLevels(types: SelectOptionWithLevels[]) {
     const filterLevels: Array<SelectOption<string>> = [];
 
-    for (const indexType in types) {
-      for (const indexLevel in types[indexType]!.levels) {
-        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-        const level = types[indexType]!.levels?.[indexLevel];
-
+    for (const typeValue of types) {
+      for (const level of typeValue.levels ?? []) {
         if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;
         }
@@ -354,7 +350,7 @@ export const SearchAndSortWrapper = styled('div')`
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
 

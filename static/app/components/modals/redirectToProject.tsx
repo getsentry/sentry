@@ -2,11 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -27,7 +28,7 @@ class RedirectToProjectModal extends Component<Props, State> {
   componentDidMount() {
     this.redirectInterval = window.setInterval(() => {
       if (this.state.timer <= 1) {
-        window.location.assign(this.newPath);
+        testableWindowLocation.assign(this.newPath);
         return;
       }
 

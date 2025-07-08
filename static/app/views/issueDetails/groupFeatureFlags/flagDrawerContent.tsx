@@ -1,6 +1,5 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import type {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,7 +9,6 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
@@ -21,7 +19,6 @@ import {
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 
 interface Props {
-  debugSuspectScores: boolean;
   environments: string[];
   group: Group;
   orderBy: OrderBy;
@@ -30,7 +27,6 @@ interface Props {
 }
 
 export default function FlagDrawerContent({
-  debugSuspectScores,
   environments,
   group,
   orderBy,
@@ -38,9 +34,6 @@ export default function FlagDrawerContent({
   sortBy,
 }: Props) {
   const organization = useOrganization();
-
-  // If we're showing the suspect section at all
-  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
   const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
     useGroupFlagDrawerData({
@@ -88,42 +81,14 @@ export default function FlagDrawerContent({
       {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Fragment>
-      {enableSuspectFlags ? (
-        <SuspectTable
-          debugSuspectScores={debugSuspectScores}
-          environments={environments}
-          group={group}
-        />
-      ) : null}
-      <Container>
-        {displayFlags.map(flag => (
-          <div key={flag.key}>
-            <FlagDetailsLink tag={flag} key={flag.key}>
-              <TagDistribution tag={flag} key={flag.key} />
-            </FlagDetailsLink>
-            {debugSuspectScores && <DebugSuspectScore {...flag.suspect} />}
-          </div>
-        ))}
-      </Container>
-    </Fragment>
-  );
-}
-
-function DebugSuspectScore({
-  baselinePercent,
-  score,
-}: {
-  baselinePercent: undefined | number;
-  score: undefined | number;
-}) {
-  return (
-    <Flex justify="space-between" w="100%">
-      <span>Sus: {score?.toFixed(5) ?? '_'}</span>
-      <span>
-        Baseline:{' '}
-        {baselinePercent === undefined ? '_' : `${(baselinePercent * 100).toFixed(5)}%`}
-      </span>
-    </Flex>
+    <Container>
+      {displayFlags.map(flag => (
+        <div key={flag.key}>
+          <FlagDetailsLink flag={flag} key={flag.key}>
+            <TagDistribution tag={flag} key={flag.key} />
+          </FlagDetailsLink>
+        </div>
+      ))}
+    </Container>
   );
 }

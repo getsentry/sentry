@@ -16,8 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
-import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
-import {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
+import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -93,7 +92,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               color="subText"
               onClick={() =>
                 openModal(modalProps => (
-                  <PublishIssueModal
+                  <ShareIssueModal
                     {...modalProps}
                     organization={organization}
                     projectSlug={group.project.slug}
@@ -103,6 +102,8 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
                         organization,
                       })
                     }
+                    event={null}
+                    hasIssueShare
                   />
                 ))
               }
@@ -127,7 +128,7 @@ const Wrapper = styled('div')`
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 
@@ -135,6 +136,8 @@ const ShortIdCopyable = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+  /* hardcoded height avoids layout shift on button hover */
+  height: 36px;
   button[aria-haspopup] {
     display: block;
     opacity: 0;

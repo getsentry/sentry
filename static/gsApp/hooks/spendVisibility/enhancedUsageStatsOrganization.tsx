@@ -1,27 +1,27 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import type {CursorHandler} from 'sentry/components/pagination';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Pagination from 'sentry/components/pagination';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withProjects from 'sentry/utils/withProjects';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {mapSeriesToChart} from 'sentry/views/organizationStats/mapSeriesToChart';
-import type {
-  ChartDataTransform,
-  ChartStats,
-} from 'sentry/views/organizationStats/usageChart';
+import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
-import UsageStatsOrganization from 'sentry/views/organizationStats/usageStatsOrg';
+import UsageStatsOrganization, {
+  getChartProps,
+  getEndpointQuery,
+  getEndpointQueryDatetime,
+  UsageStatsOrgComponents,
+} from 'sentry/views/organizationStats/usageStatsOrg';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -52,36 +52,167 @@ import {
  * this is a limitation to our app's ability to display spike history.
  */
 const REQUIRED_INTERVAL = '1h';
-/**
- * We allow 403s since we don't know if spike protection is enabled for the project or not
- * If not, don't raise an error since we can still show usage data.
- * We allow 404s in case they don't have access to new spike protection just yet
- */
-const ALLOWED_STATUSES = new Set([403, 404]);
 
 const SPIKE_TABLE_PAGE_SIZE = 3;
 const SPIKE_TABLE_CURSOR_KEY = 'spikeCursor';
 
+type ProjectDetailsProps = {
+  dataCategoryInfo: DataCategoryInfo;
+  loading: boolean;
+  project: Project;
+  reloadData: () => void;
+  storedSpikes: SpikeDetails[];
+} & Pick<EnhancedUsageStatsOrganizationProps, 'spikeCursor'>;
+
+function ProjectDetails({
+  dataCategoryInfo,
+  spikeCursor,
+  loading,
+  reloadData,
+  project,
+  storedSpikes,
+}: ProjectDetailsProps) {
+  const navigate = useNavigate();
+
+  const spikesForDataCategory = storedSpikes.filter(
+    spike => spike.dataCategory === dataCategoryInfo.name
+  );
+
+  const offset = getOffsetFromCursor(spikeCursor);
+
+  const spikeData = spikesForDataCategory
+    .sort((a, b) => (a.start < b.start ? 1 : -1)) // sorting must be done before slicing for pagination
+    .slice(offset, offset + SPIKE_TABLE_PAGE_SIZE);
+
+  const pageLink = getPaginationPageLink({
+    numRows: spikesForDataCategory.length,
+    pageSize: SPIKE_TABLE_PAGE_SIZE,
+    offset,
+  });
+
+  return (
+    <ErrorBoundary mini>
+      <SpikeProtectionHistoryTable
+        onEnableSpikeProtection={() => reloadData()}
+        key="spike-history"
+        project={project}
+        spikes={spikeData}
+        dataCategoryInfo={dataCategoryInfo}
+        isLoading={loading}
+      />
+      <Pagination
+        pageLinks={pageLink}
+        onCursor={(cursor, path, query) => {
+          navigate({
+            pathname: path,
+            query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},
+          });
+        }}
+      />
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * When the interval is not 1h, set storedSpikes to populate the spikes table
+ */
+function getStoredDefaultSpikes({
+  loading,
+  spikesList,
+}: {
+  loading: boolean;
+  spikesList?: SpikesList;
+}) {
+  const actualSpikes: SpikeDetails[] = [];
+
+  if (loading || !spikesList) {
+    return actualSpikes;
+  }
+
+  for (const thresholdGroup of spikesList?.groups ?? []) {
+    // Find the data category info
+    const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
+      info => info.uid === thresholdGroup.billing_metric
+    ) as DataCategoryInfo;
+
+    const storedSpikesGroup = spikesList.groups.find(
+      group => group.billing_metric === thresholdGroup.billing_metric
+    );
+    const storedSpikes: Spike[] = [];
+    if (storedSpikesGroup) {
+      storedSpikes.push(...storedSpikesGroup.spikes);
+    }
+
+    storedSpikes.forEach(spike => {
+      const duration = getSpikeDuration(spike);
+      actualSpikes.push({
+        start: spike.startDate,
+        end: spike.endDate,
+        dropped: spike.eventsDropped,
+        duration,
+        threshold: spike.initialThreshold,
+        dataCategory: dataCategoryInfo.name,
+      });
+    });
+  }
+
+  return actualSpikes;
+}
+
+/**
+ * Calculates spike details for every data category from the thresholds received
+ */
+function getSpikeDetails({
+  loading,
+  orgStats,
+  spikeThresholds,
+  spikesList,
+}: {
+  loading: boolean;
+  orgStats?: UsageSeries;
+  spikeThresholds?: SpikeThresholds;
+  spikesList?: SpikesList;
+}) {
+  const actualSpikes: SpikeDetails[] = [];
+
+  if (loading || !orgStats || !spikeThresholds) {
+    return actualSpikes;
+  }
+
+  for (const thresholdGroup of spikeThresholds?.groups ?? []) {
+    // Find the data category info
+    const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
+      info => info.uid === thresholdGroup.billing_metric
+    ) as DataCategoryInfo;
+
+    // Get the spikes from the db for the category
+    const storedSpikesGroup = spikesList?.groups.find(
+      group => group.billing_metric === thresholdGroup.billing_metric
+    );
+    const storedSpikes: Spike[] = [];
+    if (storedSpikesGroup) {
+      storedSpikes.push(...storedSpikesGroup.spikes);
+    }
+
+    // Get the spikes for this data category
+    const actualCategorySpikes = getSpikeDetailsFromSeries({
+      storedSpikes,
+      dataCategory: dataCategoryInfo.name,
+    });
+    actualSpikes.push(...actualCategorySpikes);
+  }
+  return actualSpikes;
+}
+
 interface EnhancedUsageStatsOrganizationProps
   extends WithRouteAnalyticsProps,
     UsageStatsOrganizationProps {
+  isSingleProject: boolean;
   projects: Project[];
   subscription: Subscription;
+  chartTransform?: string;
   spikeCursor?: string;
 }
-
-type EnhancedUsageStatsOrganizationState = {
-  /**
-   * Stored spikes by category
-   */
-  spikesList: SpikesList;
-  /**
-   * Spikes fetched from the db
-   */
-  storedSpikes: SpikeDetails[];
-  spikeThresholds?: SpikeThresholds;
-} & UsageStatsOrganization['state'];
-
 /**
  * Client-side pagination is used for the Spike table because we have spikes from
  * two sources: (1) calculated dynamically from the usage data, (2) from the
@@ -89,317 +220,108 @@ type EnhancedUsageStatsOrganizationState = {
  *
  * TODO(cathy): Remove (1) after 90d and paginate the remaining endpoint.
  */
-class EnhancedUsageStatsOrganization extends UsageStatsOrganization<
-  EnhancedUsageStatsOrganizationProps,
-  EnhancedUsageStatsOrganizationState
-> {
-  componentDidUpdate(prevProps: EnhancedUsageStatsOrganizationProps) {
-    super.componentDidUpdate(prevProps);
-    const {
-      setRouteAnalyticsParams,
-      isSingleProject,
-      organization,
-      subscription,
-      projects,
-    } = this.props;
-    if (prevProps.projects !== projects) {
-      this.reloadData();
+function EnhancedUsageStatsOrganization({
+  organization,
+  projects,
+  subscription,
+  projectIds,
+  dataDatetime,
+  dataCategory,
+  dataCategoryName,
+  dataCategoryApiName,
+  setRouteAnalyticsParams,
+  isSingleProject,
+  spikeCursor,
+  clientDiscard,
+  handleChangeState,
+  chartTransform,
+}: EnhancedUsageStatsOrganizationProps) {
+  const project = projects.find(p => p.id === `${projectIds[0]}`);
+  const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
+  const endpointQuery = useMemo(
+    () =>
+      getEndpointQuery({
+        dataDatetime,
+        organization,
+        projectIds,
+        dataCategoryApiName,
+        endpointQueryDatetime,
+      }),
+    [dataDatetime, organization, projectIds, dataCategoryApiName, endpointQueryDatetime]
+  );
+
+  const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
+    info => info.plural === dataCategory
+  ) as DataCategoryInfo;
+
+  /** Limitation on frontend calculation of spikes to prevent intervals that are not 1h */
+  const hasAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
+
+  const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
+  const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
+    [
+      // This endpoint refetches the specific project with an added query for the SP option
+      `/organizations/${organization.slug}/projects/`,
+      {
+        query: {
+          options: SPIKE_PROTECTION_OPTION_DISABLED,
+          query: `id:${project?.id}`,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: projectWithSpikeProjectionOptionQueryEnabled,
     }
+  );
+
+  const spikesListQueryEnabled = isSingleProject && !!project;
+  const spikesList = useApiQuery<SpikesList>(
+    [
+      // Get all the spikes in the time period
+      `/organizations/${organization.slug}/spikes/projects/${project?.slug}/`,
+      {
+        query: {
+          ...endpointQueryDatetime,
+        },
+      },
+    ],
+    {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
+  );
+
+  const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
+  const spikeThresholds = useApiQuery<SpikeThresholds>(
+    [
+      // Only fetch spike thresholds if the interval is 1h
+      `/organizations/${organization.slug}/spike-projection/projects/${project?.slug}/`,
+      {
+        query: {
+          ...endpointQueryDatetime,
+          interval: REQUIRED_INTERVAL,
+        },
+      },
+    ],
+    {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
+  );
+
+  useEffect(() => {
     setRouteAnalyticsParams({
       subscription,
       organization,
       is_project_stats: isSingleProject,
-      has_spike_data: isSingleProject && this.hasAccurateSpikes,
+      has_spike_data: isSingleProject && hasAccurateSpikes,
     });
-  }
+  }, [
+    hasAccurateSpikes,
+    isSingleProject,
+    organization,
+    setRouteAnalyticsParams,
+    subscription,
+  ]);
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      spikeThresholds: undefined,
-      projectWithSpikeProjectionOption: [],
-      storedSpikes: [],
-    };
-  }
-
-  getEndpoints() {
-    const endpoints = super.getEndpoints();
-    const {projects, projectIds, organization, isSingleProject} = this.props;
-    const project = projects.find(p => p.id === `${projectIds[0]}`);
-    if (isSingleProject && project) {
-      endpoints.push(
-        // This endpoint refetches the specific project with an added query for the SP option
-        [
-          'projectWithSpikeProjectionOption',
-          `/organizations/${organization.slug}/projects/`,
-          {
-            includeAllArgs: true,
-            query: {
-              options: SPIKE_PROTECTION_OPTION_DISABLED,
-              query: `id:${project?.id}`,
-            },
-          },
-        ],
-        // Get all the spikes in the time period
-        [
-          'spikesList',
-          `/organizations/${organization.slug}/spikes/projects/${project?.slug}/`,
-          {
-            query: {
-              ...this.endpointQueryDatetime,
-            },
-          },
-          {allowError: (error: {status: number}) => ALLOWED_STATUSES.has(error.status)},
-        ]
-      );
-      if (this.hasAccurateSpikes) {
-        // Only fetch spike thresholds if the interval is 1h
-        endpoints.push([
-          'spikeThresholds',
-          `/organizations/${organization.slug}/spike-projection/projects/${project?.slug}/`,
-          {
-            query: {
-              ...this.endpointQueryDatetime,
-              interval: REQUIRED_INTERVAL,
-            },
-          },
-          {allowError: (error: {status: number}) => ALLOWED_STATUSES.has(error.status)},
-        ]);
-      }
-    }
-    return endpoints;
-  }
-
-  onLoadAllEndpointsSuccess() {
-    const {isSingleProject} = this.props;
-    if (!isSingleProject) {
-      return;
-    }
-    if (!this.hasAccurateSpikes) {
-      this.setState({
-        spikeThresholds: this.getDefaultState().spikeThresholds,
-        storedSpikes: this.getDefaultStoredSpikes(),
-      });
-      return;
-    }
-    const storedSpikes = this.getSpikeDetails();
-    this.setState({storedSpikes});
-  }
-
-  get dataCategoryInfo(): DataCategoryInfo {
-    const {dataCategory} = this.props;
-    return Object.values(DATA_CATEGORY_INFO).find(
-      info => info.plural === dataCategory
-    ) as DataCategoryInfo;
-  }
-
-  /** Limitation on frontend calculation of spikes to prevent intervals that are not 1h */
-  get hasAccurateSpikes() {
-    const {dataDatetime} = this.props;
-    const pageInterval = getSeriesApiInterval(dataDatetime);
-    return pageInterval === REQUIRED_INTERVAL;
-  }
-
-  /**
-   * Calculates spike details for every data category from the thresholds received
-   */
-  getSpikeDetails() {
-    const {loading, orgStats, spikeThresholds, spikesList} = this.state;
-    const actualSpikes: SpikeDetails[] = [];
-
-    if (loading || !orgStats || !spikeThresholds) {
-      return actualSpikes;
-    }
-
-    for (const thresholdGroup of spikeThresholds?.groups ?? []) {
-      // Find the data category info
-      const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
-        info => info.uid === thresholdGroup.billing_metric
-      ) as DataCategoryInfo;
-
-      // Get the spikes from the db for the category
-      const storedSpikesGroup = spikesList.groups.find(
-        group => group.billing_metric === thresholdGroup.billing_metric
-      );
-      const storedSpikes: Spike[] = [];
-      if (storedSpikesGroup) {
-        storedSpikes.push(...storedSpikesGroup.spikes);
-      }
-
-      // Get the spikes for this data category
-      const actualCategorySpikes = getSpikeDetailsFromSeries({
-        storedSpikes,
-        dataCategory: dataCategoryInfo.name,
-      });
-      actualSpikes.push(...actualCategorySpikes);
-    }
-    return actualSpikes;
-  }
-
-  getSpikesForDataCategory() {
-    const {storedSpikes} = this.state;
-    return [...storedSpikes].filter(
-      spike => spike.dataCategory === this.dataCategoryInfo.name
-    );
-  }
-
-  /**
-   * When the interval is not 1h, set storedSpikes to populate the spikes table
-   */
-  getDefaultStoredSpikes() {
-    const {loading, spikesList} = this.state;
-    const actualSpikes: SpikeDetails[] = [];
-
-    if (loading || !spikesList) {
-      return actualSpikes;
-    }
-
-    for (const thresholdGroup of spikesList?.groups ?? []) {
-      // Find the data category info
-      const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
-        info => info.uid === thresholdGroup.billing_metric
-      ) as DataCategoryInfo;
-
-      const storedSpikesGroup = spikesList.groups.find(
-        group => group.billing_metric === thresholdGroup.billing_metric
-      );
-      const storedSpikes: Spike[] = [];
-      if (storedSpikesGroup) {
-        storedSpikes.push(...storedSpikesGroup.spikes);
-      }
-
-      storedSpikes.forEach(spike => {
-        const duration = getSpikeDuration(spike);
-        actualSpikes.push({
-          start: spike.startDate,
-          end: spike.endDate,
-          dropped: spike.eventsDropped,
-          duration,
-          threshold: spike.initialThreshold,
-          dataCategory: dataCategoryInfo.name,
-        });
-      });
-    }
-    return actualSpikes;
-  }
-
-  get cardMetadata() {
-    const {dataCategory} = this.props;
-    const cardMetadata = super.cardMetadata;
-
-    const {storedSpikes} = this.state;
-
-    if (storedSpikes.length > 0) {
-      // don't count ongoing spikes
-      const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
-        spike => spike.dataCategory === this.dataCategoryInfo.name && spike.dropped
-      );
-
-      const spikeDropped = categorySpikes.reduce(
-        (total, spike) => (spike.dropped ? spike.dropped + total : 0),
-        0
-      );
-      cardMetadata.rateLimited!.trend = (
-        <DroppedFromSpikesStat>
-          {tct('[spikeDropped] across [spikeAmount] spike[spikePlural]', {
-            spikeDropped: formatUsageWithUnits(
-              spikeDropped,
-              dataCategory,
-              getFormatUsageOptions(dataCategory)
-            ),
-            spikeAmount: categorySpikes.length,
-            spikePlural: categorySpikes.length > 1 ? 's' : '',
-          })}
-        </DroppedFromSpikesStat>
-      );
-    }
-
-    return cardMetadata;
-  }
-
-  get projectDetails() {
-    const {loading, projectWithSpikeProjectionOption} = this.state;
-    const projectDetails = super.projectDetails;
-    const offset = this.tableOffset;
-
-    const spikeData = this.getSpikesForDataCategory()
-      .sort((a, b) => (a.start < b.start ? 1 : -1)) // sorting must be done before slicing for pagination
-      .slice(offset, offset + SPIKE_TABLE_PAGE_SIZE);
-
-    projectDetails.push(
-      <Fragment>
-        <SpikeProtectionHistoryTable
-          onEnableSpikeProtection={() => this.reloadData()}
-          key="spike-history"
-          project={projectWithSpikeProjectionOption?.[0]}
-          spikes={spikeData}
-          dataCategoryInfo={this.dataCategoryInfo}
-          isLoading={loading}
-        />
-        <Pagination pageLinks={this.pageLink} onCursor={this.onCursor} />
-      </Fragment>
-    );
-    return projectDetails;
-  }
-
-  get tableOffset() {
-    const {spikeCursor} = this.props;
-    return getOffsetFromCursor(spikeCursor);
-  }
-
-  get pageLink() {
-    const offset = this.tableOffset;
-    const numRows = this.getSpikesForDataCategory().length;
-
-    return getPaginationPageLink({
-      numRows,
-      pageSize: SPIKE_TABLE_PAGE_SIZE,
-      offset,
-    });
-  }
-
-  onCursor: CursorHandler = (cursor, path, query, _direction) => {
-    browserHistory.push({
-      pathname: path,
-      query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},
-    });
-  };
-
-  renderChart() {
-    const {isSingleProject} = this.props;
-    const {spikeThresholds, loading, spikes, storedSpikes} = this.state;
-    if (isSingleProject && spikeThresholds && (spikes || storedSpikes)) {
-      return (
-        <SpikeProtectionUsageChart
-          {...this.chartProps}
-          spikeThresholds={spikeThresholds}
-          storedSpikes={storedSpikes.filter(
-            spike => spike.duration === null || spike.duration! > 3600
-          )}
-          dataCategoryInfo={this.dataCategoryInfo}
-          isLoading={loading}
-        />
-      );
-    }
-    return super.renderChart();
-  }
-
-  renderComponent() {
-    const {isSingleProject} = this.props;
-    const {loading} = this.state;
-    const shouldRenderRangeAlert = !loading && isSingleProject && !this.hasAccurateSpikes;
-    return (
-      <Fragment>
-        {shouldRenderRangeAlert && <SpikeProtectionRangeLimitation />}
-        {super.renderComponent()}
-      </Fragment>
-    );
-  }
-
-  get endpointQuery() {
-    const {dataCategoryApiName, subscription} = this.props;
-
-    const query = super.endpointQuery;
+  const newEndpointQuery = useMemo(() => {
+    const query = endpointQuery;
 
     if (
       dataCategoryApiName === 'profile_duration' &&
@@ -409,53 +331,171 @@ class EnhancedUsageStatsOrganization extends UsageStatsOrganization<
     }
 
     return query;
-  }
+  }, [endpointQuery, dataCategoryApiName, subscription.planTier]);
 
-  get chartData(): {
-    cardStats: {
-      accepted?: string;
-      accepted_stored?: string;
-      filtered?: string;
-      invalid?: string;
-      rateLimited?: string;
-      total?: string;
-    };
-    chartDateEnd: string;
-    chartDateEndDisplay: string;
-    chartDateInterval: IntervalPeriod;
-    chartDateStart: string;
-    chartDateStartDisplay: string;
-    chartDateTimezoneDisplay: string;
-    chartDateUtc: boolean;
-    chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
-    chartTransform: ChartDataTransform;
-    dataError?: Error;
-  } {
-    const {dataCategoryApiName, subscription} = this.props;
-    return {
-      ...mapSeriesToChart({
-        orgStats: this.state.orgStats,
-        chartDateInterval: this.chartDateRange.chartDateInterval,
-        chartDateUtc: this.chartDateRange.chartDateUtc,
-        dataCategory: this.props.dataCategory,
-        endpointQuery: this.endpointQuery,
-        shouldEstimateDroppedProfiles:
-          dataCategoryApiName === 'profile_duration' &&
-          subscription.planTier !== PlanTier.AM2,
-      }),
-      ...this.chartDateRange,
-      ...this.chartTransform,
-    };
-  }
+  return (
+    <UsageStatsOrganization
+      organization={organization}
+      dataCategory={dataCategory}
+      dataCategoryApiName={dataCategoryApiName}
+      dataCategoryName={dataCategoryName}
+      dataDatetime={dataDatetime}
+      projectIds={projectIds}
+      endpointQuery={newEndpointQuery}
+      handleChangeState={handleChangeState}
+      clientDiscard={clientDiscard}
+      chartTransform={chartTransform}
+    >
+      {usageStats => {
+        const loadingStatuses = [usageStats.orgStats.isPending];
+        const errorStatuses = [usageStats.orgStats.error];
+
+        if (projectWithSpikeProjectionOptionQueryEnabled) {
+          loadingStatuses.push(projectWithSpikeProjectionOption.isPending);
+          errorStatuses.push(projectWithSpikeProjectionOption.error);
+        }
+        if (spikesListQueryEnabled) {
+          loadingStatuses.push(spikesList.isPending);
+          errorStatuses.push(spikesList.error);
+        }
+        if (spikeThresholdsQueryEnabled) {
+          loadingStatuses.push(spikeThresholds.isPending);
+          errorStatuses.push(spikeThresholds.error);
+        }
+
+        const loading = loadingStatuses.some(status => status);
+        const error = errorStatuses.find(defined) ?? null;
+
+        const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
+
+        const storedSpikes: SpikeDetails[] = [];
+        let newSpikeThresholds: SpikeThresholds | undefined = undefined;
+
+        if (isSingleProject) {
+          if (hasAccurateSpikes) {
+            const spikeDetailsLoading: boolean[] = [usageStats.orgStats.isPending];
+            if (spikeThresholdsQueryEnabled) {
+              spikeDetailsLoading.push(spikeThresholds.isPending);
+            }
+            if (spikesListQueryEnabled) {
+              spikeDetailsLoading.push(spikesList.isPending);
+            }
+            storedSpikes.push(
+              ...getSpikeDetails({
+                loading: spikeDetailsLoading.some(status => status),
+                spikeThresholds: spikeThresholds.data,
+                spikesList: spikesList.data,
+                orgStats: usageStats.orgStats.data,
+              })
+            );
+            newSpikeThresholds = spikeThresholds.data;
+          } else {
+            storedSpikes.push(
+              ...getStoredDefaultSpikes({
+                loading: spikesList.isPending,
+                spikesList: spikesList.data,
+              })
+            );
+          }
+        }
+
+        // don't count ongoing spikes
+        const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
+          spike => spike.dataCategory === dataCategoryInfo.name && spike.dropped
+        );
+
+        const spikeDropped = categorySpikes.reduce(
+          (total, spike) => (spike.dropped ? spike.dropped + total : 0),
+          0
+        );
+
+        const projectWithSpikeProjection = projectWithSpikeProjectionOption.data?.[0];
+
+        return (
+          <Fragment>
+            {shouldRenderRangeAlert && <SpikeProtectionRangeLimitation />}
+            <UsageStatsOrgComponents.PageGrid>
+              <UsageStatsOrgComponents.ScoreCards
+                cardMetadata={
+                  storedSpikes.length
+                    ? {
+                        ...usageStats.cardMetadata,
+                        rateLimited: {
+                          ...usageStats.cardMetadata.rateLimited,
+                          trend: (
+                            <DroppedFromSpikesStat>
+                              {tct(
+                                '[spikeDropped] across [spikeAmount] spike[spikePlural]',
+                                {
+                                  spikeDropped: formatUsageWithUnits(
+                                    spikeDropped,
+                                    dataCategory,
+                                    getFormatUsageOptions(dataCategory)
+                                  ),
+                                  spikeAmount: categorySpikes.length,
+                                  spikePlural: categorySpikes.length > 1 ? 's' : '',
+                                }
+                              )}
+                            </DroppedFromSpikesStat>
+                          ),
+                        },
+                      }
+                    : usageStats.cardMetadata
+                }
+                loading={loading}
+              />
+              <UsageStatsOrgComponents.ChartContainer>
+                {isSingleProject && newSpikeThresholds && storedSpikes ? (
+                  <SpikeProtectionUsageChart
+                    {...getChartProps({
+                      chartData: usageStats.chartData,
+                      clientDiscard,
+                      dataCategory,
+                      error,
+                      loading,
+                      handleChangeState,
+                      handleOnDocsClick: usageStats.handleOnDocsClick,
+                    })}
+                    spikeThresholds={newSpikeThresholds}
+                    storedSpikes={storedSpikes.filter(
+                      spike => spike.duration === null || spike.duration! > 3600
+                    )}
+                    dataCategoryInfo={dataCategoryInfo}
+                    isLoading={loading}
+                  />
+                ) : (
+                  usageStats.usageChart
+                )}
+              </UsageStatsOrgComponents.ChartContainer>
+            </UsageStatsOrgComponents.PageGrid>
+            {isSingleProject && projectWithSpikeProjection && (
+              <ProjectDetails
+                reloadData={() => {
+                  usageStats.orgStats.refetch();
+                  projectWithSpikeProjectionOption.refetch();
+                  spikesList.refetch();
+                  spikeThresholds.refetch();
+                }}
+                dataCategoryInfo={dataCategoryInfo}
+                loading={loading}
+                spikeCursor={spikeCursor}
+                project={projectWithSpikeProjection}
+                storedSpikes={storedSpikes}
+              />
+            )}
+          </Fragment>
+        );
+      }}
+    </UsageStatsOrganization>
+  );
 }
 
 const DroppedFromSpikesStat = styled('div')`
   display: inline-block;
   color: ${p => p.theme.success};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default withRouteAnalytics(
-  withProjects(withSubscription(withSentryRouter(EnhancedUsageStatsOrganization)))
+  withProjects(withSubscription(EnhancedUsageStatsOrganization))
 );

@@ -11,9 +11,12 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 

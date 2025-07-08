@@ -1,10 +1,12 @@
-import {cloneElement, Component} from 'react';
+import {cloneElement, Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {space} from 'sentry/styles/space';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -30,26 +32,33 @@ type Props = DefaultProps &
      * The configuration for this navigation panel
      */
     navigationObjects: NavigationSection[];
+    /**
+     * The primary navigation group for this settings page
+     */
+    primaryNavGroup: PrimaryNavGroup;
   };
 
 function SettingsSecondaryNavigation({
   navigationObjects,
   hookConfigs,
   hooks,
+  primaryNavGroup,
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav>
-      <SecondaryNav.Header />
+    <Fragment>
+      <SecondaryNav.Header>
+        {PRIMARY_NAV_GROUP_CONFIG[primaryNavGroup].label}
+      </SecondaryNav.Header>
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 
@@ -78,6 +87,7 @@ class SettingsNavigation extends Component<Props> {
       hookConfigs,
       stickyTop,
       organization,
+      primaryNavGroup,
       ...otherProps
     } = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
@@ -85,6 +95,7 @@ class SettingsNavigation extends Component<Props> {
     if (organization && prefersStackedNav(organization)) {
       return (
         <SettingsSecondaryNavigation
+          primaryNavGroup={primaryNavGroup}
           navigationObjects={navigationObjects}
           hooks={hooks}
           hookConfigs={hookConfigs}
@@ -115,7 +126,7 @@ const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
   padding: ${space(4)};
   padding-right: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     position: sticky;
     top: ${p => p.stickyTop};
     overflow: scroll;

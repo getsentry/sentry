@@ -1,243 +1,110 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
-import getDuration from 'sentry/utils/duration/getDuration';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {space} from 'sentry/styles/space';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
+import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
+import {FIELD_ALIASES} from 'sentry/views/insights/browser/webVitals/settings';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
+import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
+// eslint-disable-next-line no-restricted-imports
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {SubregionCode} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 interface Props {
-  webVitalSeries: LineChartSeries;
+  webVital: WebVitals | null;
+  browserTypes?: BrowserType[];
+  subregions?: SubregionCode[];
+  transaction?: string;
 }
 
-export function WebVitalStatusLineChart({webVitalSeries}: Props) {
-  const theme = useTheme();
-  const pageFilters = usePageFilters();
-  const {period, start, end, utc} = pageFilters.selection.datetime;
+export function WebVitalStatusLineChart({
+  webVital,
+  transaction,
+  browserTypes,
+  subregions,
+}: Props) {
+  const defaultQuery = useDefaultWebVitalsQuery();
+  const webVitalP90 = webVital ? PERFORMANCE_SCORE_P90S[webVital] : 0;
+  const webVitalMedian = webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0;
 
-  const webVital = webVitalSeries.seriesName;
-  const allSeries = [webVitalSeries];
+  const search = new MutableSearch(defaultQuery);
+  const referrer = Referrer.WEB_VITAL_STATUS_LINE_CHART;
 
-  const seriesIsPoor = webVitalSeries.data?.some(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ({value}) => value > PERFORMANCE_SCORE_MEDIANS[webVital ?? '']
-  );
-  const seriesIsMeh = webVitalSeries.data?.some(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ({value}) => value >= PERFORMANCE_SCORE_P90S[webVital ?? '']
-  );
-  const seriesIsGood = webVitalSeries.data?.every(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ({value}) => value < PERFORMANCE_SCORE_P90S[webVital ?? '']
-  );
-  const goodMarkArea = MarkArea({
-    silent: true,
-    itemStyle: {
-      color: theme.green300,
-      opacity: 0.1,
-    },
-    data: [
-      [
-        {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-        },
-        {
-          yAxis: 0,
-        },
-      ],
-    ],
-  });
-  const mehMarkArea = MarkArea({
-    silent: true,
-    itemStyle: {
-      color: theme.yellow300,
-      opacity: 0.1,
-    },
-    data: [
-      [
-        {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-        },
-        {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-        },
-      ],
-    ],
-  });
-  const poorMarkArea = MarkArea({
-    silent: true,
-    itemStyle: {
-      color: theme.red300,
-      opacity: 0.1,
-    },
-    data: [
-      [
-        {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-        },
-        {
-          yAxis: Infinity,
-        },
-      ],
-    ],
-  });
-  const goodMarkLine = MarkLine({
-    silent: true,
-    lineStyle: {
-      color: theme.green300,
-    },
-    label: {
-      formatter: () => 'Good',
-      position: 'insideEndBottom',
-      color: theme.green300,
-    },
-    data: [
-      {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-      },
-    ],
-  });
-  const mehMarkLine = MarkLine({
-    silent: true,
-    lineStyle: {
-      color: theme.yellow300,
-    },
-    label: {
-      formatter: () => 'Meh',
-      position: 'insideEndBottom',
-      color: theme.yellow300,
-    },
-    data: [
-      {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-      },
-    ],
-  });
-  const poorMarkLine = MarkLine({
-    silent: true,
-    lineStyle: {
-      color: theme.red300,
-    },
-    label: {
-      formatter: () => 'Poor',
-      position: 'insideEndBottom',
-      color: theme.red300,
-    },
-    data: [
-      [
-        {xAxis: 'min', y: 10},
-        {xAxis: 'max', y: 10},
-      ],
-    ],
-  });
-
-  allSeries.push({
-    seriesName: '',
-    type: 'line',
-    markArea: goodMarkArea,
-    data: [],
-  });
-
-  allSeries.push({
-    seriesName: '',
-    type: 'line',
-    markArea: mehMarkArea,
-    data: [],
-  });
-
-  allSeries.push({
-    seriesName: '',
-    type: 'line',
-    markArea: poorMarkArea,
-    data: [],
-  });
-
-  allSeries.push({
-    seriesName: '',
-    type: 'line',
-    markLine: goodMarkLine,
-    data: [],
-  });
-
-  allSeries.push({
-    seriesName: '',
-    type: 'line',
-    markLine: mehMarkLine,
-    data: [],
-  });
-
-  if (seriesIsPoor) {
-    allSeries.push({
-      seriesName: '',
-      type: 'line',
-      markLine: poorMarkLine,
-      data: [],
-    });
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
-  const getFormattedDuration = (value: number) => {
-    if (value < 1000) {
-      return getDuration(value / 1000, 0, true);
-    }
-    return getDuration(value / 1000, 2, true);
-  };
+  const {
+    data: timeseriesData,
+    isLoading: isTimeseriesLoading,
+    error: timeseriesError,
+  } = useMetricsSeries(
+    {
+      search,
+      yAxis: webVital ? [`p75(measurements.${webVital})`] : [],
+      enabled: !!webVital,
+    },
+    referrer
+  );
 
-  const getMaxYAxis = () => {
-    if (seriesIsPoor) {
-      return undefined;
-    }
-    if (seriesIsMeh) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return PERFORMANCE_SCORE_MEDIANS[webVital ?? ''];
-    }
-    if (seriesIsGood) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return PERFORMANCE_SCORE_P90S[webVital ?? ''];
-    }
-    return undefined;
-  };
+  const webVitalSeries: DiscoverSeries = webVital
+    ? timeseriesData?.[`p75(measurements.${webVital})`]
+    : {data: [], meta: {fields: {}, units: {}}, seriesName: ''};
 
-  const yAxisMax = getMaxYAxis();
+  const includePoorThreshold = webVitalSeries.data?.some(
+    ({value}) => value > webVitalMedian
+  );
+  const includeMehThreshold = webVitalSeries.data?.some(
+    ({value}) => value >= webVitalP90
+  );
+
+  const thresholdsPlottable = new Thresholds({
+    thresholds: {
+      max_values: {
+        max1: includeMehThreshold ? webVitalP90 : undefined,
+        max2: includePoorThreshold ? webVitalMedian : undefined,
+      },
+      unit: 'ms',
+    },
+  });
+
+  const extraPlottables: Plottable[] = isTimeseriesLoading ? [] : [thresholdsPlottable];
 
   return (
     <ChartContainer>
       {webVital && (
-        <ChartZoom period={period} start={start} end={end} utc={utc}>
-          {zoomRenderProps => (
-            <LineChart
-              {...zoomRenderProps}
-              height={240}
-              series={allSeries}
-              xAxis={{show: false}}
-              grid={{
-                left: 0,
-                right: 15,
-                top: 10,
-                bottom: 0,
-              }}
-              yAxis={{
-                ...(webVital === 'cls'
-                  ? {}
-                  : {axisLabel: {formatter: getFormattedDuration}}),
-                max: yAxisMax,
-              }}
-              tooltip={webVital === 'cls' ? {} : {valueFormatter: getFormattedDuration}}
-            />
-          )}
-        </ChartZoom>
+        <InsightsLineChartWidget
+          title={`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}
+          aliases={FIELD_ALIASES}
+          showReleaseAs="none"
+          showLegend="never"
+          isLoading={isTimeseriesLoading}
+          error={timeseriesError}
+          series={[webVitalSeries]}
+          extraPlottables={extraPlottables}
+          queryInfo={{
+            search,
+            referrer,
+          }}
+          height={250}
+        />
       )}
     </ChartContainer>
   );
@@ -246,4 +113,5 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
 const ChartContainer = styled('div')`
   position: relative;
   flex: 1;
+  padding-bottom: ${space(2)};
 `;

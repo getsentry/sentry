@@ -1,6 +1,5 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
-import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.canvas-detected-banner-clicked': {
@@ -77,7 +76,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
-    referrer_table?: ReferrerTableType;
+    referrer_table?: 'main' | 'selector-widget';
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
@@ -110,23 +109,18 @@ export type ReplayEventParameters = {
   'replay.render-missing-replay-alert': {
     surface: string;
   };
-  'replay.render-player': {
-    aspect_ratio: 'portrait' | 'landscape';
-    context: string;
-    // What scale is the video as a percent, bucketed into ranges of 10% increments
-    // example:
-    //  - The video is shown at 25% the normal size
-    //  - in CSS we use the statement `transform: scale(0.25);`
-    //  - The logged value is `20`, because the scale is in the range of 20% to 30%.
-    scale_bucket: 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
-  };
   'replay.search': {
     search_keys: string;
   };
+  'replay.timeline.zoom-in': Record<string, unknown>;
+  'replay.timeline.zoom-out': Record<string, unknown>;
   'replay.toggle-fullscreen': {
     context: string;
     fullscreen: boolean;
     user_email: string;
+  };
+  'replay.view-html': {
+    breadcrumb_type: string;
   };
 };
 
@@ -159,7 +153,9 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
-  'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
+  'replay.timeline.zoom-in': 'Zoomed In Replay Timeline',
+  'replay.timeline.zoom-out': 'Zoomed Out Replay Timeline',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.view-html': 'Clicked "View HTML" in Replay Breadcrumb',
 };

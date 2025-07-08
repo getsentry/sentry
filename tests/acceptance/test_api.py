@@ -1,3 +1,4 @@
+from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -25,8 +26,13 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.click_when_visible('[data-test-id="toast-success"]')
         self.browser.wait_until_not('[data-test-id="toast-success"]')
 
+        app = ApiApplication.objects.first()
+        assert app
+
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible('[aria-label="Remove"]')
+        self.browser.element("input[name='confirm-text']").send_keys(app.name)
+        self.browser.click_when_visible('[aria-label="Confirm"]')
         self.browser.wait_until_not('[data-test-id="toast-loading"]')
         self.browser.wait_until_test_id("empty-message")

@@ -1,17 +1,10 @@
 import {useMemo} from 'react';
 
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
-import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupSuspectFlagScores';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-
-interface SuspectGroupTag extends GroupTag {
-  suspect: {
-    baselinePercent: undefined | number;
-    score: undefined | number;
-  };
-}
+import type {FlagDrawerItem} from 'sentry/views/issueDetails/groupFeatureFlags/types';
 
 interface Props {
   environments: string[];
@@ -23,7 +16,7 @@ interface Props {
 
 interface Response {
   allGroupFlagCount: number;
-  displayFlags: SuspectGroupTag[];
+  displayFlags: FlagDrawerItem[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
@@ -67,17 +60,21 @@ export default function useGroupFlagDrawerData({
       ? Object.fromEntries(suspectScores.data.map(score => [score.flag, score]))
       : {};
 
-    return groupFlags.map<SuspectGroupTag>(flag => ({
+    return groupFlags.map<FlagDrawerItem>(flag => ({
       ...flag,
       suspect: {
         baselinePercent: suspectScoresMap[flag.key]?.baseline_percent,
         score: suspectScoresMap[flag.key]?.score,
       },
+      distribution: suspectScoresMap[flag.key]?.distribution ?? {
+        baseline: {},
+        outliers: {},
+      },
     }));
   }, [groupFlags, suspectScores]);
 
-  // Flatten all the tag values together into a big string.
-  // A perf improvement: here we iterate over all tags&values once, (N*M) then
+  // Flatten all the tag values together into a big string. This is meant as a
+  // perf improvement: here we iterate over all tags&values once, (N*M) then
   // later only iterate through each tag (N) as the search term changes.
   const tagValues = useMemo(
     () =>
@@ -107,10 +104,13 @@ export default function useGroupFlagDrawerData({
       const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
       return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
     }
-    if (sortBy === SortBy.SUSPICION) {
-      return filteredFlags.toSorted(
-        (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
-      );
+    if (sortBy === SortBy.DISTRIBUTION) {
+      const sorted = filteredFlags.toSorted((a, b) => {
+        const aTopPct = (a.topValues[0]?.count ?? 0) / a.totalValues;
+        const bTopPct = (b.topValues[0]?.count ?? 0) / b.totalValues;
+        return bTopPct - aTopPct;
+      });
+      return orderBy === OrderBy.HIGH_TO_LOW ? sorted : sorted.reverse();
     }
     return filteredFlags;
   }, [filteredFlags, orderBy, sortBy]);

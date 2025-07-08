@@ -45,10 +45,13 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
@@ -94,6 +97,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
@@ -107,7 +111,6 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
-
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
     (
@@ -207,6 +210,12 @@ ORG_OPTIONS = (
         GITLAB_COMMENT_BOT_DEFAULT,
     ),
     (
+        "gitlabOpenPRBot",
+        "sentry:gitlab_open_pr_bot",
+        bool,
+        GITLAB_COMMENT_BOT_DEFAULT,
+    ),
+    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -221,6 +230,25 @@ ORG_OPTIONS = (
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
+    (
+        # Sets the default value for new projects created in this organization
+        "defaultAutofixAutomationTuning",
+        "sentry:default_autofix_automation_tuning",
+        str,
+        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    ),
+    (
+        "defaultSeerScannerAutomation",
+        "sentry:default_seer_scanner_automation",
+        bool,
+        DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ),
+    (
+        "ingestThroughTrustedRelaysOnly",
+        "sentry:ingest-through-trusted-relays-only",
+        bool,
+        INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -271,6 +299,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
+    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -282,6 +311,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
+    defaultAutofixAutomationTuning = serializers.ChoiceField(
+        choices=[item.value for item in AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The default automation tuning setting for new projects.",
+    )
+    defaultSeerScannerAutomation = serializers.BooleanField(required=False)
+    ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -357,6 +393,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
+    def validate_ingestThroughTrustedRelaysOnly(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
+        ):
+            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
+            raise serializers.ValidationError(
+                "Organization does not have the ingest through trusted relays only feature enabled."
+            )
+        return value
+
     def validate_accountRateLimit(self, value):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
@@ -393,6 +441,28 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
+        return value
+
+    def validate_defaultAutofixAutomationTuning(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_defaultSeerScannerAutomation(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
         return value
 
     def validate(self, attrs):
@@ -627,6 +697,9 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
+        "defaultAutofixAutomationTuning",
+        "defaultSeerScannerAutomation",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -804,6 +877,10 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # gitlab features
     gitlabPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
+        required=False,
+    )
+    gitlabOpenPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
         required=False,
     )
 
@@ -990,6 +1067,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 ):
                     boost_low_volume_projects_of_org_with_query.delay(
                         organization.id,
+                    )
+
+                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
+                    organization.update_option(
+                        "sentry:default_autofix_automation_tuning",
+                        serializer.validated_data["defaultAutofixAutomationTuning"],
+                    )
+                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
+                    organization.update_option(
+                        "sentry:default_seer_scanner_automation",
+                        serializer.validated_data["defaultSeerScannerAutomation"],
                     )
 
             if was_pending_deletion:

@@ -11,6 +11,8 @@ from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -19,6 +21,9 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -35,6 +40,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.projectteam import ProjectTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
@@ -42,6 +48,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.tasks import create_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -50,8 +58,17 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
+from sentry.utils.snuba import _snuba_pool
+from sentry.workflow_engine.models import (
+    Action,
+    ActionAlertRuleTriggerAction,
+    AlertRuleDetector,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import DataCondition
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
@@ -165,16 +182,32 @@ class AlertRuleIndexBase(AlertRuleBase):
         ]
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
     def test_simple(self):
-        self.create_team(organization=self.organization, members=[self.user])
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
         alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        assert resp.data == serialize([alert_rule])
+        assert resp.data == serialize([self.alert_rule, alert_rule])
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data[0] == serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -183,8 +216,8 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 404
 
     def test_response_headers(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule()
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
@@ -230,6 +263,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:workflow-engine-metric-alert-dual-write",
+                    "organizations:workflow-engine-rule-serializers",
+                ]
+            ),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self):
@@ -354,6 +412,90 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_eap_spans(self, mock_create_subscription_in_snuba):
+        for event_type in ["transaction", "trace_item_span", None]:
+            data = deepcopy(self.alert_rule_dict)
+            data["dataset"] = "events_analytics_platform"
+            data["alertType"] = "eap_metrics"
+            data["timeWindow"] = 5
+            if event_type:
+                data["eventTypes"] = [event_type]
+
+            with (
+                outbox_runner(),
+                self.feature(["organizations:incidents", "organizations:performance-view"]),
+            ):
+                with patch.object(
+                    _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
+                ) as urlopen:
+                    resp = self.get_success_response(
+                        self.organization.slug,
+                        status_code=201,
+                        **data,
+                    )
+
+                    rpc_request_body = urlopen.call_args[1]["body"]
+                    createSubscriptionRequest = CreateSubscriptionRequest.FromString(
+                        rpc_request_body
+                    )
+
+                    assert (
+                        createSubscriptionRequest.time_series_request.meta.trace_item_type
+                        == TraceItemType.TRACE_ITEM_TYPE_SPAN
+                    )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba):
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "count(message)"
+        data["eventTypes"] = ["trace_item_log"]
+        data["timeWindow"] = 5
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:ourlogs-alerts",
+                ]
+            ),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data,
+                )
+
+                rpc_request_body = urlopen.call_args[1]["body"]
+                createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+
+                assert (
+                    createSubscriptionRequest.time_series_request.meta.trace_item_type
+                    == TraceItemType.TRACE_ITEM_TYPE_LOG
+                )
+
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)[0].type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")

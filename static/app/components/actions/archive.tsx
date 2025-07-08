@@ -31,11 +31,11 @@ const IGNORE_DURATIONS = [
 
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 
-const IGNORE_WINDOWS: Array<SelectValue<number>> = [
+const IGNORE_WINDOWS = [
   {value: ONE_HOUR, label: t('per hour')},
   {value: ONE_HOUR * 24, label: t('per day')},
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
-];
+] satisfies Array<SelectValue<number>>;
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -365,5 +365,5 @@ const MenuWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

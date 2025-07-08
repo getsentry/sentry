@@ -8,10 +8,10 @@ import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Chevron} from 'sentry/components/chevron';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Link} from 'sentry/components/core/link';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import type SidebarMenuItemLink from 'sentry/components/sidebar/sidebarMenuItemLink';
@@ -154,7 +154,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                       {t('User settings')}
                     </SidebarMenuItem>
                     <SidebarMenuItem to="/settings/account/api/">
-                      {t('User auth tokens')}
+                      {t('Personal Tokens')}
                     </SidebarMenuItem>
                     {hasOrganization && (
                       <Hook
@@ -211,9 +211,9 @@ const OrgAndUserWrapper = styled('div')`
   text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
   text-shadow: ${p =>
     isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0)'};
@@ -221,7 +221,7 @@ const OrgOrUserName = styled(TextOverflow)`
 `;
 
 const UserNameOrEmail = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 16px;
   transition: 0.15s color linear;
 `;
@@ -252,7 +252,7 @@ const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   box-shadow: ${isChonkTheme(p.theme) ? 'none' : '0 2px 0 rgba(0, 0, 0, 0.08)'};
   border-radius: 6px; /* Fixes background bleeding on corners */
 
-  @media (max-width: ${p.theme.breakpoints.medium}) {
+  @media (max-width: ${p.theme.breakpoints.md}) {
     margin-right: 0;
   }
 `;

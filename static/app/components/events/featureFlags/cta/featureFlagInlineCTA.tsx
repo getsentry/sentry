@@ -5,8 +5,9 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
@@ -63,7 +64,7 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </ActionButton>
       </BannerContent>
-      <BannerIllustration src={onboardingInstall} alt={t('Install')} />
+      <BannerIllustration src={onboardingInstall} alt="" />
     </Fragment>
   );
 }
@@ -176,9 +177,9 @@ const ActionButton = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`
@@ -194,19 +195,18 @@ const BannerContent = styled('div')`
 `;
 
 const BannerIllustration = styled('img')`
-  height: 100%;
   object-fit: contain;
   max-width: 30%;
-  margin-right: 10px;
-  margin-bottom: -${space(2)};
-  padding: ${space(2)};
+  min-width: 150px;
+  padding-inline: ${space(2)};
+  padding-top: ${space(2)};
+  align-self: flex-end;
 `;
 
 export const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
@@ -218,6 +218,15 @@ export const BannerWrapper = styled('div')`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${space(1)};
+
+  container-name: bannerWrapper;
+  container-type: inline-size;
+
+  @container bannerWrapper (max-width: 400px) {
+    img {
+      display: none;
+    }
+  }
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`

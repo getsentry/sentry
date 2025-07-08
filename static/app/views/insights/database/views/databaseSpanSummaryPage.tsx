@@ -19,13 +19,14 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
 import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
@@ -55,6 +56,8 @@ type Query = {
 type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const moduleTitle = useModuleTitle(ModuleName.DB);
+  const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
 
   const {groupId} = params;
@@ -76,10 +79,19 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
         limit: 1,
+        sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
         fields: [
           SpanIndexedField.PROJECT_ID,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
           SpanIndexedField.SPAN_DESCRIPTION,
+          SpanIndexedField.DB_SYSTEM,
+          SpanIndexedField.CODE_FILEPATH,
+          SpanIndexedField.CODE_LINENO,
+          SpanIndexedField.CODE_FUNCTION,
+          SpanIndexedField.SDK_NAME,
+          SpanIndexedField.SDK_VERSION,
+          SpanIndexedField.RELEASE,
+          SpanIndexedField.PLATFORM,
         ],
       },
       'api.starfish.span-description'
@@ -97,7 +109,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         `${SpanFunction.EPM}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
@@ -122,7 +133,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       sorts: [sort],
@@ -161,10 +171,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         headerTitle={t('Query Summary')}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: t('Query Summary'),
           },
         ]}
         module={ModuleName.DB}
+        hideDefaultTabs
       />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
@@ -202,11 +217,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
-                      tooltip={getTimeSpentExplanation(
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        spanMetrics?.['time_spent_percentage()'],
-                        'db'
-                      )}
                       isLoading={areSpanMetricsLoading}
                     />
                   </ReadoutRibbon>
@@ -268,7 +278,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
 const DEFAULT_SORT = {
   kind: 'desc' as const,
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 25;
@@ -278,7 +288,7 @@ const ChartContainer = styled('div')`
   gap: 0;
   grid-template-columns: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
     gap: ${space(2)};
   }

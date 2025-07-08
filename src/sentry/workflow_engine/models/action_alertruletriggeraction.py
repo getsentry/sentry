@@ -15,5 +15,5 @@ class ActionAlertRuleTriggerAction(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    alert_rule_trigger_action_id = BoundedBigIntegerField()
+    alert_rule_trigger_action_id = BoundedBigIntegerField(db_index=True)
     action = FlexibleForeignKey("workflow_engine.Action")

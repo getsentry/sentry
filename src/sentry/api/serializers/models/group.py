@@ -106,10 +106,10 @@ class GroupProjectResponse(TypedDict):
 
 class BaseGroupResponseOptional(TypedDict, total=False):
     isUnhandled: bool
-    count: int
+    count: str
     userCount: int
-    firstSeen: datetime
-    lastSeen: datetime
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -128,6 +128,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     platform: str | None
     priority: str | None
     priorityLockedAt: datetime | None
+    seerFixabilityScore: float | None
+    seerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
     type: str
     issueType: str
@@ -147,6 +149,13 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+
+
+class SeenStatsResponse(TypedDict):
+    count: str
+    userCount: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
@@ -361,6 +370,8 @@ class GroupSerializerBase(Serializer, ABC):
             "issueCategory": issue_category,
             "priority": priority_label,
             "priorityLockedAt": obj.priority_locked_at,
+            "seerFixabilityScore": obj.seer_fixability_score,
+            "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
         }
 
         # This attribute is currently feature gated
@@ -745,7 +756,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
     @staticmethod
-    def _convert_seen_stats(attrs: SeenStats):
+    def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:
         return {
             "count": str(attrs["times_seen"]),
             "userCount": attrs["user_count"],
@@ -922,6 +933,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.category",
         "issue.priority",
         "issue.type",
+        "issue.seer_actionability",
+        "issue.seer_last_run",
     )
 )
 

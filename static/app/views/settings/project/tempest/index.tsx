@@ -1,98 +1,67 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
-import useApi from 'sentry/utils/useApi';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
-import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
-import {CredentialRow} from './CredentialRow';
-import EmptyState from './EmptyState';
+import DevKitSettings, {getDevKitHeaderAction} from './DevKitSettings';
+import PlayStationSettings, {getPlayStationHeaderAction} from './PlayStationSettings';
 
 interface Props {
   organization: Organization;
   project: Project;
 }
 
+type Tab = 'playstation' | 'devkit-crashes';
+
+const TAB_LABELS: Record<Tab, string> = {
+  playstation: t('Retail'),
+  'devkit-crashes': t('DevKit'),
+};
+
+const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
+
 export default function TempestSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
-  const {
-    data: tempestCredentials,
-    isLoading,
-    invalidateCredentialsCache,
-  } = useFetchTempestCredentials(organization, project);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
+    useDismissAlert({
+      key: PS5_WARNING_DISMISS_KEY,
+    });
 
-  const api = useApi();
-  const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    unknown,
-    RequestError,
-    {id: number}
-  >({
-    mutationFn: ({id}) =>
-      api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
-        {
-          method: 'DELETE',
-        }
-      ),
-    onSuccess: () => {
-      addSuccessMessage(t('Removed the credentials.'));
-      trackAnalytics('tempest.credentials.removed', {
-        organization,
-        project_slug: project.slug,
-      });
-      invalidateCredentialsCache();
-    },
-    onError: error => {
-      const message = t('Failed to remove the credentials.');
-      handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
-    },
-  });
+  const getCurrentTab = (): Tab => {
+    const queryTab = decodeScalar(location?.query?.tab);
+    return (
+      ['playstation', 'devkit-crashes'].includes(queryTab || '')
+        ? queryTab
+        : 'playstation'
+    ) as Tab;
+  };
 
-  const credentialErrors = useMemo(() => {
-    return tempestCredentials?.filter(
-      credential => credential.messageType === MessageType.ERROR && credential.message
-    );
-  }, [tempestCredentials]);
+  const tab = getCurrentTab();
 
-  useEffect(() => {
-    if (credentialErrors && credentialErrors.length > 0) {
-      trackAnalytics('tempest.credentials.error_displayed', {
-        organization,
-        project_slug: project.slug,
-        error_count: credentialErrors.length,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [credentialErrors]);
-
-  const isEmpty = useMemo(() => {
-    return !tempestCredentials?.length;
-  }, [tempestCredentials]);
+  const handleTabChange = (newTab: Tab) => {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        tab: newTab,
+      },
+    });
+  };
 
   if (!hasTempestAccess(organization)) {
     return (
@@ -102,115 +71,86 @@ export default function TempestSettings({organization, project}: Props) {
     );
   }
 
+  const renderPlayStationSettings = () => {
+    return <PlayStationSettings organization={organization} project={project} />;
+  };
+
+  const renderDevKitCrashesSettings = () => {
+    return <DevKitSettings organization={organization} project={project} />;
+  };
+
+  const renderTabContent = () => {
+    switch (tab) {
+      case 'playstation':
+        return renderPlayStationSettings();
+      case 'devkit-crashes':
+        return renderDevKitCrashesSettings();
+      default:
+        return renderPlayStationSettings();
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (tab) {
+      case 'devkit-crashes':
+        return t('DevKit Crashes');
+      case 'playstation':
+      default:
+        return t('PlayStation');
+    }
+  };
+
+  const getHeaderAction = () => {
+    switch (tab) {
+      case 'devkit-crashes':
+        return getDevKitHeaderAction(organization, project);
+      case 'playstation':
+      default:
+        return getPlayStationHeaderAction(hasWriteAccess, organization, project);
+    }
+  };
+
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('PlayStation')} />
-      <SettingsPageHeader
-        title={t('PlayStation')}
-        action={addNewCredentials(hasWriteAccess, organization, project)}
-      />
+      <SentryDocumentTitle title={getPageTitle()} />
+      <SettingsPageHeader title={getPageTitle()} action={getHeaderAction()} />
 
-      {credentialErrors && credentialErrors?.length > 0 && (
-        <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('There was a problem with following credentials:')}
-            <List symbol="bullet">
-              {credentialErrors.map(credential => (
-                <ListItem key={credential.id}>
-                  {credential.clientId} - {credential.message}
-                </ListItem>
-              ))}
-            </List>
-          </Alert>
-        </Alert.Container>
+      {!isPS5WarningDismissed && (
+        <div>
+          <Alert.Container>
+            <Alert
+              type="warning"
+              trailingItems={
+                <Button
+                  priority="link"
+                  icon={<IconClose />}
+                  onClick={dismissPS5Warning}
+                  aria-label={t('Dismiss Alert')}
+                  title={t('Dismiss Alert')}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {t(
+                `Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!`
+              )}
+            </Alert>
+          </Alert.Container>
+        </div>
       )}
 
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-        initialData={{
-          tempestFetchScreenshots: project?.tempestFetchScreenshots,
-          tempestFetchDumps: project?.tempestFetchDumps,
-        }}
-        saveOnBlur
-        hideFooter
-      >
-        <JsonForm
-          forms={[
-            {
-              title: t('General Settings'),
-              fields: [
-                {
-                  name: 'tempestFetchScreenshots',
-                  type: 'boolean',
-                  label: t('Attach Screenshots'),
-                  help: t('Attach screenshots to issues.'),
-                },
-                {
-                  name: 'tempestFetchDumps',
-                  type: 'boolean',
-                  label: t('Attach Dumps'),
-                  help: t('Attach dumps to issues.'),
-                },
-              ],
-            },
-          ]}
-        />
-      </Form>
+      <div style={{marginBottom: '1rem'}}>
+        <Tabs value={tab} onChange={handleTabChange}>
+          <TabList>
+            {Object.entries(TAB_LABELS).map(([key, label]) => (
+              <TabList.Item key={key}>{label}</TabList.Item>
+            ))}
+          </TabList>
+        </Tabs>
+      </div>
 
-      {!isLoading && isEmpty ? (
-        <Panel>
-          <EmptyState />
-        </Panel>
-      ) : (
-        <PanelTable
-          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-          isLoading={isLoading}
-          isEmpty={isEmpty}
-        >
-          {tempestCredentials?.map(credential => (
-            <CredentialRow
-              key={credential.id}
-              credential={credential}
-              isRemoving={isRemoving}
-              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-            />
-          ))}
-        </PanelTable>
-      )}
+      {renderTabContent()}
     </Fragment>
   );
 }
-
-const addNewCredentials = (
-  hasWriteAccess: boolean,
-  organization: Organization,
-  project: Project
-) => (
-  <Fragment>
-    <ButtonBar gap={1.5}>
-      <FeedbackWidgetButton />
-      <Tooltip
-        title={t('You must be an organization admin to add new credentials.')}
-        disabled={hasWriteAccess}
-      >
-        <Button
-          priority="primary"
-          size="sm"
-          data-test-id="create-new-credentials"
-          disabled={!hasWriteAccess}
-          icon={<IconAdd isCircled />}
-          onClick={() => {
-            openAddTempestCredentialsModal({organization, project});
-            trackAnalytics('tempest.credentials.add_modal_opened', {
-              organization,
-              project_slug: project.slug,
-            });
-          }}
-        >
-          {t('Add Credentials')}
-        </Button>
-      </Tooltip>
-    </ButtonBar>
-  </Fragment>
-);

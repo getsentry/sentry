@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {IconSubtract} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -159,13 +158,7 @@ export function OrganizationAuthTokensAuthTokenRow({
               size="sm"
               disabled={isRevoking || !revokeToken}
               aria-label={t('Revoke %s', token.name)}
-              icon={
-                isRevoking ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={<IconDelete />}
             >
               {t('Revoke')}
             </Button>

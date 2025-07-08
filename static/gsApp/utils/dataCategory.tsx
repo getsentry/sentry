@@ -11,8 +11,11 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
+  PendingReservedBudget,
   Plan,
   RecurringCredit,
+  ReservedBudget,
+  ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
 
@@ -103,33 +106,88 @@ export function getSingularCategoryName({
 }
 
 /**
+ * Get the ReservedBudgetCategory from a list of categories and a plan,
+ * if it exists.
+ */
+export function getReservedBudgetCategoryFromCategories(
+  plan: Plan,
+  categories: DataCategory[]
+): ReservedBudgetCategory | null {
+  return (
+    Object.values(plan?.availableReservedBudgetTypes ?? {}).find(
+      budgetInfo =>
+        categories.length === budgetInfo.dataCategories.length &&
+        categories.every(category => budgetInfo.dataCategories.includes(category))
+    ) ?? null
+  );
+}
+
+/**
+ * Whether a category is part of a reserved budget.
+ * This will also return true for categories that can
+ * only be bought as part of a reserved budget (ie. Seer
+ * categories without having bought Seer).
+ */
+export function isPartOfReservedBudget(
+  category: DataCategory,
+  reservedBudgets: ReservedBudget[]
+): boolean {
+  return reservedBudgets.some(budget => budget.dataCategories.includes(category));
+}
+
+/**
  * Convert a list of reserved budget categories to a display name for the budget
  */
 export function getReservedBudgetDisplayName({
   plan,
-  categories,
-  hadCustomDynamicSampling = false,
+  hadCustomDynamicSampling,
+  reservedBudget = null,
+  pendingReservedBudget = null,
   shouldTitleCase = false,
-}: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
-  categories: DataCategory[];
+  capitalize = false,
+}: Omit<CategoryNameProps, 'category'> & {
+  pendingReservedBudget?: PendingReservedBudget | null;
+  reservedBudget?: ReservedBudget | null;
   shouldTitleCase?: boolean;
 }) {
-  return oxfordizeArray(
-    categories
-      .map(category => {
-        const name = getPlanCategoryName({
-          plan,
-          category,
-          hadCustomDynamicSampling,
-          capitalize: false,
-        });
-        return shouldTitleCase ? toTitleCase(name, {allowInnerUpperCase: true}) : name;
-      })
-      .sort((a, b) => {
-        return a.localeCompare(b);
-      })
-  );
+  const categoryList =
+    reservedBudget?.dataCategories ??
+    (Object.keys(pendingReservedBudget?.categories ?? {}) as DataCategory[]);
+  const name =
+    reservedBudget?.name ??
+    (plan ? getReservedBudgetCategoryFromCategories(plan, categoryList)?.name : '');
+
+  if (name) {
+    return shouldTitleCase
+      ? toTitleCase(name, {allowInnerUpperCase: true})
+      : capitalize
+        ? upperFirst(name)
+        : name;
+  }
+
+  const formattedCategories = categoryList
+    .map(category => {
+      const categoryName = getPlanCategoryName({
+        plan,
+        category,
+        hadCustomDynamicSampling,
+        capitalize: false,
+      });
+      return shouldTitleCase
+        ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+        : categoryName;
+    })
+    .sort((a, b) => {
+      return a.localeCompare(b);
+    });
+
+  if (capitalize) {
+    formattedCategories[0] = upperFirst(formattedCategories[0]);
+  }
+
+  return oxfordizeArray(formattedCategories) + (shouldTitleCase ? ' Budget' : ' budget');
 }
+
 /**
  * Get a string of display names.
  *
@@ -148,7 +206,7 @@ export function listDisplayNames({
 }) {
   const categoryNames = categories
     .filter(
-      category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling // filter out stored spans if no DS
+      category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling
     )
     .map(category =>
       getPlanCategoryName({

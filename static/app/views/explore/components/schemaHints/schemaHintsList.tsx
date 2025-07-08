@@ -15,17 +15,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  isAggregateField,
-  parseFunction,
-  prettifyTagKey,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
   type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
+  prettifyTagKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -148,7 +145,8 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen, panelRef} = useDrawer();
+  const {openDrawer, panelRef} = useDrawer();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
 
   // Create a ref to hold the latest query for the drawer
@@ -305,6 +303,7 @@ function SchemaHintsList({
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
         if (!isDrawerOpen) {
+          setIsDrawerOpen(true);
           openDrawer(
             () => (
               <SchemaHintsDrawer
@@ -353,6 +352,7 @@ function SchemaHintsList({
               },
 
               onClose: () => {
+                setIsDrawerOpen(false);
                 trackAnalytics('trace.explorer.schema_hints_drawer', {
                   drawer_open: false,
                   organization,
@@ -385,6 +385,7 @@ function SchemaHintsList({
             .lastIndexOf(hint.key)}`,
           part: 'value',
         },
+        shouldCommitQuery: false,
       });
 
       trackAnalytics('trace.explorer.schema_hints_click', {
@@ -488,7 +489,7 @@ export const SchemaHintsSection = styled('div')`
   margin-top: -4px;
   height: fit-content;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
@@ -502,16 +503,16 @@ const HintTextContainer = styled('div')`
 `;
 
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.purple400};
 `;

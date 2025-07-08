@@ -3,8 +3,12 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button, LinkButton} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import Confirm from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
@@ -12,7 +16,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +23,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -58,7 +62,7 @@ function AccountSecurity({
         method: 'DELETE',
         data: {all: true},
       });
-      window.location.assign('/auth/login/');
+      testableWindowLocation.assign('/auth/login/');
     } catch (err) {
       addErrorMessage(t('There was a problem closing all sessions'));
       throw err;
@@ -125,7 +129,14 @@ function AccountSecurity({
               'Signing out of all devices will sign you out of this device as well.'
             )}
           >
-            <Button onClick={handleSessionClose}>{t('Sign out of all devices')}</Button>
+            <Confirm
+              onConfirm={handleSessionClose}
+              message={t(
+                'You will need to re-authenticate on all devices you were previously signed in on. Are you sure?'
+              )}
+            >
+              <Button>{t('Sign out of all devices')}</Button>
+            </Confirm>
           </FieldGroup>
         </PanelBody>
       </Panel>
@@ -135,7 +146,7 @@ function AccountSecurity({
         {isEmpty && (
           <EmptyMessage>{t('No available authenticators to add')}</EmptyMessage>
         )}
-        <PanelBody>
+        <AuthenticatorList>
           {!isEmpty &&
             authenticators?.map(auth => {
               const {
@@ -153,79 +164,74 @@ function AccountSecurity({
               }
               return (
                 <AuthenticatorPanelItem key={id}>
-                  <AuthenticatorHeader>
+                  <AuthenticatorDetails>
+                    <CircleIndicator
+                      role="status"
+                      aria-label={
+                        isEnrolled
+                          ? t('Authentication Method Active')
+                          : t('Authentication Method Inactive')
+                      }
+                      enabled={isEnrolled}
+                    />
                     <AuthenticatorTitle>
-                      <AuthenticatorStatus
-                        role="status"
-                        aria-label={
-                          isEnrolled
-                            ? t('Authentication Method Active')
-                            : t('Authentication Method Inactive')
-                        }
-                        enabled={isEnrolled}
-                      />
-                      <AuthenticatorName>{name}</AuthenticatorName>
+                      {name}
+                      {isBackupInterface && !isEnrolled && (
+                        <Tag type="info">{t('requires 2FA')}</Tag>
+                      )}
                     </AuthenticatorTitle>
+                    <AuthenticatorDescription>{description}</AuthenticatorDescription>
+                  </AuthenticatorDetails>
+                  <ButtonBar gap={1}>
+                    {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                      <LinkButton
+                        to={`/settings/account/security/mfa/${id}/enroll/`}
+                        size="sm"
+                        priority="primary"
+                      >
+                        {t('Add')}
+                      </LinkButton>
+                    )}
+                    {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                      <Button onClick={handleAdd2FAClicked} size="sm" priority="primary">
+                        {t('Add')}
+                      </Button>
+                    )}
 
-                    <Actions>
-                      {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
-                        <LinkButton
-                          to={`/settings/account/security/mfa/${id}/enroll/`}
-                          size="sm"
-                          priority="primary"
-                        >
-                          {t('Add')}
-                        </LinkButton>
-                      )}
-                      {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                    {isEnrolled && authId && (
+                      <LinkButton
+                        to={`/settings/account/security/mfa/${authId}/`}
+                        size="sm"
+                      >
+                        {configureButton}
+                      </LinkButton>
+                    )}
+
+                    {!isBackupInterface && isEnrolled && (
+                      <RemoveConfirm
+                        onConfirm={() => onDisable(auth)}
+                        disabled={deleteDisabled}
+                      >
                         <Button
-                          onClick={handleAdd2FAClicked}
                           size="sm"
-                          priority="primary"
-                        >
-                          {t('Add')}
-                        </Button>
-                      )}
-
-                      {isEnrolled && authId && (
-                        <LinkButton
-                          to={`/settings/account/security/mfa/${authId}/`}
-                          size="sm"
-                        >
-                          {configureButton}
-                        </LinkButton>
-                      )}
-
-                      {!isBackupInterface && isEnrolled && (
-                        <Tooltip
-                          title={t(
-                            `Two-factor authentication is required for organization(s): %s.`,
-                            formatOrgSlugs()
-                          )}
-                          disabled={!deleteDisabled}
-                        >
-                          <RemoveConfirm
-                            onConfirm={() => onDisable(auth)}
-                            disabled={deleteDisabled}
-                          >
-                            <Button
-                              size="sm"
-                              aria-label={t('Delete')}
-                              icon={<IconDelete />}
-                            />
-                          </RemoveConfirm>
-                        </Tooltip>
-                      )}
-                    </Actions>
-
-                    {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
-                  </AuthenticatorHeader>
-
-                  <Description>{description}</Description>
+                          aria-label={t('Delete')}
+                          icon={<IconDelete />}
+                          title={
+                            deleteDisabled
+                              ? t(
+                                  `Two-factor authentication is required for organization(s): %s.`,
+                                  formatOrgSlugs()
+                                )
+                              : undefined
+                          }
+                        />
+                      </RemoveConfirm>
+                    )}
+                  </ButtonBar>
                 </AuthenticatorPanelItem>
               );
             })}
-        </PanelBody>
+        </AuthenticatorList>
       </Panel>
     </SentryDocumentTitle>
   );
@@ -235,37 +241,39 @@ const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const AuthenticatorName = styled('span')`
-  font-size: 1.2em;
+const AuthenticatorList = styled(PanelBody)`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 0 ${space(1)};
 `;
 
 const AuthenticatorPanelItem = styled(PanelItem)`
-  flex-direction: column;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+
+  & > :last-child {
+    justify-content: end;
+  }
 `;
 
-const AuthenticatorHeader = styled('div')`
-  display: flex;
-  flex: 1;
+const AuthenticatorDetails = styled('div')`
+  display: grid;
+  grid-template-columns: max-content minmax(auto, 600px);
+  gap: ${space(0.75)};
   align-items: center;
 `;
 
 const AuthenticatorTitle = styled('div')`
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-`;
-
-const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-right: ${space(1)};
-`;
-
-const Description = styled(TextBlock)`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
+const AuthenticatorDescription = styled(TextBlock)`
+  grid-column: 2;
+  margin: 0;
 `;
 
 export default AccountSecurity;

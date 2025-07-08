@@ -14,7 +14,6 @@ from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class DatabaseBackedRepositoryService(RepositoryService):
@@ -72,7 +71,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 )
                 return serialize_repository(repository)
         except IntegrityError:
-            incr_rollback_metrics(Repository)
             return None
 
     def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:

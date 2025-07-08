@@ -3,38 +3,33 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+// TODO(release-drawer): Only used in mobile/screenload/components/
+// eslint-disable-next-line no-restricted-imports
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {
   CHART_TITLES,
-  OUTPUT_TYPE,
   YAXIS_COLUMNS,
 } from 'sentry/views/insights/mobile/screenload/constants';
-import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
+import {Referrer} from 'sentry/views/insights/mobile/screenload/referrers';
+import {SpanFields} from 'sentry/views/insights/types';
 
-export enum YAxis {
+enum YAxis {
   WARM_START = 0,
   COLD_START = 1,
   TTID = 2,
@@ -46,17 +41,16 @@ export enum YAxis {
 }
 
 type Props = {
-  yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
 };
 
-export function ScreenCharts({yAxes, additionalFilters}: Props) {
+const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
+
+export function ScreenCharts({additionalFilters}: Props) {
+  const useEap = useInsightsEap();
   const theme = useTheme();
-  const pageFilter = usePageFilters();
-  const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-  const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
   const {
     primaryRelease,
@@ -66,13 +60,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
-      'event.type:transaction',
-      'transaction.op:ui.load',
+      useEap ? 'is_transaction:true' : 'event.type:transaction',
+      'transaction.op:[ui.load,navigation]',
       ...(additionalFilters ?? []),
     ]);
 
     if (isProjectCrossPlatform) {
       query.addFilterValue('os.name', platform);
+    }
+
+    if (useEap) {
+      query.addFilterValue('is_transaction', 'true');
     }
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
@@ -82,34 +80,30 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     platform,
     primaryRelease,
     secondaryRelease,
+    useEap,
   ]);
 
+  const search = new MutableSearch(queryString);
+  const groupBy = SpanFields.RELEASE;
+  const referrer = Referrer.SCREENLOAD_LANDING_DURATION_CHART;
+
   const {
-    data: series,
+    data: releaseSeriesArray,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useEventsStatsQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        fields: ['release', ...yAxisCols],
-        topEvents: '2',
-        yAxis: [...yAxisCols],
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      pageFilter.selection
-    ),
-    enabled: !isReleasesLoading,
-    // TODO: Change referrer
-    referrer: 'api.starfish.mobile-screen-series',
-    initialData: {},
-  });
+  } = useTopNMetricsMultiSeries(
+    {
+      fields: [groupBy],
+      topN: 2,
+      yAxis: [
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
+        'count()',
+      ],
+      search,
+    },
+    referrer
+  );
 
   useEffect(() => {
     if (defined(primaryRelease) || isReleasesLoading) {
@@ -123,50 +117,62 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });
 
-  if (defined(series)) {
-    Object.keys(series).forEach(release => {
-      const isPrimary = release === primaryRelease;
+  const seriesMap: Record<
+    | 'avg(measurements.time_to_initial_display)'
+    | 'avg(measurements.time_to_full_display)'
+    | 'count()',
+    DiscoverSeries[]
+  > = {
+    'avg(measurements.time_to_initial_display)': [],
+    'avg(measurements.time_to_full_display)': [],
+    'count()': [],
+  };
 
-      Object.keys(series[release]!).forEach(yAxis => {
-        const label = release;
-        if (yAxis in transformedReleaseSeries) {
-          const data =
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            series[release]![yAxis]?.data.map((datum: any) => {
-              return {
-                name: datum[0] * 1000,
-                value: datum[1][0].count,
-              } as SeriesDataUnit;
-            }) ?? [];
+  let chartAliases = {};
+  const meta: EventsMetaType = {
+    fields: {},
+    units: {},
+  };
 
-          const colors = theme.chart.getColorPalette(3);
-          const color = isPrimary ? colors[0] : colors[1];
-          transformedReleaseSeries[yAxis]![release] = {
-            seriesName: formatVersion(label, true),
-            color,
-            data,
-          };
+  if (defined(releaseSeriesArray)) {
+    releaseSeriesArray.forEach(release => {
+      const releaseName = release.name;
+      const isPrimary = releaseName === primaryRelease;
+      const colors = theme.chart.getColorPalette(3);
+      const color = isPrimary ? colors[0] : colors[1];
+      const version = formatVersion(releaseName, true);
+
+      const seriesNames = [
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
+        'count()',
+      ] as const;
+
+      seriesNames.forEach(seriesName => {
+        const releaseSeries = release.data[seriesName];
+        const newSeriesName = `${seriesName} ${version}`;
+        chartAliases = {
+          ...chartAliases,
+          [newSeriesName]: version,
+        };
+
+        if (releaseSeries.meta?.fields[seriesName]) {
+          meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
         }
+
+        if (releaseSeries.meta?.units[seriesName]) {
+          meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
+        }
+
+        seriesMap[seriesName].push({
+          data: releaseSeries.data,
+          meta,
+          color,
+          seriesName: newSeriesName,
+        });
       });
     });
   }
-
-  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['device.class', 'release', ...yAxisCols],
-        orderby: yAxisCols[0],
-        yAxis: yAxisCols,
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-      },
-      location
-    ),
-    enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-device-breakdown',
-  });
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
@@ -182,197 +188,46 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     );
   }
 
-  const transformedEvents = transformDeviceClassEvents({
-    yAxes,
-    primaryRelease,
-    secondaryRelease,
-    data: deviceClassEvents,
-    theme,
-  });
-
   function renderCharts() {
     return (
       <Fragment>
-        <Container>
-          <div>
-            <StyledRow>
-              <ChartsContainerItem key="deviceClass">
-                <ScreensBarChart
-                  chartOptions={[
-                    {
-                      title: t('TTID by Device Class'),
-                      yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
-                      xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: primaryRelease
-                        ? t(
-                            '%s v. %s',
-                            formatVersionAndCenterTruncate(primaryRelease, 12),
-                            secondaryRelease
-                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                              : ''
-                          )
-                        : '',
-                    },
-                  ]}
-                  chartKey="spansChart"
-                  chartHeight={80}
-                  isLoading={isDeviceClassEventsLoading}
-                />
-              </ChartsContainerItem>
-              <ChartsContainerItem key="xyz">
-                <MiniChartPanel
-                  title={t('Average TTID')}
-                  subtitle={
-                    primaryRelease
-                      ? t(
-                          '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
-                        )
-                      : ''
-                  }
-                >
-                  <Chart
-                    height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]]!
-                    )}
-                    loading={isSeriesLoading}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    type={ChartType.LINE}
-                    aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(
-                          value,
-                          OUTPUT_TYPE[YAxis.TTID]
-                        ),
-                    }}
-                    error={seriesError}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </StyledRow>
-            <StyledRow>
-              <ChartsContainerItem key="deviceClass">
-                <ScreensBarChart
-                  chartOptions={[
-                    {
-                      title: t('TTFD by Device Class'),
-                      yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
-                      xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: primaryRelease
-                        ? t(
-                            '%s v. %s',
-                            formatVersionAndCenterTruncate(primaryRelease, 12),
-                            secondaryRelease
-                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                              : ''
-                          )
-                        : '',
-                    },
-                  ]}
-                  chartKey="spansChart"
-                  chartHeight={80}
-                  isLoading={isDeviceClassEventsLoading}
-                />
-              </ChartsContainerItem>
-              <ChartsContainerItem key="xyz">
-                <MiniChartPanel
-                  title={t('Average TTFD')}
-                  subtitle={
-                    primaryRelease
-                      ? t(
-                          '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
-                        )
-                      : ''
-                  }
-                >
-                  <Chart
-                    height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]]!
-                    )}
-                    loading={isSeriesLoading}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    type={ChartType.LINE}
-                    aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTFD]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(
-                          value,
-                          OUTPUT_TYPE[YAxis.TTFD]
-                        ),
-                    }}
-                    error={seriesError}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </StyledRow>
-          </div>
-          <ChartsContainerItem key="xyz">
-            <MiniChartPanel
-              title={CHART_TITLES[YAxis.COUNT]}
-              subtitle={
-                primaryRelease
-                  ? t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    )
-                  : ''
-              }
-            >
-              <Chart
-                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]]!)}
-                height={245}
-                loading={isSeriesLoading}
-                grid={{
-                  left: '0',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                showLegend
-                definedAxisTicks={2}
-                type={ChartType.LINE}
-                aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
-                tooltipFormatterOptions={{
-                  valueFormatter: value =>
-                    tooltipFormatterUsingAggregateOutputType(
-                      value,
-                      OUTPUT_TYPE[YAxis.COUNT]
-                    ),
-                }}
-                error={seriesError}
-              />
-            </MiniChartPanel>
-          </ChartsContainerItem>
-        </Container>
+        <ChartContainer>
+          <ScreensBarChart search={search} type="ttid" chartHeight={150} />
+          <InsightsLineChartWidget
+            queryInfo={{search, groupBy: [groupBy], referrer}}
+            title={t('Average TTID')}
+            series={seriesMap['avg(measurements.time_to_initial_display)']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+          <InsightsLineChartWidget
+            queryInfo={{search, groupBy: [groupBy], referrer}}
+            title={CHART_TITLES[YAxis.COUNT]}
+            series={seriesMap['count()']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+          <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
+          <InsightsLineChartWidget
+            queryInfo={{search, groupBy: [groupBy], referrer}}
+            title={t('Average TTFD')}
+            series={seriesMap['avg(measurements.time_to_full_display)']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+        </ChartContainer>
       </Fragment>
     );
   }
@@ -380,18 +235,9 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
   return <div data-test-id="starfish-mobile-view">{renderCharts()}</div>;
 }
 
-const StyledRow = styled('div')`
+const ChartContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-column-gap: ${space(2)};
-`;
-
-const ChartsContainerItem = styled('div')`
-  flex: 1;
-`;
-
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-column-gap: ${space(2)};
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${space(2)};
+  padding-bottom: ${space(2)};
 `;

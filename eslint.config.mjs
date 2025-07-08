@@ -15,9 +15,11 @@ import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
+import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -37,18 +39,32 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
-// lint rules that need type information need to go here
-export const typeAwareLintRules = {
-  name: 'plugin/typescript-eslint/type-aware-linting',
-  rules: {
-    '@typescript-eslint/await-thenable': 'error',
-    '@typescript-eslint/no-array-delete': 'error',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/consistent-type-exports': 'error',
-    '@typescript-eslint/consistent-type-imports': 'error',
-  },
-};
+// Some rules can be enabled/disabled via env vars.
+// This is useful for CI, where we want to run the linter with the most strict
+// and slowest settings, and for pre-commit, where we want to run the linter
+// faster.
+// Some output is provided to help people toggle these settings locally.
+const enableTypeAwareLinting = (function () {
+  // If we ask for something specific, use that.
+  if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
+    return Boolean(JSON.parse(process.env.SENTRY_ESLINT_TYPEAWARE));
+  }
+
+  // If we're inside a pre-commit hook, defer to whether we're in CI.
+  if (
+    process.env.SENTRY_PRECOMMIT !== undefined &&
+    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
+  ) {
+    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  }
+
+  // By default, enable type-aware linting.
+  return true;
+})();
+
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const globMDX = '**/*.mdx';
 
 const restrictedImportPaths = [
   {
@@ -109,6 +125,21 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -144,21 +175,21 @@ export default typescript.config([
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
+        jsDocParsingMode: 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
-        project: process.env.SENTRY_DETECT_DEPRECATIONS ? './tsconfig.json' : false,
+        // `projectService` is recommended
+        project: false,
 
         // https://typescript-eslint.io/packages/parser/#projectservice
-        // `projectService` is recommended, but slower, with our current tsconfig files.
-        projectService: true,
-        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
+        // Specifies using TypeScript APIs to generate type information for rules.
+        projectService: enableTypeAwareLinting,
         tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'error',
+      reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
     },
     settings: {
       react: {
@@ -184,10 +215,10 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -277,10 +308,6 @@ export default typescript.config([
               message: 'Do not import gsApp into sentry',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -364,6 +391,10 @@ export default typescript.config([
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
+      'import/no-extraneous-dependencies': [
+        'error',
+        {includeTypes: true, devDependencies: ['!eslint.config.mjs']},
+      ],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
@@ -441,7 +472,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/typescript-eslint/type-aware-linting',
+    ignores: [globMDX],
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
+    rules: enableTypeAwareLinting
+      ? {
+          '@typescript-eslint/await-thenable': 'error',
+          '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/consistent-type-imports': 'error',
+          '@typescript-eslint/no-array-delete': 'error',
+          '@typescript-eslint/no-base-to-string': 'error',
+          '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/prefer-optional-chain': 'error',
+        }
+      : {},
+  },
+  {
     name: 'plugin/typescript-eslint/custom',
+    ignores: [globMDX],
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -478,14 +528,13 @@ export default typescript.config([
       '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/base.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/recommended.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -537,14 +586,6 @@ export default typescript.config([
           destructuredArrayIgnorePattern: '^_',
         },
       ],
-    },
-  },
-  {
-    name: 'plugin/typescript-eslint/process.env.SENTRY_DETECT_DEPRECATIONS=1',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
     },
   },
   {
@@ -747,10 +788,8 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
-      'tests/js/sentry-test/echartsMock.js',
-      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
-      'tests/js/sentry-test/svgMock.js',
       'tests/js/setup.ts',
     ],
     languageOptions: {
@@ -764,41 +803,21 @@ export default typescript.config([
     },
   },
   {
-    name: 'files/devtoolbar',
-    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: [
-            ...restrictedImportPaths,
-            {
-              name: 'sentry/components/button',
-              message:
-                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
-            },
-            {
-              name: 'sentry/utils/queryClient',
-              message:
-                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-            },
-          ],
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
         },
       ],
     },
@@ -819,10 +838,6 @@ export default typescript.config([
             {
               group: ['getsentry/*'],
               message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
             },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
@@ -846,6 +861,7 @@ export default typescript.config([
     name: 'files/sentry-stories',
     files: ['**/*.stories.tsx'],
     rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
   },
@@ -880,10 +896,6 @@ export default typescript.config([
               message: 'Do not import gsAdmin into gsApp',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -912,17 +924,221 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
+    },
+  },
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
+    rules: {
+      ...mdx.flat.rules,
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
+  },
+  {
+    name: 'plugin/boundaries',
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      // order matters here because of nested directories
+      'boundaries/elements': [
+        // --- stories ---
+        {
+          type: 'story-files',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+          mode: 'full',
+        },
+        {
+          type: 'story-book',
+          pattern: 'static/app/stories',
+        },
+        // --- tests ---
+        {
+          type: 'test-sentry',
+          pattern: [
+            'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/sentry-test/**/*.*',
+            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-getsentry',
+          pattern: [
+            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/getsentry-test/**/*.*',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-gsAdmin',
+          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
+          mode: 'full',
+        },
+        {
+          type: 'test',
+          pattern: 'tests/js',
+        },
+        // --- specifics ---
+        {
+          type: 'core-button',
+          pattern: 'static/app/components/core/button',
+        },
+        {
+          type: 'core',
+          pattern: 'static/app/components/core',
+        },
+        // --- sentry ---
+        {
+          type: 'sentry-images',
+          pattern: 'static/images',
+        },
+        {
+          type: 'sentry-locale',
+          pattern: '(static/app/locale.tsx|src/sentry/locale/**/*.*)',
+          mode: 'full',
+        },
+        {
+          type: 'sentry-logos',
+          pattern: 'src/sentry/static/sentry/images/logos',
+        },
+        {
+          type: 'sentry-fonts',
+          pattern: 'static/fonts',
+        },
+        {
+          type: 'sentry-fixture',
+          pattern: 'tests/js/fixtures',
+        },
+        {
+          type: 'sentry',
+          pattern: 'static/app',
+        },
+        // --- getsentry ---
+        {
+          type: 'getsentry',
+          pattern: 'static/gsApp',
+        },
+        // --- admin ---
+        {
+          type: 'gsAdmin',
+          pattern: 'static/gsAdmin',
+        },
+        // --- configs ---
+        {
+          type: 'configs',
+          pattern: '(package.json|config/**/*.*|*.config.{mjs,js,ts})',
+          mode: 'full',
+        },
+        {
+          type: 'build-utils',
+          pattern: 'build-utils',
+        },
+        {
+          type: 'scripts',
+          pattern: 'scripts',
+        },
+      ],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      'boundaries/no-ignored': 'off',
+      'boundaries/no-private': 'off',
+      'boundaries/element-types': [
+        'warn',
+        {
+          default: 'disallow',
+          message: '${file.type} is not allowed to import ${dependency.type}',
+          rules: [
+            {
+              from: ['sentry*'],
+              allow: ['core*', 'sentry*'],
+            },
+            {
+              from: ['getsentry*'],
+              allow: ['core*', 'getsentry*', 'sentry*'],
+            },
+            {
+              from: ['gsAdmin*'],
+              disallow: ['sentry-locale'],
+              allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+            },
+            {
+              from: ['test-sentry'],
+              allow: ['test-sentry', 'test', 'core*', 'sentry*'],
+            },
+            {
+              // todo does test-gesentry need test-sentry?
+              from: ['test-getsentry'],
+              allow: [
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'getsentry*',
+                'sentry*',
+              ],
+            },
+            {
+              from: ['test-gsAdmin'],
+              allow: [
+                'test-gsAdmin',
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'gsAdmin*',
+                'sentry*',
+                'getsentry*',
+              ],
+            },
+            {
+              from: ['test'],
+              allow: ['test', 'test-sentry', 'sentry*'],
+            },
+            {
+              from: ['configs'],
+              allow: ['configs', 'build-utils'],
+            },
+            // --- stories ---
+            {
+              from: ['story-files', 'story-book'],
+              allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- core ---
+            {
+              from: ['core-button'],
+              allow: ['core*'],
+            },
+            // todo: sentry* shouldn't be allowed
+            {
+              from: ['core'],
+              allow: ['core*', 'sentry*'],
+            },
+          ],
         },
       ],
     },

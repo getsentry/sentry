@@ -105,6 +105,7 @@ export interface ControlProps
       | 'onInteractOutside'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'strategy'
     > {
   children?: React.ReactNode;
   className?: string;
@@ -232,6 +233,7 @@ export function Control({
   flipOptions,
   disabled,
   position = 'bottom-start',
+  strategy = 'absolute',
   offset,
   hideOptions,
   menuTitle,
@@ -327,11 +329,14 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
+    strategy,
     onOpenChange: open => {
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
+          // Force a overlay update, as sometimes the overlay is misaligned when opened
+          updateOverlay?.();
           // Focus on search box if present
           if (searchable) {
             searchRef.current?.focus();
@@ -504,6 +509,7 @@ export function Control({
   }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
+
   return (
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
@@ -600,12 +606,12 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const headerVerticalPadding: Record<FormSize, string> = {
+const headerVerticalPadding: Record<NonNullable<ControlProps['size']>, string> = {
   xs: space(0.25),
   sm: space(0.5),
   md: space(0.75),
 };
-const MenuHeader = styled('div')<{size: FormSize}>`
+const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   position: relative;
   display: flex;
   align-items: center;
@@ -621,8 +627,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
 
-  font-size: ${p =>
-    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
+  font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
   color: ${p => p.theme.headingColor};
 `;
 
@@ -634,7 +639,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -647,7 +652,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -692,9 +697,10 @@ const StyledOverlay = styled(Overlay, {
 
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean}>`
+})<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p?.zIndex};
 `;
 
 const OptionsWrap = styled('div')`

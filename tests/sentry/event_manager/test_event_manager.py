@@ -67,6 +67,11 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.signals import (
+    first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
+    first_transaction_received,
+)
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -247,6 +252,61 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     @with_feature("organizations:issue-open-periods")
+    def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
+        ts = before_now(minutes=5).isoformat()
+
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1.
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        assert group.is_resolved()
+
+        resolved_at = before_now(minutes=4)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=resolved_at,
+        )
+
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+        assert send_robust.called
+
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == regression_activity.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
+
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -263,8 +323,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).update(
-            date_ended=resolved_at
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_at,
+        )
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
         )
 
         manager = EventManager(
@@ -279,10 +346,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == event2.datetime
+        assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
@@ -1001,8 +1072,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         resolved_at = before_now(minutes=4)
-        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).update(
-            date_ended=resolved_at
+        activity = Activity.objects.create(
+            group=event.group,
+            project=event.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_at,
+        )
+        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
         )
 
         mock_is_resolved.return_value = True
@@ -1021,10 +1099,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == event2.datetime
+        assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
@@ -1490,6 +1572,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
 
+    @with_feature("organizations:issue-open-periods")
+    def test_error_event_with_minified_stacktrace(self) -> None:
+        with patch(
+            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+        ) as mock_record_event_with_first_minified_stack_trace_for_project:
+
+            first_event_with_minified_stack_trace_received.connect(
+                mock_record_event_with_first_minified_stack_trace_for_project, weak=False
+            )
+
+        manager = EventManager(
+            make_event(
+                **{
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "Foo",
+                                "value": "bar",
+                                "stacktrace": {
+                                    "frames": [
+                                        {"filename": "minified.js", "function": "minifiedFunction"}
+                                    ]
+                                },
+                                "raw_stacktrace": {
+                                    "frames": [
+                                        {
+                                            "filename": "minified.js",
+                                            "function": "minifiedFunction",
+                                            "in_app": True,
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        manager.normalize()
+        data = manager.get_data()
+        assert data["type"] == "error"
+
+        manager.save(self.project.id)
+
+        assert mock_record_event_with_first_minified_stack_trace_for_project.call_count == 1
+        self.project.refresh_from_db()
+        assert self.project.flags.has_minified_stack_trace
+
     def test_csp_event_type(self) -> None:
         manager = EventManager(
             make_event(
@@ -1660,19 +1790,25 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @patch("sentry.event_manager.record_first_transaction")
-    @patch("sentry.event_manager.record_first_insight_span")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_insight: mock.MagicMock,
-        mock_record_transaction: mock.MagicMock,
     ) -> None:
         self.project.update(flags=F("flags").bitand(~Project.flags.has_transactions))
 
+        with (
+            patch(
+                "sentry.receivers.onboarding.record_first_transaction",  # autospec=True
+            ) as mock_record_transaction,
+            patch(
+                "sentry.receivers.onboarding.record_first_insight_span",  # autospec=True
+            ) as mock_record_insight,
+        ):
+            first_transaction_received.connect(mock_record_transaction, weak=False)
+            first_insight_span_received.connect(mock_record_insight, weak=False)
         manager = EventManager(
             make_event(
                 **{
@@ -1737,8 +1873,18 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         mock_record_release.assert_called_once_with(self.project, "foo@1.0.0")
-        mock_record_insight.assert_called_once_with(self.project, InsightModules.DB)
-        mock_record_transaction.assert_called_once_with(self.project, event.datetime)
+        mock_record_insight.assert_called_once_with(
+            signal=first_insight_span_received,
+            sender=Project,
+            project=self.project,
+            module=InsightModules.DB,
+        )
+        mock_record_transaction.assert_called_once_with(
+            signal=first_transaction_received,
+            sender=Project,
+            project=self.project,
+            event=event,
+        )
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]
@@ -1983,39 +2129,51 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
 
-        manager = EventManager(
-            make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
-            project=self.project,
-        )
-        manager.normalize()
+        from sentry.utils.outcomes import track_outcome
 
         a1 = CachedAttachment(name="a1", data=b"hello")
         a2 = CachedAttachment(name="a2", data=b"world")
 
-        cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        for i, event_id in enumerate(["b" * 32, "c" * 32]):
+            manager = EventManager(
+                make_event(message="foo", event_id=event_id, fingerprint=["a" * 32]),
+                project=self.project,
+            )
+            manager.normalize()
+            discarded_event = Event(
+                project_id=self.project.id, event_id=event_id, data=manager.get_data()
+            )
 
-        from sentry.utils.outcomes import track_outcome
+            cache_key = cache_key_for_event(manager.get_data())
+            attachment_cache.set(cache_key, attachments=[a1, a2])
 
-        mock_track_outcome = mock.Mock(wraps=track_outcome)
-        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:event-attachments"):
-                with self.tasks():
-                    with pytest.raises(HashDiscarded):
-                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+            mock_track_outcome = mock.Mock(wraps=track_outcome)
+            with (
+                mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
+                self.feature("organizations:event-attachments"),
+                self.feature("organizations:grouptombstones-hit-counter"),
+                self.tasks(),
+                pytest.raises(HashDiscarded),
+            ):
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
-        assert mock_track_outcome.call_count == 3
+            assert mock_track_outcome.call_count == 3
 
-        for o in mock_track_outcome.mock_calls:
-            assert o.kwargs["outcome"] == Outcome.FILTERED
-            assert o.kwargs["reason"] == FilterStatKeys.DISCARDED_HASH
+            event_outcome = mock_track_outcome.mock_calls[0].kwargs
+            assert event_outcome["outcome"] == Outcome.FILTERED
+            assert event_outcome["reason"] == FilterStatKeys.DISCARDED_HASH
+            assert event_outcome["category"] == DataCategory.ERROR
+            assert event_outcome["event_id"] == event_id
 
-        o = mock_track_outcome.mock_calls[0]
-        assert o.kwargs["category"] == DataCategory.ERROR
+            for call in mock_track_outcome.mock_calls[1:]:
+                attachment_outcome = call.kwargs
+                assert attachment_outcome["category"] == DataCategory.ATTACHMENT
+                assert attachment_outcome["quantity"] == 5
 
-        for o in mock_track_outcome.mock_calls[1:]:
-            assert o.kwargs["category"] == DataCategory.ATTACHMENT
-            assert o.kwargs["quantity"] == 5
+            expected_times_seen = 1 + i
+            tombstone.refresh_from_db()
+            assert tombstone.times_seen == expected_times_seen
+            assert tombstone.last_seen == discarded_event.datetime
 
     def test_honors_crash_report_limit(self) -> None:
         from sentry.utils.outcomes import track_outcome
@@ -2729,6 +2887,284 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
+
+    def test_derive_client_error_sampling_rate_with_option_enabled(self) -> None:
+        """Test that sample_rate is extracted from contexts when option is enabled."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was extracted and stored
+            assert event.data["sample_rate"] == 0.1
+
+    def test_derive_client_error_sampling_rate_with_option_disabled(self) -> None:
+        """Test that sample_rate is not extracted when option is disabled."""
+        # Option disabled (project not in allowlist)
+        event_data = make_event(
+            contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+        )
+
+        manager = EventManager(event_data)
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        # Check that sample_rate was not extracted
+        assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_malformed_context(self) -> None:
+        """Test that sample_rate extraction handles malformed error_sampling context gracefully."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with error_sampling as a number instead of a dict
+            event_data = make_event(
+                contexts={"error_sampling": 0.1},
+                platform="python",  # Should be a dict, not a number
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that no sample_rate was added due to malformed context
+            assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_invalid_range(self) -> None:
+        """Test that sample_rate is not set when client_sample_rate is outside valid range (0-1)."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with sample rate > 1
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 1.5}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
+            # Test with negative sample rate
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": -0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
+    def test_times_seen_new_group_default_behavior(self) -> None:
+        """Test that new groups start with times_seen=1 when no sample rate is provided"""
+        manager = EventManager(make_event(message="test message"))
+        manager.normalize()
+
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = event.group
+        assert group is not None
+        assert group.times_seen == 1
+
+    def test_times_seen_existing_group_increment(self) -> None:
+        """Test that existing groups have their times_seen incremented"""
+        # Create first event to establish the group
+        manager1 = EventManager(make_event(message="test message", fingerprint=["group1"]))
+        manager1.normalize()
+
+        with self.tasks():
+            event1 = manager1.save(self.project.id)
+
+        group = event1.group
+        assert group is not None
+        initial_times_seen = group.times_seen
+        assert initial_times_seen == 1
+
+        # Create second event for the same group
+        manager2 = EventManager(make_event(message="test message 2", fingerprint=["group1"]))
+        manager2.normalize()
+
+        with self.tasks():
+            event2 = manager2.save(self.project.id)
+
+        # Should be the same group
+        assert event2.group_id == event1.group_id
+
+        # Refresh group from database to get updated times_seen
+        group.refresh_from_db()
+        assert group.times_seen == initial_times_seen + 1
+
+    def test_times_seen_weighted_with_sample_rate_option_enabled(self) -> None:
+        """Test that times_seen is weighted by 1/sample_rate when the project is in the allowlist"""
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create event with a sample rate of 0.5 (50%)
+            event_data = make_event(
+                message="sampled event", contexts={"error_sampling": {"client_sample_rate": 0.5}}
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+
+            group = event.group
+            assert group is not None
+            # With sample rate 0.5, times_seen should be 1/0.5 = 2
+            assert group.times_seen == 2
+
+    def test_times_seen_weighted_with_sample_rate_option_disabled(self) -> None:
+        """Test that times_seen is not weighted when the project is not in the allowlist"""
+
+        # Create event with a sample rate of 0.5 (50%) but project not in allowlist
+        event_data = make_event(
+            message="sampled event", contexts={"error_sampling": {"client_sample_rate": 0.5}}
+        )
+
+        manager = EventManager(event_data)
+        manager.normalize()
+
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = event.group
+        assert group is not None
+        # With the project not in allowlist, times_seen should remain 1 regardless of sample rate
+        assert group.times_seen == 1
+
+    def test_times_seen_weighted_existing_group_with_sample_rate(self) -> None:
+        """Test that existing groups are incremented by weighted amount when project is in allowlist"""
+
+        # Create first event to establish the group
+        manager1 = EventManager(make_event(message="test message", fingerprint=["group1"]))
+        manager1.normalize()
+
+        with self.tasks():
+            event1 = manager1.save(self.project.id)
+
+        group = event1.group
+        assert group is not None
+        initial_times_seen = group.times_seen
+        assert initial_times_seen == 1
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create second event for the same group with sample rate 0.25 (25%)
+            event_data = make_event(
+                message="test message 2",
+                fingerprint=["group1"],
+                contexts={"error_sampling": {"client_sample_rate": 0.25}},
+            )
+
+            manager2 = EventManager(event_data)
+            manager2.normalize()
+
+            with self.tasks():
+                event2 = manager2.save(self.project.id)
+
+            # Should be the same group
+            assert event2.group_id == event1.group_id
+
+            # Refresh group from database to get updated times_seen
+            group.refresh_from_db()
+            # Should be incremented by 1/0.25 = 4
+            assert group.times_seen == initial_times_seen + 4
+
+    def test_times_seen_no_sample_rate_meta(self) -> None:
+        """Test that times_seen defaults to 1 when no sample rate meta exists"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create event with no error_sampling context
+            manager = EventManager(make_event(fingerprint=["no_context"]))
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Create event with empty error_sampling context
+            manager = EventManager(
+                make_event(fingerprint=["empty_context"], contexts={"error_sampling": {}})
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Create event with null client_sample_rate
+            manager = EventManager(
+                make_event(
+                    fingerprint=["null_client_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": None}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+    def test_times_seen_invalid_sample_rate(self) -> None:
+        """Test times_seen calculation with invalid sample rates (null, 0, negative, > 1)"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test null sample rate
+            manager = EventManager(make_event(fingerprint=["null_sample_rate"]))
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test sample rate of 0 (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["zero_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": 0}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test negative sample rate (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["negative_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": -0.5}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test sample rate > 1 (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["high_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": 1.5}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
 
 
 class ReleaseIssueTest(TestCase):

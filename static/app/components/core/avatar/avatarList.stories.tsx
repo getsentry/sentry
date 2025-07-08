@@ -1,13 +1,11 @@
 import {Fragment, useEffect} from 'react';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
 import Placeholder from 'sentry/components/placeholder';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix from 'sentry/components/stories/matrix';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import AvatarList from './avatarList';
 
 function useLoadedMembers() {
   const {members, loadMore, ...rest} = useMembers({limit: 50});
@@ -20,16 +18,16 @@ function useLoadedMembers() {
   return {members, loadMore, ...rest};
 }
 
-export default storyBook('AvatarList', story => {
+export default Storybook.story('AvatarList', story => {
   story('Default', () => {
     const {members, fetching} = useLoadedMembers();
 
     return (
       <Fragment>
         <p>Your Org Members</p>
-        <SizingWindow display="block" style={{width: '50%'}}>
+        <Storybook.SizingWindow display="block" style={{width: '50%'}}>
           {fetching ? <Placeholder /> : <AvatarList users={members} />}
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </Fragment>
     );
   });
@@ -42,20 +40,20 @@ export default storyBook('AvatarList', story => {
       <Fragment>
         <p>
           Your Teams
-          <SizingWindow display="block" style={{width: '50%'}}>
+          <Storybook.SizingWindow display="block" style={{width: '50%'}}>
             {isLoading ? <Placeholder /> : <AvatarList teams={teams} />}
-          </SizingWindow>
+          </Storybook.SizingWindow>
         </p>
 
         <p>
           Teams and Members together
-          <SizingWindow display="block" style={{width: '50%'}}>
+          <Storybook.SizingWindow display="block" style={{width: '50%'}}>
             {isLoading || fetching ? (
               <Placeholder />
             ) : (
               <AvatarList teams={teams} users={members} maxVisibleAvatars={10} />
             )}
-          </SizingWindow>
+          </Storybook.SizingWindow>
         </p>
       </Fragment>
     );
@@ -68,21 +66,22 @@ export default storyBook('AvatarList', story => {
     return (
       <Fragment>
         <p>
-          You can set <JSXProperty name="typeAvatars" value={String} /> at any time, but
-          it's especially important when passing in teams or teams + users together. This
-          is rendered as the suffix to the tooltip on the summary avatar "10 other users"
-          <SizingWindow display="block" style={{width: '50%'}}>
+          You can set <Storybook.JSXProperty name="typeAvatars" value={String} /> at any
+          time, but it's especially important when passing in teams or teams + users
+          together. This is rendered as the suffix to the tooltip on the summary avatar
+          "10 other users"
+          <Storybook.SizingWindow display="block" style={{width: '50%'}}>
             {isLoading ? (
               <Placeholder />
             ) : (
               <AvatarList teams={teams} typeAvatars="teams" />
             )}
-          </SizingWindow>
+          </Storybook.SizingWindow>
         </p>
 
         <p>
           Teams and Members together
-          <SizingWindow display="block" style={{width: '50%'}}>
+          <Storybook.SizingWindow display="block" style={{width: '50%'}}>
             {isLoading || fetching ? (
               <Placeholder />
             ) : (
@@ -93,7 +92,7 @@ export default storyBook('AvatarList', story => {
                 typeAvatars="users and teams"
               />
             )}
-          </SizingWindow>
+          </Storybook.SizingWindow>
         </p>
       </Fragment>
     );
@@ -105,15 +104,15 @@ export default storyBook('AvatarList', story => {
     return (
       <Fragment>
         <p>
-          Default is <JSXProperty name="avatarSize" value={28} />
+          Default is <Storybook.JSXProperty name="avatarSize" value={28} />
           {' & '}
-          <JSXProperty name="maxVisibleAvatars" value={5} />
+          <Storybook.JSXProperty name="maxVisibleAvatars" value={5} />
         </p>
         {fetching ? (
           <Placeholder />
         ) : (
-          <Matrix
-            sizingWindowProps={{display: 'block'}}
+          <Storybook.PropMatrix
+            // Storybook.SizingWindowProps={{display: 'block'}}
             render={AvatarList}
             selectedProps={['avatarSize', 'maxVisibleAvatars']}
             propMatrix={{

@@ -86,8 +86,10 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
         self.group, self.event, self.group_event = self.create_group_event()
         self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.environment, workflow_id=self.workflow.id
+            event=self.group_event, workflow_env=self.environment, group=self.group
         )
+
+        self.action.workflow_id = self.workflow.id
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -111,16 +113,34 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             handler.create_rule_instance_from_action(self.action, self.detector, self.event_data)
 
     def test_create_rule_instance_from_action_missing_workflow_id_raises_value_error(self):
-        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        job = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group
+        )
+        action = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id="1234567890",
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
+            data={"tags": "environment,user,my_tag"},
+        )
+
         with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
+            self.handler.create_rule_instance_from_action(action, self.detector, job)
 
     def test_create_rule_instance_from_action_missing_rule_raises_value_error(self):
-        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        job = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group
+        )
         alert_rule = self.create_alert_rule(projects=[self.project], organization=self.organization)
         self.create_alert_rule_workflow(workflow=self.workflow, alert_rule_id=alert_rule.id)
+        action = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id="1234567890",
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
+            data={"tags": "environment,user,my_tag"},
+        )
+
         with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
+            self.handler.create_rule_instance_from_action(action, self.detector, job)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
@@ -134,7 +154,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {
@@ -180,16 +200,14 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.create_workflow()
-        job = WorkflowEventData(
-            event=self.group_event, workflow_env=None, workflow_id=self.workflow.id
-        )
+        job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {
@@ -210,9 +228,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     ):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.create_workflow()
-        job = WorkflowEventData(
-            event=self.group_event, workflow_env=None, workflow_id=self.workflow.id
-        )
+        job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)

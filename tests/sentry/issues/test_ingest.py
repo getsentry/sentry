@@ -411,14 +411,16 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 slug = "test"
                 description = "Test"
                 category = GroupCategory.PROFILE.value
-                category_v2 = GroupCategory.RESPONSIVENESS.value
+                category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=self.project.id)
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
-                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+                metrics.incr.assert_called_once_with(
+                    "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
+                )
 
             new_event = self.store_event(data={}, project_id=self.project.id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
@@ -534,14 +536,15 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
-        occurrence = self.build_occurrence(culprit="abcde" * 100)
+        culprit = "abcde" * 100
+        occurrence = self.build_occurrence(culprit=culprit)
         event = self.store_event(data={}, project_id=self.project.id)
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
             # Should truncate the culprit to max allowable length
-            "culprit": f"{occurrence.culprit[:MAX_CULPRIT_LENGTH-3]}...",
+            "culprit": f"{culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
@@ -607,6 +610,34 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "name": "Name Test",
             "source": "crash report widget",
             "initial_priority": occurrence.priority,
+        }
+
+    def test_populates_feedback_metadata_with_linked_error(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "crash report widget",
+                "associated_event_id": "55798fee4d21425c8689c980cde794f2",
+            },
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
+            "name": "Name Test",
+            "source": "crash report widget",
+            "initial_priority": occurrence.priority,
+            "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }
 
 

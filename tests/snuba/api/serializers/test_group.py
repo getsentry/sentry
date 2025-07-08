@@ -487,7 +487,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
 
-        assert result["issueCategory"] == GroupCategory.PERFORMANCE_BEST_PRACTICE.name.lower()
+        assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
 
 
 class PerformanceGroupSerializerSnubaTest(

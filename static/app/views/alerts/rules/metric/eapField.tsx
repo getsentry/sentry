@@ -6,14 +6,22 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {
-  DEFAULT_VISUALIZATION,
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
+import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_EAP_AGGREGATION = 'count';
 const DEFAULT_EAP_FIELD = 'span.duration';
@@ -21,36 +29,44 @@ const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EA
 
 interface Props {
   aggregate: string;
+  eventTypes: EventTypes[];
   onChange: (value: string, meta: Record<string, any>) => void;
 }
 
 // Use the same aggregates/operations available in the explore view
-const OPERATIONS = [
+const SPAN_OPERATIONS = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
     label: aggregate,
     value: aggregate,
   })),
 ];
 
-function EAPFieldWrapper({aggregate, onChange}: Props) {
-  return <EAPField aggregate={aggregate} onChange={onChange} />;
+const LOG_OPERATIONS = [
+  {
+    label: AggregationKey.COUNT,
+    value: AggregationKey.COUNT,
+  },
+] satisfies Array<{label: string; value: OurLogsAggregate}>;
+
+function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
+  return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
 }
 
-function EAPField({aggregate, onChange}: Props) {
+function EAPField({aggregate, onChange, eventTypes}: Props) {
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes
+  );
   // We parse out the aggregation and field from the aggregate string.
   // This only works for aggregates with <= 1 argument.
   const {
     name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
-  //
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions = aggregate === DEFAULT_VISUALIZATION;
 
-  const {tags: storedStringTags} = useSpanTags('string');
-  const {tags: storedNumberTags} = useSpanTags('number');
+  const {attributes: storedNumberTags} = useTraceItemAttributes('number');
+  const {attributes: storedStringTags} = useTraceItemAttributes('string');
+
   const storedTags =
     aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {
@@ -63,7 +79,32 @@ function EAPField({aggregate, onChange}: Props) {
 
   const fieldsArray = Object.values(numberTags);
 
+  // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
+  const [lockOptions, selectedOption] = useMemo(() => {
+    if (aggregation === AggregationKey.COUNT && traceItemType === TraceItemDataset.LOGS) {
+      return [true, {label: t('logs'), value: 'message'}];
+    }
+
+    if (aggregation === AggregationKey.COUNT) {
+      return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
+    }
+
+    if (
+      aggregation &&
+      NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+    ) {
+      return [true, {label: t('spans'), value: ''}];
+    }
+
+    const fieldName = fieldsArray.find(f => f.key === field)?.name;
+    return [false, field && {label: fieldName, value: field}];
+  }, [aggregation, field, fieldsArray, traceItemType]);
+
   useEffect(() => {
+    if (lockOptions) {
+      return;
+    }
+
     const selectedMeta = field ? numberTags[field] : undefined;
     if (!field || !selectedMeta) {
       const newSelection = fieldsArray[0];
@@ -73,7 +114,7 @@ function EAPField({aggregate, onChange}: Props) {
         onChange(DEFAULT_EAP_METRICS_ALERT_FIELD, {});
       }
     }
-  }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
+  }, [lockOptions, onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
     (option: any) => {
@@ -115,19 +156,15 @@ function EAPField({aggregate, onChange}: Props) {
     [fieldsArray]
   );
 
-  const fieldName = fieldsArray.find(f => f.key === field)?.name;
-
-  // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = lockOptions
-    ? {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}
-    : field && {label: fieldName, value: field};
+  const operations =
+    traceItemType === TraceItemDataset.LOGS ? LOG_OPERATIONS : SPAN_OPERATIONS;
 
   return (
     <Wrapper>
       <StyledSelectControl
         searchable
         placeholder={t('Select an operation')}
-        options={OPERATIONS}
+        options={operations}
         value={aggregation}
         onChange={handleOperationChange}
       />

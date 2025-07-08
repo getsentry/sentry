@@ -2,10 +2,11 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleThroughputTimeSeries: TimeSeries = {
-  field: 'eps()',
+  yAxis: 'eps()',
   meta: {
     valueType: 'rate',
     valueUnit: RateUnit.PER_SECOND,
+    interval: 1_800_000, // 30 minutes
   },
   values: [
     {
@@ -195,14 +196,17 @@ export const sampleThroughputTimeSeries: TimeSeries = {
     {
       value: 7914.4,
       timestamp: 1729879200000, // '2024-10-25T14:00:00-04:00'
+      incomplete: true,
     },
     {
       value: 7006.8,
       timestamp: 1729881000000, // '2024-10-25T14:30:00-04:00'
+      incomplete: true,
     },
     {
       value: 399.3,
       timestamp: 1729882800000, // '2024-10-25T15:00:00-04:00'
+      incomplete: true,
     },
   ],
 };

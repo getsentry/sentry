@@ -10,6 +10,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
@@ -73,7 +74,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[falcon]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[falcon]'}),
     },
   ],
   configure: (params: Params) => [
@@ -152,6 +153,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

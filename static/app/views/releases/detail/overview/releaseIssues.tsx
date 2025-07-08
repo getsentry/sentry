@@ -5,8 +5,8 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
@@ -427,7 +427,7 @@ const ControlsWrapper = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;

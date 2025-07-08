@@ -3,7 +3,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -35,9 +34,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = GroupSearchViewStarredOrderSerializer(

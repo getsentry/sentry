@@ -21,7 +21,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.event.group
+        group = event_data.group
 
         try:
             value: GroupCategory = GroupCategory(int(comparison["value"]))
@@ -30,7 +30,8 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         try:
             issue_category = group.issue_category
+            issue_category_v2 = group.issue_category_v2
         except ValueError:
             return False
 
-        return bool(value == issue_category)
+        return bool(value == issue_category or value == issue_category_v2)

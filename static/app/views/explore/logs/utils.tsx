@@ -1,5 +1,7 @@
+import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -10,12 +12,19 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type Sort,
 } from 'sentry/utils/discover/fields';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
 import {
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from 'sentry/views/explore/logs/constants';
+import {
+  type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
@@ -187,12 +196,27 @@ export function getLogRowItem(
   };
 }
 
+export function checkSortIsTimeBasedDescending(sortBys: Sort[]) {
+  return (
+    getTimeBasedSortBy(sortBys) !== undefined &&
+    sortBys.some(sortBy => sortBy.kind === 'desc')
+  );
+}
+
+export function getTimeBasedSortBy(sortBys: Sort[]) {
+  return sortBys.find(
+    sortBy =>
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
+}
+
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
 }
 
 export function logsPickableDays(organization: Organization): PickableDays {
-  const relativeOptions: Array<[string, React.ReactNode]> = [
+  const relativeOptions: Array<[string, ReactNode]> = [
     ['1h', t('Last hour')],
     ['24h', t('Last 24 hours')],
     ['7d', t('Last 7 days')],
@@ -205,6 +229,27 @@ export function logsPickableDays(organization: Organization): PickableDays {
   return {
     defaultPeriod: '24h',
     maxPickableDays: 14,
-    relativeOptions: Object.fromEntries(relativeOptions),
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      ...Object.fromEntries(relativeOptions),
+    }),
   };
+}
+
+export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
+  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  }
+  return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
+}
+
+export function parseLinkHeaderFromLogsPage(
+  page: InfiniteQueryObserverResult<InfiniteData<ApiResult<EventsLogsResult>>>
+) {
+  const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
+  return parseLinkHeader(linkHeader ?? null);
 }

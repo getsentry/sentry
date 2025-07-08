@@ -2,8 +2,8 @@ import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -164,7 +164,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   },
                 }}
               />
-              <Flex>
+              <Flex gap={space(0.5)}>
                 <SearchFilter
                   group={group}
                   handleSearch={query => {

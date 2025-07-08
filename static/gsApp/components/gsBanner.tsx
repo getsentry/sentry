@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import every from 'lodash/every';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -17,8 +18,9 @@ import {
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -28,14 +30,14 @@ import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
   openForcedTrialModal,
@@ -45,13 +47,14 @@ import {
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
-  PlanTier,
+  type BilledDataCategoryInfo,
   type Promotion,
   type PromotionClaimed,
   type Subscription,
@@ -89,17 +92,19 @@ enum ModalType {
  */
 const TRIAL_ENDING_DAY_WINDOW = 3;
 
-const ALERTS_OFF: Record<EventType, boolean> = {
-  error: false,
-  transaction: false,
-  replay: false,
-  attachment: false,
-  monitorSeat: false,
-  span: false,
-  profileDuration: false,
-  profileDurationUI: false,
-  uptime: false,
-};
+function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any) {
+  return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
+    (acc, c) => {
+      if (c.isBilledCategory) {
+        acc[c.name as EventType] = callback(c);
+      }
+      return acc;
+    },
+    {} as Record<EventType, any>
+  );
+}
+
+const ALERTS_OFF: Record<EventType, boolean> = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
   subscription: Subscription;
@@ -123,14 +128,14 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </ul>
         <p>
           {t(
-            'Until this situation is resolved you will not be able to send events to Sentry.'
+            'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
           )}
         </p>
       </Body>
       <Footer>
         <ZendeskLink
           subject="Account Suspension"
-          className="btn btn-primary"
+          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
           source="account-suspension"
         >
           {t('Contact Support')}
@@ -157,6 +162,7 @@ function NoticeModal({
   whichModal,
   billingPermissions,
 }: NoticeModalProps) {
+  const navigate = useNavigate();
   const closeModalAndContinue = (link: string) => {
     closeModal();
     if (whichModal === ModalType.PAST_DUE) {
@@ -170,7 +176,7 @@ function NoticeModal({
     if (link === window.location.pathname) {
       return;
     }
-    browserHistory.push(link);
+    navigate(link);
   };
 
   const closeModalDoNotContinue = () => {
@@ -217,7 +223,7 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.`
+            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
           )
         : t(
             `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
@@ -315,40 +321,9 @@ class GSBanner extends Component<Props, State> {
   // assume dismissed until we've checked the backend
   state: State = {
     deactivatedMemberDismissed: true,
-    overageAlertDismissed: {
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
-    overageWarningDismissed: {
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
-    productTrialDismissed: {
-      // TODO(data categories): Technically we only need the categories that can have product trials
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
+    overageAlertDismissed: objectFromBilledCategories(() => true),
+    overageWarningDismissed: objectFromBilledCategories(() => true),
+    productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
     if (this.props.promotionData) {
@@ -662,26 +637,29 @@ class GSBanner extends Component<Props, State> {
 
   async checkPrompts() {
     const {api, organization, subscription} = this.props;
-    const category_overage_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
-      .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_overage_alert`
-      );
-    const category_warning_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
-      .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_warning_alert`
-      );
-    const category_product_trial_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
+
+    if (!subscription.planDetails) {
+      return;
+    }
+
+    const category_overage_prompts: string[] = [];
+    const category_warning_prompts: string[] = [];
+    const category_product_trial_prompts: string[] = [];
+
+    Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(
-        categoryInfo => categoryInfo.isBilledCategory && categoryInfo.canProductTrial
-      )
-      .map(
         categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_product_trial_alert`
-      );
+          categoryInfo.isBilledCategory &&
+          subscription.planDetails.categories.includes(categoryInfo.plural)
+      )
+      .forEach(categoryInfo => {
+        const snakeCasePlural = snakeCase(categoryInfo.plural);
+        category_overage_prompts.push(`${snakeCasePlural}_overage_alert`);
+        category_warning_prompts.push(`${snakeCasePlural}_warning_alert`);
+        if (categoryInfo.canProductTrial) {
+          category_product_trial_prompts.push(`${snakeCasePlural}_product_trial_alert`);
+        }
+      });
 
     try {
       const checkResults = await batchedPromptsCheck(
@@ -722,88 +700,22 @@ class GSBanner extends Component<Props, State> {
           checkResults.deactivated_member_alert!
         ),
         // billing period related prompt checks
-        overageAlertDismissed: {
-          error: promptIsDismissedForBillingPeriod(checkResults.errors_overage_alert!),
-          transaction: promptIsDismissedForBillingPeriod(
-            checkResults.transactions_overage_alert!
-          ),
-          replay: promptIsDismissedForBillingPeriod(checkResults.replays_overage_alert!),
-          attachment: promptIsDismissedForBillingPeriod(
-            checkResults.attachments_overage_alert!
-          ),
-          monitorSeat: promptIsDismissedForBillingPeriod(
-            checkResults.monitor_seats_overage_alert!
-          ),
-          span: promptIsDismissedForBillingPeriod(checkResults.spans_overage_alert!),
-          profileDuration: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_overage_alert!
-          ),
-          profileDurationUI: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_ui_overage_alert!
-          ),
-          uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_overage_alert!),
-        } satisfies Record<EventType, boolean>,
-        overageWarningDismissed: {
-          error: promptIsDismissedForBillingPeriod(checkResults.errors_warning_alert!),
-          transaction: promptIsDismissedForBillingPeriod(
-            checkResults.transactions_warning_alert!
-          ),
-          replay: promptIsDismissedForBillingPeriod(checkResults.replays_warning_alert!),
-          attachment: promptIsDismissedForBillingPeriod(
-            checkResults.attachments_warning_alert!
-          ),
-          monitorSeat: promptIsDismissedForBillingPeriod(
-            checkResults.monitor_seats_warning_alert!
-          ),
-          span: promptIsDismissedForBillingPeriod(checkResults.spans_warning_alert!),
-          profileDuration: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_warning_alert!
-          ),
-          profileDurationUI: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_ui_warning_alert!
-          ),
-          uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_warning_alert!),
-        } satisfies Record<EventType, boolean>,
-        // TODO(data categories): We don't need to check every EventType for product trials,
-        // only the ones that are supported for product trials.
-        productTrialDismissed: {
-          error: trialPromptIsDismissed(
-            checkResults.errors_product_trial_alert!,
+        overageAlertDismissed: objectFromBilledCategories(c =>
+          promptIsDismissedForBillingPeriod(
+            checkResults[`${snakeCase(c.plural)}_overage_alert`]!
+          )
+        ),
+        overageWarningDismissed: objectFromBilledCategories(c =>
+          promptIsDismissedForBillingPeriod(
+            checkResults[`${snakeCase(c.plural)}_warning_alert`]!
+          )
+        ),
+        productTrialDismissed: objectFromBilledCategories(c =>
+          trialPromptIsDismissed(
+            checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
             subscription
-          ),
-          transaction: trialPromptIsDismissed(
-            checkResults.transactions_product_trial_alert!,
-            subscription
-          ),
-          replay: trialPromptIsDismissed(
-            checkResults.replays_product_trial_alert!,
-            subscription
-          ),
-          attachment: trialPromptIsDismissed(
-            checkResults.attachments_product_trial_alert!,
-            subscription
-          ),
-          monitorSeat: trialPromptIsDismissed(
-            checkResults.monitor_seats_product_trial_alert!,
-            subscription
-          ),
-          span: trialPromptIsDismissed(
-            checkResults.spans_product_trial_alert!,
-            subscription
-          ),
-          profileDuration: trialPromptIsDismissed(
-            checkResults.profile_duration_product_trial_alert!,
-            subscription
-          ),
-          profileDurationUI: trialPromptIsDismissed(
-            checkResults.profile_duration_ui_product_trial_alert!,
-            subscription
-          ),
-          uptime: trialPromptIsDismissed(
-            checkResults.uptime_product_trial_alert!,
-            subscription
-          ),
-        } satisfies Record<EventType, boolean>,
+          )
+        ),
       });
     } catch (error) {
       // let check fail but capture exception
@@ -816,35 +728,11 @@ class GSBanner extends Component<Props, State> {
     if (subscription.hasOverageNotificationsDisabled) {
       return ALERTS_OFF;
     }
-    return {
-      error:
-        !this.state.overageAlertDismissed.error &&
-        !!subscription.categories.errors?.usageExceeded,
-      transaction:
-        !this.state.overageAlertDismissed.transaction &&
-        !!subscription.categories.transactions?.usageExceeded,
-      replay:
-        !this.state.overageAlertDismissed.replay &&
-        !!subscription.categories.replays?.usageExceeded,
-      attachment:
-        !this.state.overageAlertDismissed.attachment &&
-        !!subscription.categories.attachments?.usageExceeded,
-      monitorSeat:
-        !this.state.overageAlertDismissed.monitorSeat &&
-        !!subscription.categories.monitorSeats?.usageExceeded,
-      span:
-        !this.state.overageAlertDismissed.span &&
-        !!subscription.categories.spans?.usageExceeded,
-      profileDuration:
-        !this.state.overageAlertDismissed.profileDuration &&
-        !!subscription.categories.profileDuration?.usageExceeded,
-      profileDurationUI:
-        !this.state.overageAlertDismissed.profileDurationUI &&
-        !!subscription.categories.profileDurationUI?.usageExceeded,
-      uptime:
-        !this.state.overageAlertDismissed.uptime &&
-        !!subscription.categories.uptime?.usageExceeded,
-    } satisfies Record<EventType, boolean>;
+    return objectFromBilledCategories(
+      c =>
+        !this.state.overageAlertDismissed[c.name as EventType] &&
+        !!subscription.categories[c.plural]?.usageExceeded
+    );
   }
 
   get overageWarningActive(): Record<EventType, boolean> {
@@ -856,35 +744,11 @@ class GSBanner extends Component<Props, State> {
     ) {
       return ALERTS_OFF;
     }
-    return {
-      error:
-        !this.state.overageWarningDismissed.error &&
-        !!subscription.categories.errors?.sentUsageWarning,
-      transaction:
-        !this.state.overageWarningDismissed.transaction &&
-        !!subscription.categories.transactions?.sentUsageWarning,
-      replay:
-        !this.state.overageWarningDismissed.replay &&
-        !!subscription.categories.replays?.sentUsageWarning,
-      attachment:
-        !this.state.overageWarningDismissed.attachment &&
-        !!subscription.categories.attachments?.sentUsageWarning,
-      monitorSeat:
-        !this.state.overageWarningDismissed.monitorSeat &&
-        !!subscription.categories.monitorSeats?.sentUsageWarning,
-      span:
-        !this.state.overageWarningDismissed.span &&
-        !!subscription.categories.spans?.sentUsageWarning,
-      profileDuration:
-        !this.state.overageWarningDismissed.profileDuration &&
-        !!subscription.categories.profileDuration?.sentUsageWarning,
-      profileDurationUI:
-        !this.state.overageWarningDismissed.profileDurationUI &&
-        !!subscription.categories.profileDurationUI?.sentUsageWarning,
-      uptime:
-        !this.state.overageWarningDismissed.uptime &&
-        !!subscription.categories.uptime?.sentUsageWarning,
-    } satisfies Record<EventType, boolean>;
+    return objectFromBilledCategories(
+      c =>
+        !this.state.overageWarningDismissed[c.name as EventType] &&
+        !!subscription.categories[c.plural]?.sentUsageWarning
+    );
   }
 
   // Returns true for overage alert, false for overage warning, and null if we don't show anything.
@@ -940,17 +804,9 @@ class GSBanner extends Component<Props, State> {
       }
       const key = isWarning ? 'warning' : 'overage';
 
-      const featureMap: Record<EventType, string> = {
-        error: `errors_${key}_alert`,
-        transaction: `transactions_${key}_alert`,
-        replay: `replays_${key}_alert`,
-        attachment: `attachments_${key}_alert`,
-        monitorSeat: `monitor_seats_${key}_alert`,
-        span: `spans_${key}_alert`,
-        profileDuration: `profile_duration_${key}_alert`,
-        profileDurationUI: `profile_duration_ui_${key}_alert`,
-        uptime: `uptime_${key}_alert`,
-      };
+      const featureMap = objectFromBilledCategories(
+        c => `${snakeCase(c.plural)}_${key}_alert`
+      );
 
       promptsUpdate(api, {
         organization,
@@ -959,17 +815,9 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: Record<EventType, boolean> = {
-      error: true,
-      attachment: true,
-      replay: true,
-      transaction: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    };
+    const dismissedState: Record<EventType, boolean> = objectFromBilledCategories(
+      () => true
+    );
     // Suppress all warnings and alerts
     this.setState({
       overageAlertDismissed: dismissedState,
@@ -988,7 +836,7 @@ class GSBanner extends Component<Props, State> {
       return null;
     }
 
-    const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
+    const renderDocsLinkForEventType = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
           organization,
@@ -999,126 +847,18 @@ class GSBanner extends Component<Props, State> {
         });
       };
       return (
-        {
-          error: (
-            <ExternalLink
-              key="error"
-              href={getDocsLinkForEventType(DataCategoryExact.ERROR)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.ERRORS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          transaction: (
-            <ExternalLink
-              key="transaction"
-              href={getDocsLinkForEventType(DataCategoryExact.TRANSACTION)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.TRANSACTIONS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          replay: (
-            <ExternalLink
-              key="replay"
-              href={getDocsLinkForEventType(DataCategoryExact.REPLAY)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.REPLAYS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          attachment: (
-            <ExternalLink
-              key="attachment"
-              href={getDocsLinkForEventType(DataCategoryExact.ATTACHMENT)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.ATTACHMENTS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          monitorSeat: (
-            <ExternalLink
-              key="monitor-seats"
-              href={getDocsLinkForEventType(DataCategoryExact.MONITOR_SEAT)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.MONITOR_SEATS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          span: (
-            <ExternalLink
-              key="spans"
-              href={getDocsLinkForEventType(DataCategoryExact.SPAN)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.SPANS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          uptime: (
-            <ExternalLink
-              key="uptime"
-              href={getDocsLinkForEventType(DataCategoryExact.UPTIME)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.UPTIME,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          profileDuration: (
-            <ExternalLink
-              key="profiles"
-              href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.PROFILE_DURATION,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          profileDurationUI: (
-            <ExternalLink
-              key="profiles-ui"
-              href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.PROFILE_DURATION_UI,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-        } satisfies Record<EventType, React.JSX.Element>
-      )[eventType];
+        <ExternalLink
+          key={eventType}
+          href={getPricingDocsLinkForEventType(eventType)}
+          onClick={onClick}
+        >
+          {getSingularCategoryName({
+            plan,
+            category: DATA_CATEGORY_INFO[eventType].plural,
+            capitalize: false,
+          })}
+        </ExternalLink>
+      );
     };
 
     let strictlySeatOverage = false;
@@ -1129,8 +869,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              DATA_CATEGORY_INFO[key].plural
+              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -1140,7 +879,7 @@ class GSBanner extends Component<Props, State> {
         {
           eventTypes: (
             <b>
-              <Oxfordize>{eventTypes.map(eventTypeToElement)}</Oxfordize>
+              <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
             </b>
           ),
         }
@@ -1152,8 +891,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              DATA_CATEGORY_INFO[key].plural
+              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -1186,7 +924,7 @@ class GSBanner extends Component<Props, State> {
           {
             eventTypes: (
               <b>
-                <Oxfordize>{eventTypes.map(eventTypeToElement)}</Oxfordize>
+                <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
               </b>
             ),
             periodEnd: moment(subscription.onDemandPeriodEnd).add(1, 'days').format('ll'),
@@ -1294,11 +1032,11 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
     },
-    '/insights/backend/crons/': {
+    '/insights/crons/': {
       product: DataCategory.MONITOR_SEATS,
       categories: [DataCategory.MONITOR_SEATS],
     },
-    '/insights/backend/uptime/': {
+    '/insights/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
     },
@@ -1315,19 +1053,8 @@ class GSBanner extends Component<Props, State> {
 
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
-    if (subscription.planTier === PlanTier.AM3) {
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-    }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
 
+    const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
     }
@@ -1335,7 +1062,7 @@ class GSBanner extends Component<Props, State> {
     return productPath.categories
       .map((category: DataCategory) => {
         const categoryInfo = getCategoryInfoFromPlural(category);
-        const categorySnakeCase = categoryInfo?.snakeCasePlural ?? category;
+        const categorySnakeCase = snakeCase(category);
         const isDismissed =
           this.state.productTrialDismissed[categoryInfo?.name as EventType];
         const trial = getProductTrial(subscription.productTrials ?? null, category);

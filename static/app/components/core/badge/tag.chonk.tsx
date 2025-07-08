@@ -31,12 +31,11 @@ export const TagPill = chonkStyled('div')<{
   ${p => ({...makeTagPillTheme(p.type, p.theme)})};
 
   height: 20px;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: inline-flex;
   align-items: center;
-  border-radius: ${p => p.theme.radius.mini};
+  border-radius: ${p => p.theme.radius.xs};
   padding: 0 ${space(1)};
-  max-width: 166px;
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
   button,

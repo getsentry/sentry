@@ -10,11 +10,11 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
@@ -27,6 +27,7 @@ import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -123,7 +124,7 @@ function App({children, params}: Props) {
     }
 
     if (!isOrgSlugValid) {
-      window.location.replace(sentryUrl);
+      testableWindowLocation.replace(sentryUrl);
       return;
     }
   }, [orgId, sentryUrl, isOrgSlugValid]);
@@ -253,12 +254,12 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <LastKnownRouteContextProvider>
-        <RouteAnalyticsContextProvider>
-          {renderOrganizationContextProvider(
-            <AsyncSDKIntegrationContextProvider>
-              <GlobalFeedbackForm>
-                <GlobalDrawer>
+      <UserTimezoneProvider>
+        <LastKnownRouteContextProvider>
+          <RouteAnalyticsContextProvider>
+            {renderOrganizationContextProvider(
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
                       <GlobalModal onClose={handleModalClose} />
@@ -266,12 +267,12 @@ function App({children, params}: Props) {
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </DemoToursProvider>
                   </MainContainer>
-                </GlobalDrawer>
-              </GlobalFeedbackForm>
-            </AsyncSDKIntegrationContextProvider>
-          )}
-        </RouteAnalyticsContextProvider>
-      </LastKnownRouteContextProvider>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            )}
+          </RouteAnalyticsContextProvider>
+        </LastKnownRouteContextProvider>
+      </UserTimezoneProvider>
     </Profiler>
   );
 }

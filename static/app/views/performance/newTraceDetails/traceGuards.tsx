@@ -1,10 +1,11 @@
+import type {Measurement} from 'sentry/types/event';
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
 import {CollapsedNode} from './traceModels/traceCollapsedNode';
-import type {TraceTree} from './traceModels/traceTree';
+import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
 export function isMissingInstrumentationNode(
@@ -175,16 +176,28 @@ export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
 export function isPageloadTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {
-  return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
+  return (
+    (isTransactionNode(node) && node.value['transaction.op'] === 'pageload') ||
+    (isEAPTransactionNode(node) && node.value.op === 'pageload')
+  );
+}
+
+export function isTransactionNodeEquivalent(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> {
+  return isTransactionNode(node) || isEAPTransaction(node.value);
 }
 
 export function isServerRequestHandlerTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {
-  return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
+  return (
+    (isTransactionNode(node) && node.value['transaction.op'] === 'http.server') ||
+    (isEAPTransactionNode(node) && node.value.op === 'http.server')
+  );
 }
 
-export function isBrowserRequestSpan(value: TraceTree.Span): boolean {
+export function isBrowserRequestSpan(value: TraceTree.Span | TraceTree.EAPSpan): boolean {
   return (
     // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
     value.op === 'browser.request' ||
@@ -195,12 +208,17 @@ export function isBrowserRequestSpan(value: TraceTree.Span): boolean {
 export function getPageloadTransactionChildCount(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): number {
-  if (!isTransactionNode(node)) {
+  if (!isTransactionNode(node) && !isEAPTransactionNode(node)) {
     return 0;
   }
   let count = 0;
-  for (const txn of node.value.children) {
-    if (txn && txn['transaction.op'] === 'pageload') {
+  for (const txn of TraceTree.VisibleChildren(node)) {
+    if (
+      txn &&
+      (isTransactionNode(txn)
+        ? txn.value['transaction.op'] === 'pageload'
+        : isEAPTransactionNode(txn) && txn.value.op === 'pageload')
+    ) {
       count++;
     }
   }
@@ -211,4 +229,20 @@ export function isTraceOccurence(
   issue: TraceTree.TraceIssue
 ): issue is TraceTree.TraceOccurrence {
   return 'issue_id' in issue && issue.event_type !== 'error';
+}
+
+export function isEAPMeasurementValue(
+  value: number | Measurement | undefined
+): value is number {
+  return value !== undefined && typeof value === 'number';
+}
+
+export function isEAPMeasurements(
+  value: Record<string, Measurement> | Record<string, number> | undefined
+): value is Record<string, number> {
+  if (value === undefined) {
+    return false;
+  }
+
+  return Object.values(value).every(isEAPMeasurementValue);
 }

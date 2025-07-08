@@ -16,7 +16,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer import Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -93,6 +93,7 @@ class GroupingConfigLoader:
 
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
+        enhancements_version = get_enhancements_version(project, config_id)
 
         # Instead of parsing and dumping out config here, we can make a
         # shortcut
@@ -100,7 +101,7 @@ class GroupingConfigLoader:
         from sentry.utils.hashlib import md5_text
 
         cache_prefix = self.cache_prefix
-        cache_prefix += f"{LATEST_VERSION}:"
+        cache_prefix += f"{enhancements_version}:"
         cache_key = (
             cache_prefix
             + md5_text(
@@ -122,7 +123,10 @@ class GroupingConfigLoader:
                     else derived_enhancements
                 )
             enhancements = Enhancements.from_rules_text(
-                enhancements_string, bases=[enhancements_base] if enhancements_base else []
+                enhancements_string,
+                bases=[enhancements_base] if enhancements_base else [],
+                version=enhancements_version,
+                referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()
@@ -139,7 +143,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
         )
 
 
@@ -408,7 +412,7 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or load_default_grouping_config())
+    context = GroupingContext(config or load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )
@@ -422,17 +426,24 @@ def get_grouping_variants_for_event(
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
     if fingerprint_type == "custom":
-        for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
+        matched_rule = fingerprint_info.get("matched_rule", {})
 
-        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+        if matched_rule and matched_rule.get("is_builtin") is True:
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "built-in"
         else:
             additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "custom server" if matched_rule else "custom client"
+
+        hint = f"{fingerprint_source} fingerprint takes precedence"
+
+        for variant in strategy_component_variants.values():
+            variant.component.update(contributes=False, hint=hint)
+
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():
             # Since we're reusing the variant names, when all of the variants are combined, these

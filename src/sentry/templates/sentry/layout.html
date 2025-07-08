@@ -54,7 +54,9 @@
   </script>
   {% endscript %}
 
-  {% include "sentry/partial/preload-data.html" %}
+  {% block preload_data %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endblock %}
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}

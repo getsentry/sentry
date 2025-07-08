@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
@@ -15,11 +15,17 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     LOGS_PRIVATE_ATTRIBUTES,
+    LOGS_REPLACEMENT_ATTRIBUTES,
+    LOGS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.attributes import (
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
+    SPANS_REPLACEMENT_ATTRIBUTES,
+    SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.types import SAMPLING_MODES
@@ -102,11 +108,10 @@ def transform_column_to_expression(column: Column) -> Expression:
 
 def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorageConfig:
     if sampling_mode is None:
-        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY)
+        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_NORMAL)
     if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:
-        sampling_mode = cast(SAMPLING_MODES, sampling_mode)
         return DownsampledStorageConfig(mode=SAMPLING_MODE_MAP[sampling_mode])
 
 
@@ -123,6 +128,22 @@ PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
 }
 
+SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_ATTRIBUTES,
+    SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
+}
+
+SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
+    SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_MAP,
+    SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
+}
+
+
+INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
+    SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+    SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
+}
+
 
 def translate_internal_to_public_alias(
     internal_alias: str,
@@ -133,9 +154,27 @@ def translate_internal_to_public_alias(
     return mapping.get(internal_alias)
 
 
+def get_secondary_aliases(
+    internal_alias: str, item_type: SupportedTraceItemType
+) -> set[str] | None:
+    mapping = INTERNAL_TO_SECONDARY_ALIASES.get(item_type, {})
+    return mapping.get(internal_alias)
+
+
 def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
+
+
+def is_sentry_convention_replacement_attribute(
+    public_alias: str, item_type: SupportedTraceItemType
+) -> bool:
+    return public_alias in SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES.get(item_type, {})
+
+
+def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:
+    mapping = SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.get(item_type, {})
+    return mapping.get(public_alias, public_alias)

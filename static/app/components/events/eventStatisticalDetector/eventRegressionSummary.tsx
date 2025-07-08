@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -9,7 +9,7 @@ import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -147,9 +147,11 @@ function formatDurationChange(
 }
 
 function formatBreakpoint(breakpoint: number) {
-  return getFormattedDate(breakpoint * 1000, 'MMM D, YYYY hh:mm:ss A z', {
-    local: true,
-  });
+  return getFormattedDate(
+    breakpoint * 1000,
+    getFormat({year: true, seconds: true, timeZone: true}),
+    {local: true}
+  );
 }
 
 const StyledKeyValueList = styled(KeyValueList)`

@@ -15,7 +15,7 @@ import ipaddress
 import logging
 from collections.abc import Container
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
@@ -25,6 +25,7 @@ from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
@@ -34,6 +35,7 @@ from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
+from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
@@ -139,6 +141,14 @@ def superuser_has_permission(
     return request.method == "GET" or request.method == "OPTIONS"
 
 
+@overload
+def is_active_superuser(request: Request) -> TypeIs[_RequestWithUser]: ...
+
+
+@overload
+def is_active_superuser(request: HttpRequest) -> TypeIs[_HttpRequestWithUser]: ...
+
+
 def is_active_superuser(request: HttpRequest) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
@@ -146,7 +156,7 @@ def is_active_superuser(request: HttpRequest) -> bool:
     return su.is_active
 
 
-class SuperuserAccessSerializer(serializers.Serializer):
+class SuperuserAccessSerializer(serializers.Serializer[Never]):
     superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 

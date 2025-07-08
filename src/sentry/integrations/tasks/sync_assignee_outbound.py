@@ -2,6 +2,8 @@ from typing import Any
 
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidConfiguration
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
@@ -11,7 +13,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -29,7 +31,11 @@ from sentry.users.services.user.service import user_service
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        processing_deadline_duration=30,
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(
@@ -66,23 +72,31 @@ def sync_assignee_outbound(
         action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_assignee_outbound")
+        lifecycle.add_extra("organization_id", external_issue.organization_id)
+        lifecycle.add_extra("integration_id", integration.id)
+
         if not (
             hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
         ):
             return
 
-        parsed_assignment_source = (
-            AssignmentSource.from_dict(assignment_source_dict) if assignment_source_dict else None
-        )
-        if installation.should_sync("outbound_assignee", parsed_assignment_source):
-            # Assume unassign if None.
-            user = user_service.get_user(user_id) if user_id else None
-            installation.sync_assignee_outbound(
-                external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+        try:
+            parsed_assignment_source = (
+                AssignmentSource.from_dict(assignment_source_dict)
+                if assignment_source_dict
+                else None
             )
-            analytics.record(
-                "integration.issue.assignee.synced",
-                provider=integration.provider,
-                id=integration.id,
-                organization_id=external_issue.organization_id,
-            )
+            if installation.should_sync("outbound_assignee", parsed_assignment_source):
+                # Assume unassign if None.
+                user = user_service.get_user(user_id) if user_id else None
+                installation.sync_assignee_outbound(
+                    external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+                )
+                analytics.record(
+                    "integration.issue.assignee.synced",
+                    provider=integration.provider,
+                    id=integration.id,
+                    organization_id=external_issue.organization_id,
+                )
+        except (OrganizationIntegrationNotFound, ApiUnauthorized, InvalidConfiguration) as e:
+            lifecycle.record_halt(halt_reason=e)

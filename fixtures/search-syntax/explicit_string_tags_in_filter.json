@@ -18,11 +18,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "apple", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "apple",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "pear", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "pear",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -49,11 +59,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "apple wow", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "apple wow",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "pear", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "pear",
+                "quoted": true,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -62,4 +82,3 @@
     ]
   }
 ]
-

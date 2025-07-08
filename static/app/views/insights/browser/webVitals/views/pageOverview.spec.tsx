@@ -79,7 +79,7 @@ describe('PageOverview', function () {
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -111,7 +111,7 @@ describe('PageOverview', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -146,8 +146,13 @@ describe('PageOverview', function () {
               'measurements.score.total',
               'trace',
               'profile_id',
-              'replay',
-              'user.display',
+              'profile.id',
+              'replay.id',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
               'span.description',
               'timestamp',
@@ -197,8 +202,13 @@ describe('PageOverview', function () {
               'measurements.score.total',
               'trace',
               'profile_id',
-              'replay',
-              'user.display',
+              'profile.id',
+              'replay.id',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
               'span.description',
               'timestamp',

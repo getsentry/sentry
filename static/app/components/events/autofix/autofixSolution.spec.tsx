@@ -21,6 +21,7 @@ describe('AutofixSolution', () => {
       relevant_code_file: {
         file_path: 'src/file.js',
         repo_name: 'owner/repo',
+        url: 'https://github.com/owner/repo/blob/main/src/file.js',
       },
     },
   ];
@@ -42,6 +43,16 @@ describe('AutofixSolution', () => {
     jest.mocked(useAutofixRepos).mockReturnValue({
       repos: [],
       codebases: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/',
+      method: 'GET',
+      body: {
+        project: {
+          slug: 'project-slug',
+        },
+      },
     });
   });
 

@@ -1,7 +1,9 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
@@ -9,13 +11,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/platform/laravel/features';
+import {hasNextJsInsightsFeature} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 import {
   getPerformanceBaseUrl,
-  getPerformanceTrendsUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
@@ -27,32 +30,40 @@ type Props = {
   project?: Project;
 };
 
-function ProjectQuickLinks({organization, project, location}: Props) {
-  function getTrendsLink() {
-    const queryString = decodeScalar(location.query.query);
-    const conditions = new MutableSearch(queryString || '');
-    conditions.setFilterValues('tpm()', ['>0.01']);
-    conditions.setFilterValues('transaction.duration', [
-      '>0',
-      `<${DEFAULT_MAX_DURATION}`,
-    ]);
-
-    return {
-      pathname: getPerformanceTrendsUrl(organization),
-      query: {
-        project: project?.id,
-        cursor: undefined,
-        query: conditions.formatString(),
-      },
-    };
-  }
-
+function ProjectQuickLinks({organization, project}: Props) {
   const hasNewFeedback = organization.features.includes('user-feedback-ui');
   const domainView: DomainView | undefined = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 
+  const isLaravelInsightsAvailable = hasLaravelInsightsFeature(organization);
+  const isNextJsInsightsAvailable = hasNextJsInsightsFeature(organization);
+
   const quickLinks = [
+    ...(isLaravelInsightsAvailable && project?.platform === 'php-laravel'
+      ? [
+          {
+            title: t('Laravel Insights'),
+            to: {
+              pathname: `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`,
+              query: {project: project.id},
+            },
+            showNewBadge: true,
+          },
+        ]
+      : []),
+    ...(isNextJsInsightsAvailable && project?.platform === 'javascript-nextjs'
+      ? [
+          {
+            title: t('Next.js Insights'),
+            to: {
+              pathname: `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`,
+              query: {project: project.id},
+            },
+            showNewBadge: true,
+          },
+        ]
+      : []),
     {
       title: t('User Feedback'),
       to: {
@@ -70,11 +81,6 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       },
       disabled: !organization.features.includes('performance-view'),
     },
-    {
-      title: t('Most Improved/Regressed Transactions'),
-      to: getTrendsLink(),
-      disabled: !organization.features.includes('performance-view'),
-    },
   ];
 
   return (
@@ -83,7 +89,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       {quickLinks
         // push disabled links to the bottom
         .sort((link1, link2) => Number(!!link1.disabled) - Number(!!link2.disabled))
-        .map(({title, to, disabled}) => (
+        .map(({title, to, disabled, showNewBadge}) => (
           <div key={title}>
             <Tooltip
               title={t("You don't have access to this feature")}
@@ -91,7 +97,10 @@ function ProjectQuickLinks({organization, project, location}: Props) {
             >
               <QuickLink to={to} disabled={disabled}>
                 <IconLink />
-                <QuickLinkText>{title}</QuickLinkText>
+                <QuickLinkTextContainer>
+                  <QuickLinkText>{title}</QuickLinkText>
+                  {showNewBadge && <FeatureBadge type="new" />}
+                </QuickLinkTextContainer>
               </QuickLink>
             </Tooltip>
           </div>
@@ -117,14 +126,20 @@ const QuickLink = styled((p: any) =>
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.gray200};
-    cursor: not-allowed;
-  `}
+    css`
+      color: ${p.theme.gray200};
+      cursor: not-allowed;
+    `}
+`;
+
+const QuickLinkTextContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis}
 `;
 

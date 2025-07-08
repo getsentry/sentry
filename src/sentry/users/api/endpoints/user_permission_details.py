@@ -14,7 +14,6 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
@@ -61,7 +60,6 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
                     },
                 )
         except IntegrityError as e:
-            incr_rollback_metrics(UserPermission)
             if "already exists" in str(e):
                 return self.respond(status=410)
             raise

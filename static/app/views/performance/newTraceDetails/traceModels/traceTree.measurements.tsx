@@ -1,18 +1,16 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
-  MOBILE_VITAL_DETAILS,
-  WEB_VITAL_DETAILS,
-} from 'sentry/utils/performance/vitals/constants';
-import type {Vital} from 'sentry/utils/performance/vitals/types';
+  isEAPMeasurements,
+  isEAPMeasurementValue,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {TraceTree} from './traceTree';
 import type {TraceTreeNode} from './traceTreeNode';
-// cls is not included as it is a cumulative layout shift and not a single point in time
 
-const RENDERABLE_MEASUREMENTS = [
+// cls is not included as it is a cumulative layout shift and not a single point in time
+export const RENDERABLE_MEASUREMENTS = [
   WebVital.TTFB,
-  WebVital.FP,
   WebVital.FCP,
   WebVital.LCP,
   MobileVital.TIME_TO_FULL_DISPLAY,
@@ -27,39 +25,35 @@ const RENDERABLE_MEASUREMENTS = [
     {} as Record<string, boolean>
   );
 
-const WEB_VITALS = [
-  WebVital.TTFB,
-  WebVital.FP,
-  WebVital.FCP,
+export const TRACE_VIEW_WEB_VITALS: WebVital[] = [
   WebVital.LCP,
-  WebVital.CLS,
-  WebVital.FID,
+  WebVital.FCP,
   WebVital.INP,
-  WebVital.REQUEST_TIME,
-].map(n => n.replace('measurements.', ''));
+  WebVital.CLS,
+  WebVital.TTFB,
+];
 
-const MOBILE_VITALS = [
+export const TRACE_VIEW_MOBILE_VITALS: MobileVital[] = [
   MobileVital.APP_START_COLD,
   MobileVital.APP_START_WARM,
-  MobileVital.TIME_TO_INITIAL_DISPLAY,
-  MobileVital.TIME_TO_FULL_DISPLAY,
-  MobileVital.FRAMES_TOTAL,
-  MobileVital.FRAMES_SLOW,
-  MobileVital.FRAMES_FROZEN,
   MobileVital.FRAMES_SLOW_RATE,
   MobileVital.FRAMES_FROZEN_RATE,
-  MobileVital.STALL_COUNT,
-  MobileVital.STALL_TOTAL_TIME,
   MobileVital.STALL_LONGEST_TIME,
-  MobileVital.STALL_PERCENTAGE,
-].map(n => n.replace('measurements.', ''));
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+];
 
-const WEB_VITALS_LOOKUP = new Set<string>(WEB_VITALS);
-const MOBILE_VITALS_LOOKUP = new Set<string>(MOBILE_VITALS);
-
-const COLLECTABLE_MEASUREMENTS = [...WEB_VITALS, ...MOBILE_VITALS].map(n =>
-  n.replace('measurements.', '')
+const WEB_VITALS_LOOKUP = new Set<string>(
+  TRACE_VIEW_WEB_VITALS.map(n => n.replace('measurements.', ''))
 );
+const MOBILE_VITALS_LOOKUP = new Set<string>(
+  TRACE_VIEW_MOBILE_VITALS.map(n => n.replace('measurements.', ''))
+);
+
+const COLLECTABLE_MEASUREMENTS = [
+  ...TRACE_VIEW_WEB_VITALS,
+  ...TRACE_VIEW_MOBILE_VITALS,
+].map(n => n.replace('measurements.', ''));
 
 const MEASUREMENT_ACRONYM_MAPPING = {
   [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
@@ -73,15 +67,6 @@ const MEASUREMENT_THRESHOLDS = {
   [WebVital.LCP.replace('measurements.', '')]: 4000,
   [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
 };
-
-export const TRACE_MEASUREMENT_LOOKUP: Record<string, Vital> = {};
-
-for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
-  TRACE_MEASUREMENT_LOOKUP[key.replace('measurements.', '')] = {
-    ...MOBILE_VITAL_DETAILS[key as keyof typeof MOBILE_VITAL_DETAILS],
-    ...WEB_VITAL_DETAILS[key as keyof typeof WEB_VITAL_DETAILS],
-  };
-}
 
 function traceMeasurementToTimestamp(
   start_timestamp: number,
@@ -102,22 +87,25 @@ function traceMeasurementToTimestamp(
 
 // Collects measurements from a trace node and adds them to the indicators stored on trace tree
 export function collectTraceMeasurements(
+  tree: TraceTree,
   node: TraceTreeNode<TraceTree.NodeValue>,
   start_timestamp: number,
-  measurements: Record<string, Measurement> | undefined,
+  measurements: Record<string, Measurement> | Record<string, number> | undefined,
   vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]>,
   vital_types: Set<'web' | 'mobile'>
 ): TraceTree.Indicator[] {
-  const indicators: TraceTree.Indicator[] = [];
-
   if (!measurements) {
-    return indicators;
+    return [];
   }
 
-  for (const measurement of COLLECTABLE_MEASUREMENTS) {
-    const value = measurements[measurement];
+  const indicators: TraceTree.Indicator[] = [];
 
-    if (!value || typeof value.value !== 'number') {
+  for (const measurement of COLLECTABLE_MEASUREMENTS) {
+    const value = isEAPMeasurements(measurements)
+      ? measurements[`measurements.${measurement}`]
+      : measurements[measurement];
+
+    if (!value || (!isEAPMeasurementValue(value) && typeof value.value !== 'number')) {
       continue;
     }
 
@@ -127,47 +115,57 @@ export function collectTraceMeasurements(
 
     if (WEB_VITALS_LOOKUP.has(measurement)) {
       vital_types.add('web');
-    }
-    if (MOBILE_VITALS_LOOKUP.has(measurement)) {
+    } else if (MOBILE_VITALS_LOOKUP.has(measurement)) {
       vital_types.add('mobile');
     }
 
-    const score = Math.round(
-      (measurements[`score.${measurement}`]?.value! /
-        measurements[`score.weight.${measurement}`]?.value!) *
-        100
-    );
+    const eapScoreRatioKey = `measurements.score.ratio.${measurement}`;
+    const legacyScoreKey = `score.${measurement}`;
+    const legacyScoreWeightKey = `score.weight.${measurement}`;
+    const score = isEAPMeasurements(measurements)
+      ? measurements[eapScoreRatioKey] === undefined
+        ? undefined
+        : Math.round(measurements[eapScoreRatioKey] * 100)
+      : measurements[legacyScoreKey]?.value !== undefined &&
+          measurements[legacyScoreWeightKey]?.value !== undefined
+        ? Math.round(
+            (measurements[legacyScoreKey].value /
+              measurements[legacyScoreWeightKey].value) *
+              100
+          )
+        : undefined;
 
-    const vital = vitals.get(node)!;
-    vital.push({
+    vitals.get(node)!.push({
       key: measurement,
-      measurement: value,
+      measurement: isEAPMeasurementValue(value) ? {value} : value,
       score,
     });
 
-    if (!RENDERABLE_MEASUREMENTS[measurement]) {
+    const hasSeenMeasurement = tree.indicators.some(
+      indicator => indicator.type === measurement
+    );
+    if (!RENDERABLE_MEASUREMENTS[measurement] || hasSeenMeasurement) {
       continue;
     }
 
     const timestamp = traceMeasurementToTimestamp(
       start_timestamp,
-      value.value,
-      value.unit ?? 'millisecond'
+      isEAPMeasurementValue(value) ? value : value.value,
+      isEAPMeasurementValue(value) ? 'millisecond' : (value.unit ?? 'millisecond')
     );
 
-    const indicator: TraceTree.Indicator = {
+    indicators.push({
       start: timestamp,
       duration: 0,
-      measurement: value,
+      measurement: isEAPMeasurementValue(value) ? {value} : value,
       poor: MEASUREMENT_THRESHOLDS[measurement]
-        ? value.value > MEASUREMENT_THRESHOLDS[measurement]
+        ? (isEAPMeasurementValue(value) ? value : value.value) >
+          MEASUREMENT_THRESHOLDS[measurement]
         : false,
-      type: measurement as TraceTree.Indicator['type'],
+      type: measurement,
       label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
       score,
-    };
-
-    indicators.push(indicator);
+    });
   }
 
   return indicators;

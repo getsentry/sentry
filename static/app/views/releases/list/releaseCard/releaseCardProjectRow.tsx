@@ -6,12 +6,12 @@ import type {Location} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -240,8 +240,8 @@ export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    font-size: ${p => p.theme.fontSizeMedium};
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -272,7 +272,5 @@ const CrashFreeWrapper = styled('div')`
 `;
 
 const ViewColumn = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  line-height: 20px;
   text-align: right;
 `;

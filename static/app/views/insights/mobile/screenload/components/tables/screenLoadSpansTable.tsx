@@ -3,37 +3,32 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t, tct} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -42,10 +37,8 @@ import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
@@ -63,18 +56,12 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.SCREEN_LOAD
-  );
-  const baseURL = isMobileScreensEnabled
-    ? `${moduleURL}/details/`
-    : `${moduleURL}/spans/`;
+  const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
+  const baseURL = `${moduleURL}/details/`;
 
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
@@ -85,7 +72,7 @@ export function ScreenLoadSpansTable({
 
   const queryStringPrimary = useMemo(() => {
     const searchQuery = new MutableSearch([
-      'transaction.op:ui.load',
+      'transaction.op:[ui.load,navigation]',
       `transaction:${transaction}`,
       'has:span.description',
       ...(spanOp
@@ -109,47 +96,37 @@ export function ScreenLoadSpansTable({
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field: 'time_spent_percentage()',
+    field: 'sum(span.self_time)',
   };
 
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      PROJECT_ID,
-      SPAN_OP,
-      SPAN_GROUP,
-      SPAN_DESCRIPTION,
-      `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      'ttid_contribution_rate()',
-      'ttfd_contribution_rate()',
-      'count()',
-      'time_spent_percentage()',
-      `sum(${SPAN_SELF_TIME})`,
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    version: 2,
-    projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
-  };
-
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-  eventView.sorts = [sort];
-
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: true,
-    referrer: 'api.starfish.mobile-span-table',
-    cursor,
-  });
+  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+    {
+      cursor,
+      search: queryStringPrimary,
+      sorts: [sort],
+      limit: 25,
+      fields: [
+        PROJECT_ID,
+        SPAN_OP,
+        SPAN_GROUP,
+        SPAN_DESCRIPTION,
+        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        'ttid_contribution_rate()',
+        'ttfd_contribution_rate()',
+        'count()',
+        `sum(${SPAN_SELF_TIME})`,
+      ],
+    },
+    'api.starfish.mobile-span-table'
+  );
 
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
-    'time_spent_percentage()': t('Total Time Spent'),
+    [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -161,7 +138,7 @@ export function ScreenLoadSpansTable({
   };
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
+    if (!meta?.fields) {
       return row[column.key];
     }
 
@@ -275,11 +252,11 @@ export function ScreenLoadSpansTable({
       );
     }
 
-    const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
+    const renderer = getFieldRenderer(column.key, meta.fields, false);
     const rendered = renderer(row, {
       location,
       organization,
-      unit: data?.meta.units?.[column.key],
+      unit: meta?.units?.[column.key],
       theme,
     });
     return rendered;
@@ -356,8 +333,6 @@ export function ScreenLoadSpansTable({
     return sortLink;
   }
 
-  const columnSortBy = eventView.getSorts();
-
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -374,7 +349,7 @@ export function ScreenLoadSpansTable({
       />
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
-        data={data?.data as TableDataRow[]}
+        data={data}
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
@@ -383,13 +358,13 @@ export function ScreenLoadSpansTable({
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),
-          ...['count()', 'time_spent_percentage()'],
+          ...['count()', `sum(${SPAN_SELF_TIME})`],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
-        columnSortBy={columnSortBy}
+        columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
-          renderHeadCell: column => renderHeadCell(column, data?.meta),
+          renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
         }}
       />

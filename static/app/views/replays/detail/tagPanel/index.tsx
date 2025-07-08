@@ -1,23 +1,24 @@
-import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import {FluidPanel} from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-function TagPanel() {
+export default function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
@@ -53,7 +54,7 @@ function TagPanel() {
   const {items} = filterProps;
 
   const generateUrl = useCallback(
-    (name: string, value: ReactNode): LocationDescriptor => ({
+    (name: string, value: string): LocationDescriptor => ({
       pathname: makeReplaysPathname({
         path: '/',
         organization,
@@ -67,36 +68,46 @@ function TagPanel() {
   );
 
   if (!replayRecord) {
-    return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
+    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
   const filteredTags = Object.entries(items);
 
   return (
-    <FluidHeight>
-      <TagFilters tags={tags} {...filterProps} />
-      <TabItemContainer>
-        <StyledPanel>
-          <FluidPanel>
-            {filteredTags.length ? (
-              <KeyValueTable noMargin>
-                {filteredTags.map(([key, values]) => (
-                  <ReplayTagsTableRow
-                    key={key}
-                    name={key}
-                    values={values}
-                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                  />
-                ))}
-              </KeyValueTable>
-            ) : (
-              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-            )}
-          </FluidPanel>
-        </StyledPanel>
-      </TabItemContainer>
-    </FluidHeight>
+    <ErrorBoundary mini>
+      <PaddedFluidHeight>
+        <TagFilters tags={tags} {...filterProps} />
+        <TabItemContainer>
+          <StyledPanel>
+            <FluidPanel>
+              {filteredTags.length ? (
+                <KeyValueTable noMargin>
+                  {filteredTags.map(([key, values]) => (
+                    <ReplayTagsTableRow
+                      key={key}
+                      name={key}
+                      values={values}
+                      generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                    />
+                  ))}
+                </KeyValueTable>
+              ) : (
+                <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+              )}
+            </FluidPanel>
+          </StyledPanel>
+        </TabItemContainer>
+      </PaddedFluidHeight>
+    </ErrorBoundary>
   );
 }
+
+const PaddedPlaceholder = styled(Placeholder)`
+  padding-top: ${space(1)};
+`;
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
 
 const StyledPanel = styled('div')`
   position: relative;
@@ -104,5 +115,3 @@ const StyledPanel = styled('div')`
   overflow: auto;
   display: grid;
 `;
-
-export default TagPanel;

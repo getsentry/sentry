@@ -1,15 +1,14 @@
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useBulkEditFeedbacks from 'sentry/components/feedback/list/useBulkEditFeedbacks';
-import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props
   extends Pick<
@@ -25,8 +24,15 @@ export default function FeedbackListBulkSelection({
   selectedIds,
   deselectAll,
 }: Props) {
-  const organization = useOrganization();
-  const {onDelete, onToggleResolved, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
+  const {
+    hasDelete,
+    enableDelete,
+    enableMarkAsRead,
+    onDelete,
+    onToggleResolved,
+    onMarkAsRead,
+    onMarkUnread,
+  } = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
   });
@@ -37,9 +43,6 @@ export default function FeedbackListBulkSelection({
   // reuse the issues ignored category for spam feedbacks
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
-
-  const hasDelete = selectedIds !== 'all';
-  const disableDelete = !organization.access.includes('event:admin');
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
@@ -86,6 +89,10 @@ export default function FeedbackListBulkSelection({
                 key: 'mark read',
                 label: t('Mark Read'),
                 onAction: onMarkAsRead,
+                disabled: !enableMarkAsRead,
+                tooltip: enableMarkAsRead
+                  ? undefined
+                  : t('You must be a member of the project'),
               },
               {
                 key: 'mark unread',
@@ -97,11 +104,11 @@ export default function FeedbackListBulkSelection({
                 priority: 'danger' as const,
                 label: t('Delete'),
                 hidden: !hasDelete,
-                disabled: disableDelete,
+                disabled: !enableDelete,
                 onAction: onDelete,
-                tooltip: disableDelete
-                  ? t('You must be an admin to delete feedback.')
-                  : undefined,
+                tooltip: enableDelete
+                  ? undefined
+                  : t('You must be an admin to delete feedback'),
               },
             ]}
           />

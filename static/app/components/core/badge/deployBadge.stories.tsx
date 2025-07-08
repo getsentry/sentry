@@ -1,5 +1,5 @@
 import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import type {Deploy} from 'sentry/types/release';
 
 const deploy: Deploy = {
@@ -12,7 +12,7 @@ const deploy: Deploy = {
   id: '6348842',
 };
 
-export default storyBook('DeployBadge', story => {
+export default Storybook.story('DeployBadge', story => {
   story('Renders with a link', () => (
     <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
   ));

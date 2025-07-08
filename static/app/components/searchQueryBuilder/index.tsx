@@ -9,6 +9,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
@@ -25,8 +26,6 @@ import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -41,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -66,6 +66,12 @@ export interface SearchQueryBuilderProps {
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
+   * A mapping of aliases for filter keys.
+   * These are used to ensure that the filter key does not show them as invalid, however
+   * they will not be shown in the filter key dropdown.
+   */
+  filterKeyAliases?: TagCollection;
+  /**
    * The width of the filter key menu.
    * Defaults to 360px. May be increased if there are a large number of categories
    * or long filter key names.
@@ -81,6 +87,14 @@ export interface SearchQueryBuilderProps {
    * will only render a warning if the value is truthy
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to map the user input to a
+   * known column.
+   */
+  getSuggestedFilterKey?: (key: string) => string | null;
+
   /**
    * Allows for customization of the invalid token messages.
    */
@@ -108,6 +122,20 @@ export interface SearchQueryBuilderProps {
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+  /**
+   * When set, provided keys will override default raw search capabilities, while
+   * replacing it with options that include the provided keys, and the user's input
+   * as value.
+   *
+   * e.g. if `replaceRawSearchKeys` is set to `['span.description']`, the user will be
+   * able to type `randomValue` and the combobox will show `span.description:randomValue`
+   * as an option, and so on with any other provided keys.
+   */
+  replaceRawSearchKeys?: string[];
+  /**
+   * When true, will trigger the `onSearch` callback when the query changes.
+   */
+  searchOnChange?: boolean;
   /**
    * When true, will display a visual indicator when there are unsaved changes.
    * This search is considered unsubmitted when query !== initialQuery.
@@ -148,8 +176,9 @@ function SearchIndicator({
 function ActionButtons({
   ref,
   trailingItems = null,
-}: {trailingItems?: React.ReactNode} & {
+}: {
   ref?: React.Ref<HTMLDivElement>;
+  trailingItems?: React.ReactNode;
 }) {
   const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
@@ -177,29 +206,25 @@ function ActionButtons({
 }
 
 function SearchQueryBuilderUI({
+  autoFocus,
   className,
   disabled = false,
   label,
   initialQuery,
-  onChange,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
   showUnsubmittedIndicator,
   trailingItems,
+  onChange,
+  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
+  useOnChange({onChange, searchOnChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
-
-  const previousQuery = usePrevious(query);
-  useEffectAfterFirstRender(() => {
-    if (previousQuery !== query) {
-      onChange?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
-    }
-  }, [onChange, query, previousQuery, parsedQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
@@ -216,12 +241,16 @@ function SearchQueryBuilderUI({
       <PanelProvider>
         <SearchIndicator
           initialQuery={initialQuery}
-          showUnsubmittedIndicator={showUnsubmittedIndicator}
+          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
         />
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
-          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+          <TokenizedQueryGrid
+            autoFocus={autoFocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
+          />
         )}
         {size !== 'small' && (
           <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
@@ -245,12 +274,12 @@ export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
 }
 
 const Wrapper = styled(Input.withComponent('div'))`
-  min-height: 38px;
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 `;
 
@@ -271,7 +300,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(1)};
+  top: ${p => (p.theme.isChonk ? space(0.75) : space(1))};
 `;
 
 const SearchIcon = styled(IconSearch)`

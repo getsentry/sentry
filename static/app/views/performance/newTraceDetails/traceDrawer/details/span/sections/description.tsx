@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -15,12 +15,14 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
   MissingImage,
 } from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -51,12 +53,18 @@ export function SpanDescription({
   organization,
   location,
   project,
+  hideNodeActions,
 }: {
   location: Location;
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
+  const {data: event} = useEventDetails({
+    eventId: node.event?.eventID,
+    projectSlug: project?.slug,
+  });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const resolvedModule: ModuleName = resolveSpanModule(
@@ -168,7 +176,7 @@ export function SpanDescription({
         {span?.data?.['code.filepath'] ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
-            eventId={node.event?.eventID}
+            event={event}
             frame={{
               filename: span?.data?.['code.filepath'],
               lineNo: span?.data?.['code.lineno'],
@@ -213,6 +221,12 @@ export function SpanDescription({
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization,
+        attributes: span.data,
+        op: span.op,
+      })}
     />
   );
 }
@@ -363,7 +377,7 @@ const StyledCodeSnippet = styled(CodeSnippet)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

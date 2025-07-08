@@ -1,6 +1,5 @@
-import type {PageFilters} from 'sentry/types/core';
 import type {PageFiltersState} from 'sentry/stores/pageFiltersStore';
-import type {PinnedPageFilter} from 'sentry/types/core';
+import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 
 export function PageFiltersFixture(params: Partial<PageFilters> = {}): PageFilters {
   return {
@@ -27,17 +26,19 @@ export function PageFiltersStorageFixture(params = {}) {
       period: '14d',
       utc: null,
     },
-    ...params
+    ...params,
   };
 }
 
-export function PageFilterStateFixture(params: Partial<PageFiltersState> = {}): PageFiltersState {
+export function PageFilterStateFixture(
+  params: Partial<PageFiltersState> = {}
+): PageFiltersState {
   return {
     isReady: true,
     desyncedFilters: new Set<PinnedPageFilter>(),
     pinnedFilters: new Set<PinnedPageFilter>(),
     shouldPersist: true,
     selection: PageFiltersFixture(),
-    ...params
-  }
+    ...params,
+  };
 }

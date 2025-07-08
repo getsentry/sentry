@@ -169,7 +169,7 @@ describe('ProjectSourceMaps', function () {
         organization,
       });
 
-      expect(await screen.findByText('No source map uploads found')).toBeInTheDocument();
+      expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
     });
   });
 });

@@ -5,11 +5,16 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -24,27 +29,48 @@ class Refresher:
     Exchanges a Refresh Token for a new Access Token
     """
 
-    install: RpcSentryAppInstallation
+    install: SentryAppInstallation
     refresh_token: str
     client_id: str
     user: User
 
     def run(self) -> ApiToken:
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            try:
-                self._validate()
-                self.token.delete()
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.AUTHORIZATIONS,
+            event_type=SentryAppEventType.REFRESHER,
+        ).capture() as lifecycle:
+            context = {
+                "installation_uuid": self.install.uuid,
+                "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
+                "sentry_app_id": self.install.sentry_app.id,
+            }
+            lifecycle.add_extras(context)
 
-                self._record_analytics()
-                return self._create_new_token()
-            except (SentryAppIntegratorError, SentryAppSentryError):
-                logger.info(
-                    "refresher.context",
-                    extra={
-                        "application_id": self.application.id,
-                        "refresh_token": self.refresh_token[-4:],
-                    },
-                )
+            try:
+                token = None
+                with transaction.atomic(router.db_for_write(ApiToken)):
+                    self._validate()
+                    self.token.delete()
+
+                    self._record_analytics()
+                    token = self._create_new_token()
+                    return token
+            except OutboxDatabaseError as e:
+                if token is not None:
+                    logger.warning(
+                        "refresher.outbox-failure",
+                        extra=context,
+                        exc_info=e,
+                    )
+                    return token
+
+                raise SentryAppSentryError(
+                    message="Failed to refresh given token",
+                    status_code=500,
+                    webhook_context=context,
+                ) from e
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e)
                 raise
 
     def _record_analytics(self) -> None:
@@ -106,7 +132,7 @@ class Refresher:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise SentryAppIntegratorError(
+            raise SentryAppSentryError(
                 message="Could not find matching Application for given client_id",
                 status_code=401,
                 webhook_context={

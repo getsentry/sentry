@@ -1,6 +1,8 @@
 import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
+import type {EventTag, EventTagWithMeta} from 'sentry/types/event';
+
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
 export enum TagFilter {
@@ -193,4 +195,22 @@ export function useIssueDetailsColumnCount(
   useResizeObserver({ref: elementRef, onResize});
 
   return columnCount;
+}
+
+/**
+ * Associates a list of tags with the matching meta record (or undefined)
+ * Assumes the meta record a dictionary where the keys are the index of the tag in the list.
+ * Note: Filtering the list of tags prior to calling this will result in incorrect associations.
+ */
+export function associateTagsWithMeta({
+  tags,
+  meta,
+}: {
+  tags: EventTag[];
+  meta?: Record<string, any>;
+}): EventTagWithMeta[] {
+  return tags.map((tag, index) => ({
+    ...tag,
+    meta: meta?.[index],
+  }));
 }

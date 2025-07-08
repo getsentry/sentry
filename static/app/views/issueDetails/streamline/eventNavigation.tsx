@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -54,7 +54,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
@@ -117,6 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
               },
             },
             {
@@ -135,6 +136,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.replays.enabled,
             },
@@ -152,6 +154,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.attachments.enabled,
             },
@@ -166,6 +169,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },
@@ -302,21 +306,21 @@ const LargeDropdownButtonWrapper = styled('div')`
 `;
 
 const NavigationDropdownButton = styled(DropdownButton)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.5)};
 `;
 
 const NavigationLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.25)};
   padding-left: ${space(1.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
@@ -325,9 +329,9 @@ const EventNavigationWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     flex-direction: row;
     align-items: center;
   }
@@ -338,7 +342,7 @@ const NavigationWrapper = styled('div')`
   gap: ${space(0.25)};
   justify-content: space-between;
 
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     gap: ${space(0.5)};
   }
 `;
@@ -350,7 +354,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   gap: ${space(3)};
   font-variant-numeric: tabular-nums;
   font-weight: ${p =>
-    p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
+    p.isCurrentTab ? p.theme.fontWeight.bold : p.theme.fontWeight.normal};
 `;
 
 const ItemCount = styled(Count)`

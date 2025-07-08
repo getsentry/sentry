@@ -1,12 +1,13 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {DateTime} from 'sentry/components/dateTime';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
@@ -31,6 +32,8 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {prettifyTagKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -45,6 +48,17 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
+  if (token.filter === FilterType.HAS) {
+    return (
+      <FilterValueSingleTruncatedValue>
+        {prettifyTagKey(token.value.text)}
+      </FilterValueSingleTruncatedValue>
+    );
+  }
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
@@ -52,22 +66,33 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
+        const allContains =
+          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
+
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value)}
+            {formatFilterValue({
+              token: items[0]!.value,
+              stripWildcards: allContains && hasWildcardOperators,
+            })}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
+      const allContains = items.every(
+        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
+      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value)}
+                {formatFilterValue({
+                  token: item.value!,
+                  stripWildcards: allContains && hasWildcardOperators,
+                })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -85,12 +110,18 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     }
-    default:
+    default: {
+      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
+
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue({
+            token: token.value,
+            stripWildcards: allContains && hasWildcardOperators,
+          })}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 
@@ -135,6 +166,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onCommit={() => {
             setIsEditing(false);
             onActiveChange(false);
+            dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
@@ -287,15 +319,15 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   ${p =>
     p.state === 'invalid'
-      ? `
-      border-color: ${p.theme.red200};
-      background-color: ${p.theme.red100};
-    `
+      ? css`
+          border-color: ${p.theme.red200};
+          background-color: ${p.theme.red100};
+        `
       : p.state === 'warning'
-        ? `
-      border-color: ${p.theme.gray300};
-      background-color: ${p.theme.gray100};
-    `
+        ? css`
+            border-color: ${p.theme.gray300};
+            background-color: ${p.theme.gray100};
+          `
         : ''}
 
   &[aria-selected='true'] {

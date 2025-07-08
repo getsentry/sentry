@@ -18,11 +18,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "123", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "123",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "456", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "456",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -31,4 +41,3 @@
     ]
   }
 ]
-

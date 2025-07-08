@@ -164,7 +164,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(mail.outbox) == 1
@@ -203,7 +203,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(mail.outbox) == 1
@@ -241,7 +241,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -276,7 +276,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(mail.outbox) == 1
@@ -328,7 +328,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(mail.outbox) == 3

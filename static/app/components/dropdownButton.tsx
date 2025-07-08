@@ -6,7 +6,8 @@ import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
+export interface DropdownButtonProps
+  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
   /**
    * Whether or not the button should render as open
    */
@@ -15,10 +16,6 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
    * The fixed prefix text to show in the button eg: 'Sort By'
    */
   prefix?: React.ReactNode;
-  /**
-   * Forward a ref to the button's root
-   */
-  ref?: React.Ref<HTMLButtonElement>;
   /**
    * Should a chevron icon be shown?
    */
@@ -51,7 +48,9 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            color="subText"
+            color={
+              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            }
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
@@ -87,7 +86,7 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   ${p =>
     p.hasPrefix &&
     css`
-      font-weight: ${p.theme.fontWeightNormal};
+      font-weight: ${p.theme.fontWeight.normal};
     `}
 `;
 
@@ -96,7 +95,7 @@ const LabelText = styled('span')`
     content: ':';
   }
 
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding-right: ${space(0.75)};
 `;
 

@@ -122,7 +122,7 @@ const NavMenuToggle = styled(Button)`
   &:active {
     color: ${p => p.theme.textColor};
   }
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
@@ -145,7 +145,7 @@ const SidebarWrapper = styled('nav')<{isVisible: boolean; offsetTop: number}>`
   background: ${p => p.theme.background};
   border-right: 1px solid ${p => p.theme.border};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     position: fixed;
     top: ${p => p.offsetTop}px;
@@ -159,7 +159,7 @@ const SidebarWrapper = styled('nav')<{isVisible: boolean; offsetTop: number}>`
 
 const NavMask = styled('div')<{isVisible: boolean}>`
   display: none;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     background: rgba(0, 0, 0, 0.35);
     height: 100%;
@@ -179,7 +179,7 @@ const Content = styled('div')`
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)};
   }
 
@@ -188,15 +188,6 @@ const Content = styled('div')`
    * it under the hood. This prevents double padding.
    */
   ${Layout.Page} {
-    padding: 0;
-  }
-
-  /**
-   * Components which use Layout.Header will provide their own padding.
-   * TODO: Refactor existing components to use Layout.Header and Layout.Body,
-   * then remove the padding from this component.
-   */
-  &:has(${Layout.Header}) {
     padding: 0;
   }
 `;

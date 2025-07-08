@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,7 +30,7 @@ import {
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
-const {CACHE_MISS_RATE, EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {CACHE_MISS_RATE, EPM} = SpanFunction;
 const {TRANSACTION_DURATION, SPAN_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
@@ -42,7 +42,6 @@ type Row = Pick<
   | 'epm()'
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
   | 'avg(cache.item_size)'
 > &
   Pick<MetricsResponse, 'avg(span.duration)'>;
@@ -51,7 +50,7 @@ type Column = GridColumnHeader<
   | 'transaction'
   | 'epm()'
   | 'cache_miss_rate()'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
   | 'project'
   | 'avg(span.duration)'
   | 'avg(cache.item_size)'
@@ -89,7 +88,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `${TIME_SPENT_PERCENTAGE}()`,
+    key: `sum(span.self_time)`,
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -98,7 +97,7 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   `${EPM}()`,
   `${CACHE_MISS_RATE}()`,
-  `${TIME_SPENT_PERCENTAGE}()`,
+  `sum(span.self_time)`,
   `avg(${CACHE_ITEM_SIZE})`,
 ] as const;
 

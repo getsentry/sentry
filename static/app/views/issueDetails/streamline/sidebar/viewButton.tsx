@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {space} from 'sentry/styles/space';
 
 export function ViewButton({children, ...props}: LinkButtonProps) {
@@ -12,8 +12,8 @@ export function ViewButton({children, ...props}: LinkButtonProps) {
 }
 
 const TextButton = styled(LinkButton)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   padding: ${space(0.25)} ${space(0.5)};
 `;

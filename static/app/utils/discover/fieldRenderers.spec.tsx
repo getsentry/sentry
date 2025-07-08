@@ -1,11 +1,9 @@
-import {ConfigFixture} from 'sentry-fixture/config';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -148,26 +146,13 @@ describe('getFieldRenderer', function () {
   });
 
   describe('date', function () {
-    beforeEach(function () {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({
-            options: {
-              ...UserFixture().options,
-              timezone: 'America/Los_Angeles',
-            },
-          }),
-        })
-      );
-    });
-
     it('can render date fields', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
         renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
 
-      await screen.findByText('Oct 3, 2019 9:13:14 AM PDT');
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
 
     it('can render date fields using utc when query string has utc set to true', async function () {
@@ -194,18 +179,6 @@ describe('getFieldRenderer', function () {
   });
 
   it('can render timestamp.to_day', function () {
-    // Set timezone
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({
-          options: {
-            ...UserFixture().options,
-            timezone: 'America/Los_Angeles',
-          },
-        }),
-      })
-    );
-
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -290,7 +263,7 @@ describe('getFieldRenderer', function () {
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/`
+      '/mock-pathname/?rd=show&rdRelease=F2520C43515BD1F0E8A6BD46233324641A370BF6&rdSource=release-version-link'
     );
     expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
   });

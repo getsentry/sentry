@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -12,7 +13,6 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -22,7 +22,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders
 from sentry.users.services.user import RpcUser
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
@@ -63,7 +62,7 @@ class IdentityProvider(Model):
         db_table = "sentry_identityprovider"
         unique_together = (("type", "external_id"),)
 
-    def get_provider(self) -> IdentityProvider:
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.type)
@@ -103,7 +102,6 @@ class IdentityManager(BaseManager["Identity"]):
             if not created:
                 identity.update(**defaults)
         except IntegrityError:
-            incr_rollback_metrics(Identity)
             if not should_reattach:
                 raise
             return self.reattach(idp, external_id, user, defaults)
@@ -201,7 +199,7 @@ class Identity(Model):
     external_id = models.TextField()
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
-    scopes = ArrayField()
+    scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 

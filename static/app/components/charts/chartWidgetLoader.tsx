@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 
@@ -12,6 +13,8 @@ interface Props extends LoadableChartWidgetProps {
    * ID of the Chart
    */
   id: ChartId;
+
+  ref?: React.Ref<ReactEchartsRef>;
 }
 // We need to map the widget id to the dynamic import because we want the import paths to be statically analyzable.
 const CHART_MAP = {
@@ -85,17 +88,9 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget'
     ),
-  llmEventTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventTotalTokensUsedChartWidget'
-    ),
   llmGroupNumberOfPipelinesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget'
-    ),
-  llmEventNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventNumberOfPipelinesChartWidget'
     ),
   queuesSummaryThroughputChartWidget: () =>
     import(
@@ -163,6 +158,36 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
     ),
+  overviewAgentsRunsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
+    ),
+  overviewAgentsDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
+    ),
+  overviewApiLatencyChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
+    ),
+  overviewCacheMissChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'
+    ),
+  overviewJobsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
+  overviewPageloadsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
+    ),
+  overviewRequestsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowNextjsSSRWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget'),
+  overviewSlowQueriesChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
+    ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**
@@ -209,5 +234,5 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
-  return <Component {...props} />;
+  return <Component {...props} chartRef={props.ref} />;
 }

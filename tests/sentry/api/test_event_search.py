@@ -1055,3 +1055,47 @@ def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
 def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
     with pytest.raises(InvalidSearchQuery):
         assert translate_wildcard_as_clickhouse_pattern(pattern)
+
+
+@pytest.mark.parametrize(
+    ["query", "key", "value"],
+    [
+        pytest.param("tags[foo/bar]:baz", "message", "tags[foo/bar]:baz"),
+        pytest.param("flags[foo/bar]:baz", "message", "flags[foo/bar]:baz"),
+        pytest.param("tags[foo]:true", "tags[foo]", "true"),
+        pytest.param("tags[foo,string]:true", "tags[foo,string]", "true"),
+        pytest.param("tags[foo:bar,string]:true", "tags[foo:bar,string]", "true"),
+        pytest.param("tags[foo,number]:0", "tags[foo,number]", "0"),
+        pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
+        pytest.param("flags[foo]:true", "flags[foo]", "true"),
+        pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
+        pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
+        pytest.param("flags[foo,number]:0", "flags[foo,number]", "0"),
+        pytest.param("flags[foo:bar,number]:0", "flags[foo:bar,number]", "0"),
+    ],
+)
+def test_handles_special_character_in_tags_and_flags(query, key, value):
+    parsed = parse_search_query(query)
+    assert parsed == [SearchFilter(SearchKey(key), "=", SearchValue(value))]
+
+
+@pytest.mark.parametrize(
+    ["query", "key"],
+    [
+        pytest.param("has:tags[foo]", "tags[foo]"),
+        pytest.param("has:tags[foo,string]", "tags[foo,string]"),
+        pytest.param("has:tags[foo,number]", "tags[foo,number]"),
+        pytest.param("has:tags[foo:bar]", "tags[foo:bar]"),
+        pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
+        pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
+        pytest.param("has:flags[foo]", "flags[foo]"),
+        pytest.param("has:flags[foo,string]", "flags[foo,string]"),
+        pytest.param("has:flags[foo,number]", "flags[foo,number]"),
+        pytest.param("has:flags[foo:bar]", "flags[foo:bar]"),
+        pytest.param("has:flags[foo:bar,string]", "flags[foo:bar,string]"),
+        pytest.param("has:flags[foo:bar,number]", "flags[foo:bar,number]"),
+    ],
+)
+def test_handles_has_tags_and_flags(query, key):
+    parsed = parse_search_query(query)
+    assert parsed == [SearchFilter(SearchKey(key), "!=", SearchValue(""))]

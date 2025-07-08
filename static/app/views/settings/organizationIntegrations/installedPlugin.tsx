@@ -7,10 +7,10 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Switch} from 'sentry/components/core/switch';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
@@ -31,6 +31,7 @@ type Props = {
   projectItem: PluginProjectItem;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
+  hasAccess?: boolean;
 };
 
 class InstalledPlugin extends Component<Props> {
@@ -120,55 +121,52 @@ class InstalledPlugin extends Component<Props> {
   }
 
   render() {
-    const {className, plugin, organization, projectItem} = this.props;
+    const {className, plugin, organization, hasAccess, projectItem} = this.props;
     return (
       <Container data-test-id="installed-plugin">
-        <Access access={['org:integrations']}>
-          {({hasAccess}) => (
-            <IntegrationFlex className={className}>
-              <IntegrationItemBox>
-                <ProjectBadge project={this.projectForBadge} />
-              </IntegrationItemBox>
-              <div>
-                <StyledLinkButton
-                  borderless
-                  icon={<IconSettings />}
-                  disabled={!hasAccess}
-                  to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
-                  data-test-id="integration-configure-button"
-                >
-                  {t('Configure')}
-                </StyledLinkButton>
-              </div>
-              <div>
-                <Confirm
-                  priority="danger"
-                  onConfirming={this.handleUninstallClick}
-                  disabled={!hasAccess}
-                  confirmText="Delete Installation"
-                  onConfirm={() => this.handleReset()}
-                  message={this.getConfirmMessage()}
-                >
-                  <StyledButton
-                    disabled={!hasAccess}
-                    borderless
-                    icon={<IconDelete />}
-                    data-test-id="integration-remove-button"
-                  >
-                    {t('Uninstall')}
-                  </StyledButton>
-                </Confirm>
-              </div>
-              <Switch
-                checked={projectItem.enabled}
-                onChange={() =>
-                  this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
-                }
+        <IntegrationFlex className={className}>
+          <IntegrationItemBox>
+            <ProjectBadge project={this.projectForBadge} />
+          </IntegrationItemBox>
+          <div>
+            <StyledLinkButton
+              borderless
+              icon={<IconSettings />}
+              to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
+              data-test-id="integration-configure-button"
+            >
+              {hasAccess ? t('Configure') : t('View')}
+            </StyledLinkButton>
+          </div>
+          <div>
+            <Confirm
+              priority="danger"
+              onConfirming={this.handleUninstallClick}
+              disabled={!hasAccess}
+              confirmText="Delete Installation"
+              onConfirm={() => {
+                this.handleReset();
+              }}
+              message={this.getConfirmMessage()}
+            >
+              <StyledButton
                 disabled={!hasAccess}
-              />
-            </IntegrationFlex>
-          )}
-        </Access>
+                borderless
+                icon={<IconDelete />}
+                data-test-id="integration-remove-button"
+              >
+                {t('Uninstall')}
+              </StyledButton>
+            </Confirm>
+          </div>
+          <Switch
+            checked={projectItem.enabled}
+            onChange={() =>
+              this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
+            }
+            disabled={!hasAccess}
+          />
+        </IntegrationFlex>
       </Container>
     );
   }

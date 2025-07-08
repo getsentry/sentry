@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -64,7 +64,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = () => {
-    const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
+    const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
     return (
       <Chart
         stacked

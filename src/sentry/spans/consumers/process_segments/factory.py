@@ -1,18 +1,22 @@
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 
 import orjson
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
+from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
+from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -47,7 +51,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.num_processes = num_processes
         self.pool = MultiprocessingPool(num_processes)
 
-        topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
+        topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
         producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
@@ -94,30 +98,41 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             output_block_size=self.output_block_size,
         )
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
-    if not options.get("standalone-spans.process-segments-consumer.enable"):
+def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
+    if not options.get("spans.process-segments.consumer.enable"):
         return []
+
+    assert isinstance(message.value, BrokerValue)
 
     try:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
-        return [orjson.dumps(span) for span in processed]
-    except Exception:  # NOQA
-        raise
-        # TODO: Implement error handling
-        # sentry_sdk.capture_exception()
-        # assert isinstance(message.value, BrokerValue)
-        # raise InvalidMessage(message.value.partition, message.value.offset)
+        return [_serialize_payload(span, message.timestamp) for span in processed]
+    except Exception:
+        logger.exception("segments.invalid-message")
+        raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _unfold_segment(spans: list[bytes]):
-    return [
-        Value(KafkaPayload(key=None, value=span, headers=[]), {})
-        for span in spans
-        if span is not None
-    ]
+def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:
+    item = convert_span_to_item(span)
+    return Value(
+        KafkaPayload(
+            key=None,
+            value=item.SerializeToString(),
+            headers=[
+                ("item_type", str(item.item_type).encode("ascii")),
+                ("project_id", str(span["project_id"]).encode("ascii")),
+            ],
+        ),
+        {},
+        timestamp,
+    )
+
+
+def _unfold_segment(spans: list[Value[KafkaPayload]]) -> list[Value[KafkaPayload]]:
+    return [span for span in spans if span is not None]

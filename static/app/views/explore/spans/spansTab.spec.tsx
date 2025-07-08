@@ -11,7 +11,10 @@ import {
   useExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 jest.mock('sentry/utils/analytics');
 
@@ -23,6 +26,17 @@ const mockStringTags: TagCollection = {
 const mockNumberTags: TagCollection = {
   numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
+};
+
+const datePageFilterProps: PickableDays = {
+  defaultPeriod: '7d' as const,
+  maxPickableDays: 7,
+  relativeOptions: ({arbitraryOptions}) => ({
+    ...arbitraryOptions,
+    '1h': 'Last hour',
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+  }),
 };
 
 describe('SpansTabContent', function () {
@@ -78,11 +92,11 @@ describe('SpansTabContent', function () {
 
   it('should fire analytics once per change', async function () {
     render(
-      <SpansTabContent
-        defaultPeriod="7d"
-        maxPickableDays={7}
-        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
-      />,
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>,
       {organization}
     );
 
@@ -120,22 +134,14 @@ describe('SpansTabContent', function () {
     function Component() {
       fields = useExploreFields();
       groupBys = useExploreGroupBys();
-      return (
-        <SpansTabContent
-          defaultPeriod="7d"
-          maxPickableDays={7}
-          relativeOptions={{
-            '1h': 'Last hour',
-            '24h': 'Last 24 hours',
-            '7d': 'Last 7 days',
-          }}
-        />
-      );
+      return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 
     render(
       <PageParamsProvider>
-        <Component />
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <Component />
+        </TraceItemAttributeProvider>
       </PageParamsProvider>,
       {organization}
     );
@@ -180,7 +186,7 @@ describe('SpansTabContent', function () {
 
     beforeEach(function () {
       const useSpanTagsSpy = jest
-        .spyOn(spanTagsModule, 'useSpanTags')
+        .spyOn(spanTagsModule, 'useTraceItemTags')
         .mockImplementation(type => {
           switch (type) {
             case 'number':
@@ -235,23 +241,10 @@ describe('SpansTabContent', function () {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints when the feature flag is enabled', function () {
-      const {organization: schemaHintsOrganization} = initializeOrg({
-        organization: {...organization, features: ['traces-schema-hints']},
+    it('should show hints', function () {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
       });
-
-      render(
-        <SpansTabContent
-          defaultPeriod="7d"
-          maxPickableDays={7}
-          relativeOptions={{
-            '1h': 'Last hour',
-            '24h': 'Last 24 hours',
-            '7d': 'Last 7 days',
-          }}
-        />,
-        {organization: schemaHintsOrganization}
-      );
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
       expect(screen.getByText('stringTag2')).toBeInTheDocument();

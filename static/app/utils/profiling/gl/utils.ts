@@ -568,7 +568,7 @@ export function computeHighlightedBounds(
     return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
   }
 
-  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${JSON.stringify(trim)}`);
 }
 
 // Utility function to allow zooming into frames using a specific strategy. Supports

@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import Link from 'sentry/components/links/link';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChat, IconEllipsis} from 'sentry/icons';
@@ -35,6 +35,16 @@ import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButto
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+function getAuthorName(item: GroupActivity) {
+  if (item.sentry_app) {
+    return item.sentry_app.name;
+  }
+  if (item.user) {
+    return item.user.name;
+  }
+  return 'Sentry';
+}
+
 function TimelineItem({
   item,
   handleDelete,
@@ -52,7 +62,7 @@ function TimelineItem({
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
-  const authorName = item.user ? item.user.name : 'Sentry';
+  const authorName = getAuthorName(item);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -63,7 +73,11 @@ function TimelineItem({
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction(item.data, item.user)
+    ? iconMapping.componentFunction({
+        data: item.data,
+        user: item.user,
+        sentry_app: item.sentry_app,
+      })
     : (iconMapping?.Component ?? null);
 
   return (
@@ -378,7 +392,7 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 `;
 
 const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
@@ -388,11 +402,11 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
 
 const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
-  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;
 
 const CommentsLink = styled(Link)`

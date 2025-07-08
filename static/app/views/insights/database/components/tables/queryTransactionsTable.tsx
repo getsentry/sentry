@@ -3,11 +3,11 @@ import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -34,11 +34,10 @@ type Row = Pick<
   | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'transaction' | 'epm()' | 'avg(span.self_time)' | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,14 +57,14 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
 type ValidSort = Sort & {
-  field: 'avg(span.self_time)' | 'epm()' | 'time_spent_percentage()';
+  field: 'avg(span.self_time)' | 'epm()' | 'sum(span.self_time)';
 };
 
 interface Props {

@@ -4,7 +4,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Form from 'sentry/components/forms/form';
-import {t, tct} from 'sentry/locale';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
@@ -49,21 +48,16 @@ function SpendAllocationModal({
       <Body>
         <Form
           onSubmit={onSubmit}
-          submitLabel={isCurrentlyEnabled ? t('Disable') : t('Enable')}
+          submitLabel={isCurrentlyEnabled ? 'Disable' : 'Enable'}
           onCancel={closeModal}
         >
-          {t('Access to spend allocations is currently ')}
-          <strong>
-            {tct('[action]', {
-              action: isCurrentlyEnabled ? t('enabled') : t('disabled'),
-            })}
-          </strong>
-          {t(' for this organization.')}
-
-          {tct('Would you like to [newAction] access to spend allocations?', {
-            root: <p />,
-            newAction: isCurrentlyEnabled ? t('disable') : t('enable'),
-          })}
+          Access to spend allocations is currently{' '}
+          <strong>{isCurrentlyEnabled ? 'enabled' : 'disabled'}</strong> for this
+          organization.
+          <p>
+            Would you like to {isCurrentlyEnabled ? 'disable' : 'enable'} access to spend
+            allocations?
+          </p>
         </Form>
       </Body>
     </Fragment>

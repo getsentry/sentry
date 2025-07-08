@@ -6,6 +6,8 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+// TODO(release-drawer): Used in spanSummarPage/samplelist and spanSamplesPanelContainer
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -75,20 +77,26 @@ function DurationChart({
     filters['os.name'] = platform;
   }
 
+  const search = MutableSearch.fromQueryObject({
+    ...filters,
+    ...additionalFilters,
+  });
+  const referrer = 'api.starfish.sidebar-span-metrics-chart';
+
   const {
     isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],
       enabled: Object.values({...filters, ...additionalFilters}).every(value =>
         Boolean(value)
       ),
       transformAliasToInputFormat: true,
     },
-    'api.starfish.sidebar-span-metrics-chart'
+    referrer
   );
 
   const {data, error: spanMetricsError} = useSpanMetrics(
@@ -165,6 +173,7 @@ function DurationChart({
 
   return (
     <InsightsLineChartWidget
+      queryInfo={{search, referrer}}
       showLegend="never"
       title={t('Average Duration')}
       isLoading={isPending}
