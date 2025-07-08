@@ -120,7 +120,7 @@ function TestPerformanceBody({
           {t('Avg. Flake Rate')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          {averageFlakeRate ? `${averageFlakeRate?.toFixed(2)}%` : '-'}
+          {averageFlakeRate === undefined ? '-' : `${averageFlakeRate?.toFixed(2)}%`}
           {averageFlakeRateChange ? (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
               {formatPercentRate(averageFlakeRateChange)}
@@ -151,7 +151,9 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
           {t('Skipped Tests')}
         </SummaryEntryLabel>
-        {skippedTests ? (
+        {skippedTests === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
           <SummaryEntryValue>
             <SummaryEntryValueLink filterBy="skippedTests">
               {skippedTests}
@@ -162,8 +164,6 @@ function TestPerformanceBody({
               </Tag>
             )}
           </SummaryEntryValue>
-        ) : (
-          <SummaryEntryValue>-</SummaryEntryValue>
         )}
       </SummaryEntry>
     </SummaryEntries>
