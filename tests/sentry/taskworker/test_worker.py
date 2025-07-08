@@ -1,10 +1,13 @@
+import base64
 import queue
 import time
 from multiprocessing import Event
 from unittest import mock
 
 import grpc
+import orjson
 import pytest
+import zstandard as zstd
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DISCARD,
     TASK_ACTIVATION_STATUS_COMPLETE,
@@ -117,6 +120,27 @@ SCHEDULED_TASK = InflightTaskActivation(
             "sentry-monitor-slug": "simple-task",
             "sentry-monitor-check-in-id": "abc123",
         },
+    ),
+)
+
+COMPRESSED_TASK = InflightTaskActivation(
+    host="localhost:50051",
+    receive_timestamp=0,
+    activation=TaskActivation(
+        id="compressed_task_123",
+        taskname="examples.simple_task",
+        namespace="examples",
+        parameters=base64.b64encode(
+            zstd.compress(
+                orjson.dumps(
+                    {
+                        "args": ["test_arg1", "test_arg2"],
+                        "kwargs": {"test_key": "test_value", "number": 42},
+                    }
+                )
+            )
+        ).decode("utf8"),
+        processing_deadline_duration=2,
     ),
 )
 
@@ -635,3 +659,28 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
     assert mock_capture.call_count == 1
     assert type(mock_capture.call_args.args[0]) is ProcessingDeadlineExceeded
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.taskworker.workerchild.capture_checkin")
+def test_child_process_decompression(mock_capture_checkin) -> None:
+
+    todo: queue.Queue[InflightTaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(COMPRESSED_TASK)
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == COMPRESSED_TASK.activation.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+    assert mock_capture_checkin.call_count == 0

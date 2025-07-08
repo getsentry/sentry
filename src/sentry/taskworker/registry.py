@@ -83,6 +83,7 @@ class TaskNamespace:
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
+        compress_parameters: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """
         Register a task.
@@ -125,6 +126,7 @@ class TaskNamespace:
                 ),
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
+                compress_parameters=compress_parameters,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique

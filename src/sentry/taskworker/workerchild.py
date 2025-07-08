@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import contextlib
 import logging
 import queue
@@ -13,6 +14,7 @@ from typing import Any
 # XXX: Don't import any modules that will import django here, do those within child_process
 import orjson
 import sentry_sdk
+import zstandard as zstd
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -75,6 +77,11 @@ def timeout_alarm(
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     # tw:amo -> taskworker:at_most_once
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
+
+
+def is_zstd_compressed(data: bytes) -> bool:
+    ZSTD_SIGNATURE = b"\x28\xb5\x2f\xfd"
+    return len(data) >= 4 and data[:4] == ZSTD_SIGNATURE
 
 
 def status_name(status: TaskActivationStatus.ValueType) -> str:
@@ -323,7 +330,28 @@ def child_process(
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
         """Invoke a task function with the activation parameters."""
-        parameters = orjson.loads(activation.parameters)
+        decoded_parameters = base64.b64decode(activation.parameters)
+
+        if is_zstd_compressed(decoded_parameters):
+            try:
+                start_time = time.perf_counter()
+                parameters_data = zstd.decompress(decoded_parameters)
+                parameters = orjson.loads(parameters_data)
+                end_time = time.perf_counter()
+                metrics.distribution(
+                    "taskworker.worker.decompression_time",
+                    end_time - start_time,
+                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
+                )
+            except Exception as e:
+                logger.exception(
+                    "taskworker.worker.zstd_decompression_failed",
+                    extra={"error": str(e), "activation": activation.id},
+                )
+                parameters = orjson.loads(decoded_parameters)
+        else:
+            parameters = orjson.loads(decoded_parameters)
+
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
         headers = {k: v for k, v in activation.headers.items()}

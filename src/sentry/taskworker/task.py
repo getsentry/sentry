@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
 import datetime
+import random
+import time
 from collections.abc import Callable, Collection, Mapping, MutableMapping
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
@@ -8,6 +11,7 @@ from uuid import uuid4
 
 import orjson
 import sentry_sdk
+import zstandard as zstd
 from django.conf import settings
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -17,8 +21,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
+from sentry import options
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.taskworker.registry import TaskNamespace
@@ -39,6 +45,7 @@ class Task(Generic[P, R]):
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
+        compress_parameters: bool = False,
     ):
         self.name = name
         self._func = func
@@ -58,6 +65,7 @@ class Task(Generic[P, R]):
         self._retry = retry
         self.at_most_once = at_most_once
         self.wait_for_delivery = wait_for_delivery
+        self.compress_parameters = compress_parameters
         update_wrapper(self, func)
 
     @property
@@ -169,12 +177,45 @@ class Task(Generic[P, R]):
                     f"The `{key}` header value is of type {type(value)}"
                 )
 
+        parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
+        if self.compress_parameters:
+            rollout_rate = 0
+            option_flag = f"taskworker.{self._namespace.name}.rollout"
+            rollout_map = options.get(option_flag)
+            # TODO(taskworker): This option is for added safety and requires a rollout percentage to be set to actually use compression.
+            # We can remove this later.
+            if rollout_map:
+                if self.name in rollout_map:
+                    rollout_rate = rollout_map.get(self.name, 0)
+                elif "*" in rollout_map:
+                    rollout_rate = rollout_map.get("*", 0)
+
+                if rollout_rate > random.random():
+                    start_time = time.perf_counter()
+                    parameters_data = zstd.compress(parameters_json)
+                    parameters_str = base64.b64encode(parameters_data).decode("utf8")
+                    end_time = time.perf_counter()
+                    headers["compressed-parameters"] = "zstd"
+                    metrics.distribution(
+                        "taskworker.producer.compressed_parameters_size",
+                        len(parameters_str),
+                        tags={"namespace": self._namespace.name, "taskname": self.name},
+                    )
+                    metrics.distribution(
+                        "taskworker.producer.compression_time",
+                        end_time - start_time,
+                        tags={"namespace": self._namespace.name, "taskname": self.name},
+                    )
+            parameters_str = parameters_json.decode("utf8")
+        else:
+            parameters_str = parameters_json.decode("utf8")
+
         return TaskActivation(
             id=uuid4().hex,
             namespace=self._namespace.name,
             taskname=self.name,
             headers=headers,
-            parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
+            parameters=parameters_str,
             retry_state=self._create_retry_state(),
             received_at=received_at,
             processing_deadline_duration=processing_deadline,
