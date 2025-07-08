@@ -1,4 +1,5 @@
 import pytest
+
 from sentry_plugins.anonymizeip import anonymize_ip
 
 
