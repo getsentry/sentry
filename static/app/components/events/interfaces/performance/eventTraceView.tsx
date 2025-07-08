@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {
-  getTimestampFromEvent,
-  TRACE_WATERFALL_PREFERENCES_KEY,
-} from 'sentry/components/events/interfaces/performance/utils';
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -63,7 +61,7 @@ interface EventTraceViewInnerProps {
 }
 
 function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
-  const timestamp = getTimestampFromEvent(event);
+  const timestamp = getEventTimestampInSeconds(event);
 
   const trace = useTrace({
     timestamp,

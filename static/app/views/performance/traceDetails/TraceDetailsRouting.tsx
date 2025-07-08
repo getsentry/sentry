@@ -1,7 +1,7 @@
 import type {LocationDescriptorObject} from 'history';
 
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,7 +25,7 @@ function TraceDetailsRouting(props: Props) {
     return children;
   }
 
-  if (!shouldForceRouteToOldView(organization, getEventTimestamp(event))) {
+  if (!shouldForceRouteToOldView(organization, getEventTimestampInSeconds(event))) {
     if (event?.groupID && event?.eventID) {
       const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
       browserHistory.replace({
@@ -36,7 +36,7 @@ function TraceDetailsRouting(props: Props) {
         organization,
         traceSlug: traceId,
         dateSelection: datetimeSelection,
-        timestamp: getEventTimestamp(event),
+        timestamp: getEventTimestampInSeconds(event),
         eventId: event.eventID,
         location,
       });
