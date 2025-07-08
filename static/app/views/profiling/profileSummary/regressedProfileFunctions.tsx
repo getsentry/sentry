@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -189,7 +190,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         </RegressedFunctionsQueryState>
       ) : trendsQuery.isError ? (
         <RegressedFunctionsQueryState>
-          {t('Failed to fetch regressed functions')}
+          <Text align="center" variant="muted">
+            {t('Failed to fetch regressed functions')}
+          </Text>
         </RegressedFunctionsQueryState>
       ) : trends.length ? (
         trends.map((fn, i) => {
@@ -214,19 +217,23 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
               )}
               <RegressedFunctionMetricsRow>
                 <div>
-                  <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
+                  <Text size="sm" variant="muted" ellipsis>
+                    {fn.package}
+                  </Text>
                 </div>
                 <div>
-                  {/* We dont handle improvements as formatPercentage and relativeChange
+                  <Text size="sm" variant="muted" ellipsis>
+                    {/* We dont handle improvements as formatPercentage and relativeChange
                   on lines below dont return absolute values, else we end up with a double sign */}
-                  {trendType === 'regression'
-                    ? fn.aggregate_range_1 < fn.aggregate_range_2
-                      ? '+'
-                      : '-'
-                    : null}
-                  {formatPercentage(
-                    relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
-                  )}
+                    {trendType === 'regression'
+                      ? fn.aggregate_range_1 < fn.aggregate_range_2
+                        ? '+'
+                        : '-'
+                      : null}
+                    {formatPercentage(
+                      relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
+                    )}
+                  </Text>
                 </div>
               </RegressedFunctionMetricsRow>
               <RegressedFunctionSparklineContainer>
@@ -298,7 +305,7 @@ function RegressedFunctionDifferentialFlamegraph(
       <div>
         <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
           <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
-          <ChangeArrow>{' \u2192 '}</ChangeArrow>
+          <Text variant="muted">{' \u2192 '}</Text>
           <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
         </Link>
       </div>
@@ -395,16 +402,12 @@ function RegressedFunctionBeforeAfterFlamechart(
       <div>{rendered}</div>
       <div>
         {before}
-        <ChangeArrow>{' \u2192 '}</ChangeArrow>
+        <Text variant="muted">{' \u2192 '}</Text>
         {after}
       </div>
     </RegressedFunctionMainRow>
   );
 }
-
-const ChangeArrow = styled('span')`
-  color: ${p => p.theme.subText};
-`;
 
 const RegressedFunctionsTypeSelect = styled(CompactSelect)`
   button {
@@ -436,8 +439,6 @@ const RegressedFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;
 
@@ -472,9 +473,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
-  text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};

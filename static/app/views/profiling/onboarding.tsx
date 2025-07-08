@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Heading, Text} from 'sentry/components/core/text';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -167,7 +168,9 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
+                <Heading as="h2" size="2xl" bold>
+                  {t('Find Slow Code')}
+                </Heading>
                 <SubTitle>
                   {t(
                     'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
@@ -355,7 +358,9 @@ export function Onboarding() {
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
-    {t("Waiting for this project's first profile")}
+    <Text variant="promotion" size="md">
+      {t("Waiting for this project's first profile")}
+    </Text>
     <PulsingIndicator />
   </div>
 ))`
@@ -366,8 +371,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${space(1)};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
   padding-right: ${space(4)};
 `;
 
@@ -382,11 +385,6 @@ const PulsingIndicator = styled('div')`
 
 const SubTitle = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`
@@ -479,7 +477,7 @@ const ConfigurationWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.tokens.content.promotion};
   }
 
   :not(:last-child) {

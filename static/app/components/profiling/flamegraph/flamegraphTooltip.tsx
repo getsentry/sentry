@@ -1,7 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {vec2} from 'gl-matrix';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -106,25 +108,31 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
     >
-      <FlamegraphTooltipFrameMainInfo>
-        <FlamegraphTooltipColorIndicator
-          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
-        />
-        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
-        {t('samples, ') + formattedChange}{' '}
-        {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
-        {props.frame.frame.name}
-      </FlamegraphTooltipFrameMainInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {defined(props.frame.frame.file) && (
-          <Fragment>
-            {t('source')}:{props.frame.frame.getSourceLocation()}
-          </Fragment>
-        )}
-        <FlamegraphTooltipTimelineInfo>
-          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
-        </FlamegraphTooltipTimelineInfo>
-      </FlamegraphTooltipTimelineInfo>
+      <Flex direction="column" gap={space(1)}>
+        <Flex gap={space(1)} align="center">
+          <FlamegraphTooltipColorIndicator
+            backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+          />
+          <Text monospace wrap="nowrap">
+            {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
+            {t('samples, ') + formattedChange}{' '}
+            {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
+            {props.frame.frame.name}
+          </Text>
+        </Flex>
+        <Flex direction="column" gap={space(1)}>
+          {defined(props.frame.frame.file) && (
+            <Text variant="muted" ellipsis>
+              {t('source')}:{props.frame.frame.getSourceLocation()}
+            </Text>
+          )}
+          <Text variant="muted" ellipsis>
+            {props.frame.frame.is_application
+              ? t('application frame')
+              : t('system frame')}
+          </Text>
+        </Flex>
+      </Flex>
     </BoundTooltip>
   );
 }
@@ -139,24 +147,34 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
     >
-      <FlamegraphTooltipFrameMainInfo>
-        <FlamegraphTooltipColorIndicator
-          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
-        />
-        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
-        {t('samples') + ' '}
-        {`(${formatWeightToProfileDuration(
-          props.frame.node,
-          props.flamegraphRenderer.flamegraph
-        )})`}{' '}
-        {props.frame.frame.name}
-      </FlamegraphTooltipFrameMainInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {t('source')}:{props.frame.frame.getSourceLocation()}
-        <FlamegraphTooltipTimelineInfo>
-          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
-        </FlamegraphTooltipTimelineInfo>
-      </FlamegraphTooltipTimelineInfo>
+      <Flex direction="column" gap={space(1)}>
+        <Flex gap={space(1)} align="center">
+          <FlamegraphTooltipColorIndicator
+            backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+          />
+          <Text wrap="nowrap" monospace size="sm">
+            {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
+            {t('samples') + ' '}
+            {`(${formatWeightToProfileDuration(
+              props.frame.node,
+              props.flamegraphRenderer.flamegraph
+            )})`}{' '}
+          </Text>
+          <Text ellipsis monospace size="sm">
+            {props.frame.frame.name}
+          </Text>
+        </Flex>
+        <Flex direction="column" gap={space(1)}>
+          <Text variant="muted" ellipsis monospace size="sm">
+            {t('source')}: {props.frame.frame.getSourceLocation()}
+          </Text>
+          <Text variant="muted" ellipsis monospace size="sm">
+            {props.frame.frame.is_application
+              ? t('application frame')
+              : t('system frame')}
+          </Text>
+        </Flex>
+      </Flex>
     </BoundTooltip>
   );
 }
@@ -171,40 +189,54 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
     >
-      <FlamegraphTooltipFrameMainInfo>
-        <FlamegraphTooltipColorIndicator
-          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
-        />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {`(${formatWeightToProfileDuration(
-          props.frame.node,
-          props.flamegraphRenderer.flamegraph
-        )})`}{' '}
-        {props.frame.frame.name}
-      </FlamegraphTooltipFrameMainInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {t('source')}:{props.frame.frame.getSourceLocation()}
-        <FlamegraphTooltipTimelineInfo>
-          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
-        </FlamegraphTooltipTimelineInfo>
-      </FlamegraphTooltipTimelineInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(
-          props.frameInConfigSpace.left
-        )}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(
-          props.frameInConfigSpace.right
-        )}
-        {props.frame.frame.inline ? (
-          <FlamegraphInlineIndicator>
-            <IconLightning width={10} />
-            {t('inline frame')}
-          </FlamegraphInlineIndicator>
-        ) : (
-          ''
-        )}
-      </FlamegraphTooltipTimelineInfo>
+      <Flex direction="column" gap={space(1)}>
+        <Flex gap={space(1)} align="center">
+          <FlamegraphTooltipColorIndicator
+            backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+          />
+          <Text monospace wrap="nowrap" size="md">
+            {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+            {`(${formatWeightToProfileDuration(
+              props.frame.node,
+              props.flamegraphRenderer.flamegraph
+            )})`}
+          </Text>
+          <Text ellipsis monospace size="md">
+            {props.frame.frame.name}
+          </Text>
+        </Flex>
+        <Flex direction="column" gap={space(1)}>
+          <Flex direction="column" gap={space(1)}>
+            <Text variant="muted" ellipsis monospace size="md">
+              {t('source')}: {props.frame.frame.getSourceLocation()}
+            </Text>
+            <Text variant="muted" ellipsis monospace size="md">
+              {props.frame.frame.is_application
+                ? t('application frame')
+                : t('system frame')}
+            </Text>
+          </Flex>
+        </Flex>
+        <Flex direction="column" gap={space(1)}>
+          <Text variant="muted" size="md" ellipsis monospace>
+            {props.flamegraphRenderer.flamegraph.timelineFormatter(
+              props.frameInConfigSpace.left
+            )}{' '}
+            {' \u2014 '}
+            {props.flamegraphRenderer.flamegraph.timelineFormatter(
+              props.frameInConfigSpace.right
+            )}
+            {props.frame.frame.inline ? (
+              <FlamegraphInlineIndicator>
+                <IconLightning width={10} />
+                {t('inline frame')}
+              </FlamegraphInlineIndicator>
+            ) : (
+              ''
+            )}
+          </Text>
+        </Flex>
+      </Flex>
     </BoundTooltip>
   );
 }
@@ -212,9 +244,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
 const FlamegraphInlineIndicator = styled('span')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(0.25)};
-  line-height: 12px;
   margin: 0 ${space(0.5)};
   align-self: flex-end;
 
@@ -223,16 +253,6 @@ const FlamegraphInlineIndicator = styled('span')`
     height: 10px;
     transform: translateY(1px);
   }
-`;
-
-export const FlamegraphTooltipTimelineInfo = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-export const FlamegraphTooltipFrameMainInfo = styled('div')`
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
@@ -248,6 +268,4 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-image: ${p => p.backgroundImage};
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
-  transform: translateY(2px);
 `;

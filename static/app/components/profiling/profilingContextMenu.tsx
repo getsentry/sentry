@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -14,7 +15,6 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSize.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
@@ -39,7 +39,6 @@ const MenuContentContainer = styled('div')`
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -98,7 +97,7 @@ function MenuItemButton({ref, ...props}: MenuItemButtonProps) {
       <Tooltip title={tooltip}>
         <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
           {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-          {children}
+          <Text>{children}</Text>
         </MenuButton>
       </Tooltip>
     </MenuContentOuterContainer>
@@ -120,7 +119,6 @@ const MenuButton = styled('button')`
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
-    color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
     outline: none;
   }
@@ -196,7 +194,6 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   );
 })`
   cursor: pointer;
-  color: ${p => p.theme.textColor};
   background: transparent;
   padding: 0 ${space(0.5)};
 
@@ -244,15 +241,14 @@ interface MenuHeadingProps
 
 const MenuHeading = styled((props: MenuHeadingProps) => {
   const {children, ...rest} = props;
-  return <div {...rest}>{children}</div>;
+  return (
+    <div {...rest}>
+      <Text variant="muted" bold size="xs" density="compressed" uppercase>
+        {children}
+      </Text>
+    </div>
+  );
 })`
-  text-transform: uppercase;
-  line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
-  margin-bottom: 0;
-  cursor: default;
-  font-size: 75%;
   padding: ${space(0.5)} ${space(1.5)};
 `;
 
