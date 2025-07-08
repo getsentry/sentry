@@ -243,8 +243,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
-          console.log(columnOrder);
-
           widths[columnIndex] = defined(nextColumn.width)
             ? nextColumn.width
             : COL_WIDTH_UNDEFINED;

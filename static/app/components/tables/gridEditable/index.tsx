@@ -161,6 +161,13 @@ class GridEditable<
   };
 
   componentDidMount() {
+    console.log(this.props.columnOrder);
+    this.onResetColumnSize = this.onResetColumnSize.bind(this);
+    this.redrawGridColumn = this.redrawGridColumn.bind(this);
+    this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
+    this.onResizeMouseUp = this.onResizeMouseUp.bind(this);
+    this.onResizeMouseMove = this.onResizeMouseMove.bind(this);
+
     window.addEventListener('resize', this.redrawGridColumn);
     this.setGridTemplateColumns(this.props.columnOrder);
   }
