@@ -899,25 +899,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
-  browser: {
-    sortField: 'browser',
-    renderFunc: data => {
-      const browser = data.browser;
-      if (!browser) {
-        return <Container>{emptyStringValue}</Container>;
-      }
-
-      // also includes the version--don't want to pass that
-      const browserAsList = browser.split();
-
-      return (
-        <BrowserIconContainer>
-          <ContextIcon name={browserAsList[0].toLocaleLowerCase()} size="md" />
-          {browser}
-        </BrowserIconContainer>
-      );
-    },
-  },
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
@@ -1220,7 +1201,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 // Use this for fields that may be extremely wide
 export const OverflowContainer = styled('div')`
-  max-width: 500px;
+  max-width: 1000px;
   ${p => p.theme.overflowEllipsis};
 `;
 
