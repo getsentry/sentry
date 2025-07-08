@@ -375,10 +375,8 @@ class Dashboard extends Component<Props, State> {
     return function (columns: TabularColumn[]) {
       const widths = columns.map(column => column.width as number);
       const widget = dashboard.widgets[index]!;
-      const widgetCopy = {
-        ...widget,
-        tableWidths: widths,
-      };
+      const widgetCopy = cloneDeep(widget);
+      widgetCopy.tableWidths = widths;
 
       const nextList = [...dashboard.widgets];
       nextList[index] = widgetCopy;
