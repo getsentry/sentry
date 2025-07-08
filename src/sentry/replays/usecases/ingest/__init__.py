@@ -133,7 +133,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
         return None
 
     # Write to billing consumer if its a billable event.
-    if recording.segment_id == 0:
+    if recording.context["segment_id"] == 0:
         _track_initial_segment_event(
             recording.context["org_id"],
             project,
