@@ -25,22 +25,26 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="discoversavedqueryproject",
-            name="discover_saved_query",
-        ),
-        migrations.AlterUniqueTogether(
-            name="discoversavedqueryproject",
-            unique_together=None,
-        ),
-        migrations.RemoveField(
-            model_name="discoversavedqueryproject",
-            name="project",
-        ),
-        migrations.DeleteModel(
-            name="DiscoverSavedQuery",
-        ),
-        migrations.DeleteModel(
-            name="DiscoverSavedQueryProject",
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="discoversavedqueryproject",
+                    name="discover_saved_query",
+                ),
+                migrations.AlterUniqueTogether(
+                    name="discoversavedqueryproject",
+                    unique_together=None,
+                ),
+                migrations.RemoveField(
+                    model_name="discoversavedqueryproject",
+                    name="project",
+                ),
+                migrations.DeleteModel(
+                    name="DiscoverSavedQuery",
+                ),
+                migrations.DeleteModel(
+                    name="DiscoverSavedQueryProject",
+                ),
+            ]
+        )
     ]

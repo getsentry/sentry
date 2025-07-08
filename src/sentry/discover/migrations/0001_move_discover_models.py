@@ -33,99 +33,106 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="DiscoverSavedQuery",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name="DiscoverSavedQuery",
+                    fields=[
+                        (
+                            "id",
+                            sentry.db.models.fields.bounded.BoundedBigAutoField(
+                                primary_key=True, serialize=False
+                            ),
+                        ),
+                        (
+                            "created_by_id",
+                            sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                            ),
+                        ),
+                        ("name", models.CharField(max_length=255)),
+                        ("query", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
+                        ("version", models.IntegerField(null=True)),
+                        ("date_created", models.DateTimeField(auto_now_add=True)),
+                        ("date_updated", models.DateTimeField(auto_now=True)),
+                        (
+                            "visits",
+                            sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                                default=1, null=True
+                            ),
+                        ),
+                        (
+                            "last_visited",
+                            models.DateTimeField(default=django.utils.timezone.now, null=True),
+                        ),
+                        ("is_homepage", models.BooleanField(blank=True, null=True)),
+                        (
+                            "dataset",
+                            sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                                db_default=0, default=0
+                            ),
+                        ),
+                        (
+                            "dataset_source",
+                            sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                                db_default=0, default=0
+                            ),
+                        ),
+                        (
+                            "organization",
+                            sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                to="sentry.organization",
+                            ),
+                        ),
+                    ],
+                    options={
+                        "db_table": "sentry_discoversavedquery",
+                    },
+                ),
+                migrations.CreateModel(
+                    name="DiscoverSavedQueryProject",
+                    fields=[
+                        (
+                            "id",
+                            sentry.db.models.fields.bounded.BoundedBigAutoField(
+                                primary_key=True, serialize=False
+                            ),
+                        ),
+                        (
+                            "discover_saved_query",
+                            sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                to="discover.discoversavedquery",
+                            ),
+                        ),
+                        (
+                            "project",
+                            sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE, to="sentry.project"
+                            ),
+                        ),
+                    ],
+                    options={
+                        "db_table": "sentry_discoversavedqueryproject",
+                        "unique_together": {("project", "discover_saved_query")},
+                    },
+                ),
+                migrations.AddField(
+                    model_name="discoversavedquery",
+                    name="projects",
+                    field=models.ManyToManyField(
+                        through="discover.DiscoverSavedQueryProject", to="sentry.project"
                     ),
                 ),
-                (
-                    "created_by_id",
-                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                migrations.AddConstraint(
+                    model_name="discoversavedquery",
+                    constraint=models.UniqueConstraint(
+                        condition=models.Q(("is_homepage", True)),
+                        fields=("organization", "created_by_id", "is_homepage"),
+                        name="unique_user_homepage_query",
                     ),
                 ),
-                ("name", models.CharField(max_length=255)),
-                ("query", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
-                ("version", models.IntegerField(null=True)),
-                ("date_created", models.DateTimeField(auto_now_add=True)),
-                ("date_updated", models.DateTimeField(auto_now=True)),
-                (
-                    "visits",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(default=1, null=True),
-                ),
-                (
-                    "last_visited",
-                    models.DateTimeField(default=django.utils.timezone.now, null=True),
-                ),
-                ("is_homepage", models.BooleanField(blank=True, null=True)),
-                (
-                    "dataset",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
-                (
-                    "dataset_source",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
-                (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_discoversavedquery",
-            },
-        ),
-        migrations.CreateModel(
-            name="DiscoverSavedQueryProject",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "discover_saved_query",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="discover.discoversavedquery",
-                    ),
-                ),
-                (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.project"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_discoversavedqueryproject",
-                "unique_together": {("project", "discover_saved_query")},
-            },
-        ),
-        migrations.AddField(
-            model_name="discoversavedquery",
-            name="projects",
-            field=models.ManyToManyField(
-                through="discover.DiscoverSavedQueryProject", to="sentry.project"
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="discoversavedquery",
-            constraint=models.UniqueConstraint(
-                condition=models.Q(("is_homepage", True)),
-                fields=("organization", "created_by_id", "is_homepage"),
-                name="unique_user_homepage_query",
-            ),
-        ),
+            ]
+        )
     ]
