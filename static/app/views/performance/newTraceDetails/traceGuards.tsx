@@ -235,7 +235,7 @@ export function isEAPTraceOccurrence(
   issue: TraceTree.TraceIssue
 ): issue is TraceTree.EAPOccurrence {
   return (
-    isTraceOccurence(issue) && 'event_type' in issue && issue.event_type === 'occurence'
+    isTraceOccurence(issue) && 'event_type' in issue && issue.event_type === 'occurrence'
   );
 }
 
