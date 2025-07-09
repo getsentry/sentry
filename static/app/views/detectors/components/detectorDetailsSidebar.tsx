@@ -68,11 +68,11 @@ function AssignToUser({userId}: {userId: string}) {
 
 function DetectorPriorities({detector}: {detector: Detector}) {
   // TODO: Add support for other detector types
-  if (!('detection_type' in detector.config)) {
+  if (!('detectionType' in detector.config)) {
     return null;
   }
 
-  const detectionType = detector.config?.detection_type || 'static';
+  const detectionType = detector.config?.detectionType || 'static';
 
   // For dynamic detectors, show the automatic priority message
   if (detectionType === 'dynamic') {
@@ -126,11 +126,11 @@ function DetectorPriorities({detector}: {detector: Detector}) {
 
 function DetectorResolve({detector}: {detector: Detector}) {
   // TODO: Add support for other detector types
-  if (!('detection_type' in detector.config)) {
+  if (!('detectionType' in detector.config)) {
     return null;
   }
 
-  const detectionType = detector.config?.detection_type || 'static';
+  const detectionType = detector.config?.detectionType || 'static';
   const conditions = detector.conditionGroup?.conditions || [];
 
   // Get the main condition (first non-OK condition)

@@ -38,9 +38,9 @@ describe('getMetricDetectorSuffix', function () {
       id: '1',
       name: 'test',
       config: {
-        detection_type: 'percent',
-        comparison_delta: 10,
-        threshold_period: 1,
+        detectionType: 'percent',
+        comparisonDelta: 10,
+        thresholdPeriod: 1,
       },
     });
 
@@ -50,8 +50,8 @@ describe('getMetricDetectorSuffix', function () {
   it('returns ms as default for static detection type without data source', function () {
     const detector = DetectorFixture({
       config: {
-        detection_type: 'static',
-        threshold_period: 1,
+        detectionType: 'static',
+        thresholdPeriod: 1,
       },
     });
 
@@ -61,8 +61,8 @@ describe('getMetricDetectorSuffix', function () {
   it('returns ms as default for dynamic detection type without data source', function () {
     const detector = DetectorFixture({
       config: {
-        detection_type: 'dynamic',
-        threshold_period: 1,
+        detectionType: 'dynamic',
+        thresholdPeriod: 1,
       },
     });
 

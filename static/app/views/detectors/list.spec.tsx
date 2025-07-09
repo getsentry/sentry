@@ -46,9 +46,9 @@ describe('DetectorsList', function () {
           owner: null,
           type: 'metric_issue',
           config: {
-            detection_type: 'percent',
-            comparison_delta: 10,
-            threshold_period: 10,
+            detectionType: 'percent',
+            comparisonDelta: 10,
+            thresholdPeriod: 10,
           },
           conditionGroup: {
             id: '1',

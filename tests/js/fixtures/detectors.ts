@@ -15,8 +15,8 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     lastTriggered: '2025-01-01T00:00:00.000Z',
     workflowIds: [],
     config: {
-      detection_type: 'static',
-      threshold_period: 1,
+      detectionType: 'static',
+      thresholdPeriod: 1,
     },
     type: 'metric_issue',
     disabled: false,

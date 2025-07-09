@@ -77,32 +77,32 @@ export type DetectorType =
   | 'uptime_domain_failure';
 
 interface BaseMetricDetectorConfig {
-  threshold_period: number;
+  thresholdPeriod: number;
 }
 
 /**
  * Configuration for static/threshold-based detection
  */
 interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
-  detection_type: 'static';
+  detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
 interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
-  comparison_delta: number;
-  detection_type: 'percent';
+  comparisonDelta: number;
+  detectionType: 'percent';
 }
 
 /**
  * Configuration for dynamic/anomaly detection
  */
 interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
-  detection_type: 'dynamic';
+  detectionType: 'dynamic';
   seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
   sensitivity?: AlertRuleSensitivity;
-  threshold_type?: AlertRuleThresholdType;
+  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
