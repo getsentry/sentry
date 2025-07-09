@@ -3,6 +3,7 @@ from typing import Protocol
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.types import (
     NotificationCategory,
+    NotificationData,
     NotificationProviderKey,
     NotificationTarget,
     NotificationTargetResourceType,
@@ -51,7 +52,7 @@ class NotificationProvider[RenderableT](Protocol):
 
     @classmethod
     def get_renderer(
-        cls, *, category: NotificationCategory
+        cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[RenderableT]]:
         """
         Returns an instance of a renderer for a given notification, falling back to the default renderer.

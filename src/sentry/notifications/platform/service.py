@@ -43,10 +43,10 @@ class NotificationService[T: NotificationData]:
         provider.validate_target(target=target)
 
         # Step 4: Render the template
-        template_cls = template_registry.get(self.data.template_key)
+        template_cls = template_registry.get(self.data.source)
         template = template_cls()
         rendered_template = template.render(data=self.data)
-        renderer = provider.get_renderer(category=template.category)
+        renderer = provider.get_renderer(data=self.data, category=template.category)
         renderable = renderer.render(data=self.data, rendered_template=rendered_template)
 
         # Step 5: Send the notification

@@ -15,16 +15,16 @@ class NotificationCategory(StrEnum):
     The exception is the `DEBUG` category, which is used for testing and development.
     """
 
-    DEBUG = "debug"
     # TODO(ecosystem): Connect this to NotificationSettingEnum
+    DEBUG = "debug"
+
+    def get_sources(self) -> list[str]:
+        return NOTIFICATION_SOURCE_MAP[self]
 
 
-class NotificationSource(StrEnum):
-    """
-    An unique identifier for each notification.
-    """
-
-    TEST = "test"
+NOTIFICATION_SOURCE_MAP = {
+    NotificationCategory.DEBUG: ["test"],
+}
 
 
 class NotificationProviderKey(StrEnum):
@@ -36,14 +36,6 @@ class NotificationProviderKey(StrEnum):
     SLACK = ExternalProviderEnum.SLACK
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
-
-
-class NotificationTemplateKey(StrEnum):
-    """
-    The unique keys for each registered notification template.
-    """
-
-    DEBUG = "debug"
 
 
 class NotificationTargetResourceType(StrEnum):
@@ -81,29 +73,10 @@ class NotificationData(Protocol):
     All data passing through the notification platform must adhere to this protocol.
     """
 
-    source: NotificationSource
+    source: str
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
-    """
-
-    template_key: NotificationTemplateKey
-    """
-    The key of the template that will be used to render this notification.
-    """
-
-
-class EmailRenderedTemplate(TypedDict):
-    html_path: str
-    """
-    The Email HTML Django template file path. The associated NotificationData will be passed
-    into the template as context.
-    """
-
-    text_path: str
-    """
-    The Email text template file path. The associated NotificationData will be passed
-    into the template as context.
     """
 
 
@@ -171,14 +144,19 @@ class NotificationRenderedTemplate:
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):
-    @property
-    @abc.abstractmethod
-    def category(self) -> NotificationCategory:
-        """
-        The category that a notification belongs to. This will be used to determine which settings a
-        user needs to modify to manage receipt of these notifications (if applicable).
-        """
-        ...
+    category: NotificationCategory
+    """
+    The category that a notification belongs to. This will be used to determine which settings a
+    user needs to modify to manage receipt of these notifications (if applicable).
+    """
+    # @property
+    # @abc.abstractmethod
+    # def category(self) -> NotificationCategory:
+    #     """
+    #     The category that a notification belongs to. This will be used to determine which settings a
+    #     user needs to modify to manage receipt of these notifications (if applicable).
+    #     """
+    #     ...
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
@@ -187,3 +165,10 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         formatting the data into user-friendly strings of text.
         """
         ...
+
+    @abc.abstractmethod
+    def render_example(self) -> NotificationRenderedTemplate:
+        """
+        Used to produce a debugging example rendered template for this notification. This
+        implementation should be pure, and not populate with any live data.
+        """

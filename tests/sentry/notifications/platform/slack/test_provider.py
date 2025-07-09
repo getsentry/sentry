@@ -11,10 +11,12 @@ from sentry.testutils.notifications.platform import MockNotification, MockNotifi
 
 class SlackRendererTest(TestCase):
     def test_default_renderer(self):
-        renderer = SlackNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
+        )
         assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
