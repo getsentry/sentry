@@ -123,16 +123,16 @@ export function PrimaryNavigationItems() {
           </NavTourElement>
         </Feature>
 
-        {/* <Feature features={['codecov-ui']}> */}
-        <SidebarLink
-          to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
-          activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
-          analyticsKey="codecov"
-          group={PrimaryNavGroup.CODECOV}
-        >
-          <IconPrevent />
-        </SidebarLink>
-        {/* </Feature> */}
+        <Feature features={['codecov-ui']}>
+          <SidebarLink
+            to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+            activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
+            analyticsKey="codecov"
+            group={PrimaryNavGroup.CODECOV}
+          >
+            <IconPrevent />
+          </SidebarLink>
+        </Feature>
 
         <SeparatorItem />
 
