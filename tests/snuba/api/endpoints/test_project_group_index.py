@@ -1558,6 +1558,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.assert_groups_being_deleted([group1, group2])
         # Group 4 is not deleted because it belongs to a different project
         self.assert_groups_not_deleted([group3, group4])
+
         with self.tasks():
             response = self.client.delete(url, format="json")
 
