@@ -912,7 +912,7 @@ class SearchResolver:
             alias = public_alias_override
 
         if alias in self._resolved_function_cache:
-            return self._resolved_function_cache[column]
+            return self._resolved_function_cache[alias]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
         function_definition = self.get_function_definition(function_name)
