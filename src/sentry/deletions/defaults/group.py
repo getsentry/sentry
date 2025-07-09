@@ -280,6 +280,9 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
+        # Tell seer to delete grouping records with these group hashes
+        call_delete_seer_grouping_records_by_hash([group.id for group in error_groups])
+
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
             if error_groups:
@@ -296,12 +299,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                 )
 
         self.delete_children(child_relations)
-
-        # If by any chance, the call to seer
-        try:
-            call_delete_seer_grouping_records_by_hash([group.id for group in error_groups])
-        except Exception:
-            logger.exception("Error calling seer delete grouping records by hash")
 
     def delete_instance(self, instance: Group) -> None:
         from sentry import similarity
