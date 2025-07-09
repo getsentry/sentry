@@ -76,7 +76,7 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir", "minimumSampleRate"]
 
 
 # (RaduW) Maybe we can split in two types, one for reservoir and one for sampleRate and factor
