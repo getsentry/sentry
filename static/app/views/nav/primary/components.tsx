@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {mergeProps} from '@react-aria/utils';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -170,7 +171,7 @@ function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
 
   // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  return useHover({
+  const {hoverProps} = useHover({
     onHoverStart: () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -191,6 +192,15 @@ function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
       }
     },
   });
+
+  return mergeProps(hoverProps, {
+    onClick: () => {
+      setActivePrimaryNavGroup(group);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    },
+  });
 }
 
 function SidebarNavLink({
@@ -206,22 +216,24 @@ function SidebarNavLink({
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
-  const {hoverProps} = useActivateNavGroupOnHover(group);
+  const hoverProps = useActivateNavGroupOnHover(group);
+  const linkProps = mergeProps(hoverProps, {
+    onClick: () => {
+      recordPrimaryItemClick(analyticsKey, organization);
+    },
+  });
 
   return (
     <NavLink
       to={to}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      onClick={() => {
-        recordPrimaryItemClick(analyticsKey, organization);
-      }}
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
-      {...hoverProps}
+      {...linkProps}
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
