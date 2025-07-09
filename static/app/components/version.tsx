@@ -45,7 +45,6 @@ type Props = {
    * Ellipsis on overflow
    */
   truncate?: boolean;
-
   /**
    * Should we also show package name
    */
@@ -100,7 +99,6 @@ function Version({
           </GlobalSelectionLink>
         );
       }
-
       return (
         <Link {...props}>
           <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
