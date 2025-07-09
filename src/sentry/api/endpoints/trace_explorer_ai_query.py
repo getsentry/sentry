@@ -23,13 +23,16 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 
 
-def send_translate_request(org_id: int, project_ids: list[int], natural_language_query: str) -> Any:
+def send_translate_request(
+    org_id: int, org_slug: str, project_ids: list[int], natural_language_query: str
+) -> Any:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
     body = orjson.dumps(
         {
             "org_id": org_id,
+            "org_slug": org_slug,
             "project_ids": project_ids,
             "natural_language_query": natural_language_query,
         }
@@ -102,7 +105,9 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        data = send_translate_request(organization.id, project_ids, natural_language_query)
+        data = send_translate_request(
+            organization.id, organization.slug, project_ids, natural_language_query
+        )
 
         # XXX: This is a fallback to support the old response format until we fully support using multiple queries on the frontend
         if "responses" in data and use_flyout:
