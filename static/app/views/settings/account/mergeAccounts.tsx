@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext} from 'react';
+import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
 // import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -15,7 +15,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserWithOrganizations} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -31,6 +31,16 @@ const ENDPOINT = '/auth/merge-accounts/';
 
 function MergeAccounts() {
   // const queryClient = useQueryClient();
+  const user = useUser();
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  const selectUser = (newUserId: string) =>
+    setSelectedUserIds(prevSelectedUserIds =>
+      prevSelectedUserIds.includes(newUserId)
+        ? prevSelectedUserIds.filter(i => i !== newUserId)
+        : [...prevSelectedUserIds, newUserId]
+    );
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Merge Accounts')} />
@@ -41,12 +51,17 @@ function MergeAccounts() {
         <ButtonSection>
           <Button priority="primary">Generate verification code</Button>
         </ButtonSection>
-        <RenderSelectAccounts />
+        <RenderSelectAccounts onSelect={selectUser} />
         <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
         <StyledInput type="text" />
         <StyledListItem>{t('Submit')}</StyledListItem>
         <ButtonSection>
-          <Button priority="danger">To sleep, perchance to dream</Button>
+          <Button priority="danger">
+            {tct('Merge [numAccounts] accounts into [name]', {
+              numAccounts: selectedUserIds.length,
+              name: user.name,
+            })}
+          </Button>
         </ButtonSection>
       </List>
     </Fragment>
@@ -59,7 +74,7 @@ function makeMergeAccountsEndpointKey(): ApiQueryKey {
   return [ENDPOINT];
 }
 
-function RenderSelectAccounts() {
+function RenderSelectAccounts({onSelect}: RenderSelectAccountsProps) {
   const signedInUser = useUser();
   // const api = useApi();
   // const [isUpdating, setIsUpdating] = useState(false);
@@ -115,28 +130,34 @@ function RenderSelectAccounts() {
       </TextBlock>
       <TextBlock>{t(`Your currently active account:`)}</TextBlock>
       <UserContext value>
-        <Users users={currentAccount} />
+        <Users users={currentAccount} onSelect={onSelect} />
       </UserContext>
       <TextBlock>{t(`Your other accounts:`)}</TextBlock>
       <UserContext value={false}>
-        <Users users={otherAccounts} />
+        <Users users={otherAccounts} onSelect={onSelect} />
       </UserContext>
     </Fragment>
   );
 }
 
+type RenderSelectAccountsProps = {
+  onSelect: (newUserId: string) => void;
+};
+
 type UserRowProps = {
+  id: string;
   lastSeen: string;
   name: string;
+  onSelect: (newUserId: string) => void;
   organizations: string;
-  // more stuff for checkbox
 };
 
 type UserProps = {
+  onSelect: (newUserId: string) => void;
   users: UserWithOrganizations[];
 };
 
-function Users({users}: UserProps) {
+function Users({users, onSelect}: UserProps) {
   const isPrimaryUser = useContext(UserContext);
   if (isPrimaryUser) {
     return (
@@ -149,7 +170,9 @@ function Users({users}: UserProps) {
         <PanelBody>
           {users.map(userObj => (
             <UserRow
-              key={userObj.username}
+              onSelect={onSelect}
+              key={userObj.id}
+              id={userObj.id}
               name={userObj.name}
               lastSeen={userObj.lastActive}
               organizations={userObj.organizations.join(', ')}
@@ -170,7 +193,9 @@ function Users({users}: UserProps) {
       <PanelBody>
         {users.map(userObj => (
           <UserRow
-            key={userObj.username}
+            onSelect={onSelect}
+            key={userObj.id}
+            id={userObj.id}
             name={userObj.name}
             lastSeen={userObj.lastActive}
             organizations={userObj.organizations.join(', ')}
@@ -181,8 +206,9 @@ function Users({users}: UserProps) {
   );
 }
 
-function UserRow({name, lastSeen, organizations}: UserRowProps) {
+function UserRow({id, name, lastSeen, organizations, onSelect}: UserRowProps) {
   const isPrimaryUser = useContext(UserContext);
+
   return (
     <UserPanelItem>
       <Name>{name}</Name>
@@ -202,7 +228,7 @@ function UserRow({name, lastSeen, organizations}: UserRowProps) {
             type="checkbox"
             name="user"
             value={name}
-            onChange={() => null}
+            onChange={() => onSelect(id)}
             style={{margin: 5}}
           />
         </div>
