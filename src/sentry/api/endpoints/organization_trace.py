@@ -47,7 +47,7 @@ class SerializedIssue(SerializedEvent):
     start_timestamp: float
     end_timestamp: NotRequired[datetime]
     culprit: str | None
-    short_id: str
+    short_id: str | None
     issue_type: str
 
 
@@ -102,10 +102,13 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
     def serialize_rpc_issue(
         self, event: dict[str, Any], group_cache: dict[int, Group]
     ) -> SerializedIssue:
-        def _qualify_short_id(project: str, short_id: int) -> str:
+        def _qualify_short_id(project: str, short_id: int | None) -> str | None:
             """Logic for qualified_short_id is copied from property on the Group model
             to prevent an N+1 query from accessing project.slug everytime"""
-            return f"{project.upper()}-{base32_encode(short_id)}"
+            if short_id is not None:
+                return f"{project.upper()}-{base32_encode(short_id)}"
+            else:
+                return None
 
         if event.get("event_type") == "occurrence":
             occurrence = event["issue_data"]["occurrence"]
