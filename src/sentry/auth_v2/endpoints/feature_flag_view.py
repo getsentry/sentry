@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.decorators import control_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 from .base import AuthV2Endpoint
