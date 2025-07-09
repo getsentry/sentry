@@ -1,10 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useLayoutEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {
@@ -16,6 +20,13 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+
+type AIMessageRole = 'system' | 'user' | 'assistant' | 'tool';
+
+interface AIMessage {
+  content: React.ReactNode;
+  role: AIMessageRole;
+}
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
@@ -31,7 +42,7 @@ function renderToolMessage(content: any) {
   return content;
 }
 
-function parseAIMessages(messages: string) {
+function parseAIMessages(messages: string): AIMessage[] | string {
   try {
     const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
@@ -134,7 +145,7 @@ function transformPrompt(prompt: string) {
   }
 }
 
-const roleHeadings = {
+const roleHeadings: Record<AIMessageRole, string> = {
   system: t('System'),
   user: t('User'),
   assistant: t('Assistant'),
@@ -196,30 +207,77 @@ export function AIInputSection({
         <TraceDrawerComponents.MultilineText>
           {messages}
         </TraceDrawerComponents.MultilineText>
-      ) : messages ? (
-        <Fragment>
-          {messages.map((message, index) => (
-            <Fragment key={index}>
-              <TraceDrawerComponents.MultilineTextLabel>
-                {roleHeadings[message.role]}
-              </TraceDrawerComponents.MultilineTextLabel>
-              {typeof message.content === 'string' ? (
-                <TraceDrawerComponents.MultilineText>
-                  {message.content}
-                </TraceDrawerComponents.MultilineText>
-              ) : (
-                <TraceDrawerComponents.MultilineJSON
-                  value={message.content}
-                  maxDefaultDepth={2}
-                />
-              )}
-            </Fragment>
-          ))}
-        </Fragment>
       ) : null}
+      {Array.isArray(messages) ? <MessagesArrayRenderer messages={messages} /> : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
       ) : null}
     </FoldSection>
   );
 }
+
+const MAX_MESSAGES_AT_START = 2;
+const MAX_MESSAGES_AT_END = 1;
+const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
+
+/**
+ * As the whole message history takes up too much space we only show the first two (as those often contain the system and initial user prompt)
+ * and the last messages with the option to expand
+ */
+function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
+  const [isExpanded, setIsExpanded] = useState(messages.length <= MAX_MESSAGES_TO_SHOW);
+
+  // Reset the expanded state when the messages length changes
+  const previousMessagesLength = usePrevious(messages.length);
+  useLayoutEffect(() => {
+    if (previousMessagesLength !== messages.length) {
+      setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
+    }
+  }, [messages.length, previousMessagesLength]);
+
+  const renderMessage = (message: AIMessage, index: number) => {
+    return (
+      <Fragment key={index}>
+        <TraceDrawerComponents.MultilineTextLabel>
+          {roleHeadings[message.role]}
+        </TraceDrawerComponents.MultilineTextLabel>
+        {typeof message.content === 'string' ? (
+          <TraceDrawerComponents.MultilineText>
+            {message.content}
+          </TraceDrawerComponents.MultilineText>
+        ) : (
+          <TraceDrawerComponents.MultilineJSON
+            value={message.content}
+            maxDefaultDepth={2}
+          />
+        )}
+      </Fragment>
+    );
+  };
+
+  if (isExpanded) {
+    return messages.map(renderMessage);
+  }
+
+  return (
+    <Fragment>
+      {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
+      <ButtonDivider>
+        <Button onClick={() => setIsExpanded(true)} size="xs">
+          {t('+%s more messages', messages.length - MAX_MESSAGES_TO_SHOW)}
+        </Button>
+      </ButtonDivider>
+      {messages.slice(-MAX_MESSAGES_AT_END).map(renderMessage)}
+    </Fragment>
+  );
+}
+
+const ButtonDivider = styled('div')`
+  height: 1px;
+  width: 100%;
+  border-bottom: 1px dashed ${p => p.theme.border};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: ${space(4)} 0;
+`;
