@@ -196,7 +196,7 @@ class GridEditable<
     }
   };
 
-  onResizeMouseDown = (columnIndex: number) => (e: React.PointerEvent) => {
+  onResizeMouseDown = (e: React.PointerEvent, columnIndex: number) => {
     e.stopPropagation();
 
     const cell = e.currentTarget.parentElement;
@@ -334,7 +334,7 @@ class GridEditable<
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
-                  onPointerDown={this.onResizeMouseDown(i)}
+                  onPointerDown={e => this.onResizeMouseDown(e, i)}
                   onPointerMove={e => this.onResizeMouseMove(e)}
                   onPointerUp={e => this.onResizeMouseUp(e)}
                   onDoubleClick={e => this.onResetColumnSize(e, i)}
