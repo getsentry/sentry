@@ -181,7 +181,12 @@ interface NewDataSource {
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
-function createConditions(data: MetricDetectorFormData): NewConditionGroup['conditions'] {
+export function createConditions(
+  data: Pick<
+    MetricDetectorFormData,
+    'conditionType' | 'conditionValue' | 'initialPriorityLevel' | 'highThreshold'
+  >
+): NewConditionGroup['conditions'] {
   if (!defined(data.conditionType) || !defined(data.conditionValue)) {
     return [];
   }
