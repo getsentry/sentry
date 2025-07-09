@@ -833,6 +833,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
+    @with_feature("organizations:workflow-engine-action-trigger-async")
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         self._push_base_events()
