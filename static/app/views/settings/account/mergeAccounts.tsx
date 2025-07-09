@@ -27,7 +27,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const UserContext = createContext<boolean>(false);
 
-const ENDPOINT = '/merge-accounts/';
+const ENDPOINT = '/auth/merge-accounts/';
 
 function MergeAccounts() {
   // const queryClient = useQueryClient();
@@ -128,7 +128,7 @@ export function RenderSelectAccounts() {
 type UserRowProps = {
   lastSeen: string;
   name: string;
-  organizations: string[];
+  organizations: string;
   // more stuff for checkbox
 };
 
@@ -152,7 +152,7 @@ function Users({users}: UserProps) {
               key={userObj.username}
               name={userObj.name}
               lastSeen={userObj.lastActive}
-              organizations={userObj.organizations}
+              organizations={userObj.organizations.join(', ')}
             />
           ))}
         </PanelBody>
@@ -173,7 +173,7 @@ function Users({users}: UserProps) {
             key={userObj.username}
             name={userObj.name}
             lastSeen={userObj.lastActive}
-            organizations={userObj.organizations}
+            organizations={userObj.organizations.join(', ')}
           />
         ))}
       </PanelBody>
@@ -195,7 +195,7 @@ function UserRow({name, lastSeen, organizations}: UserRowProps) {
           <StyledTimeSince date={lastSeen} />
         </div>
       )}
-      <Organizations>{organizations}</Organizations>
+      <div> {organizations} </div>
       {isPrimaryUser ? null : (
         <div>
           <input
@@ -228,16 +228,12 @@ const Name = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UserPanelHeader = styled(PanelHeader)`
   ${tableLayout}
   justify-content: initial;
-`;
-
-const Organizations = styled('div')`
-  margin-bottom: ${space(0.5)};
 `;
 
 const StyledListItem = styled(ListItem)`
