@@ -78,11 +78,11 @@ function DetailItem({children}: {children: React.ReactNode}) {
 
 function ConfigDetails({detector}: {detector: Detector}) {
   // TODO: Use a MetricDetector type to avoid checking for this
-  if (!('detection_type' in detector.config)) {
+  if (!('detectionType' in detector.config)) {
     return null;
   }
 
-  const type = detector.config.detection_type;
+  const type = detector.config.detectionType;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
     return null;
