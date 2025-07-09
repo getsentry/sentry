@@ -70,10 +70,10 @@ export default Storybook.story('Alert', (story, APIReference) => {
           additional content when the alert is expanded.
         </p>
         <Alert.Container>
-          <Alert type="info" showIcon expand="Some extra info here.">
+          <Alert type="info" expand="Some extra info here.">
             Expand me
           </Alert>
-          <Alert type="info" showIcon defaultExpanded expand="Some extra info here.">
+          <Alert type="info" defaultExpanded expand="Some extra info here.">
             This one is expanded by default.
           </Alert>
         </Alert.Container>
@@ -177,10 +177,10 @@ export default Storybook.story('Alert', (story, APIReference) => {
           automatically spaces all items within the container evenly.
         </p>
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             These two alerts...
           </Alert>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             ...are both in one container.
           </Alert>
         </Alert.Container>
