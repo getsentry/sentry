@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import sentry_sdk
@@ -280,68 +281,6 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
     return {"fields": fields}
 
 
-def get_attribute_values(
-    *,
-    fields: list[str],
-    org_id: int,
-    project_ids: list[int],
-    stats_period: str,
-    limit: int = 100,
-    sampled: bool = True,
-) -> dict:
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    sampling_mode = (
-        DownsampledStorageConfig.MODE_NORMAL
-        if sampled
-        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
-    )
-
-    values = {}
-    resolver = SearchResolver(
-        params=SnubaParams(
-            start=start,
-            end=end,
-        ),
-        config=SearchResolverConfig(),
-        definitions=SPAN_DEFINITIONS,
-    )
-
-    for field in fields:
-        resolved_field, _ = resolver.resolve_attribute(field)
-        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
-
-            req = TraceItemAttributeValuesRequest(
-                meta=RequestMeta(
-                    organization_id=org_id,
-                    cogs_category="events_analytics_platform",
-                    referrer=Referrer.SEER_RPC.value,
-                    project_ids=project_ids,
-                    start_timestamp=start_time_proto,
-                    end_timestamp=end_time_proto,
-                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
-                ),
-                key=resolved_field.proto_definition,
-                limit=limit,
-            )
-
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field] = [value for value in values_response.values]
-
-    return {"values": values}
-
-
 def get_attribute_values_with_substring(
     *,
     org_id: int,
@@ -356,8 +295,13 @@ def get_attribute_values_with_substring(
     Note: The RPC is guaranteed to not return duplicate values for the same field.
     ie: if span.description is requested with both null and "payment" substrings,
     the RPC will return the set of values for span.description to avoid duplicates.
+
+    TODO: Replace with batch attribute values RPC once available
     """
     values: dict[str, set[str]] = {}
+
+    if not fields_with_substrings:
+        return {"values": values}
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -386,7 +330,10 @@ def get_attribute_values_with_substring(
         definitions=SPAN_DEFINITIONS,
     )
 
-    for field_with_substring in fields_with_substrings:
+    def process_field_with_substring(
+        field_with_substring: dict[str, str],
+    ) -> tuple[str, set[str]] | None:
+        """Helper function to process a single field_with_substring request."""
         field = field_with_substring["field"]
         substring = field_with_substring["substring"]
 
@@ -409,10 +356,47 @@ def get_attribute_values_with_substring(
             )
 
             values_response = snuba_rpc.attribute_values_rpc(req)
-            if field in values:
-                values[field].update({value for value in values_response.values if value})
-            else:
-                values[field] = {value for value in values_response.values if value}
+            return field, {value for value in values_response.values if value}
+        return None
+
+    timeout_seconds = 1.0
+
+    with ThreadPoolExecutor(max_workers=min(len(fields_with_substrings), 10)) as executor:
+        future_to_field = {
+            executor.submit(
+                process_field_with_substring, field_with_substring
+            ): field_with_substring
+            for field_with_substring in fields_with_substrings
+        }
+
+        try:
+            for future in as_completed(future_to_field, timeout=timeout_seconds):
+                field_with_substring = future_to_field[future]
+
+                try:
+                    result = future.result()
+                    if result is not None:
+                        field, field_values = result
+                        if field in values:
+                            values[field].update(field_values)
+                        else:
+                            values[field] = field_values
+                except TimeoutError:
+                    logger.warning(
+                        "RPC call timed out after %s seconds for field %s, skipping",
+                        timeout_seconds,
+                        field_with_substring.get("field", "unknown"),
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "RPC call failed for field %s: %s",
+                        field_with_substring.get("field", "unknown"),
+                        str(e),
+                    )
+        except TimeoutError:
+            for future in future_to_field:
+                future.cancel()
+            logger.warning("Overall timeout exceeded, cancelled remaining RPC calls")
 
     return {"values": values}
 
@@ -496,7 +480,6 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_attribute_names": get_attribute_names,
-    "get_attribute_values": get_attribute_values,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
 }
