@@ -162,6 +162,7 @@ export declare namespace TraceTree {
     errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
+    name: string;
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
