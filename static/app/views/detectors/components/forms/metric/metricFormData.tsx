@@ -240,7 +240,10 @@ const getDetectorDataset = (
       if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
         return DetectorDataset.LOGS;
       }
-      throw new Error('Unsupported event types');
+      if (eventTypes.includes(EventTypes.TRANSACTION)) {
+        return DetectorDataset.TRANSACTIONS;
+      }
+      throw new Error(`Unsupported event types`);
     case Dataset.METRICS:
     case Dataset.SESSIONS:
       return DetectorDataset.RELEASES; // Maps metrics dataset to releases for crash rate
@@ -258,11 +261,11 @@ const getBackendDataset = (dataset: DetectorDataset): string => {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;
     case DetectorDataset.TRANSACTIONS:
-      return Dataset.GENERIC_METRICS;
+      return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.SPANS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     case DetectorDataset.RELEASES:
-      return Dataset.METRICS; // Maps to metrics dataset for crash rate queries
+      return Dataset.METRICS;
     case DetectorDataset.LOGS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:

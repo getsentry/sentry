@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
@@ -31,12 +33,16 @@ export function MetricDetectorPreviewChart() {
   );
 
   // Create condition group from form data using the helper function
-  const conditions = createConditions({
-    conditionType,
-    conditionValue,
-    initialPriorityLevel,
-    highThreshold,
-  });
+  const conditions = useMemo(
+    () =>
+      createConditions({
+        conditionType,
+        conditionValue,
+        initialPriorityLevel,
+        highThreshold,
+      }),
+    [conditionType, conditionValue, initialPriorityLevel, highThreshold]
+  );
 
   return (
     <MetricDetectorChart
@@ -45,7 +51,7 @@ export function MetricDetectorPreviewChart() {
       interval={interval}
       query={query}
       environment={environment}
-      projectId={Number(projectId)}
+      projectId={projectId}
       conditions={conditions}
     />
   );

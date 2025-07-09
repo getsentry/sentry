@@ -50,27 +50,11 @@ interface MetricDetectorChartProps {
   /**
    * The project ID
    */
-  projectId: number;
+  projectId: string;
   /**
    * The query filter string
    */
   query: string;
-  /**
-   * Custom error message
-   */
-  errorMessage?: string;
-  /**
-   * Whether there was an error loading data
-   */
-  hasError?: boolean;
-  /**
-   * Height of the chart in pixels
-   */
-  height?: number;
-  /**
-   * Whether to show loading state
-   */
-  isLoading?: boolean;
 }
 
 function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
@@ -135,22 +119,20 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
   return {thresholds};
 }
 
-export function MetricDetectorChart({
-  height = CHART_HEIGHT,
+type UseMetricDetectorSeriesProps = Pick<
+  MetricDetectorChartProps,
+  'dataset' | 'aggregate' | 'interval' | 'query' | 'environment' | 'projectId'
+>;
+
+function useMetricDetectorSeries({
   dataset,
   aggregate,
   interval,
   query,
   environment,
   projectId,
-  conditions,
-  isLoading = false,
-  hasError = false,
-  errorMessage,
-}: MetricDetectorChartProps) {
-  const theme = useTheme();
+}: UseMetricDetectorSeriesProps) {
   const organization = useOrganization();
-
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
   const seriesQueryOptions = datasetConfig.getSeriesQueryOptions({
     organization,
@@ -167,13 +149,35 @@ export function MetricDetectorChart({
   >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
-    enabled: !isLoading, // Disable query if explicitly loading
   });
 
   const series = useMemo(() => {
     // TypeScript can't infer that each dataset config expects its own specific response type
     return datasetConfig.transformSeriesQueryData(data as any, aggregate);
   }, [datasetConfig, data, aggregate]);
+
+  return {series, isPending, isError};
+}
+
+export function MetricDetectorChart({
+  dataset,
+  aggregate,
+  interval,
+  query,
+  environment,
+  projectId,
+  conditions,
+}: MetricDetectorChartProps) {
+  const theme = useTheme();
+
+  const {series, isPending, isError} = useMetricDetectorSeries({
+    dataset,
+    aggregate,
+    interval,
+    query,
+    environment,
+    projectId,
+  });
 
   // Extract thresholds from condition group
   const {thresholds} = extractThresholdsFromConditions(conditions);
@@ -229,23 +233,23 @@ export function MetricDetectorChart({
     return additionalSeries;
   }, [thresholds, theme]);
 
-  if (isLoading || isPending) {
+  if (isPending) {
     return (
       <ChartContainer>
-        <Flex style={{height}} justify="center" align="center">
-          <Placeholder height={`${height - 20}px`} />
+        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+          <Placeholder height={`${CHART_HEIGHT - 20}px`} />
         </Flex>
       </ChartContainer>
     );
   }
 
-  if (hasError || isError) {
+  if (isError) {
     return (
       <ChartContainer>
-        <Flex style={{height}} justify="center" align="center">
+        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
           <ErrorPanel>
             <IconWarning color="gray300" size="lg" />
-            <div>{errorMessage || t('Error loading chart data')}</div>
+            <div>{t('Error loading chart data')}</div>
           </ErrorPanel>
         </Flex>
       </ChartContainer>
@@ -256,7 +260,7 @@ export function MetricDetectorChart({
     <ChartContainer>
       <AreaChart
         series={[...series, ...thresholdSeries]}
-        height={height}
+        height={CHART_HEIGHT}
         stacked={false}
         isGroupedByDate
         showTimeInTooltip
