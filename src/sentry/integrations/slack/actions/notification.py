@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -38,6 +37,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -478,7 +478,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
+        if should_fire_workflow_actions(self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)
