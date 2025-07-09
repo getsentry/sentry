@@ -1,10 +1,14 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
+// import {addErrorMessage} from 'sentry/actionCreators/indicator';
+// import type {RequestOptions} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -13,18 +17,20 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {UserWithOrganizations} from 'sentry/types/user';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+// import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type UserRowProps = {
-  lastSeen: string;
-  name: string;
-  organizations: string;
-  // more stuff for checkbox
-};
 const UserContext = createContext<boolean>(false);
 
+const ENDPOINT = '/merge-accounts/';
+
 function MergeAccounts() {
+  // const queryClient = useQueryClient();
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Merge Accounts')} />
@@ -35,12 +41,12 @@ function MergeAccounts() {
         <ButtonSection>
           <Button priority="primary">Generate verification code</Button>
         </ButtonSection>
-        {renderSelectAccounts()}
+        {RenderSelectAccounts()}
         <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
         <StyledInput type="text" />
         <StyledListItem>{t('Submit')}</StyledListItem>
         <ButtonSection>
-          <Button priority="danger">Merge [3] accounts into [michelle.primary]</Button>
+          <Button priority="danger">To sleep, perchance to dream</Button>
         </ButtonSection>
       </List>
     </Fragment>
@@ -49,7 +55,57 @@ function MergeAccounts() {
 
 export default MergeAccounts;
 
-function renderSelectAccounts() {
+function makeMergeAccountsEndpointKey(): ApiQueryKey {
+  return [ENDPOINT];
+}
+
+export function RenderSelectAccounts() {
+  const signedInUser = useUser();
+  // const api = useApi();
+  // const [isUpdating, setIsUpdating] = useState(false);
+  const {
+    data: users = [],
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  if (isPending) {
+    return (
+      <Panel>
+        <PanelHeader>{t('Placeholder')}</PanelHeader>
+        <PanelBody>
+          <LoadingIndicator />
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  // function doApiCall(endpoint: string, requestParams: RequestOptions) {
+  //   setIsUpdating(true);
+  //   api
+  //     .requestPromise(endpoint, requestParams)
+  //     .catch(err => {
+  //       if (err?.responseJSON?.data) {
+  //         addErrorMessage(err.responseJSON.data);
+  //       }
+  //     })
+  //     .finally(() => {
+  //       refetch();
+  //       setIsUpdating(false);
+  //     });
+  // }
+
+  const currentAccount = users.filter(({id}) => id === signedInUser.id);
+  const otherAccounts = users.filter(({id}) => id !== signedInUser.id);
+
   return (
     <Fragment>
       <StyledListItem>{t('Select Your Accounts')}</StyledListItem>
@@ -59,17 +115,28 @@ function renderSelectAccounts() {
       </TextBlock>
       <TextBlock>{t(`Your currently active account:`)}</TextBlock>
       <UserContext value>
-        <Users />
+        <Users users={currentAccount} />
       </UserContext>
       <TextBlock>{t(`Your other accounts:`)}</TextBlock>
       <UserContext value={false}>
-        <Users />
+        <Users users={otherAccounts} />
       </UserContext>
     </Fragment>
   );
 }
 
-function Users() {
+type UserRowProps = {
+  lastSeen: string;
+  name: string;
+  organizations: string[];
+  // more stuff for checkbox
+};
+
+type UserProps = {
+  users: UserWithOrganizations[];
+};
+
+function Users({users}: UserProps) {
   const isPrimaryUser = useContext(UserContext);
   if (isPrimaryUser) {
     return (
@@ -80,11 +147,14 @@ function Users() {
           <div>{t('Organizations')}</div>
         </UserPanelHeader>
         <PanelBody>
-          <UserRow
-            name="michelle"
-            lastSeen="05 October 2024 14:48 UTC"
-            organizations="hojicha, matcha, sentry, sencha, mf-test-n7"
-          />
+          {users.map(userObj => (
+            <UserRow
+              key={userObj.username}
+              name={userObj.name}
+              lastSeen={userObj.lastActive}
+              organizations={userObj.organizations}
+            />
+          ))}
         </PanelBody>
       </Panel>
     );
@@ -98,12 +168,14 @@ function Users() {
         <div>{t('Merge')}</div>
       </UserPanelHeader>
       <PanelBody>
-        <UserRow
-          name="michelle"
-          lastSeen="05 October 2024 14:48 UTC"
-          organizations="hojicha, matcha, sentry, sencha, mf-test-n7"
-        />
-        <UserRow name="michelle.fu" lastSeen="" organizations="" />
+        {users.map(userObj => (
+          <UserRow
+            key={userObj.username}
+            name={userObj.name}
+            lastSeen={userObj.lastActive}
+            organizations={userObj.organizations}
+          />
+        ))}
       </PanelBody>
     </Panel>
   );
