@@ -64,7 +64,6 @@ EXPOSABLE_FEATURES = [
     "organizations:ourlogs-ingestion",
     "organizations:ourlogs-calculated-byte-count",
     "organizations:view-hierarchy-scrubbing",
-    "projects:ourlogs-breadcrumb-extraction",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
 ]
