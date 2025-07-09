@@ -549,8 +549,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:github-multi-org", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable seeing upsell modal when clicking upgrade for multi-org
     manager.add("organizations:github-multi-org-upsell-modal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Relay extracting logs from breadcrumbs for a project.
-    manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables quick testing of disabling transaction name clustering for a project.
     manager.add("projects:transaction-name-clustering-disabled", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=False)
 
