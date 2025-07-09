@@ -174,35 +174,6 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px) minmax(0, 120px)
     minmax(0, 120px) auto auto 48px;
-
-  @container (max-width: ${p => p.theme.breakpoints.md}) {
-    border: 1px solid blue;
-    grid-template-areas: 'star name project envs created-by access created actions';
-    grid-template-columns:
-      40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 120px)
-      auto 48px;
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-areas: 'star name query actions';
-    grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'],
-    div[data-column='created-by'],
-    div[data-column='project'] {
-      display: none;
-    }
-  }
 `;
 
 const TableHeading = styled('h2')`
