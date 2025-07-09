@@ -23,7 +23,8 @@ import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
-  conflictingConditionIds: string[];
+  conflictReason: string | null;
+  conflictingConditionIds: Set<string>;
   group: string;
   handlerGroup: DataConditionHandlerGroupType;
   onAddRow: (type: DataConditionType) => void;
@@ -46,6 +47,7 @@ export default function DataConditionNodeList({
   onDeleteRow,
   updateCondition,
   conflictingConditionIds,
+  conflictReason,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
   const {errors} = useAutomationBuilderErrorContext();
@@ -165,7 +167,7 @@ export default function DataConditionNodeList({
           <AutomationBuilderRow
             key={`${group}.conditions.${condition.id}`}
             onDelete={() => onDeleteRowHandler(condition)}
-            hasError={conflictingConditionIds.includes(condition.id) || !!error}
+            hasError={conflictingConditionIds.has(condition.id) || !!error}
             errorMessage={error}
           >
             <DataConditionNodeContext.Provider
@@ -192,12 +194,10 @@ export default function DataConditionNodeList({
       })}
       {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
       {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
-        conflictingConditionIds.length > 0) ||
-        conflictingConditionIds.length > 1) && (
+        conflictingConditionIds.size > 0) ||
+        conflictingConditionIds.size > 1) && (
         <Alert type="error" showIcon>
-          {t(
-            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
-          )}
+          {conflictReason}
         </Alert>
       )}
       <StyledSelectControl

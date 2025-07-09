@@ -36,7 +36,7 @@ export default function AutomationBuilder() {
     fetchOrgMembers(api, organization.slug);
   }, [api, organization]);
 
-  const {conflictingTriggers, conflictingActionFilters} =
+  const {conflictingTriggers, conflictingActionFilters, conflictReason} =
     useMemo((): ConflictingConditions => {
       return findConflictingConditions(state.triggers, state.actionFilters);
     }, [state]);
@@ -85,12 +85,16 @@ export default function AutomationBuilder() {
         onDeleteRow={index => actions.removeWhenCondition(index)}
         updateCondition={(id, comparison) => actions.updateWhenCondition(id, comparison)}
         conflictingConditionIds={conflictingTriggers}
+        conflictReason={conflictReason}
       />
       {state.actionFilters.map(actionFilter => (
         <ActionFilterBlock
           key={`actionFilters.${actionFilter.id}`}
           actionFilter={actionFilter}
-          conflictingConditions={conflictingActionFilters[actionFilter.id] || []}
+          conflictingConditions={
+            conflictingActionFilters[actionFilter.id] || new Set<string>()
+          }
+          conflictReason={conflictReason}
         />
       ))}
       <span>
@@ -109,12 +113,14 @@ export default function AutomationBuilder() {
 
 interface ActionFilterBlockProps {
   actionFilter: DataConditionGroup;
-  conflictingConditions: string[];
+  conflictReason: string | null;
+  conflictingConditions: Set<string>;
 }
 
 function ActionFilterBlock({
   actionFilter,
-  conflictingConditions = [],
+  conflictingConditions,
+  conflictReason,
 }: ActionFilterBlockProps) {
   const {actions} = useAutomationBuilderContext();
 
@@ -164,7 +170,7 @@ function ActionFilterBlock({
           </Flex>
           <DataConditionNodeList
             handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
-            placeholder={t('Filter by...')}
+            placeholder={t('Any event')}
             group={`actionFilters.${actionFilter.id}`}
             conditions={actionFilter?.conditions || []}
             onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
@@ -173,6 +179,7 @@ function ActionFilterBlock({
               actions.updateIfCondition(actionFilter.id, id, params)
             }
             conflictingConditionIds={conflictingConditions}
+            conflictReason={conflictReason}
           />
         </Flex>
       </Step>

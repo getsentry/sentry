@@ -37,7 +37,8 @@ describe('DataConditionNodeList', function () {
 
   const defaultProps = {
     conditions: [],
-    conflictingConditionIds: [],
+    conflictingConditionIds: new Set<string>(),
+    conflictReason: null,
     group: '0',
     handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
     onAddRow: mockOnAddRow,
@@ -185,25 +186,27 @@ describe('DataConditionNodeList', function () {
   });
 
   it('shows conflicting condition warning for action filters', function () {
+    const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(
       <AutomationBuilderErrorContext.Provider
         value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
       >
-        <DataConditionNodeList {...defaultProps} conflictingConditionIds={['1']} />
+        <DataConditionNodeList
+          {...defaultProps}
+          conflictingConditionIds={new Set(['1'])}
+          conflictReason={conflictReason}
+        />
       </AutomationBuilderErrorContext.Provider>,
       {
         organization,
       }
     );
 
-    expect(
-      screen.getByText(
-        'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(conflictReason)).toBeInTheDocument();
   });
 
   it('only shows conflicting condition warning for two or more workflow triggers', function () {
+    const conflictReason = 'The conditions highlighted in red are in conflict.';
     // Only one conflicting condition should not show the warning
     render(
       <AutomationBuilderErrorContext.Provider
@@ -211,18 +214,15 @@ describe('DataConditionNodeList', function () {
       >
         <DataConditionNodeList
           {...defaultProps}
-          conflictingConditionIds={['1']}
+          conflictingConditionIds={new Set(['1'])}
+          conflictReason={conflictReason}
           handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
         />
       </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
-    expect(
-      screen.queryByText(
-        'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
-      )
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(conflictReason)).not.toBeInTheDocument();
 
     // Two or more conflicting conditions should show the warning
     render(
@@ -231,18 +231,15 @@ describe('DataConditionNodeList', function () {
       >
         <DataConditionNodeList
           {...defaultProps}
-          conflictingConditionIds={['1', '2']}
+          conflictingConditionIds={new Set(['1', '2'])}
+          conflictReason={conflictReason}
           handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
         />
       </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
-    expect(
-      screen.getByText(
-        'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(conflictReason)).toBeInTheDocument();
   });
 
   it('displays error message when error context contains an error for a condition', function () {
