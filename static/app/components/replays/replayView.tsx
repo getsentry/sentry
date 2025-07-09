@@ -148,7 +148,7 @@ const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: 10px;
+  gap: ${space(1)};
   flex-grow: 1;
 `;
 
