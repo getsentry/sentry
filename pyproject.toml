@@ -145,7 +145,6 @@ module = [
     "sentry.testutils.cases",
     "sentry.web.frontend.auth_login",
     "sentry_plugins.jira.plugin",
-    "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
