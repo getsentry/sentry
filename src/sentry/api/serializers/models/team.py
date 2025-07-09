@@ -356,7 +356,6 @@ class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequi
 
 @dataclasses.dataclass
 class TeamMembership:
-    user_id: int
     user_email: str
     member_id: int
     team_ids: list[int]
@@ -369,14 +368,15 @@ def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
             "organizationmember"
         )
     ):
-        if omt.organizationmember_id not in members:
-            members[omt.organizationmember_id] = TeamMembership(
-                user_id=omt.organizationmember.user_id,
+        membership = members.setdefault(
+            omt.organizationmember_id,
+            TeamMembership(
                 user_email=omt.organizationmember.get_email(),
                 member_id=omt.organizationmember_id,
                 team_ids=[],
-            )
-        members[omt.organizationmember_id].team_ids.append(omt.team_id)
+            ),
+        )
+        membership.team_ids.append(omt.team_id)
 
     return list(members.values())
 
