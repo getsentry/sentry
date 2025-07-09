@@ -45,7 +45,8 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
     def inner(*args, **kwargs):
-        event_id = client.capture_event(*args, **kwargs, scope=scope)
+        kwargs.setdefault("scope", scope)
+        event_id = client.capture_event(*args, **kwargs)
         assert event_id is not None
         client.flush()
 
