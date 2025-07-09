@@ -21,8 +21,6 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
@@ -30,7 +28,10 @@ import {
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
-import {getNewAutomationData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getNewAutomationData,
+  validateAutomationBuilderState,
+} from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {
@@ -64,23 +65,6 @@ const initialData = {
   environment: null,
   frequency: 1440,
 };
-
-function validateAutomationBuilderState(state: AutomationBuilderState) {
-  const errors: Record<string, string> = {};
-  for (const actionFilter of state.actionFilters) {
-    if (actionFilter.actions?.length === 0) {
-      errors[actionFilter.id] = t('You must add an action for this automation to run.');
-      continue;
-    }
-    for (const action of actionFilter.actions || []) {
-      const validationResult = actionNodesMap.get(action.type)?.validate?.(action);
-      if (validationResult) {
-        errors[action.id] = validationResult;
-      }
-    }
-  }
-  return errors;
-}
 
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
@@ -118,7 +102,6 @@ export default function AutomationNewSettings() {
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
-      // TODO: add form validation
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 

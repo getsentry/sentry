@@ -1,5 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
+import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 
 export interface AutomationFormData {
@@ -54,4 +56,22 @@ export function getAutomationFormData(
     frequency: automation.config.frequency || null,
     name: automation.name,
   };
+}
+
+export function validateAutomationBuilderState(state: AutomationBuilderState) {
+  const errors: Record<string, string> = {};
+
+  for (const actionFilter of state.actionFilters) {
+    if (actionFilter.actions?.length === 0) {
+      errors[actionFilter.id] = t('You must add an action for this automation to run.');
+      continue;
+    }
+    for (const action of actionFilter.actions || []) {
+      const validationResult = actionNodesMap.get(action.type)?.validate?.(action);
+      if (validationResult) {
+        errors[action.id] = validationResult;
+      }
+    }
+  }
+  return errors;
 }
