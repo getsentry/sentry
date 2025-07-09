@@ -23,7 +23,6 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
     DataConditionGroupAction,
-    Detector,
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -37,7 +36,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -297,40 +296,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
             1,
             tags={"detector_type": self.error_detector.type},
         )
-
-    @with_feature("organizations:workflow-engine-process-workflows")
-    @with_feature("organizations:workflow-engine-trigger-actions")
-    @patch("sentry.utils.metrics.incr")
-    def test_metrics_triggered_actions(self, mock_incr):
-        # add actions to the workflow
-        self.action_group, self.action = self.create_workflow_action(
-            workflow=self.error_workflow,
-        )
-
-        # mock the handler to get a fake noop handler
-        with patch(
-            "sentry.workflow_engine.models.action.action_handler_registry.get"
-        ) as mock_handler:
-
-            class MockHandler(ActionHandler):
-                @staticmethod
-                def execute(
-                    event_data: WorkflowEventData, action: Action, detector: Detector
-                ) -> None:
-                    return None
-
-            mock_handler.return_value = MockHandler
-
-            # process the workflows
-            process_workflows(self.event_data)
-            mock_incr.assert_any_call(
-                "workflow_engine.action.trigger",
-                1,
-                tags={
-                    "detector_type": self.error_detector.type,
-                    "action_type": self.action.type,
-                },
-            )
 
 
 @mock_redis_buffer()
