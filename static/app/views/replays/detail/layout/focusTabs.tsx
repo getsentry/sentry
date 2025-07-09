@@ -24,7 +24,7 @@ function getReplayTabs({
   return {
     [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? (
       <Flex align="center" gap={space(0.75)}>
-        {t('Chapters')}
+        {t('Summary')}
         <Tooltip title={t('experimental')}>
           <IconLab isSolid />
         </Tooltip>
