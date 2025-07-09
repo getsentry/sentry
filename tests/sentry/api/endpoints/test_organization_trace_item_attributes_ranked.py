@@ -60,7 +60,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    @pytest.mark.skip(reason="flaky: #93951")
+    @pytest.mark.skip(reason="flaky: #95110")
     def test_distribution_values(self):
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
