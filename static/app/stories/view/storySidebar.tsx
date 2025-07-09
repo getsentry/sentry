@@ -83,6 +83,8 @@ const SidebarContainer = styled('nav')`
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
   ul,
   li {
     list-style: none;
