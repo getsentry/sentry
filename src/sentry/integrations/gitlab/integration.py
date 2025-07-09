@@ -10,6 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
@@ -19,6 +20,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.repository.model import RpcRepository
@@ -52,6 +56,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.identity import Identity
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
@@ -121,7 +126,14 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
+class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration, IssueSyncIntegration):
+    # Issue sync configuration keys
+    comment_key = "sync_comments"
+    outbound_status_key = "sync_status_forward"
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
+
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -136,6 +148,153 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
             raise IntegrationError("Identity not found.")
         else:
             return GitLabApiClient(self)
+
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Sync assignee from Sentry to GitLab issue
+        """
+        client = self.get_client()
+        project_id, issue_iid = external_issue.key.split(":")
+
+        assignee_id = None
+        if user and assign:
+            # For GitLab, we need to find the user by email or username
+            # In a real implementation, you'd want to map Sentry users to GitLab users
+            try:
+                # Try to find GitLab user by email
+                sentry_emails = [email.lower() for email in user.emails]
+                gitlab_user = client.find_user_by_email(sentry_emails)
+                if gitlab_user:
+                    assignee_id = gitlab_user.get("id")
+                else:
+                    # Fallback to username matching
+                    gitlab_user = client.find_user_by_username(user.username)
+                    if gitlab_user:
+                        assignee_id = gitlab_user.get("id")
+            except Exception:
+                pass
+
+        try:
+            # Update the issue with the assignee
+            client.put(
+                f"/projects/{project_id}/issues/{issue_iid}",
+                data={"assignee_id": assignee_id}
+            )
+        except Exception as e:
+            self.logger.info(
+                "gitlab.failed-to-assign",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "user_id": user.id if user else None,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Sync status from Sentry to GitLab issue
+        """
+        client = self.get_client()
+        project_id, issue_iid = external_issue.key.split(":")
+
+        try:
+            # Update the issue state
+            state_event = "close" if is_resolved else "reopen"
+            client.put(
+                f"/projects/{project_id}/issues/{issue_iid}",
+                data={"state_event": state_event}
+            )
+        except Exception as e:
+            self.logger.info(
+                "gitlab.failed-to-sync-status",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "is_resolved": is_resolved,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Determine resolve/unresolve action from GitLab webhook data
+        """
+        action = data.get("object_attributes", {}).get("action")
+        state = data.get("object_attributes", {}).get("state")
+
+        if action == "close" and state == "closed":
+            return ResolveSyncAction.RESOLVE
+        elif action == "reopen" and state == "opened":
+            return ResolveSyncAction.UNRESOLVE
+
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Get configuration fields for the organization integration
+        """
+        fields = [
+            {
+                "name": self.outbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Status to GitLab"),
+                "help": _(
+                    "When a Sentry issue changes status, change the status of the linked GitLab issue."
+                ),
+            },
+            {
+                "name": self.outbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Assignment to GitLab"),
+                "help": _(
+                    "When an issue is assigned in Sentry, assign its linked GitLab issue to the same user."
+                ),
+            },
+            {
+                "name": self.comment_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Comments to GitLab"),
+                "help": _("Post comments from Sentry issues to linked GitLab issues"),
+            },
+            {
+                "name": self.inbound_status_key,
+                "type": "boolean",
+                "label": _("Sync GitLab Status to Sentry"),
+                "help": _(
+                    "When a GitLab issue is closed, resolve its linked issue in Sentry. "
+                    "When a GitLab issue is reopened, unresolve its linked Sentry issue."
+                ),
+            },
+            {
+                "name": self.inbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync GitLab Assignment to Sentry"),
+                "help": _(
+                    "When an issue is assigned in GitLab, assign its linked Sentry issue to the same user."
+                ),
+            },
+        ]
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
+        if not has_issue_sync:
+            for field in fields:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return fields
 
     # IntegrationInstallation methods
     def error_message_from_json(self, data):
@@ -626,6 +785,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     features = frozenset(
         [
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,

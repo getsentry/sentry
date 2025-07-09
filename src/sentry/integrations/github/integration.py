@@ -30,6 +30,9 @@ from sentry.integrations.base import (
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.github.tasks.utils import GithubAPIErrorType
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -47,6 +50,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PullRequestIssue,
     _open_pr_comment_log,
 )
+from sentry.users.services.user import RpcUser
 from sentry.integrations.source_code_management.language_parsers import (
     get_patch_parsers_for_organization,
 )
@@ -211,9 +215,16 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration, IssueSyncIntegration
 ):
     integration_name = IntegrationProviderSlug.GITHUB
+
+    # Issue sync configuration keys
+    comment_key = "sync_comments"
+    outbound_status_key = "sync_status_forward"
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -221,6 +232,141 @@ class GitHubIntegration(
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
         return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Sync assignee from Sentry to GitHub issue
+        """
+        client = self.get_client()
+        repo, issue_number = external_issue.key.split("#")
+
+        assignees = []
+        if user and assign:
+            # For GitHub, we'll use the user's username as the assignee
+            # In a real implementation, you'd want to map Sentry users to GitHub users
+            assignees = [user.username]
+
+        try:
+            # Update the issue with the assignees
+            client.patch(
+                f"/repos/{repo}/issues/{issue_number}",
+                data={"assignees": assignees}
+            )
+        except Exception as e:
+            self.logger.info(
+                "github.failed-to-assign",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "user_id": user.id if user else None,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Sync status from Sentry to GitHub issue
+        """
+        client = self.get_client()
+        repo, issue_number = external_issue.key.split("#")
+
+        try:
+            # Update the issue state
+            state = "closed" if is_resolved else "open"
+            client.patch(
+                f"/repos/{repo}/issues/{issue_number}",
+                data={"state": state}
+            )
+        except Exception as e:
+            self.logger.info(
+                "github.failed-to-sync-status",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "is_resolved": is_resolved,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Determine resolve/unresolve action from GitHub webhook data
+        """
+        action = data.get("action")
+        issue_state = data.get("issue", {}).get("state")
+
+        if action == "closed" and issue_state == "closed":
+            return ResolveSyncAction.RESOLVE
+        elif action == "reopened" and issue_state == "open":
+            return ResolveSyncAction.UNRESOLVE
+
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Get configuration fields for the organization integration
+        """
+        fields = [
+            {
+                "name": self.outbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Status to GitHub"),
+                "help": _(
+                    "When a Sentry issue changes status, change the status of the linked GitHub issue."
+                ),
+            },
+            {
+                "name": self.outbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Assignment to GitHub"),
+                "help": _(
+                    "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                ),
+            },
+            {
+                "name": self.comment_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Comments to GitHub"),
+                "help": _("Post comments from Sentry issues to linked GitHub issues"),
+            },
+            {
+                "name": self.inbound_status_key,
+                "type": "boolean",
+                "label": _("Sync GitHub Status to Sentry"),
+                "help": _(
+                    "When a GitHub issue is closed, resolve its linked issue in Sentry. "
+                    "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                ),
+            },
+            {
+                "name": self.inbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync GitHub Assignment to Sentry"),
+                "help": _(
+                    "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                ),
+            },
+        ]
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
+        if not has_issue_sync:
+            for field in fields:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return fields
 
     # IntegrationInstallation methods
 
@@ -665,6 +811,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         [
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]

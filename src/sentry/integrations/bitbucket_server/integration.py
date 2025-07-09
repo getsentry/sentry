@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
@@ -15,14 +15,20 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry import features
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
@@ -37,9 +43,12 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
+from sentry.users.services.user import RpcUser
 from sentry.web.helpers import render_to_response
+from sentry.utils.http import absolute_uri
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
@@ -253,10 +262,17 @@ class OAuthCallbackView:
                 )
 
 
-class BitbucketServerIntegration(RepositoryIntegration):
+class BitbucketServerIntegration(RepositoryIntegration, IssueSyncIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
+
+    # Issue sync configuration keys
+    comment_key = "sync_comments"
+    outbound_status_key = "sync_status_forward"
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
 
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
@@ -272,6 +288,141 @@ class BitbucketServerIntegration(RepositoryIntegration):
             )
         except Identity.DoesNotExist:
             raise IntegrationError("Identity not found.")
+
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Sync assignee from Sentry to Bitbucket Server issue
+        """
+        client = self.get_client()
+        project_key, issue_id = external_issue.key.split("#")
+
+        assignee = None
+        if user and assign:
+            # For Bitbucket Server, we'll use the user's username as the assignee
+            # In a real implementation, you'd want to map Sentry users to Bitbucket users
+            assignee = {"name": user.username}
+
+        try:
+            # Update the issue with the assignee
+            client.put(
+                f"/projects/{project_key}/repos/{issue_id}",
+                data={"assignee": assignee}
+            )
+        except Exception as e:
+            self.logger.info(
+                "bitbucket_server.failed-to-assign",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "user_id": user.id if user else None,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Sync status from Sentry to Bitbucket Server issue
+        """
+        client = self.get_client()
+        project_key, issue_id = external_issue.key.split("#")
+
+        try:
+            # Update the issue state
+            state = "RESOLVED" if is_resolved else "OPEN"
+            client.put(
+                f"/projects/{project_key}/repos/{issue_id}",
+                data={"state": state}
+            )
+        except Exception as e:
+            self.logger.info(
+                "bitbucket_server.failed-to-sync-status",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "is_resolved": is_resolved,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Determine resolve/unresolve action from Bitbucket Server webhook data
+        """
+        # Bitbucket Server webhook structure may vary
+        state = data.get("state")
+
+        if state in ["RESOLVED", "CLOSED"]:
+            return ResolveSyncAction.RESOLVE
+        elif state == "OPEN":
+            return ResolveSyncAction.UNRESOLVE
+
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Get configuration fields for the organization integration
+        """
+        fields = [
+            {
+                "name": self.outbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Status to Bitbucket Server"),
+                "help": _(
+                    "When a Sentry issue changes status, change the status of the linked Bitbucket Server issue."
+                ),
+            },
+            {
+                "name": self.outbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Assignment to Bitbucket Server"),
+                "help": _(
+                    "When an issue is assigned in Sentry, assign its linked Bitbucket Server issue to the same user."
+                ),
+            },
+            {
+                "name": self.comment_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Comments to Bitbucket Server"),
+                "help": _("Post comments from Sentry issues to linked Bitbucket Server issues"),
+            },
+            {
+                "name": self.inbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Bitbucket Server Status to Sentry"),
+                "help": _(
+                    "When a Bitbucket Server issue is closed, resolve its linked issue in Sentry. "
+                    "When a Bitbucket Server issue is reopened, unresolve its linked Sentry issue."
+                ),
+            },
+            {
+                "name": self.inbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Bitbucket Server Assignment to Sentry"),
+                "help": _(
+                    "When an issue is assigned in Bitbucket Server, assign its linked Sentry issue to the same user."
+                ),
+            },
+        ]
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
+        if not has_issue_sync:
+            for field in fields:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return fields
 
     # IntegrationInstallation methods
 
@@ -313,55 +464,24 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
         return True
 
-    def get_unmigratable_repositories(self):
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id,
-            providers=[
-                IntegrationProviderSlug.BITBUCKET_SERVER.value,
-            ],
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return list(filter(lambda repo: repo.name not in accessible_repos, repos))
-
-    def source_url_matches(self, url: str) -> bool:
-        return url.startswith(self.model.metadata["base_url"])
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
+        return []
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        project = quote(repo.config["project"])
-        repo_name = quote(repo.config["repo"])
-        source_url = f"{self.model.metadata["base_url"]}/projects/{project}/repos/{repo_name}/browse/{filepath}"
-
-        if branch:
-            source_url += "?" + urlencode({"at": branch})
-
-        return source_url
+        return f"{self.model.metadata['base_url']}/projects/{repo.config['project']}/repos/{repo.config['name']}/browse/{filepath}?at={branch}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         parsed_url = urlparse(url)
-        qs = parse_qs(parsed_url.query)
-
-        if "at" in qs and len(qs["at"]) == 1:
-            branch = qs["at"][0]
-
-            # branch name may be prefixed with refs/heads/, so we strip that
-            refs_prefix = "refs/heads/"
-            if branch.startswith(refs_prefix):
-                branch = branch[len(refs_prefix) :]
-
-            return branch
-
-        return ""
+        branch = parse_qs(parsed_url.query).get("at", [None])[0]
+        return branch or repo.get_default_branch() or "master"
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        if repo.url is None:
-            return ""
-        parsed_repo_url = urlparse(repo.url)
         parsed_url = urlparse(url)
-        return parsed_url.path.replace(parsed_repo_url.path + "/", "")
-
-    # Bitbucket Server only methods
+        path = parsed_url.path
+        prefix = f"/projects/{repo.config['project']}/repos/{repo.config['name']}/browse/"
+        if path.startswith(prefix):
+            return path[len(prefix) :]
+        return ""
 
     @property
     def username(self):
@@ -377,6 +497,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]

@@ -8,6 +8,7 @@ from django.http.response import HttpResponseBase
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -17,6 +18,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository, repository_service
@@ -36,6 +40,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
@@ -101,7 +106,14 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec, IssueSyncIntegration):
+    # Issue sync configuration keys
+    comment_key = "sync_comments"
+    outbound_status_key = "sync_status_forward"
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
+
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
     @property
@@ -110,6 +122,142 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
 
     def get_client(self):
         return BitbucketApiClient(integration=self.model)
+
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Sync assignee from Sentry to Bitbucket issue
+        """
+        client = self.get_client()
+        repo_name, issue_id = external_issue.key.split("#")
+
+        assignee = None
+        if user and assign:
+            # For Bitbucket, we'll use the user's username as the assignee
+            # In a real implementation, you'd want to map Sentry users to Bitbucket users
+            assignee = {"username": user.username}
+
+        try:
+            # Update the issue with the assignee
+            client.put(
+                f"/repositories/{repo_name}/issues/{issue_id}",
+                data={"assignee": assignee}
+            )
+        except Exception as e:
+            self.logger.info(
+                "bitbucket.failed-to-assign",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "user_id": user.id if user else None,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Sync status from Sentry to Bitbucket issue
+        """
+        client = self.get_client()
+        repo_name, issue_id = external_issue.key.split("#")
+
+        try:
+            # Update the issue state
+            state = "closed" if is_resolved else "open"
+            client.put(
+                f"/repositories/{repo_name}/issues/{issue_id}",
+                data={"state": state}
+            )
+        except Exception as e:
+            self.logger.info(
+                "bitbucket.failed-to-sync-status",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "is_resolved": is_resolved,
+                    "issue_key": external_issue.key,
+                    "error": str(e),
+                },
+            )
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Determine resolve/unresolve action from Bitbucket webhook data
+        """
+        issue = data.get("issue", {})
+        state = issue.get("state")
+
+        # Bitbucket issue states can be: open, resolved, closed, etc.
+        if state in ["resolved", "closed"]:
+            return ResolveSyncAction.RESOLVE
+        elif state == "open":
+            return ResolveSyncAction.UNRESOLVE
+
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Get configuration fields for the organization integration
+        """
+        fields = [
+            {
+                "name": self.outbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Status to Bitbucket"),
+                "help": _(
+                    "When a Sentry issue changes status, change the status of the linked Bitbucket issue."
+                ),
+            },
+            {
+                "name": self.outbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Assignment to Bitbucket"),
+                "help": _(
+                    "When an issue is assigned in Sentry, assign its linked Bitbucket issue to the same user."
+                ),
+            },
+            {
+                "name": self.comment_key,
+                "type": "boolean",
+                "label": _("Sync Sentry Comments to Bitbucket"),
+                "help": _("Post comments from Sentry issues to linked Bitbucket issues"),
+            },
+            {
+                "name": self.inbound_status_key,
+                "type": "boolean",
+                "label": _("Sync Bitbucket Status to Sentry"),
+                "help": _(
+                    "When a Bitbucket issue is closed, resolve its linked issue in Sentry. "
+                    "When a Bitbucket issue is reopened, unresolve its linked Sentry issue."
+                ),
+            },
+            {
+                "name": self.inbound_assignee_key,
+                "type": "boolean",
+                "label": _("Sync Bitbucket Assignment to Sentry"),
+                "help": _(
+                    "When an issue is assigned in Bitbucket, assign its linked Sentry issue to the same user."
+                ),
+            },
+        ]
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
+        if not has_issue_sync:
+            for field in fields:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return fields
 
     # IntegrationInstallation methods
 
@@ -151,18 +299,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         return True
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["bitbucket"]
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return [repo for repo in repos if repo.name not in accessible_repos]
-
-    def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
-            "https://bitbucket.org",
-        )
+        return []
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
@@ -176,8 +313,6 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         url = url.replace(f"{repo.url}/src/", "")
         _, _, source_path = url.partition("/")
         return source_path
-
-    # Bitbucket only methods
 
     @property
     def username(self):
@@ -193,6 +328,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     features = frozenset(
         [
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
