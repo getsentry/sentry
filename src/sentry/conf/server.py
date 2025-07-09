@@ -1023,7 +1023,6 @@ CELERY_QUEUES_REGION = [
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
     Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
-    Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
 from celery.schedules import crontab
