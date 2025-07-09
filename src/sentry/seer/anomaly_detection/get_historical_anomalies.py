@@ -28,12 +28,6 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -41,21 +35,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT,
 )
-
-
-def get_anomaly_evaluation_from_workflow_engine(
-    detector: Detector,
-    data_packet_processing_results: list[
-        tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
-    ],
-) -> bool | DetectorEvaluationResult | None:
-    evaluation = None
-    for result in data_packet_processing_results:
-        if result[0] == detector:
-            evaluation = result[1].get("values")
-            if evaluation:
-                return evaluation.priority == DetectorPriorityLevel.HIGH
-    return evaluation
 
 
 def handle_seer_error_responses(response, config, context, log_params):

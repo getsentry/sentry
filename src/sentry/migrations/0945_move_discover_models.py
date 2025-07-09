@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0943_create_data_access_grant"),
+        ("sentry", "0944_flags_not_null"),
     ]
 
     operations = [
