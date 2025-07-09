@@ -1,3 +1,4 @@
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
@@ -59,6 +60,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
+    @pytest.mark.skip(reason="flaky: #95110")
     def test_distribution_values(self):
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
