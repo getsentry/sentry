@@ -19,7 +19,7 @@ class _BaseNativeDartFlutterEnhancerTest(TestCase, Fixtures):
         # Load the default enhancement rules that include Dart/Flutter logic.
         self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
 
-    def apply_rules(self, frame: dict[str, str]):  # type: ignore[override]
+    def apply_rules(self, frame: dict[str, str]):
         """Apply enhancement rules to a single frame and return the processed frame."""
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})

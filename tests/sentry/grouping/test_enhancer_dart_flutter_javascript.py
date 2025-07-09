@@ -17,7 +17,7 @@ class _BaseJavaScriptDartFlutterEnhancerTest(TestCase, Fixtures):
         super().setUp()
         self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
 
-    def apply_rules(self, frame: dict[str, str]):  # type: ignore[override]
+    def apply_rules(self, frame: dict[str, str]):
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})
         return frames[0]
