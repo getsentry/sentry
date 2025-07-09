@@ -225,6 +225,9 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 or (exc.code is not None and (401 <= exc.code <= 404))
                 # 502s are too noisy.
                 or exc.code == 502
+                or exc.code == 405
+                # Method not allowed for the url
+                # This is caused by webhook being misconfigured, something we can't fix.
             ):
                 return False
             raise
