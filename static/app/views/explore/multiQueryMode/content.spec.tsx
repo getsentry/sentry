@@ -86,6 +86,10 @@ describe('MultiQueryModeContent', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
       body: [],
@@ -974,7 +978,7 @@ describe('MultiQueryModeContent', function () {
             interval: '3h',
             orderby: undefined,
             project: ['2'],
-            query: '!transaction.span_id:00',
+            query: '',
             referrer: 'api.explorer.stats',
             statsPeriod: '7d',
             topEvents: undefined,
@@ -1001,7 +1005,7 @@ describe('MultiQueryModeContent', function () {
             ],
             per_page: 10,
             project: ['2'],
-            query: '!transaction.span_id:00',
+            query: '',
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-timestamp',
             statsPeriod: '7d',
@@ -1023,7 +1027,7 @@ describe('MultiQueryModeContent', function () {
             interval: '3h',
             orderby: '-count_span_duration',
             project: ['2'],
-            query: '!transaction.span_id:00',
+            query: '',
             referrer: 'api.explorer.stats',
             sort: '-count_span_duration',
             statsPeriod: '7d',
@@ -1044,7 +1048,7 @@ describe('MultiQueryModeContent', function () {
             field: ['span.op', 'count(span.duration)'],
             per_page: 10,
             project: ['2'],
-            query: '!transaction.span_id:00',
+            query: '',
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-count_span_duration',
             statsPeriod: '7d',

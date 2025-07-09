@@ -11,8 +11,11 @@ class TestResultNodeSerializer(serializers.Serializer):
     Serializer for individual test result nodes from GraphQL response
     """
 
+    __test__ = False
+
     updatedAt = serializers.CharField()
     avgDuration = serializers.FloatField()
+    totalDuration = serializers.FloatField()
     name = serializers.CharField()
     failureRate = serializers.FloatField()
     flakeRate = serializers.FloatField()
@@ -37,6 +40,8 @@ class TestResultSerializer(serializers.Serializer):
     """
     Serializer for test results response including pagination metadata
     """
+
+    __test__ = False
 
     results = TestResultNodeSerializer(many=True)
     pageInfo = PageInfoSerializer()

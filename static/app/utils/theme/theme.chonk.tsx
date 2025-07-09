@@ -549,12 +549,6 @@ const space = {
   xl: '16px',
   '2xl': '24px',
   '3xl': '32px',
-  '4xl': '48px',
-  '5xl': '64px',
-  '6xl': '80px',
-  '7xl': '96px',
-  '8xl': '112px',
-  '9xl': '128px',
 } as const;
 
 const radius = {
@@ -571,13 +565,13 @@ const radius = {
 
 const lightColors = {
   black: '#181423',
-  white: '#F6F5FA',
+  white: '#FFFFFF',
 
   surface500: '#FFFFFF', // background.primary
-  surface400: '#F4F4FB', // background.secondary
-  surface300: '#ECECF8', // background.tertiary
-  surface200: '#EBE9F2', // border.muted
-  surface100: '#DAD7E5', // border.primary
+  surface400: '#F7F6FB', // background.secondary
+  surface300: '#F1EEF9', // background.tertiary
+  surface200: '#EAE7F6', // border.muted
+  surface100: '#DFDBEF', // border.primary
 
   // ⚠ Deprecated
   grayOpaque500: '#181423',
@@ -594,53 +588,53 @@ const lightColors = {
   grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
   gray800: '#181423', // content.primary
-  gray700: '#524E5E', // ⚠ link.muted.active only
-  gray600: '#5B5866', // ⚠ link.muted.hover only
-  gray500: '#69676F', // content.secondary, link.muted.default
-  gray400: '#87858E', // Graphical Objects and User Interface Components
-  gray300: 'rgba(24, 20, 35, 0.07)',
-  gray200: 'rgba(24, 20, 35, 0.05)',
-  gray100: 'rgba(24, 20, 35, 0.03)',
+  gray700: '#3B434E', // ⚠ link.muted.active only
+  gray600: '#48515B', // ⚠ link.muted.hover only
+  gray500: '#57606B', // content.secondary, link.muted.default
+  gray400: '#707C89', // graphics.muted
+  gray300: 'rgba(112, 124, 137, 0.12)',
+  gray200: 'rgba(112, 124, 137, 0.09)',
+  gray100: 'rgba(112, 124, 137, 0.05)',
 
-  blue700: '#522FE0', // ⚠ link.accent.active only
-  blue600: '#5A38E8', // ⚠ link.accent.hover only
-  blue500: '#6341F0', // content.accent, link.accent.default
-  blue400: '#8466FF', // Graphical Objects and User Interface Components
-  blue300: 'rgba(117, 83, 255, 0.11)',
-  blue200: 'rgba(117, 83, 255, 0.08)',
-  blue100: 'rgba(117, 83, 255, 0.05)',
+  blue700: '#4E09BC', // ⚠ link.accent.active only
+  blue600: '#5D0CDC', // ⚠ link.accent.hover only
+  blue500: '#6C02FF', // content.accent, link.accent.default
+  blue400: '#8466FF', // graphics.muted, border.accent
+  blue300: 'rgba(132, 102, 255, 0.13)',
+  blue200: 'rgba(132, 102, 255, 0.09)',
+  blue100: 'rgba(132, 102, 255, 0.05)',
 
-  pink700: '#B81A6E', // ⚠ link.promotion.active only
-  pink600: '#BF2175', // ⚠ link.promotion.hover only
-  pink500: '#C8287D', // content.promotion, link.promotion.default
-  pink400: '#F23A9C', // Graphical Objects and User Interface Components
-  pink300: 'rgba(255, 69, 168, 0.13)',
-  pink200: 'rgba(255, 69, 168, 0.10)',
-  pink100: 'rgba(255, 69, 168, 0.07)',
+  pink700: '#A11B6C', // ⚠ link.promotion.active only
+  pink600: '#B60979', // ⚠ link.promotion.hover only
+  pink500: '#D5008D', // content.promotion, link.promotion.default
+  pink400: '#FF4EB3', // graphics.promotion, border.promotion
+  pink300: 'rgba(255, 78, 179, 0.17)',
+  pink200: 'rgba(255, 78, 179, 0.12)',
+  pink100: 'rgba(255, 78, 179, 0.06)',
 
-  red700: '#BA0032', // ⚠ link.danger.active only
-  red600: '#C20034', // ⚠ link.danger.hover only
-  red500: '#C90036', // ⚠ content.danger, link.danger.default
-  red400: '#F71954', // Graphical Objects and User Interface Components
-  red300: 'rgba(255, 0, 68, 0.09)',
-  red200: 'rgba(255, 0, 68, 0.07)',
-  red100: 'rgba(255, 0, 68, 0.05)',
+  red700: '#9C0819', // ⚠ link.danger.active only
+  red600: '#B1001B', // ⚠ link.danger.hover only
+  red500: '#CB0020', // ⚠ content.danger, link.danger.default
+  red400: '#FF002B', // graphics.danger, border.danger
+  red300: 'rgba(255, 0, 43, 0.10)',
+  red200: 'rgba(255, 0, 43, 0.08)',
+  red100: 'rgba(255, 0, 43, 0.04)',
 
-  yellow700: '#9C5200', // ⚠ link.warning.active only
-  yellow600: '#A35600', // ⚠ link.warning.hover only
-  yellow500: '#AC5803', // content.warning, link.warning.default
-  yellow400: '#D47515', // Graphical Objects and User Interface Components
-  yellow300: 'rgba(253, 208, 27, 0.28)',
-  yellow200: 'rgba(253, 208, 27, 0.20)',
-  yellow100: 'rgba(253, 208, 27, 0.12)',
+  yellow700: '#AD4A0D', // ⚠ link.warning.active only
+  yellow600: '#C55200', // ⚠ link.warning.hover only
+  yellow500: '#E66000', // content.warning, link.warning.default
+  yellow400: '#F3B01B', // graphics.warning, border.warning
+  yellow300: 'rgba(243, 176, 27, 0.24)',
+  yellow200: 'rgba(243, 176, 27, 0.17)',
+  yellow100: 'rgba(243, 176, 27, 0.07)',
 
-  green700: '#0F6E42', // ⚠ link.success.active only
-  green600: '#147548', // ⚠ link.success.hover only
-  green500: '#197D4F', // content.success, link.success.default
-  green400: '#2F9E6C', // Graphical Objects and User Interface Components
-  green300: 'rgba(11, 229, 99, 0.18)',
-  green200: 'rgba(11, 229, 99, 0.13)',
-  green100: 'rgba(11, 229, 99, 0.18)',
+  green700: '#01651F', // ⚠ link.success.active only
+  green600: '#017526', // ⚠ link.success.hover only
+  green500: '#06892F', // content.success, link.success.default
+  green400: '#06AC3D', // graphics.success, border.success
+  green300: 'rgba(6, 172, 61, 0.10)',
+  green200: 'rgba(6, 172, 61, 0.07)',
+  green100: 'rgba(6, 172, 61, 0.04)',
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
@@ -673,12 +667,12 @@ const lightColors = {
 
 const darkColors: typeof lightColors = {
   black: '#181423',
-  white: '#F6F5FA',
+  white: '#FFFFFF',
 
   surface500: '#272433', // background.primary
-  surface400: '#23202E', // background.secondary
-  surface300: '#1F1D29', // background.teritary
-  surface200: '#18151F', // border.muted
+  surface400: '#231E2F', // background.secondary
+  surface300: '#191621', // background.teritary
+  surface200: '#0D071A', // border.muted
   surface100: '#000000', // border.primary
 
   // ⚠ Deprecated
@@ -696,53 +690,53 @@ const darkColors: typeof lightColors = {
   grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
   gray800: '#F6F5FA', // content.primary
-  gray700: '#BBB9C4', // ⚠ link.muted.active only
-  gray600: '#AFACBD', // ⚠ link.muted.hover only
-  gray500: '#A49FB5', // content.secondary, link.muted.default
-  gray400: '#837D99', // Graphical Objects and User Interface Components
-  gray300: 'rgba(246, 245, 250, 0.12)',
-  gray200: 'rgba(246, 245, 250, 0.09)',
-  gray100: 'rgba(246, 245, 250, 0.06)',
+  gray700: '#C6C0D6', // ⚠ link.muted.active only
+  gray600: '#B3ADC3', // ⚠ link.muted.hover only
+  gray500: '#A39EB3', // content.secondary, link.muted.default
+  gray400: '#6F6F78', // // graphics.muted
+  gray300: 'rgba(110, 110, 119, 0.38)',
+  gray200: 'rgba(110, 110, 119, 0.28)',
+  gray100: 'rgba(110, 110, 119, 0.20)',
 
-  blue700: '#C0B0FF', // ⚠ link.accent.active only
-  blue600: '#B9A8FF', // ⚠ link.accent.hover only
-  blue500: '#B3A1FF', // content.accent, link.accent.default
-  blue400: '#9179F2', // Graphical Objects and User Interface Components
-  blue300: 'rgba(117, 83, 255, 0.30)',
-  blue200: 'rgba(117, 83, 255, 0.24)',
-  blue100: 'rgba(117, 83, 255, 0.18)',
+  blue700: '#BBB6FC', // ⚠ link.accent.active only
+  blue600: '#A89EFC', // ⚠ link.accent.hover only
+  blue500: '#9B8DFF', // content.accent, link.accent.default
+  blue400: '#8970FF', // // graphics.accent, border.accent
+  blue300: 'rgba(137, 112, 255, 0.26)',
+  blue200: 'rgba(137, 112, 255, 0.20)',
+  blue100: 'rgba(137, 112, 255, 0.14)',
 
-  pink700: '#F5ABD3', // ⚠ link.promotion.active only
-  pink600: '#F5A4CF', // ⚠ link.promotion.hover only
-  pink500: '#F59DCC', // content.promotion, link.promotion.default
-  pink400: '#DB7FB0', // Graphical Objects and User Interface Components
-  pink300: 'rgba(255, 69, 168, 0.24)',
-  pink200: 'rgba(255, 69, 168, 0.18)',
-  pink100: 'rgba(255, 69, 168, 0.12)',
+  pink700: '#FFC4DF', // ⚠ link.promotion.active only
+  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
+  pink500: '#FF8BC6', // content.promotion, link.promotion.default
+  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
+  pink300: 'rgba(255, 92, 182, 0.20)',
+  pink200: 'rgba(255, 92, 182, 0.15)',
+  pink100: 'rgba(255, 92, 182, 0.11)',
 
-  red700: '#FF94A2', // ⚠ link.danger.active only
-  red600: '#FF8C9B', // ⚠ link.danger.hover only
-  red500: '#FF8595', // content.danger, link.danger.default
-  red400: '#D65E6E', // Graphical Objects and User Interface Components
-  red300: 'rgba(229, 0, 69, 0.30)',
-  red200: 'rgba(229, 0, 69, 0.25)',
-  red100: 'rgba(229, 0, 69, 0.20)',
+  red700: '#FFB0A8', // ⚠ link.danger.active only
+  red600: '#FF8A82', // ⚠ link.danger.hover only
+  red500: '#FF6B65', // content.danger, link.danger.default
+  red400: '#FF333C', // // graphics.danger, border.danger
+  red300: 'rgba(255, 51, 60, 0.26)',
+  red200: 'rgba(255, 51, 60, 0.20)',
+  red100: 'rgba(255, 51, 60, 0.16)',
 
-  yellow700: '#FFE375', // ⚠ link.warning.active only
-  yellow600: '#FFE26E', // ⚠ link.warning.hover only
-  yellow500: '#FFE166', // content.warning, link.warning.default
-  yellow400: '#CCB141', // Graphical Objects and User Interface Components
-  yellow300: 'rgba(253, 185, 27, 0.17)',
-  yellow200: 'rgba(253, 185, 27, 0.14)',
-  yellow100: 'rgba(253, 185, 27, 0.10)',
+  yellow700: '#FCEBB7', // ⚠ link.warning.active only
+  yellow600: '#F8DC86', // ⚠ link.warning.hover only
+  yellow500: '#FDCF20', // content.warning, link.warning.default
+  yellow400: '#F7B31C', // graphics.warning, border.warning
+  yellow300: 'rgba(247, 179, 28, 0.17)',
+  yellow200: 'rgba(247, 179, 28, 0.13)',
+  yellow100: 'rgba(247, 179, 28, 0.09)',
 
-  green700: '#60EB98', // ⚠ link.success.active only
-  green600: '#56E38F', // ⚠ link.success.hover only
-  green500: '#4DDB86', // content.success, link.success.default
-  green400: '#2DAD61', // Graphical Objects and User Interface Components
-  green300: 'rgba(11, 229, 99, 0.18)',
-  green200: 'rgba(11, 229, 99, 0.14)',
-  green100: 'rgba(11, 229, 99, 0.10)',
+  green700: '#4AE969', // ⚠ link.success.active only
+  green600: '#32D859', // ⚠ link.success.hover only
+  green500: '#0CC848', // content.success, link.success.default
+  green400: '#09B340', // graphics.success, border.success
+  green300: 'rgba(9, 179, 64, 0.33)',
+  green200: 'rgba(9, 179, 64, 0.26)',
+  green100: 'rgba(9, 179, 64, 0.20)',
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
@@ -1165,6 +1159,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
+    neutral: string;
   };
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
@@ -1227,6 +1222,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   chart: {
+    neutral: color(lightColors.gray400).lighten(1.3).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1304,6 +1300,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   chart: {
+    neutral: color(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },

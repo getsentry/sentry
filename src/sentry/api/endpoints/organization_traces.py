@@ -93,9 +93,7 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(
-        ["spans", "spansIndexed"], required=False, default="spansIndexed"
-    )
+    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
 
     breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     query = serializers.ListField(
@@ -143,6 +141,8 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
+        ) and not features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -192,9 +192,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
 
 
 class OrganizationTraceSpansSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(
-        ["spans", "spansIndexed"], required=False, default="spansIndexed"
-    )
+    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
 
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
@@ -213,9 +211,15 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
-        if not features.has(
+        performance_trace_explorer = features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
+        )
+
+        visibility_explore_view = features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        )
+
+        if not performance_trace_explorer and not visibility_explore_view:
             return Response(status=404)
 
         try:
@@ -453,7 +457,9 @@ class TracesExecutor:
             # This is the first span in this trace.
             traces_default_info[span["trace"]] = name
 
-        def get_trace_info(trace: str) -> tuple[str, str, float] | tuple[None, None, None]:
+        def get_trace_info(
+            trace: str,
+        ) -> tuple[str, str, float] | tuple[None, None, None]:
             if trace in traces_primary_info:
                 return traces_primary_info[trace]
 

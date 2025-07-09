@@ -25,53 +25,55 @@ class DemoModeGuardMiddlewareTestCase(TestCase):
         rv.subdomain = None
         return rv
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.disable-sandbox-redirect": True})
+    @override_options({"demo-mode.enabled": True})
     def test_middleware_okay(self):
         demo_org = self.create_organization()
         with override_options({"demo-mode.orgs": [demo_org.id]}):
             self.request.session["activeorg"] = demo_org.slug
             response = self.middleware(self.request)
 
+        # empty session means we logged out
+        assert self.request.session.is_empty()
+
         # SHOULD redirect to welcome page
         assert isinstance(response, HttpResponseRedirect)
         assert response.url == "https://sentry.io/welcome"
 
-    @override_options({"demo-mode.enabled": False, "demo-mode.disable-sandbox-redirect": True})
+    @override_options({"demo-mode.enabled": False})
     def test_middleware_demo_mode_disabled(self):
         demo_org = self.create_organization()
         with override_options({"demo-mode.orgs": [demo_org.id]}):
             self.request.session["activeorg"] = demo_org.slug
             response = self.middleware(self.request)
 
-        # SHOULD NOT redirect to welcome page
-        assert getattr(response, "url", "") != "https://sentry.io/welcome"
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.disable-sandbox-redirect": False})
-    def test_middleware_redirect_not_disabled(self):
-        demo_org = self.create_organization()
-        with override_options({"demo-mode.orgs": [demo_org.id]}):
-            self.request.session["activeorg"] = demo_org.slug
-            response = self.middleware(self.request)
+        # SHOULD NOT log out
+        assert not self.request.session.is_empty()
 
         # SHOULD NOT redirect to welcome page
         assert getattr(response, "url", "") != "https://sentry.io/welcome"
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.disable-sandbox-redirect": True})
+    @override_options({"demo-mode.enabled": True})
     def test_middleware_not_demo_org(self):
         demo_org = self.create_organization()
         self.request.session["activeorg"] = demo_org.slug
         response = self.middleware(self.request)
 
+        # SHOULD NOT log out
+        assert not self.request.session.is_empty()
+
         # SHOULD NOT redirect to welcome page
         assert getattr(response, "url", "") != "https://sentry.io/welcome"
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.disable-sandbox-redirect": True})
+    @override_options({"demo-mode.enabled": True})
     def test_middleware_subdomain(self):
         demo_org = self.create_organization()
         with override_options({"demo-mode.orgs": [demo_org.id]}):
             self.request.subdomain = "test"
             self.request.session["activeorg"] = demo_org.slug
             response = self.middleware(self.request)
+
+        # SHOULD NOT log out
+        assert not self.request.session.is_empty()
 
         # SHOULD NOT redirect to welcome page
         assert getattr(response, "url", "") != "https://sentry.io/welcome"

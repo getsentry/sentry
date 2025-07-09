@@ -26,7 +26,6 @@ from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
 from sentry.replays.query import replay_url_parser_config
@@ -94,14 +93,11 @@ def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
     # to verify it exists.
     replay_id = row["replay_id"]
     retention_days = row["retention_days"]
-    platform = row["platform"]
 
     filenames = []
     for segment_id in range(row["max_segment_id"] + 1):
         segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
         filenames.append(make_recording_filename(segment))
-        if platform != "javascript":
-            filenames.append(make_video_filename(segment))
 
     return filenames
 
@@ -110,7 +106,6 @@ class MatchedRow(TypedDict):
     retention_days: int
     replay_id: str
     max_segment_id: int | None
-    platform: str
 
 
 class MatchedRows(TypedDict):
@@ -139,12 +134,13 @@ def fetch_rows_matching_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
-            Function("any", parameters=[Column("platform")], alias="platform"),
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
+            # We only match segment rows because those contain the PII we want to delete.
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
         groupby=[Column("replay_id")],
@@ -178,7 +174,6 @@ def fetch_rows_matching_pattern(
         "rows": [
             {
                 "max_segment_id": row["max_segment_id"],
-                "platform": row["platform"],
                 "replay_id": row["replay_id"],
                 "retention_days": row["retention_days"],
             }

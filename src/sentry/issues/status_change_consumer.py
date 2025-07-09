@@ -222,6 +222,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "project_id": payload["project_id"],
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
+        "detector_id": payload.get("detector_id", None),
     }
 
     process_occurrence_data(data)

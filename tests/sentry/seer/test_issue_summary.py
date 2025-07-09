@@ -361,8 +361,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         mock_blocking_acquire.assert_called_once()
         # Ensure generation was NOT called
         mock_generate_summary_core.assert_not_called()
-        # Ensure cache was checked twice (once initially, once after lock failure)
-        assert mock_cache_get.call_count == 2
+        # Ensure cache was checked three times (once initially, once after lock failure, and once for hideAiFeatures check)
+        assert mock_cache_get.call_count == 3
         mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
     @patch("sentry.seer.issue_summary.Project.objects.filter")
@@ -549,9 +549,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score is None
 
-        _run_automation(
-            self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
-        )
+        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
 
         mock_generate_fixability_score.assert_called_once_with(self.group)
 
@@ -559,7 +557,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             group_id=self.group.id,
             event_id="test_event_id",
             user_id=mock_user.id,
-            auto_run_source="issue_summary_fixability",
+            auto_run_source="issue_summary_on_post_process_fixability",
         )
 
         self.group.refresh_from_db()
@@ -617,7 +615,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             with self.subTest(option=option_value, score=score, should_trigger=should_trigger):
                 self.group.project.update_option("sentry:autofix_automation_tuning", option_value)
                 _run_automation(
-                    self.group, mock_user, mock_event, source=SeerAutomationSource.ISSUE_DETAILS
+                    self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS
                 )
 
                 mock_generate_fixability_score.assert_called_once_with(self.group)
@@ -629,7 +627,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                         group_id=self.group.id,
                         event_id="test_event_id",
                         user_id=mock_user.id,
-                        auto_run_source="issue_summary_fixability",
+                        auto_run_source="issue_summary_on_post_process_fixability",
                     )
                 else:
                     mock_trigger_autofix_task.assert_not_called()

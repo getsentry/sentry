@@ -14,6 +14,8 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,8 +23,7 @@ import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeFo
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFormData {
-  detectorType: string;
-  environment: string;
+  detectorType: DetectorType;
   project: string;
 }
 
@@ -30,8 +31,12 @@ export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const location = useLocation();
   const {projects} = useProjects();
+  const detectorType = location.query.detectorType as DetectorType;
 
+  const projectIdFromLocation =
+    typeof location.query.project === 'string' ? location.query.project : undefined;
   const defaultProject = projects.find(p => p.isMember) ?? projects[0];
 
   const newMonitorName = t('New Monitor');
@@ -45,16 +50,14 @@ export default function DetectorNew() {
           query: {
             detectorType: data.detectorType,
             project: data.project,
-            environment: data.environment,
           },
         });
       }}
       hideFooter
       initialData={
         {
-          detectorType: 'metric',
-          project: defaultProject?.id ?? '',
-          environment: '',
+          detectorType,
+          project: projectIdFromLocation ?? defaultProject?.id ?? '',
         } satisfies NewDetectorFormData
       }
     >

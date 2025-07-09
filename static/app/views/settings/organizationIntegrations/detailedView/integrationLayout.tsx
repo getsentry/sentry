@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <Flex.Item grow={1}>
+        <IntegrationDescription>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -261,7 +261,7 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </Flex.Item>
+        </IntegrationDescription>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -309,6 +309,10 @@ const IntegrationLayout = {
 
 export default IntegrationLayout;
 
+const IntegrationDescription = styled('div')`
+  flex-grow: 1;
+`;
+
 const TopSectionWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -323,7 +327,7 @@ const NameContainer = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -378,7 +382,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 12px;
 `;
 

@@ -4,18 +4,23 @@ import pytest
 
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
-from sentry.notifications.platform.target import IntegrationNotificationTarget, NotificationTarget
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 
 
 class NotificationProviderTest(TestCase):
     def setUp(self):
+        self.data = MockNotification(message="test")
         self.slack_integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"
         )
@@ -29,11 +34,13 @@ class NotificationProviderTest(TestCase):
             provider()
             # Ensures protocol properties are present and correct
             assert provider.key in NotificationProviderKey
-            assert issubclass(provider.target_class, NotificationTarget)
+            assert issubclass(provider.target_class, GenericNotificationTarget)
             for resource_type in provider.target_resource_types:
                 assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
-            assert provider.default_renderer == provider.get_renderer(type=NotificationType.DEBUG)
+            assert provider.default_renderer == provider.get_renderer(
+                data=self.data, category=NotificationCategory.DEBUG
+            )
             assert isinstance(provider.is_available(), bool)
             assert isinstance(
                 provider.is_available(
@@ -53,10 +60,10 @@ class NotificationProviderTest(TestCase):
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target 'NotificationTarget' is not a valid dataclass for TestDiscordProvider",
+            match="Target 'GenericNotificationTarget' is not a valid dataclass for TestDiscordProvider",
         ):
             TestDiscordProvider.validate_target(
-                target=NotificationTarget(
+                target=GenericNotificationTarget(
                     provider_key=NotificationProviderKey.EMAIL,
                     resource_type=NotificationTargetResourceType.EMAIL,
                     resource_id="test@example.com",

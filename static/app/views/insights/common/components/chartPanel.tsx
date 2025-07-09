@@ -77,7 +77,7 @@ const SubtitleContainer = styled('div')`
 const ChartLabel = styled('div')`
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 

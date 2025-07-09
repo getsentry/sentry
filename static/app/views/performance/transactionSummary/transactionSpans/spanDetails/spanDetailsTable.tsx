@@ -3,15 +3,15 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -54,23 +54,14 @@ type Props = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
   pageLinks?: string | null;
   project?: Project;
   suspectSpan?: SuspectSpan;
 };
 
 export default function SpanTable(props: Props) {
-  const {
-    location,
-    organization,
-    project,
-    examples,
-    suspectSpan,
-    isLoading,
-    pageLinks,
-    transactionName,
-  } = props;
+  const {location, organization, project, examples, suspectSpan, isLoading, pageLinks} =
+    props;
 
   const theme = useTheme();
   const {view} = useDomainViewFilters();
@@ -116,7 +107,6 @@ export default function SpanTable(props: Props) {
             renderBodyCell: renderBodyCellWithMeta(
               location,
               organization,
-              transactionName,
               theme,
               suspectSpan,
               view
@@ -146,7 +136,6 @@ function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
 function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
-  transactionName: string,
   theme: Theme,
   suspectSpan?: SuspectSpan,
   view?: DomainView
@@ -178,11 +167,9 @@ function renderBodyCellWithMeta(
         eventId: dataRow.id,
         traceSlug,
         timestamp: dataRow.timestamp / 1000,
-        projectSlug: dataRow.project,
         location,
         organization,
         spanId: worstSpan.id,
-        transactionName,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
         view,
       });

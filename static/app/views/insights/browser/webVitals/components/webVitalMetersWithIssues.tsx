@@ -7,12 +7,15 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -107,6 +110,7 @@ function VitalMeter({
   showTooltip = true,
 }: VitalMeterProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const webVitalExists = score !== undefined;
 
   const formattedMeterValueText =
@@ -128,7 +132,7 @@ function VitalMeter({
     <Fragment>
       <MeterBarBody>
         <StyledIssuesButton
-          to={getIssuesUrl({organization, webVital})}
+          to={getIssuesUrl({organization, webVital, selection})}
           aria-label={t('View Performance Issues')}
           icon={<IconIssues />}
           size="xs"
@@ -235,13 +239,16 @@ function VitalContainer({
 const getIssuesUrl = ({
   organization,
   webVital,
+  selection,
 }: {
   organization: Organization;
+  selection: PageFilters;
   webVital: WebVitals;
 }) => {
   const query = getIssueQueryFilter(WEB_VITAL_PERFORMANCE_ISSUES[webVital]);
   return `/organizations/${organization.slug}/issues/?${qs.stringify({
     query,
+    ...pageFiltersToQueryParams(selection),
   })}`;
 };
 
@@ -259,9 +266,14 @@ const Flex = styled('div')<{gap?: number}>`
   flex-wrap: wrap;
 `;
 
+// Issues Button starts to overlap with meter text at 1500px
 const StyledIssuesButton = styled(LinkButton)`
   position: absolute;
   right: ${space(1)};
+
+  @media (max-width: 1500px) {
+    bottom: ${space(1)};
+  }
 `;
 
 // This style explicitly hides InteractionStateLayer when the Issues button is hovered
@@ -272,7 +284,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   position: relative;
   padding: 0;
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
-  min-width: 140px;
+  min-width: 180px;
 
   :has(${StyledIssuesButton}:hover) > ${InteractionStateLayer} {
     display: none;
@@ -286,25 +298,31 @@ const MeterBarBody = styled('div')`
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   display: flex;
   width: 100%;
   padding: 0 ${space(1)};
   align-items: center;
+  white-space: nowrap;
 `;
 
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   flex: 1;
   text-align: center;
   padding: 0 ${space(1)};
   gap: ${space(1)};
+  height: 30px;
+
+  @media (max-width: 1500px) {
+    font-size: ${p => p.theme.fontSize.lg};
+  }
 `;
 
 const NoValueContainer = styled('span')`

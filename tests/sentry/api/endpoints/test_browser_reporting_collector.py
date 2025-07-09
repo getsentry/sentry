@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.issues.endpoints.browser_reporting_collector import URL_MAX_LENGTH
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -74,6 +75,29 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
+    def test_long_url(self, mock_metrics_incr: MagicMock) -> None:
+        report = deepcopy(DEPRECATION_REPORT)
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar"
+        assert len(str(report["url"])) == URL_MAX_LENGTH
+        response = self.client.post(self.url, [report])
+        assert response.status_code == status.HTTP_200_OK
+        mock_metrics_incr.assert_any_call(
+            "browser_reporting.raw_report_received",
+            tags={"browser_report_type": "deprecation"},
+            sample_rate=1.0,
+        )
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
+    def test_too_long_url(self, mock_metrics_incr: MagicMock) -> None:
+        report = deepcopy(DEPRECATION_REPORT)
+        report["url"] = "https://sentry.io/" + "abcdefghi/" * 612 + "foobar/"
+        assert len(str(report["url"])) > URL_MAX_LENGTH
+        response = self.client.post(self.url, [report])
+        self.assert_invalid_report_data(response, {"url": ["Enter a valid URL."]})
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
     def test_rejects_invalid_content_type(self, mock_metrics_incr: MagicMock) -> None:
         """Test that the endpoint rejects invalid content type and does not call the browser reporting metric"""
         response = self.client.post(self.url, self.report_data, content_type="bad/type/json")
@@ -82,6 +106,20 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         # Check that none of the calls were for the browser_reporting.raw_report_received metric
         for call in mock_metrics_incr.call_args_list:
             assert call[0][0] != "browser_reporting.raw_report_received"
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_accepts_various_content_type(self) -> None:
+        """Test that the endpoint rejects invalid content type."""
+        response = self.client.post(self.url, self.report_data, content_type="application/json")
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(self.url, self.report_data)
+        assert response.status_code == status.HTTP_200_OK
+
+        response = self.client.post(
+            self.url, self.report_data, content_type="application/reports+json"
+        )
+        assert response.status_code == status.HTTP_200_OK
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     @patch("sentry.issues.endpoints.browser_reporting_collector.metrics.incr")
@@ -138,6 +176,15 @@ class BrowserReportingCollectorEndpointTest(APITestCase):
         self.assert_invalid_report_data(
             response, {"timestamp": ["Ensure this value is greater than or equal to 0."]}
         )
+
+    @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
+    def test_optional_fields_not_required(self) -> None:
+        """Test that reports missing the optional fields are accepted"""
+        report = deepcopy(DEPRECATION_REPORT)
+        del report["destination"]
+        del report["attempts"]
+        response = self.client.post(self.url, [report])
+        assert response.status_code == status.HTTP_200_OK
 
     @override_options({"issues.browser_reporting.collector_endpoint_enabled": True})
     def test_rejects_invalid_attempts(self) -> None:

@@ -100,59 +100,72 @@ function TestPerformanceBody({
         <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="flakyTests">
-            {flakyTests}
-          </SummaryEntryValueLink>
-          {flakyTestsChange ? (
-            <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(flakyTestsChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {flakyTests === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="flakyTests">
+              {flakyTests}
+            </SummaryEntryValueLink>
+            {typeof flakyTestsChange === 'number' && flakyTestsChange !== 0 && (
+              <Tag type={flakyTestsChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(flakyTestsChange)}
+              </Tag>
+            )}
+          </SummaryEntryValue>
+        )}
       </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<AverageFlakeTooltip />}>
           {t('Avg. Flake Rate')}
         </SummaryEntryLabel>
         <SummaryEntryValue>
-          {`${averageFlakeRate?.toFixed(2)}%`}
-          {averageFlakeRateChange ? (
+          {averageFlakeRate === undefined ? '-' : `${averageFlakeRate?.toFixed(2)}%`}
+          {typeof averageFlakeRateChange === 'number' && averageFlakeRateChange !== 0 && (
             <Tag type={averageFlakeRateChange > 0 ? 'error' : 'success'}>
               {formatPercentRate(averageFlakeRateChange)}
             </Tag>
-          ) : null}
+          )}
         </SummaryEntryValue>
       </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
           {t('Cumulative Failures')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="failedTests">
-            {cumulativeFailures}
-          </SummaryEntryValueLink>
-          {cumulativeFailuresChange ? (
-            <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(cumulativeFailuresChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {cumulativeFailures === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="failedTests">
+              {cumulativeFailures}
+            </SummaryEntryValueLink>
+            {typeof cumulativeFailuresChange === 'number' &&
+              cumulativeFailuresChange !== 0 && (
+                <Tag type={cumulativeFailuresChange > 0 ? 'error' : 'success'}>
+                  {formatPercentRate(cumulativeFailuresChange)}
+                </Tag>
+              )}
+          </SummaryEntryValue>
+        )}
       </SummaryEntry>
       <SummaryEntry>
         <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
           {t('Skipped Tests')}
         </SummaryEntryLabel>
-        <SummaryEntryValue>
-          <SummaryEntryValueLink filterBy="skippedTests">
-            {skippedTests}
-          </SummaryEntryValueLink>
-          {skippedTestsChange ? (
-            <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(skippedTestsChange)}
-            </Tag>
-          ) : null}
-        </SummaryEntryValue>
+        {skippedTests === undefined ? (
+          <SummaryEntryValue>-</SummaryEntryValue>
+        ) : (
+          <SummaryEntryValue>
+            <SummaryEntryValueLink filterBy="skippedTests">
+              {skippedTests}
+            </SummaryEntryValueLink>
+            {typeof skippedTestsChange === 'number' && skippedTestsChange !== 0 && (
+              <Tag type={skippedTestsChange > 0 ? 'error' : 'success'}>
+                {formatPercentRate(skippedTestsChange)}
+              </Tag>
+            )}
+          </SummaryEntryValue>
+        )}
       </SummaryEntry>
     </SummaryEntries>
   );
@@ -176,7 +189,7 @@ export function TestPerformance({isLoading, ...bodyProps}: TestPerformanceProps)
 const TestPerformancePanel = styled(Panel)`
   grid-column: span 24;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 16;
   }
 `;

@@ -1,18 +1,23 @@
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
-    NotificationType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 class SlackRendererTest(TestCase):
     def test_default_renderer(self):
-        renderer = SlackNotificationProvider.get_renderer(type=NotificationType.DEBUG)
-        # TODO(ecosystem): Replace this with a real data blob, template and renderable
-        assert renderer.render(data={}, template={}) == {}
+        data = MockNotification(message="test")
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
+        )
+        assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
 class SlackNotificationProviderTest(TestCase):

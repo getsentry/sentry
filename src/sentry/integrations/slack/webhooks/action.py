@@ -32,10 +32,6 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-    SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -52,7 +48,6 @@ from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAct
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
@@ -370,6 +365,12 @@ class SlackActionEndpoint(Endpoint):
             with self.record_event(
                 MessagingInteractionType.VIEW_SUBMISSION, group, request
             ).capture() as lifecycle:
+                lifecycle.add_extras(
+                    {
+                        "integration_id": slack_request.integration.id,
+                        "organization_id": group.project.organization_id,
+                    }
+                )
 
                 # Masquerade a status action
                 selection = None
@@ -425,26 +426,8 @@ class SlackActionEndpoint(Endpoint):
                     webhook_client.send(
                         blocks=blocks.get("blocks"), delete_original=False, replace_original=True
                     )
-                    metrics.incr(
-                        SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"type": "submit_modal"},
-                    )
                 except SlackApiError as e:
                     lifecycle.record_failure(e)
-                    metrics.incr(
-                        SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"type": "submit_modal"},
-                    )
-                    _logger.exception(
-                        "slack.webhook.view_submission.response-error",
-                        extra={
-                            "error": str(e),
-                            "integration_id": slack_request.integration.id,
-                            "organization_id": group.project.organization_id,
-                        },
-                    )
 
                 return self.respond()
 
@@ -521,25 +504,14 @@ class SlackActionEndpoint(Endpoint):
                 delete_original=False,
                 replace_original=True,
             )
+        except SlackApiError:
             _logger.info(
-                "slack.webhook.update_status.success",
+                "slack.webhook.update_status.response-error",
                 extra={
                     "integration_id": slack_request.integration.id,
                     "blocks": response.get("blocks"),
                 },
             )
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "update_message"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "update_message"},
-            )
-            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -861,17 +833,11 @@ class _ModalDialog(ABC):
             # If the external_id is not found, Slack we send `not_found` error
             # https://api.slack.com/methods/views.update
             if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
-                metrics.incr(
-                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "update_modal"},
-                )
                 logging_data = slack_request.get_logging_data()
-                _logger.exception(
+                _logger.info(
                     "slack.action.update-modal-not-found",
                     extra={
                         **logging_data,
-                        "trigger_id": slack_request.data["trigger_id"],
                         "dialog": self.dialog_type,
                     },
                 )
@@ -927,24 +893,13 @@ class _ModalDialog(ABC):
             else:
                 self._update_modal(slack_client, external_id, modal_payload, slack_request)
 
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": f"{self.dialog_type}_modal_open"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": f"{self.dialog_type}_modal_open"},
-            )
-            _logger.exception(
+        except SlackApiError as e:
+            _logger.info(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
                     "integration_id": slack_request.integration.id,
-                    "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": self.dialog_type,
+                    "exec_summary": repr(e),
                 },
             )
 

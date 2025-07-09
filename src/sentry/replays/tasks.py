@@ -10,7 +10,6 @@ from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     filestore,
     make_recording_filename,
-    make_video_filename,
     storage,
     storage_kv,
 )
@@ -101,13 +100,10 @@ def delete_replays_script_async(
     ]
 
     rrweb_filenames = []
-    video_filenames = []
     for segment in segments:
-        video_filenames.append(make_video_filename(segment))
         rrweb_filenames.append(make_recording_filename(segment))
 
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, video_filenames)
         pool.map(_delete_if_exists, rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
@@ -131,9 +127,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     # Filestore and direct storage segments are split into two different delete operations.
     direct_storage_segments = []
     filestore_segments = []
-    video_filenames = []
     for segment in segments_from_metadata:
-        video_filenames.append(make_video_filename(segment))
         if segment.file_id:
             filestore_segments.append(segment)
         else:
@@ -141,7 +135,6 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
 
     # Issue concurrent delete requests when interacting with a remote service provider.
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, video_filenames)
         if direct_storage_segments:
             pool.map(storage.delete, direct_storage_segments)
 
@@ -254,7 +247,6 @@ def delete_replay(
     project_id: int,
     replay_id: str,
     max_segment_id: int,
-    platform: str,
 ) -> None:
     """Single replay deletion task."""
     delete_matched_rows(
@@ -262,7 +254,6 @@ def delete_replay(
         rows=[
             {
                 "max_segment_id": max_segment_id,
-                "platform": platform,
                 "replay_id": replay_id,
                 "retention_days": retention_days,
             }

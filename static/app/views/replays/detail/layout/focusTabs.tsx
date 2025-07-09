@@ -1,6 +1,8 @@
-import type {ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +20,12 @@ function getReplayTabs({
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
-    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? t('AI') : null,
+    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? (
+      <Flex align="center" gap={space(0.75)}>
+        {t('AI')}
+        <FeatureBadge type="experimental" />
+      </Flex>
+    ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
@@ -33,7 +40,7 @@ type Props = {
   isVideoReplay: boolean;
 };
 
-function FocusTabs({isVideoReplay}: Props) {
+export default function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
@@ -56,7 +63,7 @@ function FocusTabs({isVideoReplay}: Props) {
           });
         }}
       >
-        <TabList>
+        <TabList hideBorder>
           {tabs.map(([tab, label]) => (
             <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
               {label}
@@ -69,12 +76,6 @@ function FocusTabs({isVideoReplay}: Props) {
 }
 
 const TabContainer = styled('div')`
-  padding-inline: ${space(1)};
-  border-bottom: solid 1px #e0dce5;
-
-  & > * {
-    margin-bottom: -1px;
-  }
+  ${p => (p.theme.isChonk ? '' : `padding-inline: ${space(1)};`)}
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
-
-export default FocusTabs;

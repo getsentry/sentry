@@ -251,22 +251,6 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
-        timestamps.append(now - timedelta(days=1, minutes=20, seconds=0))
-        self.store_indexed_span(
-            organization_id=project_1.organization.id,
-            project_id=project_1.id,
-            trace_id=trace_id_2,
-            transaction_id=None,  # mock an INP span
-            span_id=span_ids[12],
-            parent_span_id=span_ids[4],
-            timestamp=timestamps[-1],
-            transaction="",
-            duration=1_000,
-            exclusive_time=1_000,
-            op="ui.navigation.click",
-            is_eap=self.is_eap,
-        )
-
         return (
             project_1,
             project_2,
@@ -284,12 +268,14 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = [
-                "organizations:performance-trace-explorer",
+                "organizations:visibility-explore-view",
                 "organizations:global-views",
             ]
 
         if self.is_eap:
             query["dataset"] = "spans"
+        else:
+            query["dataset"] = "spansIndexed"
 
         with self.feature(features):
             return self.client.get(
@@ -321,7 +307,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
-                string="Invalid per_page value. Must be between 1 and 100.", code="parse_error"
+                string="Invalid per_page value. Must be between 1 and 100.",
+                code="parse_error",
             ),
         }
 
@@ -705,7 +692,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
             for features in [
                 None,  # use the default features
-                ["organizations:performance-trace-explorer"],
+                ["organizations:visibility-explore-view"],
             ]:
                 query = {
                     # only query for project_2 but expect traces to start from project_1
@@ -893,12 +880,14 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
             features = [
-                "organizations:performance-trace-explorer",
+                "organizations:visibility-explore-view",
                 "organizations:global-views",
             ]
 
         if self.is_eap:
             query["dataset"] = "spans"
+        else:
+            query["dataset"] = "spansIndexed"
 
         with self.feature(features):
             return self.client.get(

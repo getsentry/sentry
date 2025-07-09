@@ -7,8 +7,9 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
+    NotificationTarget,
     NotificationTargetResourceType,
-    NotificationTemplate,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -17,10 +18,12 @@ type SlackRenderable = Any
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.SLACK
+    provider_key = NotificationProviderKey.DISCORD
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> SlackRenderable:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> SlackRenderable:
         return {}
 
 
@@ -38,3 +41,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
+        pass

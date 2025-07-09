@@ -4,8 +4,8 @@ import trimStart from 'lodash/trimStart';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -20,7 +20,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {
+  FieldFormatterRenderFunctionPartial,
+  RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
@@ -424,7 +427,7 @@ export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
   widget?: Widget
-) {
+): FieldFormatterRenderFunctionPartial {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -435,7 +438,7 @@ export function getCustomEventsFieldRenderer(
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data: any, baggage: any) {
+    return function (data, baggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>

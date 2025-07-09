@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
@@ -264,7 +264,7 @@ const DetailWrapper = styled('div')`
   display: flex;
   flex: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column-reverse;
   }
 `;
@@ -272,7 +272,7 @@ const DetailWrapper = styled('div')`
 const StyledLayoutBody = styled(Layout.Body)`
   flex-grow: 0;
   padding-bottom: 0 !important;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: auto;
   }
 `;

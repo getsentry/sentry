@@ -1822,6 +1822,73 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with pytest.raises(ValidationError):
             update_alert_rule(rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=300)
 
+    def test_snapshot_alert_rule_with_event_types(self):
+        # Create alert rule with event types
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "test alert rule",
+            "severity:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_LOG],
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+
+        # Create incident to trigger snapshot
+        incident = self.create_incident()
+        incident.update(alert_rule=alert_rule)
+
+        # Verify original event types exist
+        original_event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=alert_rule.snuba_query
+        )
+        assert [snuba_event_type.type for snuba_event_type in original_event_types] == [
+            SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
+        ]
+
+        # Update alert rule to trigger snapshot
+        with self.tasks():
+            updated_rule = update_alert_rule(
+                alert_rule,
+                query="level:warning",
+                event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+            )
+
+        # Find the snapshot
+        rule_snapshot = (
+            AlertRule.objects_with_snapshots.filter(name=alert_rule.name)
+            .exclude(id=updated_rule.id)
+            .get()
+        )
+
+        # Verify snapshot has its own SnubaQuery
+        assert rule_snapshot.snuba_query_id != updated_rule.snuba_query_id
+
+        # Verify snapshot has the original event types
+        snapshot_event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=rule_snapshot.snuba_query
+        )
+        assert [snuba_event_type.type for snuba_event_type in snapshot_event_types] == [
+            SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
+        ]
+
+        # Verify event types are different objects but have same values
+        original_types = {snuba_event_type.type for snuba_event_type in original_event_types}
+        snapshot_types = {snuba_event_type.type for snuba_event_type in snapshot_event_types}
+        assert original_types == snapshot_types
+
+        # Verify updated rule has new event types
+        updated_event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=updated_rule.snuba_query
+        )
+        assert [snuba_event_type.type for snuba_event_type in updated_event_types] == [
+            SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
+        ]
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     def setUp(self):
@@ -2133,46 +2200,36 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
 class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
     def setUp(self):
-        self.detector = self.create_detector()
         self.alert_rule = self.create_alert_rule()
-        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_enable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
-            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
-            assert self.detector.status == ObjectStatus.DISABLED
 
             enable_alert_rule(self.alert_rule)
-            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
-            assert self.detector.status == ObjectStatus.ACTIVE
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_disable(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
-            self.detector.refresh_from_db()
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
-            assert self.detector.status == ObjectStatus.DISABLED
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
     def setUp(self):
         self.detector = self.create_detector()
-        self.alert_rule = self.create_alert_rule()
-        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
 
         with self.tasks():
             self.snuba_query = create_snuba_query(

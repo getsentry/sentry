@@ -13,8 +13,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/platform/laravel/features';
+import {hasNextJsInsightsFeature} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
@@ -36,8 +36,8 @@ function ProjectQuickLinks({organization, project}: Props) {
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 
-  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
+  const isLaravelInsightsAvailable = hasLaravelInsightsFeature(organization);
+  const isNextJsInsightsAvailable = hasNextJsInsightsFeature(organization);
 
   const quickLinks = [
     ...(isLaravelInsightsAvailable && project?.platform === 'php-laravel'
@@ -139,7 +139,7 @@ const QuickLinkTextContainer = styled('div')`
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis}
 `;
 

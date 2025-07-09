@@ -187,7 +187,7 @@ const InputWrapper = styled('div')`
 
 const ErrorMessage = styled('div')`
   color: ${p => p.theme.red300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const ButtonWrapper = styled('div')`

@@ -7,8 +7,9 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
+    NotificationTarget,
     NotificationTargetResourceType,
-    NotificationTemplate,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -20,7 +21,9 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     provider_key = NotificationProviderKey.DISCORD
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> DiscordRenderable:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> DiscordRenderable:
         return {}
 
 
@@ -38,3 +41,7 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+        pass

@@ -3,7 +3,7 @@ from typing import Protocol
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
-    NotificationTemplate,
+    NotificationRenderedTemplate,
 )
 
 
@@ -20,9 +20,15 @@ class NotificationRenderer[RenderableT](Protocol):
     provider_key: NotificationProviderKey
 
     @classmethod
-    def render(cls, *, data: NotificationData, template: NotificationTemplate) -> RenderableT:
+    def render[
+        DataT: NotificationData
+    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> RenderableT:
         """
-        Convert template, and data into a renderable object.
-        The form of the renderable object is defined by the provider.
+        Convert a rendered template into a renderable object specific to the provider.
+        For example, Slack might output BlockKit JSON, email might output HTML/txt.
+
+        We pass in the data as well since custom renderers may use raw data to modify the output
+        for the provider where the template cannot. For example, custom markdown formatting,
+        provider-specific features like modals, etc.
         """
         ...
