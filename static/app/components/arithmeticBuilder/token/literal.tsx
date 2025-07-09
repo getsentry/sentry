@@ -143,6 +143,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
           });
         }
         resetInputValue();
+        return;
       }
 
       if (validateLiteral(text)) {
