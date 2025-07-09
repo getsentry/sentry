@@ -173,7 +173,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-areas: 'star name project envs num-widgets created-by last-viewed created actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px) minmax(0, 120px)
-    minmax(0, 120px) auto auto 48px;
+    minmax(0, 120px) auto 48px;
 `;
 
 const TableHeading = styled('h2')`
