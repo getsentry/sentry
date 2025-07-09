@@ -613,6 +613,95 @@ describe('token', function () {
     });
   });
 
+  describe('ArithmeticTokenLiteral', function () {
+    it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
+      'renders literal %s',
+      async function (expression) {
+        const dispatch = jest.fn();
+        render(<Tokens expression={expression} dispatch={dispatch} />);
+
+        expect(await screen.findByRole('row', {name: expression})).toBeInTheDocument();
+
+        const input = screen.getByRole('textbox', {
+          name: 'Add a literal',
+        });
+        expect(input).toBeInTheDocument();
+      }
+    );
+
+    it('completes literal with space', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0 ');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+
+      await userEvent.type(getLastInput(), '{Escape}');
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it('completes literal with escape', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0{escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it.each([
+      ['+', 'icon-add'],
+      ['-', 'icon-subtract'],
+      ['*', 'icon-multiply'],
+      ['/', 'icon-divide'],
+      ['(', 'icon-parenthesis'],
+      [')', 'icon-parenthesis'],
+    ])('completes literal with token %s', async function (token, dataTestId) {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0');
+      await userEvent.type(input, token);
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      expect(screen.getByTestId(dataTestId)).toBeInTheDocument();
+    });
+  });
+
   describe('ArithmeticTokenOperator', function () {
     it('renders addition operator', async function () {
       const dispatch = jest.fn();
