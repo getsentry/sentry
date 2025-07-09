@@ -600,6 +600,12 @@ def cron(**options: Any) -> None:
     default=None,
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
+@click.option(
+    "--shutdown-strategy-before-consumer",
+    is_flag=True,
+    default=False,
+    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
