@@ -295,9 +295,9 @@ class GridEditable<
   /**
    * Recalculate the dimensions of Grid and Columns and redraws them
    */
-  redrawGridColumn = () => {
+  redrawGridColumn() {
     this.setGridTemplateColumns(this.props.columnOrder);
-  };
+  }
 
   /**
    * Set the CSS for Grid Column
