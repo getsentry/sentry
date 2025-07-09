@@ -1,4 +1,6 @@
-import {formatSeriesName} from './formatSeriesName';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
+
+import {formatTimeSeriesName} from './formatTimeSeriesName';
 
 describe('formatSeriesName', () => {
   describe('releases', () => {
@@ -6,7 +8,11 @@ describe('formatSeriesName', () => {
       ['p75(span.duration);11762', 'p75(span.duration)'],
       ['Releases;', 'Releases'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 
@@ -16,7 +22,11 @@ describe('formatSeriesName', () => {
       ['apdex(200)', 'apdex(200)'],
       ['p75(span.duration)', 'p75(span.duration)'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 
@@ -26,7 +36,11 @@ describe('formatSeriesName', () => {
       ['android@5.3.1', '5.3.1'],
       ['ios@5.3.1-rc1', '5.3.1-rc1'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 
@@ -35,7 +49,11 @@ describe('formatSeriesName', () => {
       ['p75(measurements.lcp)', 'LCP'],
       ['p50(measurements.lcp)', 'LCP'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 
@@ -44,7 +62,11 @@ describe('formatSeriesName', () => {
       ['equation|p75(measurements.cls) + 1', 'p75(measurements.cls) + 1'],
       ['equation|p75(measurements.cls)', 'p75(measurements.cls)'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 
@@ -53,7 +75,11 @@ describe('formatSeriesName', () => {
       ['equation|p75(measurements.cls) + 1;76123', 'p75(measurements.cls) + 1'],
       ['equation|p75(measurements.cls);76123', 'p75(measurements.cls)'],
     ])('Formats %s as %s', (name, result) => {
-      expect(formatSeriesName(name)).toEqual(result);
+      const timeSeries = TimeSeriesFixture({
+        yAxis: name,
+      });
+
+      expect(formatTimeSeriesName(timeSeries)).toEqual(result);
     });
   });
 });

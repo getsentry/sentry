@@ -6,7 +6,7 @@ import type {
   TimeSeries,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {PlottableTimeSeriesValueType} from './plottable';
@@ -63,7 +63,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   get label(): string {
-    return this.config?.alias ?? formatSeriesName(this.timeSeries.yAxis);
+    return this.config?.alias ?? formatTimeSeriesName(this.timeSeries);
   }
 
   get isEmpty(): boolean {
