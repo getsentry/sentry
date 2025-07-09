@@ -27,6 +27,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         if query and "type" not in query.keys():
             query["type"] = "string"
 
+        if query:
+            query.setdefault("sampling", "HIGHEST_ACCURACY")
+
         with self.feature(features):
             response = self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),

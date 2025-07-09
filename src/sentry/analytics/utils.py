@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.analytics.attribute import Attribute
 
 
-def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> Mapping[str, Any | None]:
+def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> dict[str, Any | None]:
     data = {}
     for attr in attributes:
         nv = items.pop(attr.name, None)
