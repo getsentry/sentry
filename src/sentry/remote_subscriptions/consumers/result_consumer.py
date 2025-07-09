@@ -279,15 +279,23 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         with sentry_sdk.start_transaction(
             op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
         ):
+            scopes = (sentry_sdk.get_isolation_scope(), sentry_sdk.get_current_scope())
             futures = [
-                self.parallel_executor.submit(self.process_group, group)
+                self.parallel_executor.submit(self.process_group, group, scopes)
                 for group in partitioned_values
             ]
             wait(futures)
 
-    def process_group(self, items: list[T]):
+    def process_group(self, items: list[T], scopes: tuple[sentry_sdk.Scope, sentry_sdk.Scope]):
         """
         Process a group of related messages serially.
         """
-        for item in items:
-            self.result_processor(self.identifier, item)
+        (isolation_scope, current_scope) = scopes
+        with sentry_sdk.scope.use_isolation_scope(isolation_scope.fork()):
+            with sentry_sdk.scope.use_scope(current_scope.fork()):
+                for item in items:
+                    with sentry_sdk.start_span(
+                        name=f"monitors.{self.identifier}.result_consumer",
+                        op="result_processor.process",
+                    ):
+                        self.result_processor(self.identifier, item)
