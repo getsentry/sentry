@@ -13,6 +13,7 @@ from sentry.integrations.pagerduty.client import (
     PagerdutySeverity,
     build_pagerduty_event_payload,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.rule import Rule
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
@@ -25,7 +26,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
     label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
-    provider = "pagerduty"
+    provider = IntegrationProviderSlug.PAGERDUTY.value
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
