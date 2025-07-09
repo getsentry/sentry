@@ -156,7 +156,7 @@ export class TokenLiteral extends Token {
     );
     const lit = new TokenLiteral(
       {source: undefined, start: pos, end: this.location.end},
-      sign ? this.text.substring(1) : this.text
+      this.text.substring(1)
     );
     return [op, lit];
   }
