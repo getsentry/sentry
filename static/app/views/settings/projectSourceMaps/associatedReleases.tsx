@@ -10,27 +10,34 @@ import {defined} from 'sentry/utils';
 
 export function AssociatedReleases({
   associations,
+  shouldFormatVersion,
 }: {
   associations: DebugIdBundleAssociation[];
+  shouldFormatVersion?: boolean;
 }) {
   return (
     <ReleasesWrapper>
       {associations.length
         ? associations.map(association => (
-            <AssociatedReleaseWrapper key={association.release}>
+            <AssociatedReleaseWrapper
+              key={association.release}
+              data-test-id="associated-release"
+            >
               <Tooltip
                 showUnderline={association.exists === false}
                 title={
                   association.exists === false ? t('Release does not exist') : undefined
                 }
+                containerDisplayMode="inline-flex"
               >
                 <StyledVersion
                   isPending={!defined(association.exists)}
                   version={association.release}
                   anchor={association.exists}
+                  shouldFormatVersion={shouldFormatVersion}
                 />
               </Tooltip>
-              {association.dist && `(Dist: ${formatDist(association.dist)})`}
+              {`(Dist: ${formatDist(association.dist)})`}
             </AssociatedReleaseWrapper>
           ))
         : t('No releases associated with this upload.')}

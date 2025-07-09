@@ -12,7 +12,6 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -75,6 +74,11 @@ function renderDebugIdBundlesMockRequests({
   const artifactBundlesDeletion = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
     method: 'DELETE',
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
   });
 
   return {artifactBundlesFiles, artifactBundlesDeletion};
@@ -236,16 +240,13 @@ describe('SourceMapsDetails', function () {
       expect(await screen.findByText('22')).toBeInTheDocument();
       // Release information
       expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
-      expect(
-        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
-      ).toBeInTheDocument();
-      expect(
-        await screen.findByText(
-          textWithMarkupMatcher(
-            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
-          )
-        )
-      ).toBeInTheDocument();
+      const associatedReleases = screen.getAllByTestId('associated-release');
+      expect(associatedReleases).toHaveLength(2);
+      expect(associatedReleases[0]).toHaveTextContent('v2.0(Dist: none)');
+      expect(associatedReleases[1]).toHaveTextContent(
+        'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a(Dist: android, iOS)'
+      );
+
       // Date Uploaded
       expect(await screen.findByText('Date Uploaded')).toBeInTheDocument();
       expect(await screen.findByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();

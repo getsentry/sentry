@@ -32,7 +32,12 @@ export function DebugIdBundleDetails({
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
-        value: <AssociatedReleases associations={visibleAssociations} />,
+        value: (
+          <AssociatedReleases
+            associations={visibleAssociations}
+            shouldFormatVersion={false}
+          />
+        ),
       },
       {
         key: 'date',
