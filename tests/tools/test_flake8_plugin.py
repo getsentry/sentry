@@ -286,10 +286,16 @@ class MyClass:
 
 
 def test_S014_checks_body_of_with():
-    notsure = """\
+    bad = """\
 with noop:
     t = ThreadPoolExecutor()
 """
-    assert _run(notsure) == [
+    assert _run(bad) == [
         "t.py:2:8: S014 All `ThreadPoolExecutor` must have a `thread_name_prefix`."
     ]
+
+    good = """\
+with noop:
+    t = ThreadPoolExecutor(thread_name_prefix=__name__)
+"""
+    assert _run(good) == []
