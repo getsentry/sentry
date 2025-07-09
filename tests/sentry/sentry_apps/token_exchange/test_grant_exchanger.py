@@ -80,9 +80,9 @@ class TestGrantExchanger(TestCase):
             mock_record=mock_record, error_msg=SentryAppIntegratorError(message="Forbidden grant")
         )
 
-        # APP_CREATE (success) -> GRANT_EXCHANGER (halt)
+        # APP_CREATE (success) -> INSTALLATION_CREATE (success) -> GRANT_EXCHANGER (halt)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1

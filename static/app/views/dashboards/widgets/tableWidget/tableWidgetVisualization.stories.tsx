@@ -23,13 +23,11 @@ export default Storybook.story('TableWidgetVisualization', story => {
       key: 'count(span.duration)',
       name: 'count(span.duration)',
       type: 'number',
-      width: 200,
     },
     {
       key: 'http.request_method',
       name: 'http.request_method',
       type: 'string',
-      width: -1,
     },
   ];
 
@@ -83,7 +81,7 @@ ${JSON.stringify(tableWithEmptyData)}
           The prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
-        <p>This prop is used for reordering columns and setting column widths:</p>
+        <p>For example, this prop can be used for reordering columns:</p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
           columns={customColumns}
@@ -257,6 +255,81 @@ function onChangeSort(newSort: Sort) {
 }
         `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Column Widths and Resizing', () => {
+    const location = useLocation();
+    const noWidthColumns = customColumns.map(column => ({...column, width: undefined}));
+    const customWidthsColumns = customColumns.map(column => ({...column, width: 200}));
+    const [columns, setColumns] = useState<TabularColumn[]>(noWidthColumns);
+
+    return (
+      <Fragment>
+        <p>
+          To set column widths, add the <code>width</code>field to a column in{' '}
+          <code>columns</code>prop. Column widths are specified in pixels. If a column
+          width is not specified, the special value <code>-1</code>is assumed and{' '}
+          <Storybook.JSXNode name="TableWidgetVisualization" /> will automatically expand
+          the column. The special value can also be explicitly set.
+        </p>
+        <p>
+          By default, table columns are assumed to be resizable. Pass
+          <code>{'resizable={false}'}</code> to disable it. Resizing is only available if
+          there are at least two columns in the table.
+        </p>
+        <p>
+          If a table is not column resizable, but needs custom widths, set the{' '}
+          <code>width</code> field. For example:
+        </p>
+        <TableWidgetVisualization
+          columns={customWidthsColumns}
+          tableData={sampleHTTPRequestTableData}
+          resizable={false}
+        />
+        <p>
+          Also by default, is <Storybook.JSXNode name="TableWidgetVisualization" />{' '}
+          managing column widths and resizing via <code>width</code> URL parameters. E.g.,{' '}
+          <code>?width=-1&width=512</code> will set the first column to have automatic
+          width, and the second column to have a width of 512px. Note: this behavior only
+          applies if the table columns are resizable.
+        </p>
+        <p>
+          If both the URL parameters and <code>width</code>field in the{' '}
+          <code>columns</code>prop are supplied, the table will prioritize the prop. If
+          you want the default behavior and need to pass <code>columns</code>, then ensure
+          that the <code>width</code>field does not exist or is set to{' '}
+          <code>undefined</code>for every column.
+        </p>
+        <p>
+          Try interacting with the columns and making note of the URL parameter. Use the
+          button to clear the width parameters.
+        </p>
+        <ButtonContainer>
+          <LinkButton to={{...location, query: {...location.query, width: undefined}}}>
+            Clear width parameters
+          </LinkButton>
+        </ButtonContainer>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={noWidthColumns}
+        />
+        <p>
+          If you wish to override default behavior of updating the URL, pass the callback
+          function <code>onResizeColumn</code>, which accepts <code>TabularColumn[]</code>{' '}
+          representing the columns with new widths. This and the <code>width</code>field
+          in <code>columns</code>is useful if you need to manage internal state:
+        </p>
+        <p>
+          Current widths are{' '}
+          <b>[{columns.map(column => column.width ?? 'undefined').toString()}]</b>
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={columns}
+          onResizeColumn={newColumns => setColumns(newColumns)}
+        />
       </Fragment>
     );
   });

@@ -56,6 +56,7 @@ function TargetTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.targetType`}
+      aria-label={t('Assignee type')}
       value={condition.comparison.targetType}
       options={TARGET_TYPE_CHOICES}
       onChange={(option: SelectValue<string>) =>
@@ -80,9 +81,12 @@ function IdentifierField() {
       <SelectWrapper>
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
+          aria-label={t('Team')}
           value={condition.comparison.targetIdentifier}
-          onChange={(value: SelectValue<string>) =>
-            onUpdate({comparison: {...condition.comparison, targetIdentifier: value}})
+          onChange={(option: SelectValue<string>) =>
+            onUpdate({
+              comparison: {...condition.comparison, targetIdentifier: option.value},
+            })
           }
           useId
           styles={selectControlStyles}
@@ -97,6 +101,7 @@ function IdentifierField() {
         <SelectMembers
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
+          aria-label={t('Member')}
           value={condition.comparison.targetIdentifier}
           onChange={(value: any) =>
             onUpdate({

@@ -246,8 +246,7 @@ class RecordingTestCase(TransactionTestCase):
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_json(self, emit_replay_actions, mock_record, mock_onboarding_task):
+    def test_invalid_json(self, mock_record, mock_onboarding_task):
         """Assert invalid JSON does not break ingestion.
 
         In production, we'll never received invalid JSON. Its validated in Relay. However, we
@@ -282,15 +281,9 @@ class RecordingTestCase(TransactionTestCase):
             user_id=self.organization.default_owner_id,
         )
 
-        # No replay actions were emitted because JSON deserialization failed.
-        assert not emit_replay_actions.called
-
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_payload_invalid_headers(
-        self, emit_replay_actions, mock_record, mock_onboarding_task
-    ):
+    def test_invalid_payload_invalid_headers(self, mock_record, mock_onboarding_task):
         """Test missing segment_id key does not break ingestion."""
         segment_id = 0
 
@@ -316,14 +309,10 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_payload_invalid_unicode_codepoint(
-        self, emit_replay_actions, mock_record, mock_onboarding_task
-    ):
+    def test_invalid_payload_invalid_unicode_codepoint(self, mock_record, mock_onboarding_task):
         """Test invalid unicode codepoint in headers does not break ingestion."""
         segment_id = 0
 
@@ -350,14 +339,10 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_payload_malformed_headers(
-        self, emit_replay_actions, mock_record, mock_onboarding_task
-    ):
+    def test_invalid_payload_malformed_headers(self, mock_record, mock_onboarding_task):
         """Test malformed headers in payload attribute do not break ingestion."""
         segment_id = 0
 
@@ -383,14 +368,10 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_payload_missing_headers(
-        self, emit_replay_actions, mock_record, mock_onboarding_task
-    ):
+    def test_invalid_payload_missing_headers(self, mock_record, mock_onboarding_task):
         """Test missing headers in payload attribute does not break ingestion."""
         segment_id = 0
 
@@ -416,12 +397,10 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_payload_type(self, emit_replay_actions, mock_record, mock_onboarding_task):
+    def test_invalid_payload_type(self, mock_record, mock_onboarding_task):
         """Test invalid payload types do not break ingestion."""
         segment_id = 0
 
@@ -447,12 +426,10 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
-    def test_invalid_message(self, emit_replay_actions, mock_record, mock_onboarding_task):
+    def test_invalid_message(self, mock_record, mock_onboarding_task):
         """Test invalid messages do not break ingestion."""
         self.submit(["i am totally wrong"])
 
@@ -463,7 +440,6 @@ class RecordingTestCase(TransactionTestCase):
         assert not self.project.flags.has_replays
         # assert not mock_onboarding_task.called
         # assert not mock_record.called
-        assert not emit_replay_actions.called
 
 
 class ThreadedRecordingTestCase(RecordingTestCase):

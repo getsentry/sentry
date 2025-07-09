@@ -78,6 +78,7 @@ describe('CoveragePageWrapper', () => {
                 codecovPeriod: '7d',
                 integratedOrg: 'some-org-name',
                 repository: 'some-repository',
+                branch: 'some-branch',
               },
             },
           },
