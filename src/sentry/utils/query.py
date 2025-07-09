@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Iterable, Iterator
+from typing import Any
 
 import click
 from django.db import connections, router
+from django.db.models.query_utils import Q
+from django.db.models.sql.constants import ROW_COUNT
+from django.db.models.sql.subqueries import DeleteQuery
 
 from sentry import eventstore
+from sentry.db.models.base import Model
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -232,48 +238,20 @@ class WithProgressBar[V]:
 
 
 def bulk_delete_objects(
-    model, limit=10000, transaction_id=None, logger=None, partition_key=None, **filters
-):
-    connection = connections[router.db_for_write(model)]
-    quote_name = connection.ops.quote_name
+    model: type[Model],
+    limit: int = 10000,
+    transaction_id: str | None = None,
+    logger: logging.Logger | None = None,
+    **filters: Any,
+) -> bool:
+    qs = model.objects.filter(**filters).values_list("id")[:limit]
 
-    query = []
-    params = []
-    partition_query = []
+    delete_query = DeleteQuery(model)
+    delete_query.add_q(Q(id__in=qs))
+    n = delete_query.get_compiler(router.db_for_write(model)).execute_sql(ROW_COUNT)
 
-    if partition_key:
-        for column, value in partition_key.items():
-            partition_query.append(f"{quote_name(column)} = %s")
-            params.append(value)
-
-    for column, value in filters.items():
-        if column.endswith("__in"):
-            column, _ = column.split("__")
-            query.append(f"{quote_name(column)} = ANY(%s)")
-            params.append(list(value))
-        else:
-            query.append(f"{quote_name(column)} = %s")
-            params.append(value)
-
-    query_s = """
-        delete from %(table)s
-        where %(partition_query)s id = any(array(
-            select id
-            from %(table)s
-            where (%(query)s)
-            limit %(limit)d
-        ))
-    """ % dict(
-        partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
-        query=" AND ".join(query),
-        table=model._meta.db_table,
-        limit=limit,
-    )
-
-    cursor = connection.cursor()
-    cursor.execute(query_s, params)
-
-    has_more = cursor.rowcount > 0
+    # `n` will be `None` if `qs` is an empty queryset
+    has_more = n is not None and n > 0
 
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(

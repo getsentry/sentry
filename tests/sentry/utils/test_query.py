@@ -1,6 +1,8 @@
 import pytest
+from django.db import connections
 
 from sentry.db.models.query import in_iexact
+from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
@@ -96,6 +98,7 @@ class BulkDeleteObjectsTest(TestCase):
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
         assert len(UserReport.objects.all()) == 0
+        assert bulk_delete_objects(UserReport) is False
 
     def test_basic_tuple(self):
         total = 10
@@ -126,3 +129,19 @@ class BulkDeleteObjectsTest(TestCase):
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"
         assert len(UserReport.objects.all()) == 5
+
+    def test_bulk_delete_single_query(self):
+        repo = self.create_repo()
+        # Commit is chosen because there are foreign keys and a naive delete
+        # will attempt to cascade
+        Commit.objects.create(organization_id=repo.organization_id, repository_id=repo.id)
+
+        assert len(Commit.objects.all()) == 1
+        before = len(connections[Commit.objects.db].queries_log)
+        assert bulk_delete_objects(Commit)
+        after = len(connections[Commit.objects.db].queries_log)
+        assert after == before + 1
+        assert len(Commit.objects.all()) == 0
+
+    def test_bulk_delete_empty_queryset(self):
+        assert bulk_delete_objects(UserReport, id__in=()) is False
