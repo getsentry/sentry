@@ -124,6 +124,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         totals_1_result = totals_1_future.result()
         totals_2_result = totals_2_future.result()
 
+        if (
+            not cohort_1_data.results
+            or not cohort_2_data.results
+            or not totals_1_result.get("data")
+            or not totals_2_result.get("data")
+            or not totals_1_result["data"]
+            or not totals_2_result["data"]
+        ):
+            return Response({"rankedAttributes": []})
+
         cohort_1_distribution = []
         cohort_1_distribution_map = defaultdict(list)
         for attribute in cohort_1_data.results[0].attribute_distributions.attributes:
