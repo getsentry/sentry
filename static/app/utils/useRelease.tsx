@@ -20,17 +20,20 @@ export function useRelease({
   projectSlug,
   releaseVersion,
   enabled,
+  retry,
 }: {
   orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
   enabled?: boolean;
+  retry?: boolean;
 }) {
   return useApiQuery<Release>(
     getReleaseQueryKey({orgSlug, projectSlug, releaseVersion}),
     {
       enabled,
       staleTime: Infinity,
+      retry,
     }
   );
 }
