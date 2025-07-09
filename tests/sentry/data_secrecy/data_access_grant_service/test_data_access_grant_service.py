@@ -27,7 +27,7 @@ class TestDataAccessGrantService(TestCase):
             grant_end=grant_end,
         )
 
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
 
@@ -37,7 +37,7 @@ class TestDataAccessGrantService(TestCase):
         assert result.access_end == grant_end
 
     def test_get_effective_waiver_status_with_no_grants(self):
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
         assert result is None
@@ -55,7 +55,7 @@ class TestDataAccessGrantService(TestCase):
             grant_end=grant_end,
         )
 
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
         assert result is None
@@ -73,7 +73,7 @@ class TestDataAccessGrantService(TestCase):
             grant_end=grant_end,
         )
 
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
         assert result is None
@@ -93,7 +93,7 @@ class TestDataAccessGrantService(TestCase):
             revocation_reason=DataAccessGrant.RevocationReason.MANUAL_REVOCATION,
         )
 
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
         assert result is None
@@ -124,7 +124,7 @@ class TestDataAccessGrantService(TestCase):
             grant_end=grant2_end,
         )
 
-        result = data_access_grant_service.get_effective_waiver_status(
+        result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
 

@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.data_secrecy.data_access_grant_service.model import RpcEffectiveWaiverStatus
+from sentry.data_secrecy.data_access_grant_service.model import RpcEffectiveGrantStatus
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 
@@ -24,9 +24,7 @@ class DataAccessGrantService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_effective_waiver_status(
-        self, *, organization_id: int
-    ) -> RpcEffectiveWaiverStatus | None:
+    def get_effective_grant_status(self, *, organization_id: int) -> RpcEffectiveGrantStatus | None:
         pass
 
 
