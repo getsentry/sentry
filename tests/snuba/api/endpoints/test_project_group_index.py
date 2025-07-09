@@ -1502,9 +1502,12 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         return groups
 
-    def assert_groups_marked_for_deletion(self, groups: Sequence[Group]) -> None:
+    def assert_groups_being_deleted(self, groups: Sequence[Group]) -> None:
         for g in groups:
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
+
+        # This is necessary before calling the delete task
+        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
         for g in groups:
@@ -1552,12 +1555,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 204
 
-        self.assert_groups_marked_for_deletion([group1, group2])
+        self.assert_groups_being_deleted([group1, group2])
         # Group 4 is not deleted because it belongs to a different project
         self.assert_groups_not_deleted([group3, group4])
-
-        # This is necessary to undo the changes made by the previous delete call
-        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
         with self.tasks():
             response = self.client.delete(url, format="json")
 
@@ -1609,10 +1609,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 204
-        self.assert_groups_marked_for_deletion(groups)
+        self.assert_groups_being_deleted(groups)
 
-        # This is necessary to undo the changes made by the previous delete call
-        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
         with self.tasks():
             response = self.client.delete(url, format="json")
 
