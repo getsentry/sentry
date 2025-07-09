@@ -1,120 +1,163 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {Key} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {Item} from '@react-stately/collections';
+import {useComboBoxState} from '@react-stately/combobox';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {Badge} from 'sentry/components/core/badge';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Overlay} from 'sentry/components/overlay';
-import {IconSearch} from 'sentry/icons/iconSearch';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import {useStoryTree} from 'sentry/stories/view/storyTree';
 import {space} from 'sentry/styles/space';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySearch() {
-  const searchInput = useRef<HTMLInputElement>(null);
-  const location = useLocation<{name: string; query?: string}>();
-  const [showSearch, setShowSearch] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const files = useStoryBookFiles();
-  const query = location.query.query ?? '';
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    setShowSearch(query.length !== 0);
-  }, [query]);
-  const dismiss = useCallback(() => {
-    setShowSearch(false);
-    navigate(
-      {
-        query: {...location.query, query: undefined},
-      },
-      {replace: true}
-    );
-  }, [setShowSearch, location, navigate]);
-  const searchTree = useStoryTree(files, {
-    query,
-    representation: 'category',
-    type: 'flat',
-  });
-  const onSearchInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate(
-        {
-          query: {...location.query, query: e.target.value, name: location.query.name},
-        },
-        {replace: true}
-      );
-    },
-    [location.query, navigate]
-  );
-
+  const tree = useStoryTree(files, {query: '', representation: 'category', type: 'flat'});
   const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
+    return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
   useHotkeys(storiesSearchHotkeys);
 
   return (
-    <Fragment>
-      <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
-        <InputGroup.LeadingItems disablePointerEvents>
-          <IconSearch />
-        </InputGroup.LeadingItems>
-        <InputGroup.Input
-          ref={el => {
-            searchInput.current = el;
-            const handleFocus = () => setShowSearch(true);
-            el?.addEventListener('focus', handleFocus);
-            return () => {
-              el?.removeEventListener('focus', handleFocus);
-            };
-          }}
-          placeholder="Search stories"
-          defaultValue={location.query.query ?? ''}
-          onChange={onSearchInputChange}
+    <SearchComboBox
+      label={t('Search stories')}
+      menuTrigger="focus"
+      inputRef={inputRef}
+      defaultItems={tree}
+    >
+      {item => (
+        <Item
+          key={item.filesystemPath}
+          textValue={item.label}
+          {...({label: item.label, hideCheck: true} as any)}
         />
-        <InputGroup.TrailingItems>
-          <Badge type="internal">/</Badge>
-        </InputGroup.TrailingItems>
-        {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
-      </InputGroup>
-      {showSearch && (
-        <Overlay
-          style={{position: 'absolute', top: 0, left: 0}}
-          onClick={dismiss}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              dismiss();
-            }
-          }}
-        >
-          <StorySearchContainer>
-            <StoryTree nodes={searchTree} />
-          </StorySearchContainer>
-        </Overlay>
       )}
-    </Fragment>
+    </SearchComboBox>
+  );
+}
+
+function SearchInput(
+  props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
+) {
+  const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
+
+  return (
+    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
+      <InputGroup.LeadingItems disablePointerEvents>
+        <IconSearch />
+      </InputGroup.LeadingItems>
+      <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
+      <InputGroup.TrailingItems>
+        <Badge type="internal">/</Badge>
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+}
+
+interface SearchComboBoxProps<T extends StoryTreeNode>
+  extends Omit<AriaComboBoxProps<T>, 'children'> {
+  children: CollectionChildren<T>;
+  defaultItems: T[];
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  description?: string | null;
+  label?: string;
+}
+
+function filter(textValue: string, inputValue: string): boolean {
+  const match = fzf(textValue, inputValue.toLowerCase(), false);
+  return match.score > 0;
+}
+
+function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) {
+  const [inputValue, setInputValue] = useState('');
+  const {inputRef} = props;
+  const listBoxRef = useRef<HTMLUListElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+  const handleSelectionChange = useCallback(
+    (key: Key | null) => {
+      if (key) {
+        navigate(`/stories?name=${key}`, {replace: true});
+      }
+    },
+    [navigate]
+  );
+
+  const state = useComboBoxState({
+    ...props,
+    inputValue,
+    onInputChange: setInputValue,
+    defaultFilter: filter,
+    shouldCloseOnBlur: false,
+    allowsEmptyCollection: false,
+    onSelectionChange: handleSelectionChange,
+  });
+
+  const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(
+    {
+      ...props,
+      inputRef,
+      listBoxRef,
+      popoverRef,
+    },
+    state
+  );
+
+  return (
+    <StorySearchContainer>
+      <label {...labelProps} className="sr-only">
+        {props.label}
+      </label>
+      <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
+      {state.isOpen && (
+        <StyledOverlay placement="bottom-start" ref={popoverRef}>
+          <ListBox
+            listState={state}
+            hasSearch={!!state.inputValue}
+            hiddenOptions={new Set([])}
+            keyDownHandler={() => false}
+            overlayIsOpen={state.isOpen}
+            size="sm"
+            {...listBoxProps}
+          >
+            {props.children}
+          </ListBox>
+        </StyledOverlay>
+      )}
+    </StorySearchContainer>
   );
 }
 
 const StorySearchContainer = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom-width: 3px;
-  border-radius: ${p => p.theme.borderRadius};
-  position: fixed;
-  top: 48px;
-  left: 272px;
+  position: relative;
   width: 320px;
   flex-grow: 1;
   z-index: calc(infinity);
   padding: ${space(1)};
   padding-right: 0;
-  overflow-y: auto;
-  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
-  ul {
-    margin: 0;
-  }
+const StyledOverlay = styled(Overlay)`
+  position: fixed;
+  top: 48px;
+  left: 272px;
+  width: 320px;
+  max-height: calc(100dvh - 128px);
+  overflow-y: auto;
 `;

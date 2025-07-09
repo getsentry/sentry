@@ -11,6 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 export class StoryTreeNode {
   public name: string;
+  public label: string;
   public path: string;
   public filesystemPath: string;
 
@@ -22,6 +23,7 @@ export class StoryTreeNode {
 
   constructor(name: string, path: string, filesystemPath: string) {
     this.name = name;
+    this.label = normalizeFilename(name);
     this.path = path;
     this.filesystemPath = filesystemPath;
   }
