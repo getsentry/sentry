@@ -31,7 +31,6 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
-import {TraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -942,12 +941,8 @@ describe('SearchQueryBuilder', function () {
     it('displays ask seer button when searching free text', async function () {
       const mockOnSearch = jest.fn();
       render(
-        <TraceExploreAiQueryContext.Provider value={{}}>
-          <SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />
-        </TraceExploreAiQueryContext.Provider>,
-        {
-          organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
-        }
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
       );
 
       await userEvent.click(getLastInput());
