@@ -9,6 +9,8 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {
@@ -24,7 +26,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconFix} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -33,6 +35,7 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
@@ -330,6 +333,8 @@ function AutofixSolutionDisplay({
   agentCommentThread,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const organization = useOrganization();
+  const {data: group} = useGroup({groupId});
+  const project = group?.project;
 
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
@@ -488,38 +493,49 @@ function AutofixSolutionDisplay({
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
               )}
             </ButtonBar>
-            <ButtonBar merged>
-              <Button
+            <ButtonBar>
+              <Tooltip
+                isHoverable
                 title={
                   hasNoRepos
-                    ? t(
-                        'You need to set up the GitHub integration and configure repository access for Seer to write code for you.'
+                    ? tct(
+                        'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                        {
+                          link: (
+                            <Link
+                              to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                            />
+                          ),
+                        }
                       )
                     : cantReadRepos
                       ? t(
-                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
+                          "Seer can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
                         )
                       : undefined
                 }
-                size="sm"
-                priority={
-                  !solutionSelected || !valueIsEqual(solutionItems, solution, true)
-                    ? 'primary'
-                    : 'default'
-                }
-                busy={isPending}
-                disabled={hasNoRepos || cantReadRepos}
-                onClick={() => {
-                  handleContinue({
-                    mode: 'fix',
-                    solution: solutionItems,
-                  });
-                }}
-                analyticsEventName="Autofix: Code It Up"
-                analyticsEventKey="autofix.solution.code"
               >
-                {t('Code It Up')}
-              </Button>
+                <Button
+                  size="sm"
+                  priority={
+                    !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                      ? 'primary'
+                      : 'default'
+                  }
+                  busy={isPending}
+                  disabled={hasNoRepos || cantReadRepos}
+                  onClick={() => {
+                    handleContinue({
+                      mode: 'fix',
+                      solution: solutionItems,
+                    });
+                  }}
+                  analyticsEventName="Autofix: Code It Up"
+                  analyticsEventKey="autofix.solution.code"
+                >
+                  {t('Code It Up')}
+                </Button>
+              </Tooltip>
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
@@ -631,14 +647,14 @@ const HeaderWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-top: ${space(0.5)};
 `;
 

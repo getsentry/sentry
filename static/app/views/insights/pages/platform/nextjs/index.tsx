@@ -80,7 +80,7 @@ export function NextJsOverviewPage({
       updateQuery({
         view,
         // Clear table cursor and sort order
-        cursor: undefined,
+        tableCursor: undefined,
         field: undefined,
         order: undefined,
       });

@@ -58,11 +58,15 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
         constraints = (
             ExclusionConstraint(
-                name="exclude_overlapping_start_end",
+                name="exclude_overlapping_date_start_end",
                 expressions=[
                     (models.F("group"), RangeOperators.EQUAL),
                     (
-                        TsTzRange("date_started", "date_ended", RangeBoundary()),
+                        TsTzRange(
+                            "date_started",
+                            "date_ended",
+                            RangeBoundary(inclusive_lower=True, inclusive_upper=True),
+                        ),
                         RangeOperators.OVERLAPS,
                     ),
                 ],

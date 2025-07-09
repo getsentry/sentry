@@ -201,7 +201,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 plan.id === 'mm2_b') &&
               !plan.id.endsWith('_ac') &&
               !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id)
+              !isTrialPlan(plan.id) &&
+              !plan.isTestPlan
             ) {
               acc[plan.id] = plan;
             }
@@ -328,7 +329,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     isAm3DsPlan(this.state.data.plan) &&
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null || value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
       .length >= 2;
 
@@ -336,7 +337,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null && value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
       .length >= 2;
 
@@ -363,7 +364,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSpans'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSpans &&
     this.state.data.dynamicSamplingBudget;
 
   // Same as above, but for Seer budgets
@@ -372,7 +372,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSeer'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSeerAutofix &&
     this.state.data.seerBudget;
 
   /**
@@ -591,6 +590,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
         budget: postData.seerBudget,
       });
+    } else {
+      delete postData.reservedCpeSeerAutofix;
+      delete postData.reservedCpeSeerScanner;
     }
     delete postData.seerBudget;
 
@@ -891,7 +893,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                   name={`reservedCpe${capitalizedApiName}`}
                                   value={data[`reservedCpe${capitalizedApiName}`]}
                                   step={0.00000001}
-                                  min={0.00000001}
+                                  min={0}
                                   max={1}
                                   onChange={v =>
                                     this.setState(state => ({

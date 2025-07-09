@@ -1,10 +1,11 @@
 import jsonschema
 import orjson
 import sentry_sdk
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -77,10 +78,18 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
-        if not features.has(
+
+        analytics.record(
+            "preprod_artifact.api.assemble",
+            organization_id=project.organization_id,
+            project_id=project.id,
+            user_id=request.user.id,
+        )
+
+        if not settings.IS_DEV and not features.has(
             "organizations:preprod-artifact-assemble", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=404)
+            return Response({"error": "Feature not enabled"}, status=403)
 
         with sentry_sdk.start_span(op="preprod_artifact.assemble"):
             data, error_message = validate_preprod_artifact_schema(request.body)

@@ -393,19 +393,19 @@ const SortAndFilterWrapper = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(3, 1fr);
     & > div {
       width: auto;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-column: 1 / -1;
   }
 `;

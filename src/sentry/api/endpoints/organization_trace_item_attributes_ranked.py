@@ -51,7 +51,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
         )
 
-        meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value)
+        meta = resolver.resolve_meta(
+            referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+            sampling_mode=snuba_params.sampling_mode,
+        )
+
         query_1 = request.GET.get("query_1", "")
         query_2 = request.GET.get("query_2", "")
 

@@ -255,6 +255,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
+    from sentry import options as featureflags
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
@@ -266,7 +267,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        enabled_schedules = set(options.get("taskworker.scheduler.rollout", []))
+        enabled_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             if key in enabled_schedules:
                 runner.add(key, schedule_data)
@@ -479,6 +480,8 @@ def cron(**options: Any) -> None:
     "Run periodic task dispatcher."
     from django.conf import settings
 
+    from sentry import options as featureflags
+
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
             "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
@@ -488,7 +491,7 @@ def cron(**options: Any) -> None:
 
     old_schedule = app.conf.CELERYBEAT_SCHEDULE
     new_schedule = {}
-    task_schedules = set(options.get("taskworker.scheduler.rollout", []))
+    task_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
     for key, schedule_data in old_schedule.items():
         if key not in task_schedules:
             new_schedule[key] = schedule_data
@@ -514,6 +517,11 @@ def cron(**options: Any) -> None:
     "--topic",
     type=str,
     help="Which physical topic to use for this consumer. This can be a topic name that is not specified in settings. The logical topic is still hardcoded in sentry.consumers.",
+)
+@click.option(
+    "--kafka-slice-id",
+    type=int,
+    help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
 )
 @click.option(
     "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
@@ -597,6 +605,7 @@ def basic_consumer(
     consumer_name: str,
     consumer_args: tuple[str, ...],
     topic: str | None,
+    kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
     **options: Any,
 ) -> None:
@@ -620,16 +629,22 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
-    from sentry.utils.arroyo import initialize_arroyo_main
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
-    add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
-    initialize_arroyo_main()
-
-    processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
+    add_global_tags(
+        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+    )
+    processor = get_stream_processor(
+        consumer_name,
+        consumer_args,
+        topic=topic,
+        kafka_slice_id=kafka_slice_id,
+        add_global_tags=True,
+        **options,
+    )
 
     # for backwards compat: should eventually be removed
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
@@ -651,9 +666,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     """
 
     from sentry.consumers import get_stream_processor
-    from sentry.utils.arroyo import initialize_arroyo_main
-
-    initialize_arroyo_main()
 
     processors = [
         get_stream_processor(

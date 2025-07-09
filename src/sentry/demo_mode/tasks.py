@@ -44,7 +44,7 @@ def sync_debug_artifacts():
 
     target_org = get_demo_org()
 
-    lookback_days = options.get("sentry.demo_mode.sync_debug_artifacts.lookback_days")
+    lookback_days = 3
     cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     _sync_artifact_bundles(source_org, target_org, cutoff_date)
@@ -181,10 +181,13 @@ def _sync_project_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
 ):
-    source_project_artifact_bundle = ProjectArtifactBundle.objects.get(
+    source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    )
+    ).first()
+
+    if not source_project_artifact_bundle:
+        return
 
     target_project = _find_matching_project(
         source_project_artifact_bundle.project_id,

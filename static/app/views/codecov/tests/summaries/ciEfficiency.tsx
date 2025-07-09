@@ -106,7 +106,7 @@ function CIEfficiencyBody({
         >
           {t('Slowest Tests (P95)')}
         </SummaryEntryLabel>
-        <SummaryEntryValueLink filterBy="slowest_tests">
+        <SummaryEntryValueLink filterBy="slowestTests">
           {formatTimeDuration(slowestTestsDuration, 2)}
         </SummaryEntryValueLink>
       </SummaryEntry>
@@ -132,7 +132,7 @@ export function CIEfficiency({isLoading, ...bodyProps}: CIEfficiencyProps) {
 const CIEfficiencyPanel = styled(Panel)`
   grid-column: span 24;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-column: span 8;
   }
 `;

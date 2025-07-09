@@ -1,25 +1,20 @@
-import styled from '@emotion/styled';
-
-import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
+import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 interface Props {
-  href: string;
-  name: string;
+  automation: Automation;
 }
 
-export default function AutomationTitleCell({name, href}: Props) {
-  return <StyledLink to={href}>{name}</StyledLink>;
+export default function AutomationTitleCell({automation}: Props) {
+  const organization = useOrganization();
+
+  return (
+    <TitleCell
+      name={automation.name}
+      link={makeAutomationDetailsPathname(organization.slug, automation.id)}
+      systemCreated={!automation.createdBy}
+    />
+  );
 }
-
-const StyledLink = styled(Link)`
-  padding: ${space(2)};
-  margin: -${space(2)};
-  color: ${p => p.theme.textColor};
-
-  &:hover,
-  &:active {
-    text-decoration: underline;
-    color: ${p => p.theme.textColor};
-  }
-`;

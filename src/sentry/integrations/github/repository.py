@@ -6,6 +6,7 @@ from typing import Any
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -18,7 +19,7 @@ WEBHOOK_EVENTS = ["push", "pull_request"]
 
 class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
-    repo_provider = "github"
+    repo_provider = IntegrationProviderSlug.GITHUB.value
 
     def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:

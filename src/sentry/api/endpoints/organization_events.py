@@ -34,7 +34,7 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -54,153 +54,6 @@ GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
 
 class DiscoverDatasetSplitException(Exception):
     pass
-
-
-ALLOWED_EVENTS_REFERRERS: set[str] = {
-    Referrer.API_AI_PIPELINES_DETAILS_VIEW.value,
-    Referrer.API_AI_PIPELINES_VIEW.value,
-    Referrer.API_DASHBOARDS_BIGNUMBERWIDGET.value,
-    Referrer.API_DASHBOARDS_TABLEWIDGET.value,
-    Referrer.API_DISCOVER_QUERY_TABLE.value,
-    Referrer.API_DISCOVER_TRANSACTIONS_LIST.value,
-    Referrer.API_EXPLORE_COMPARE_TABLE.value,
-    Referrer.API_EXPLORE_LOGS_TABLE.value,
-    Referrer.API_EXPLORE_LOGS_TABLE_ROW.value,
-    Referrer.API_EXPLORE_MULTI_QUERY_SPANS_TABLE.value,
-    Referrer.API_EXPLORE_SPANS_AGGREGATES_TABLE.value,
-    Referrer.API_EXPLORE_SPANS_EXTRAPOLATION_META.value,
-    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE.value,
-    Referrer.API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR.value,
-    Referrer.API_ISSUES_ISSUE_EVENTS.value,
-    Referrer.API_LOGS_TAB_VIEW.value,
-    Referrer.API_LOGS_TAB_VIEW.value,
-    Referrer.API_ORGANIZATION_EVENTS.value,
-    Referrer.API_ORGANIZATION_EVENTS_V2.value,
-    Referrer.API_PERFORMANCE_AI_ANALYTICS_TOKEN_USAGE_CHART.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE.value,
-    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART.value,
-    Referrer.API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR.value,
-    Referrer.API_PERFORMANCE_BROWSER_RESOURCES_RESOURCE_SUMMARY_METRICS_RIBBON.value,
-    Referrer.API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION.value,
-    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
-    Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION.value,
-    Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
-    Referrer.API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON.value,
-    Referrer.API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES.value,
-    Referrer.API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES.value,
-    Referrer.API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION.value,
-    Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ISSUES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_COLD_START.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_WARM_START.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES.value,
-    Referrer.API_PERFORMANCE_LANDING_TABLE.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_BAR_CHART.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_SPAN_TABLE.value,
-    Referrer.API_PERFORMANCE_QUEUES_LANDING_DESTINATIONS_TABLE.value,
-    Referrer.API_PERFORMANCE_QUEUES_SAMPLES_PANEL.value,
-    Referrer.API_PERFORMANCE_QUEUES_SUMMARY.value,
-    Referrer.API_PERFORMANCE_QUEUES_SUMMARY_TRANSACTIONS_TABLE.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
-    Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
-    Referrer.API_PERFORMANCE_TRACE_TRACE_DRAWER_TRANSACTION_CACHE_METRICS.value,
-    Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_EVENTS.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SPANS.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY.value,
-    Referrer.API_PERFORMANCE_VITALS_CARDS.value,
-    Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
-    Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
-    Referrer.API_PROFILING_LANDING_TABLE.value,
-    Referrer.API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE.value,
-    Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
-    Referrer.API_PROFILING_PROFILE_SUMMARY_TOTALS.value,
-    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_LIST.value,
-    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_TOTALS.value,
-    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS.value,
-    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS.value,
-    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_LATEST.value,
-    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST.value,
-    Referrer.API_REPLAY_DETAILS_PAGE.value,
-    Referrer.API_STARFISH_DATABASE_SYSTEM_SELECTOR.value,
-    Referrer.API_STARFISH_ENDPOINT_LIST.value,
-    Referrer.API_STARFISH_FULL_SPAN_FROM_TRACE.value,
-    Referrer.API_STARFISH_GET_SPAN_ACTIONS.value,
-    Referrer.API_STARFISH_GET_SPAN_DOMAINS.value,
-    Referrer.API_STARFISH_GET_SPAN_OPERATIONS.value,
-    Referrer.API_STARFISH_MOBILE_DEVICE_BREAKDOWN.value,
-    Referrer.API_STARFISH_MOBILE_EVENT_SAMPLES.value,
-    Referrer.API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY.value,
-    Referrer.API_STARFISH_MOBILE_RELEASE_SELECTOR.value,
-    Referrer.API_STARFISH_MOBILE_SCREENS_METRICS.value,
-    Referrer.API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE.value,
-    Referrer.API_STARFISH_MOBILE_SCREEN_BAR_CHART.value,
-    Referrer.API_STARFISH_MOBILE_SCREEN_TABLE.value,
-    Referrer.API_STARFISH_MOBILE_SCREEN_TOTALS.value,
-    Referrer.API_STARFISH_MOBILE_SPAN_TABLE.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_BAR_CHART.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_SERIES.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
-    Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
-    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS.value,
-    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN.value,
-    Referrer.API_STARFISH_SPAN_DESCRIPTION.value,
-    Referrer.API_STARFISH_SPAN_LIST.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_P95.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_PANEL.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_TRANSACTIONS.value,
-    Referrer.API_STARFISH_SPAN_TRANSACTION_METRICS.value,
-    Referrer.API_STARFISH_TOTAL_TIME.value,
-    Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
-    Referrer.API_TRACE_VIEW_HOVER_CARD.value,
-    Referrer.API_TRACE_VIEW_LINKED_TRACES.value,
-    Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
-    Referrer.API_UPTIME_CHECKS_GRID.value,
-    Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
-    Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
-}
 
 
 LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
@@ -448,15 +301,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None:
+        elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            if referrer:
-                with sentry_sdk.isolation_scope() as scope:
-                    scope.set_tag("forbidden_referrer", referrer)
-                    sentry_sdk.capture_message(
-                        "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
-                    )
+        elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
@@ -725,6 +572,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=True,
                             use_aggregate_conditions=use_aggregate_conditions,
                             fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                            in request.GET,
                         ),
                         sampling_mode=snuba_params.sampling_mode,
                     )
@@ -745,7 +594,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
-        max_per_page = 1000 if dataset == ourlogs else None
+        max_per_page = 9999 if dataset == ourlogs else None
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

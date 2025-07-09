@@ -59,6 +59,7 @@ OPTION_KEYS = frozenset(
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
+        "sentry:dynamic_sampling_minimum_sample_rate",
         "sentry:target_sample_rate",
         "sentry:tempest_fetch_screenshots",
         "sentry:tempest_fetch_dumps",
@@ -180,7 +181,7 @@ class ProjectOption(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = PickledObjectField(null=True)
 
     objects: ClassVar[ProjectOptionManager] = ProjectOptionManager()
 

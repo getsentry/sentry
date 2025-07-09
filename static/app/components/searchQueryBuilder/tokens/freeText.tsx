@@ -272,9 +272,10 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilder();
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    filterValue,
-  });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
+    useFilterKeyListBox({
+      filterValue,
+    });
   const sortedFilteredItems = useSortedFilterKeyItems({
     filterValue,
     inputValue,
@@ -391,6 +392,13 @@ function SearchQueryBuilderInputInternal({
         items={items}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
+          if (handleOptionSelected) {
+            handleOptionSelected(option);
+            if (option.type === 'ask-seer') {
+              return;
+            }
+          }
+
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
@@ -416,6 +424,18 @@ function SearchQueryBuilderInputInternal({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (option.type === 'raw-search-filter-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.textValue,
               focusOverride: calculateNextFocusForInsertedToken(item),
               shouldCommitQuery: true,
             });

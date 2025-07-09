@@ -10,7 +10,7 @@ import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLa
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import {FluidPanel} from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
@@ -70,15 +70,16 @@ export default function ReplayLayout({
     );
   }
 
-  const focusArea = isLoading ? (
-    <Placeholder width="100%" height="100%" />
-  ) : (
-    <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
-      <ErrorBoundary mini>
-        <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
-      </ErrorBoundary>
-    </FluidPanel>
-  );
+  const focusArea =
+    isLoading || replayRecord?.is_archived ? (
+      <Placeholder width="100%" height="100%" />
+    ) : (
+      <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
+        <ErrorBoundary mini>
+          <FocusArea isVideoReplay={isVideoReplay} />
+        </ErrorBoundary>
+      </FluidPanel>
+    );
 
   const hasSize = width + height > 0;
 

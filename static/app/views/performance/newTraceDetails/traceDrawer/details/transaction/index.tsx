@@ -51,6 +51,7 @@ type TransactionNodeDetailHeaderProps = {
   node: TraceTreeNode<TraceTree.Transaction>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  hideNodeActions?: boolean;
 };
 
 function TransactionNodeDetailHeader({
@@ -58,6 +59,7 @@ function TransactionNodeDetailHeader({
   organization,
   onTabScrollToNode,
   event,
+  hideNodeActions,
 }: TransactionNodeDetailHeaderProps) {
   return (
     <TraceDrawerComponents.HeaderContainer>
@@ -72,12 +74,14 @@ function TransactionNodeDetailHeader({
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        eventSize={event?.size}
-      />
+      {!hideNodeActions && (
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+          eventSize={event?.size}
+        />
+      )}
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -88,6 +92,7 @@ export function TransactionNodeDetails({
   onTabScrollToNode,
   onParentClick,
   replay,
+  hideNodeActions,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -129,6 +134,7 @@ export function TransactionNodeDetails({
         organization={organization}
         event={event}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         {node.canFetch ? null : (
@@ -158,6 +164,7 @@ export function TransactionNodeDetails({
           node={node}
           project={project}
           organization={organization}
+          hideNodeActions={hideNodeActions}
         />
 
         <AIInputSection node={node} event={event} />

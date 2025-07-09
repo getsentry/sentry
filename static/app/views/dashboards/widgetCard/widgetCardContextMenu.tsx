@@ -2,7 +2,10 @@ import type React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {
+  openAddToDashboardModal,
+  openDashboardWidgetQuerySelectorModal,
+} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -26,7 +29,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -34,8 +37,12 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetLogURL,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -199,6 +206,8 @@ function WidgetCardContextMenu({
     Boolean(isMetricsData),
     widgetLimitReached,
     hasEditAccess,
+    location,
+    router,
     onDelete,
     onDuplicate,
     onEdit
@@ -279,6 +288,8 @@ export function getMenuOptions(
   isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  location: Location,
+  router: InjectedRouter,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -349,7 +360,21 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        Mode.SAMPLES
+      ),
+    });
+  }
+
+  if (widget.widgetType === WidgetType.LOGS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
     });
   }
 
@@ -369,6 +394,27 @@ export function getMenuOptions(
   }
 
   if (organization.features.includes('dashboards-edit')) {
+    menuOptions.push({
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () => {
+        openAddToDashboardModal({
+          organization,
+          location,
+          router,
+          selection,
+          widget: {
+            ...widget,
+            id: undefined,
+            dashboardId: undefined,
+            layout: undefined,
+          },
+          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+          allowCreateNewDashboard: true,
+          source: DashboardWidgetSource.DASHBOARDS,
+        });
+      },
+    });
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
@@ -424,13 +470,13 @@ const SampledTag = styled(Tag)`
 
 const WidgetTooltipTitle = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   text-align: left;
 `;
 
 const WidgetTooltipDescription = styled('div')`
   margin-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 

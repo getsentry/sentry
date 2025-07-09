@@ -7,8 +7,10 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerItem,
   createFilterValueItem,
   createItem,
+  createRawSearchFilterValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -16,6 +18,7 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -127,8 +130,19 @@ export function useSortedFilterKeyItems({
   includeSuggestions: boolean;
   inputValue: string;
 }): SearchKeyItem[] {
-  const {filterKeys, getFieldDefinition, filterKeySections, disallowFreeText} =
-    useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    filterKeySections,
+    disallowFreeText,
+    replaceRawSearchKeys,
+    enableAISearch,
+  } = useSearchQueryBuilder();
+  const organization = useOrganization();
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -197,7 +211,31 @@ export function useSortedFilterKeyItems({
         !disallowFreeText &&
         inputValue &&
         !isQuoted(inputValue) &&
-        (!keyItems.length || inputValue.trim().includes(' '));
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
+
+      const rawSearchReplacements: KeySectionItem = {
+        key: 'raw-search-filter-values',
+        value: 'raw-search-filter-values',
+        label: '',
+        options:
+          replaceRawSearchKeys?.map(key => {
+            const value = inputValue?.includes(' ')
+              ? `"${inputValue.replace(/"/g, '')}"`
+              : inputValue;
+
+            return createRawSearchFilterValueItem(key, value);
+          }) ?? [],
+        type: 'section',
+      };
+
+      const shouldReplaceRawSearch =
+        !disallowFreeText &&
+        inputValue &&
+        !isQuoted(inputValue) &&
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        !!replaceRawSearchKeys?.length &&
+        hasRawSearchReplacement;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -212,22 +250,27 @@ export function useSortedFilterKeyItems({
 
       return [
         ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
+        ...(shouldReplaceRawSearch ? [rawSearchReplacements] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
+        ...(enableAISearch ? [createAskSeerItem()] : []),
       ];
     }
 
     return keyItems;
   }, [
     disallowFreeText,
+    enableAISearch,
     filterKeySections,
     filterKeys,
     filterValue,
     flatKeys,
     getFieldDefinition,
+    hasRawSearchReplacement,
     includeSuggestions,
     inputValue,
+    replaceRawSearchKeys,
     search,
   ]);
 }

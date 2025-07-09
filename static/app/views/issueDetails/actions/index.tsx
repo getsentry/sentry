@@ -17,9 +17,9 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
@@ -386,7 +386,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           <ResolvedActionWapper>
             <ResolvedWrapper>
               <IconCheckmark size="md" />
-              <Flex column>
+              <Flex direction="column">
                 {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
                 <ReasonBanner>
                   {group.status === 'resolved'
@@ -676,7 +676,7 @@ const ResolvedWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.green400};
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ResolvedActionWapper = styled('div')`
@@ -688,5 +688,5 @@ const ResolvedActionWapper = styled('div')`
 const ReasonBanner = styled('div')`
   font-weight: normal;
   color: ${p => p.theme.green400};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

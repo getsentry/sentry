@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.models.expressions import Expression
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -28,7 +30,6 @@ from sentry.db.models import (
     FlexibleForeignKey,
     control_silo_model,
 )
-from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
@@ -128,11 +129,11 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
         return {id: id in authenticators for id in user_ids}
 
 
-class AuthenticatorConfig(PickledObjectField):
+class AuthenticatorConfig(models.JSONField):
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
-    def get_db_prep_value(self, value: Any, *args: Any, **kwargs: Any) -> str | None:
+    def _encode_value(self, value: Any) -> Any:
         if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
@@ -140,16 +141,23 @@ class AuthenticatorConfig(PickledObjectField):
                 # AuthenticatorData is a non-json-serializable bytes subclass
                 if isinstance(device["binding"], AuthenticatorData):
                     device["binding"] = base64.b64encode(device["binding"]).decode()
+        return value
 
-        return super().get_db_prep_value(value, *args, **kwargs)
+    def get_db_prep_value(self, value: Any, *args: Any, **kwargs: Any) -> Any:
+        return super().get_db_prep_value(self._encode_value(value), *args, **kwargs)
 
-    def to_python(self, value: Any) -> Any | None:
-        ret = super().to_python(value)
+    def from_db_value(
+        self, value: str | None, expression: Expression, connection: BaseDatabaseWrapper
+    ) -> Any | None:
+        ret = super().from_db_value(value, expression, connection)
         if self._is_devices_config(ret):
             for device in ret["devices"]:
                 if isinstance(device["binding"], str):
                     device["binding"] = AuthenticatorData(base64.b64decode(device["binding"]))
         return ret
+
+    def value_to_string(self, obj: models.Model) -> object:  # type: ignore[override]  # see typeddjango/django-stubs#2729
+        return self._encode_value(self.value_from_object(obj))
 
 
 @control_silo_model

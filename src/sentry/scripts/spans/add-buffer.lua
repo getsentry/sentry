@@ -14,21 +14,21 @@ ARGS:
 
 ]]--
 
-local partition = KEYS[1]
+local project_and_trace = KEYS[1]
 
-local project_and_trace = ARGV[1]
-local num_spans = ARGV[2]
-local parent_span_id = ARGV[3]
-local has_root_span = ARGV[4] == "true"
-local set_timeout = tonumber(ARGV[5])
-local LAST_ARG = 5  -- last index of ARGV that is not a span_id
+local num_spans = ARGV[1]
+local parent_span_id = ARGV[2]
+local has_root_span = ARGV[3] == "true"
+local set_timeout = tonumber(ARGV[4])
+local max_segment_bytes = tonumber(ARGV[5])
+local NUM_ARGS = 5
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
-local main_redirect_key = string.format("span-buf:sr:{%s}:%s", partition, project_and_trace)
+local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 
-for i = 0, 10000 do  -- theoretically this limit means that segment trees of depth 10k may not be joined together correctly.
+for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
     redirect_depth = i
     if not new_set_span or new_set_span == set_span_id then
@@ -38,8 +38,8 @@ for i = 0, 10000 do  -- theoretically this limit means that segment trees of dep
     set_span_id = new_set_span
 end
 
-local set_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, set_span_id)
-local parent_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, parent_span_id)
+local set_key = string.format("span-buf:z:{%s}:%s", project_and_trace, set_span_id)
+local parent_key = string.format("span-buf:z:{%s}:%s", project_and_trace, parent_span_id)
 
 local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
 has_root_span = has_root_span or redis.call("get", has_root_span_key) == "1"
@@ -50,11 +50,11 @@ end
 local hset_args = {}
 local sunionstore_args = {}
 
-if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+if set_span_id ~= parent_span_id and redis.call("zcard", parent_key) > 0 then
     table.insert(sunionstore_args, parent_key)
 end
 
-for i = LAST_ARG + 1, num_spans + LAST_ARG do
+for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     local is_root_span = span_id == parent_span_id
 
@@ -62,7 +62,7 @@ for i = LAST_ARG + 1, num_spans + LAST_ARG do
     table.insert(hset_args, set_span_id)
 
     if not is_root_span then
-        local span_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, span_id)
+        local span_key = string.format("span-buf:z:{%s}:%s", project_and_trace, span_id)
         table.insert(sunionstore_args, span_key)
     end
 end
@@ -71,8 +71,12 @@ redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
 if #sunionstore_args > 0 then
-    redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
+    redis.call("zunionstore", set_key, #sunionstore_args + 1, set_key, unpack(sunionstore_args))
     redis.call("unlink", unpack(sunionstore_args))
+
+    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
+        redis.call("zpopmin", set_key)
+    end
 end
 
 redis.call("expire", set_key, set_timeout)

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
@@ -114,13 +113,6 @@ function ThresholdTypeForm({
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <StyledFeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t('Anomaly detection is in beta and may produce unexpected results'),
-            isHoverable: true,
-          }}
-        />
       </ComparisonContainer>,
     ] as RadioOption);
   }
@@ -161,10 +153,6 @@ const StyledRadioGroup = styled(RadioGroup)`
   & > label {
     height: 33px;
   }
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(0.25)};
 `;
 
 export default ThresholdTypeForm;

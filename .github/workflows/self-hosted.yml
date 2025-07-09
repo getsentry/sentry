@@ -19,15 +19,25 @@ env:
 
 jobs:
   self-hosted:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: amd64
+          - os: ubuntu-24.04-arm
+            platform: arm64
+    name: self-hosted-${{ matrix.os }}-${{ matrix.platform }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
@@ -54,7 +64,7 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('pnpm-lock.yaml', '.volta.json') }}
+          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
@@ -64,29 +74,144 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+      - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
+        if: github.ref_name == 'master' && github.event_name != 'pull_request'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Build
+        uses: docker/build-push-action@32945a339266b759abcbdc89316275140b0fc960 # v6.8.10
+        with:
+          context: .
+          file: 'self-hosted/Dockerfile'
+          cache-from: ghcr.io/getsentry/sentry:latest
+          cache-to: type=inline
+          platforms: linux/${{ matrix.platform }}
+          tags: sentry:${{ matrix.platform }}
+          outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
+          push: false
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            TARGETARCH=${{ matrix.platform }}
+
+      - name: Upload Image
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sentry-${{ matrix.platform }}
+          path: /tmp/sentry-${{ matrix.platform }}.tar
+
+  assemble:
+    needs: [self-hosted]
+    if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Docker Login
+        run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: github.event_name != 'pull_request'
 
-      - run: docker buildx create --driver docker-container --use
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
-      - run: |
-          if [ ${{ github.event_name }} = 'push' ]; then
-            args=(
-              --tag ghcr.io/getsentry/sentry-self-hosted:latest
-              --push
-            )
+      - name: Download amd64 Image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.2
+        with:
+          name: sentry-amd64
+          path: /tmp
+
+      - name: Load amd64 Image
+        run: docker load --input /tmp/sentry-amd64.tar
+
+      - name: Download arm64 Image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.2
+        with:
+          name: sentry-arm64
+          path: /tmp
+
+      - name: Load arm64 Image
+        run: docker load --input /tmp/sentry-arm64.tar
+
+      - name: Push to GitHub Container Registry
+        run: |
+          docker tag sentry:amd64 ghcr.io/getsentry/sentry:${{ github.sha }}-amd64
+          docker push ghcr.io/getsentry/sentry:${{ github.sha }}-amd64
+
+          docker tag sentry:arm64 ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+          docker push ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest create \
+            ghcr.io/getsentry/sentry:${{ github.sha }} \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest push ghcr.io/getsentry/sentry:${{ github.sha }}
+
+          docker manifest create \
+            ghcr.io/getsentry/sentry:latest \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest push ghcr.io/getsentry/sentry:latest
+
+          docker manifest create \
+            ghcr.io/getsentry/sentry:nightly \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest push ghcr.io/getsentry/sentry:nightly
+
+          # These manifests below are being used for development purposes.
+          # We shall keep it as is.
+          docker manifest create \
+            ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest push ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+
+          docker manifest create \
+            ghcr.io/getsentry/sentry-self-hosted:latest \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+          docker manifest push ghcr.io/getsentry/sentry-self-hosted:latest
+
+  publish-dockerhub:
+    needs: [assemble]
+    runs-on: ubuntu-latest
+    if: ${{ (github.ref_name == 'master') }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Get short SHA for docker tag
+        id: short_sha
+        shell: bash
+        run: |
+          SHORT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          if [[ -z "$SHORT_SHA" ]]; then
+            echo "Short SHA empty? Re-running rev-parse."
+            git rev-parse --short "$GITHUB_SHA"
           else
-            args=()
+            echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           fi
+      - name: Push built docker image
+        shell: bash
+        env:
+          SHORT_SHA: ${{ steps.short_sha.outputs.sha }}
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+        run: |
+          # only login if the password is set
+          if [[ "${{ secrets.DOCKER_HUB_RW_TOKEN }}" ]]; then echo "${{ secrets.DOCKER_HUB_RW_TOKEN }}" | docker login --username=sentrybuilder --password-stdin; fi
 
-          docker buildx build \
-            --pull \
-            --cache-from ghcr.io/getsentry/sentry-self-hosted:latest \
-            --cache-to type=inline \
-            --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
-            --file self-hosted/Dockerfile \
-            --build-arg SOURCE_COMMIT=${{ github.sha }} \
-            "${args[@]}" \
-            .
+          # We push 3 tags to Dockerhub:
+          # first, the full sha of the commit
+          docker buildx imagetools create --tag getsentry/sentry:${GITHUB_SHA} ghcr.io/getsentry/sentry:${{ github.sha }}
+
+          # second, the short sha of the commit
+          docker buildx imagetools create --tag getsentry/sentry:${SHORT_SHA} ghcr.io/getsentry/sentry:${{ github.sha }}
+
+          # finally, nightly
+          docker buildx imagetools create --tag getsentry/sentry:nightly ghcr.io/getsentry/sentry:${{ github.sha }}

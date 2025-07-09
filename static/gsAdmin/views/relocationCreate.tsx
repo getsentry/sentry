@@ -6,7 +6,6 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
-import Well from 'sentry/components/well';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -127,7 +126,7 @@ function RelocationForm() {
             setRegion(reg);
           }}
         />
-        <UploadWell centered>
+        <UploadWell>
           <UploadInput
             name="file"
             type="file"
@@ -170,8 +169,14 @@ function RelocationForm() {
   );
 }
 
-const UploadWell = styled(Well)`
+const UploadWell = styled('div')`
   margin-top: ${space(2)};
+  margin-bottom: ${space(3)};
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  padding: ${space(2)} ${space(3)};
+  border-radius: 3px;
+  text-align: center;
 `;
 
 const UploadInput = styled('input')`

@@ -1006,6 +1006,7 @@ def test_mobile_performance_calculate_score(default_project):
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
             {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
         ],
@@ -1099,6 +1100,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 @region_silo_test
 def test_project_config_cardinality_limits_project_options_override_other_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1166,6 +1168,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
 @region_silo_test
 def test_project_config_cardinality_limits_organization_options_override_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,

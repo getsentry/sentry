@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
@@ -29,7 +30,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
@@ -40,8 +40,8 @@ import {
   displayCrashFreePercent,
 } from 'sentry/views/releases/utils';
 
-import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
-import ProjectChart from './projectChart';
+import {Deploys} from './deploys';
+import {ProjectChart} from './projectChart';
 
 interface ProjectCardProps {
   hasProjectAccess: boolean;
@@ -108,31 +108,33 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
   const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
   const totalTransactions =
     transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
-  const zeroTransactions = totalTransactions === 0;
-  const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-  const domainView: DomainView | undefined = project
+
+  const hasFirstEvent = !!project.firstEvent || project.firstTransactionEvent;
+  const domainView = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
 
   return (
-    <StyledProjectCard data-test-id={slug}>
+    <CardPanel data-test-id={slug}>
       <CardHeader>
         <HeaderRow>
-          <StyledIdBadge
+          <AlignedIdBadge
             project={project}
             avatarSize={32}
             hideOverflow
             disableLink={!hasProjectAccess}
           />
-          <SettingsButton
-            borderless
-            size="zero"
-            icon={<IconSettings color="subText" />}
-            title={t('Settings')}
-            aria-label={t('Settings')}
-            to={`/settings/${organization.slug}/projects/${slug}/`}
-          />
-          <StyledBookmarkStar organization={organization} project={project} />
+          <ButtonBar gap={0.5}>
+            <SettingsButton
+              borderless
+              size="zero"
+              icon={<IconSettings color="subText" />}
+              title={t('Settings')}
+              aria-label={t('Settings')}
+              to={`/settings/${organization.slug}/projects/${slug}/`}
+            />
+            <BookmarkStar organization={organization} project={project} />
+          </ButtonBar>
         </HeaderRow>
         <SummaryLinks data-test-id="summary-links">
           {stats ? (
@@ -144,22 +146,19 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
                 {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
               </Link>
               {hasPerformance && (
-                <Fragment>
-                  <em>|</em>
-                  <TransactionsLink
-                    data-test-id="project-transactions"
-                    to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
-                  >
-                    {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
-                    {zeroTransactions && (
-                      <QuestionTooltip
-                        title={t('Click here to learn more about performance monitoring')}
-                        position="top"
-                        size="xs"
-                      />
-                    )}
-                  </TransactionsLink>
-                </Fragment>
+                <TransactionsLink
+                  data-test-id="project-transactions"
+                  to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
+                >
+                  {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
+                  {totalTransactions === 0 && (
+                    <QuestionTooltip
+                      title={t('Click here to learn more about performance monitoring')}
+                      position="top"
+                      size="xs"
+                    />
+                  )}
+                </TransactionsLink>
               )}
             </Fragment>
           ) : (
@@ -179,7 +178,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
           <Placeholder height="150px" />
         )}
       </ChartContainer>
-      <FooterWrapper>
+      <CardFooter>
         <ScoreCardWrapper>
           {stats ? (
             hasHealthData ? (
@@ -200,129 +199,58 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             )
           ) : (
             <Fragment>
-              <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
+              <SubHeading>{t('Crash Free Sessions')}</SubHeading>
               <FooterPlaceholder />
             </Fragment>
           )}
         </ScoreCardWrapper>
-        <DeploysWrapper>
-          <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
-          {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
-        </DeploysWrapper>
-      </FooterWrapper>
-    </StyledProjectCard>
+        <div>
+          <SubHeading>{t('Latest Deploys')}</SubHeading>
+          {stats ? <Deploys project={project} /> : <FooterPlaceholder />}
+        </div>
+      </CardFooter>
+    </CardPanel>
   );
 }
 
-const ChartContainer = styled('div')`
-  position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+const CardPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  height: 100%;
+  padding: ${space(2)};
+  margin: 0;
 `;
 
 const CardHeader = styled('div')`
-  margin: ${space(2)} 13px;
   height: 32px;
 `;
 
-const SettingsButton = styled(LinkButton)`
-  margin-left: auto;
-  margin-top: -${space(0.5)};
-  padding: 3px;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+const CardFooter = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(1)};
 `;
 
-const StyledBookmarkStar = styled(BookmarkStar)`
-  padding: 0;
+const ChartContainer = styled('div')`
+  position: relative;
+  margin: 0 -${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 0 ${space(0.5)};
   color: ${p => p.theme.headingColor};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.2;
 `;
 
-const StyledProjectCard = styled(Panel)`
-  height: 100%;
-  margin: 0;
-`;
-
-const FooterWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-bottom: ${space(2)};
-  div {
-    border: none;
-    box-shadow: none;
-    font-size: ${p => p.theme.fontSizeMedium};
-    padding: 0;
-  }
-`;
-
-const ScoreCardWrapper = styled('div')`
-  margin: ${space(2)} 0 0 ${space(2)};
-  ${ScorePanel} {
-    min-height: auto;
-  }
-  ${Title} {
-    color: ${p => p.theme.subText};
-  }
-  ${ScoreWrapper} {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  ${Score} {
-    font-size: 28px;
-  }
-  ${Trend} {
-    margin-left: 0;
-    margin-top: ${space(0.5)};
-  }
-`;
-
-const DeploysWrapper = styled('div')`
-  margin-top: ${space(2)};
-  ${GetStarted} {
-    display: block;
-    height: 100%;
-  }
-  ${TextOverflow} {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-column-gap: ${space(1)};
-    div {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-    a {
-      display: grid;
-    }
-  }
-  ${DeployRows} {
-    grid-template-columns: 2fr auto;
-    margin-right: ${space(2)};
-    height: auto;
-    svg {
-      display: none;
-    }
-  }
-`;
-
-const ReleaseTitle = styled('span')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const StyledIdBadge = styled(IdBadge)`
+const AlignedIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
@@ -338,37 +266,27 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SummaryLinks = styled('div')`
-  display: flex;
+  display: inline-flex;
+  gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
 
-  a {
+  a:not(:hover) {
     color: ${p => p.theme.subText};
-    :hover {
-      color: ${p => p.theme.linkHoverColor};
-    }
   }
-  em {
-    font-style: normal;
-    margin: 0 ${space(0.5)};
-  }
-`;
 
-const TransactionsLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  > span {
-    margin-left: ${space(0.5)};
+  & > *:not(:last-child)::after {
+    content: '|';
+    position: relative;
+    left: ${space(0.5)};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -376,6 +294,47 @@ const SummaryLinkPlaceholder = styled(Placeholder)`
   height: 15px;
   width: 180px;
   margin-top: ${space(0.25)};
+  margin-bottom: ${space(0.5)};
+`;
+
+const TransactionsLink = styled(Link)`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const SettingsButton = styled(LinkButton)`
+  border-radius: 50%;
+`;
+
+const ScoreCardWrapper = styled('div')`
+  ${ScorePanel} {
+    min-height: auto;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  ${Title} {
+    font-size: ${p => p.theme.fontSize.md};
+    color: ${p => p.theme.subText};
+    margin-bottom: ${space(0.5)};
+  }
+  ${ScoreWrapper} {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  ${Score} {
+    font-size: 28px;
+  }
+  ${Trend} {
+    margin-left: 0;
+    margin-top: ${space(0.5)};
+  }
+`;
+
+const SubHeading = styled('div')`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 

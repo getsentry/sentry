@@ -7,8 +7,8 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
-import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -192,7 +192,6 @@ function renderBodyCell(
     return (
       <SpanIdCell
         moduleName={ModuleName.OTHER}
-        projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row.span_id}

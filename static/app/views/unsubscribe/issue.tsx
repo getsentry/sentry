@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
@@ -92,11 +93,11 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         cancelLabel={t('Cancel')}
         onCancel={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         onSubmitSuccess={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         initialData={{cancel: 1}}
       >

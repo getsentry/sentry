@@ -8,6 +8,7 @@ import type {FieldKind} from 'sentry/utils/fields';
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {
+  AvatarSentryApp,
   Commit,
   ExternalIssue,
   PlatformExternalIssue,
@@ -207,9 +208,11 @@ export enum IssueTitle {
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
+
+  DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection Vulnerability',
 }
 
-const ISSUE_TYPE_TO_ISSUE_TITLE = {
+export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -233,6 +236,8 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
+  db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
@@ -254,13 +259,13 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
@@ -472,6 +477,7 @@ interface GroupActivityBase {
   id: string;
   assignee?: string;
   issue?: Group;
+  sentry_app?: AvatarSentryApp;
   user?: null | User;
 }
 
@@ -947,10 +953,13 @@ export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReproc
 export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
+  dateAdded: string | null;
   id: string;
   level: Level;
   metadata: EventMetadata;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {

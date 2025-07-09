@@ -1,5 +1,4 @@
 from enum import IntEnum
-from typing import Any
 
 from django.db import models
 
@@ -11,7 +10,6 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 
 
 @region_silo_model
@@ -110,7 +108,13 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
 
-    extras: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
+    extras = models.JSONField(null=True)
+
+    commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
+
+    # Installable file like IPA or APK
+    installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     class Meta:
         app_label = "preprod"
@@ -215,6 +219,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     max_install_size = BoundedPositiveBigIntegerField(null=True)
     min_download_size = BoundedPositiveBigIntegerField(null=True)
     max_download_size = BoundedPositiveBigIntegerField(null=True)
+
+    # Size analysis wont necessarily be run on every artifact (based on quotas)
+    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     class Meta:
         app_label = "preprod"

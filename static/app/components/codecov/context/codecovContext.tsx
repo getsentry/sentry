@@ -1,11 +1,14 @@
 import {createContext, useContext} from 'react';
 
 export type CodecovContextData = {
-  branch: string | null;
-  codecovPeriod: string | null;
-  integratedOrg: string | null;
-  repository: string | null;
+  changeContextValue: (value: Partial<CodecovContextDataParams>) => void;
+  codecovPeriod: string;
+  branch?: string;
+  integratedOrg?: string;
+  repository?: string;
 };
+
+export type CodecovContextDataParams = Omit<CodecovContextData, 'changeContextValue'>;
 
 export const CodecovContext = createContext<CodecovContextData | undefined>(undefined);
 

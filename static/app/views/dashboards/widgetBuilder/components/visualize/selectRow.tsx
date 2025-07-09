@@ -468,7 +468,7 @@ const FooterWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SelectWrapper = styled('div')`

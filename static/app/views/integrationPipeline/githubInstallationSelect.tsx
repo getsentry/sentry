@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
@@ -95,7 +95,7 @@ export function GithubInstallationSelect({
     };
 
     const newUrl = `${origin}/extensions/github/setup/?${qs.stringify(newParams)}`;
-    return window.location.assign(newUrl);
+    return testableWindowLocation.assign(newUrl);
   };
 
   const handleSelect = ({value}: SelectOption<SelectKey>) => {
@@ -105,6 +105,7 @@ export function GithubInstallationSelect({
   const selectOptions = installation_info.map(
     (installation): SelectOption<SelectKey> => ({
       value: installation.installation_id,
+      textValue: installation.github_account,
       label: (
         <OptionLabelWrapper>
           {installation.installation_id === '-1' ? (
@@ -153,11 +154,8 @@ export function GithubInstallationSelect({
       <LinkButton
         icon={<IconLightning />}
         priority="primary"
-        onClick={() => {
-          trackAnalytics(`${source}.upsell`, {
-            organization: organization.slug,
-          });
-        }}
+        analyticsEventKey="github.multi_org.upsell"
+        analyticsEventName="Github Multi-Org Upsell Clicked"
         href={`${origin}/settings/${organization.slug}/billing/overview/?referrer=upgrade-${source}`}
         disabled={isSaving || !installationID || isSelfHosted}
       >
@@ -204,7 +202,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  max-width: 33%;
+  max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
 `;

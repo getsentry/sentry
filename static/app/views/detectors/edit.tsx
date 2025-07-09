@@ -1,58 +1,44 @@
-/* eslint-disable no-alert */
-import {Fragment, useState} from 'react';
-
-import {Button} from 'sentry/components/core/button';
-import FormModel from 'sentry/components/forms/model';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {useParams} from 'sentry/utils/useParams';
+import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
+import {canEditDetector} from 'sentry/views/detectors/components/forms/config';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
 export default function DetectorEdit() {
-  const organization = useOrganization();
+  const params = useParams<{detectorId: string}>();
   useWorkflowEngineFeatureGate({redirect: true});
-  const [title, setTitle] = useState(t('Edit Monitor'));
-  const [model] = useState(() => new FormModel());
 
-  return (
-    <SentryDocumentTitle title={title} noSuffix>
-      <BreadcrumbsProvider
-        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
-      >
-        <ActionsProvider actions={<Actions />}>
-          <EditLayout onTitleChange={setTitle}>
-            <MetricDetectorForm model={model} />
-          </EditLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
-    </SentryDocumentTitle>
-  );
-}
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetectorQuery(params.detectorId);
 
-function Actions() {
-  const disable = () => {
-    window.alert('disable');
-  };
-  const del = () => {
-    window.alert('delete');
-  };
-  const save = () => {
-    window.alert('save');
-  };
-  return (
-    <Fragment>
-      <Button onClick={disable}>{t('Disable')}</Button>
-      <Button onClick={del} priority="danger">
-        {t('Delete')}
-      </Button>
-      <Button onClick={save} priority="primary">
-        {t('Save')}
-      </Button>
-    </Fragment>
-  );
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const detectorType = detector.type;
+  if (!canEditDetector(detectorType)) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingError message={t('This monitor type is not editable')} />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  return <EditExistingDetectorForm detector={detector} detectorType={detectorType} />;
 }

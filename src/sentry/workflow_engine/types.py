@@ -12,7 +12,9 @@ if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.activity import Activity
     from sentry.models.environment import Environment
+    from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -60,11 +62,11 @@ class DetectorEvaluationResult:
 
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent
+    event: GroupEvent | Activity
+    group: Group
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
-    workflow_id: int | None = None
     workflow_env: Environment | None = None
 
 

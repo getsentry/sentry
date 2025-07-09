@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.db import models, router, transaction
 from django.db.models import UniqueConstraint
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -50,6 +52,16 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             return last_favorite_dashboard.position
         return 0
 
+    def get_favorite_dashboards(
+        self, organization: Organization, user_id: int
+    ) -> QuerySet[DashboardFavoriteUser]:
+        """
+        Returns all favorited dashboards for a user in an organization.
+        """
+        return self.filter(organization=organization, user_id=user_id).order_by(
+            "position", "dashboard__title"
+        )
+
     def get_favorite_dashboard(
         self, organization: Organization, user_id: int, dashboard: Dashboard
     ) -> DashboardFavoriteUser | None:
@@ -82,6 +94,16 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             favorite.dashboard.id for favorite in existing_favorite_dashboards
         }
         new_dashboard_ids = set(new_dashboard_positions)
+
+        sentry_sdk.set_context(
+            "reorder_favorite_dashboards",
+            {
+                "organization": organization.id,
+                "user_id": user_id,
+                "existing_dashboard_ids": existing_dashboard_ids,
+                "new_dashboard_positions": new_dashboard_positions,
+            },
+        )
 
         if existing_dashboard_ids != new_dashboard_ids:
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
@@ -219,6 +241,9 @@ class Dashboard(Model):
 
     @property
     def favorited_by(self):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
             "user_id", flat=True
         )
@@ -226,6 +251,9 @@ class Dashboard(Model):
 
     @favorited_by.setter
     def favorited_by(self, user_ids):
+        """
+        @deprecated Use the DashboardFavoriteUser object manager instead.
+        """
         from django.db import router, transaction
 
         existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(

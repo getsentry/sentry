@@ -2,10 +2,10 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
+import {Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -159,11 +159,11 @@ function EventOrGroupHeader({
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   & em {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
   }
 `;
@@ -194,5 +194,5 @@ const TitleWithoutLink = styled('span')`
 export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

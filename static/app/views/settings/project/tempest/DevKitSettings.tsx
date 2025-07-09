@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -24,6 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
+import {RequestSdkAccessButton} from './RequestSdkAccessButton';
+
 interface Props {
   organization: Organization;
   project: Project;
@@ -37,16 +39,6 @@ export default function DevKitSettings({organization, project}: Props) {
     orgSlug: organization.slug,
     projSlug: project.slug,
   });
-
-  const playstationURL = useMemo(() => {
-    if (!projectKeys) {
-      return null;
-    }
-
-    // xxx (vgrozdanic): this is a temporary hack since the playstation URL is almost the same as for the minidump
-    const primaryKey = projectKeys[0];
-    return primaryKey?.dsn?.minidump.replace('minidump', 'playstation');
-  }, [projectKeys]);
 
   if (isLoadingKeys) {
     return <LoadingIndicator />;
@@ -92,7 +84,7 @@ export default function DevKitSettings({organization, project}: Props) {
                       </p>
                       <CodeSnippetWrapper>
                         <OnboardingCodeSnippet>
-                          {playstationURL || ''}
+                          {projectKeys?.[0]?.dsn?.playstation || ''}
                         </OnboardingCodeSnippet>
                       </CodeSnippetWrapper>
                     </DescriptionWrapper>
@@ -200,17 +192,18 @@ export default function DevKitSettings({organization, project}: Props) {
   );
 }
 
-export const getDevKitHeaderAction = () => {
+export const getDevKitHeaderAction = (organization: Organization, project: Project) => {
   return (
     <ButtonBar gap={1.5}>
       <FeedbackWidgetButton />
+      <RequestSdkAccessButton organization={organization} project={project} />
     </ButtonBar>
   );
 };
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')``;
@@ -221,8 +214,8 @@ const HeaderWrapper = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
@@ -241,7 +234,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

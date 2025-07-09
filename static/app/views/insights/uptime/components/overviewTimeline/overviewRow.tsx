@@ -6,9 +6,9 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {IconTimer, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -148,7 +148,7 @@ const OwnershipDetails = styled('div')`
   gap: ${space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UnassignedLabel = styled('div')`
@@ -158,7 +158,7 @@ const UnassignedLabel = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
@@ -168,7 +168,7 @@ const ScheduleDetails = styled('small')`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MonitorStatuses = styled('div')`

@@ -159,6 +159,7 @@ def run_top_events_timeseries_query(
     referrer: str,
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
 ) -> Any:
     return rpc_dataset_common.run_top_events_timeseries_query(
         get_resolver=get_resolver,
@@ -171,6 +172,7 @@ def run_top_events_timeseries_query(
         referrer=referrer,
         config=config,
         sampling_mode=sampling_mode,
+        equations=equations,
     )
 
 
@@ -185,6 +187,7 @@ def run_trace_query(
         "parent_span",
         "description",
         "span.op",
+        "span.name",
         "is_transaction",
         "transaction.span_id",
         "transaction.event_id",

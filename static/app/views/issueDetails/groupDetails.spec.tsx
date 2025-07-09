@@ -1,4 +1,3 @@
-import * as qs from 'query-string';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
@@ -11,6 +10,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -73,7 +73,7 @@ describe('groupDetails', () => {
     organization = defaultInit.organization
   ) => {
     // Add project id to the url to skip over the _allp redirect
-    window.location.search = qs.stringify({project: group.project.id});
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
     return render(
       <GroupDetails>
         <MockComponent />

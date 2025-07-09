@@ -10,11 +10,9 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -39,11 +37,8 @@ import {
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Scope} from 'sentry/types/core';
-import type {
-  SentryApp,
-  SentryAppAvatar as SentryAppAvatarType,
-} from 'sentry/types/integrations';
+import type {Avatar, Scope} from 'sentry/types/core';
+import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -65,15 +60,13 @@ type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Mem
 
 const AVATAR_STYLES = {
   color: {
-    size: 50,
-    title: t('Default Logo'),
-    previewText: t('The default icon for integrations'),
+    label: t('Default logo'),
+    description: t('The default icon for integrations'),
     help: t('Image must be between 256px by 256px and 1024px by 1024px.'),
   },
   simple: {
-    size: 20,
-    title: t('Default Icon'),
-    previewText: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
+    label: t('Default small icon'),
+    description: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
       uiDocs: (
         <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
       ),
@@ -344,47 +337,14 @@ export default function SentryApplicationDetails(props: Props) {
     }
   };
 
-  const addAvatar = ({avatar}: Model) => {
+  const addAvatar = ({avatar}: {avatar?: Avatar}) => {
     if (app && avatar) {
       const avatars =
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
 
-      avatars.push(avatar as SentryAppAvatarType);
+      avatars.push(avatar as SentryAppAvatar);
       setApiQueryData(queryClient, SENTRY_APP_QUERY_KEY, {...app, avatars});
     }
-  };
-
-  const getAvatarModel = (isColor: boolean): Model => {
-    const defaultModel: Model = {
-      avatar: {
-        avatarType: 'default',
-        avatarUuid: null,
-      },
-    };
-    if (!app) {
-      return defaultModel;
-    }
-    return {
-      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
-    };
-  };
-
-  const getAvatarPreview = (isColor: boolean) => {
-    if (!app) {
-      return null;
-    }
-    const avatarStyle = isColor ? 'color' : 'simple';
-    return (
-      <AvatarPreview>
-        <StyledSentryAppPreviewAvatar
-          size={AVATAR_STYLES[avatarStyle].size}
-          sentryApp={app}
-          isDefault
-        />
-        <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
-        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].previewText}</AvatarPreviewText>
-      </AvatarPreview>
-    );
   };
 
   const getAvatarChooser = (isColor: boolean) => {
@@ -392,23 +352,20 @@ export default function SentryApplicationDetails(props: Props) {
       return null;
     }
     const avatarStyle = isColor ? 'color' : 'simple';
+    const styleProps = AVATAR_STYLES[avatarStyle];
+
     return (
       <AvatarChooser
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        allowGravatar={false}
-        allowLetter={false}
         endpoint={`/sentry-apps/${app.slug}/avatar/`}
-        model={getAvatarModel(isColor)}
+        supportedTypes={['default', 'upload']}
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        model={app}
         onSave={addAvatar}
         title={isColor ? t('Logo') : t('Small Icon')}
-        help={AVATAR_STYLES[avatarStyle].help.concat(
-          isInternal() ? '' : t(' Required for publishing.')
-        )}
-        savedDataUrl={undefined}
+        help={styleProps.help.concat(isInternal() ? '' : t(' Required for publishing.'))}
         defaultChoice={{
-          allowDefault: true,
-          choiceText: isColor ? t('Default logo') : t('Default small icon'),
-          preview: getAvatarPreview(isColor),
+          label: styleProps.label,
+          description: styleProps.description,
         }}
       />
     );
@@ -558,30 +515,6 @@ export default function SentryApplicationDetails(props: Props) {
     </div>
   );
 }
-
-const AvatarPreview = styled('div')`
-  flex: 1;
-  display: grid;
-  grid: 25px 25px / 50px 1fr;
-`;
-
-const StyledSentryAppPreviewAvatar = styled(SentryAppAvatar)`
-  grid-area: 1 / 1 / 3 / 2;
-  justify-self: end;
-`;
-
-const AvatarPreviewTitle = styled('span')`
-  display: block;
-  grid-area: 1 / 2 / 2 / 3;
-  padding-left: ${space(2)};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const AvatarPreviewText = styled('span')`
-  display: block;
-  grid-area: 2 / 2 / 3 / 3;
-  padding-left: ${space(2)};
-`;
 
 const HiddenSecret = styled('span')`
   width: 100px;

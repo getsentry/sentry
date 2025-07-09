@@ -8,7 +8,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -197,6 +197,9 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         "n_plus_one_api_calls_total_duration_threshold": options.get(
             "performance.issues.n_plus_one_api_calls.total_duration"
         ),
+        "sql_injection_query_value_length_threshold": options.get(
+            "performance.issues.sql_injection.query_value_length_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -329,10 +332,11 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "detection_enabled": settings["http_overhead_detection_enabled"],
         },
         DetectorType.SQL_INJECTION: {
-            "detection_enabled": settings["database_query_injection_detection_enabled"]
+            "detection_enabled": settings["db_query_injection_detection_enabled"],
+            "query_value_length_threshold": settings["sql_injection_query_value_length_threshold"],
         },
         DetectorType.QUERY_INJECTION: {
-            "detection_enabled": settings["database_query_injection_detection_enabled"]
+            "detection_enabled": settings["db_query_injection_detection_enabled"]
         },
     }
 
@@ -362,18 +366,20 @@ def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
+    organization = project.organization
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
-    if standalone:
-        # The performance detectors expect the span list to be ordered/flattened in the way they
-        # are structured in the tree. This is an implicit assumption in the performance detectors.
-        # So we build a tree and flatten it depth first.
-        # TODO: See if we can update the detectors to work without this assumption so we can
-        # just pass it a list of spans.
-        tree, segment_id = build_tree(data.get("spans", []))
-        data = {**data, "spans": flatten_tree(tree, segment_id)}
+    with sentry_sdk.start_span(op="function", name="sort_spans"):
+        if standalone or features.has("organizations:issue-detection-sort-spans", organization):
+            # The performance detectors expect the span list to be ordered/flattened in the way they
+            # are structured in the tree. This is an implicit assumption in the performance detectors.
+            # So we build a tree and flatten it depth first.
+            # TODO: See if we can update the detectors to work without this assumption so we can
+            # just pass it a list of spans.
+            tree, segment_id = build_tree(data.get("spans", []))
+            data = {**data, "spans": flatten_tree(tree, segment_id)}
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
@@ -395,11 +401,9 @@ def _detect_performance_problems(
             event_id,
             detectors,
             sdk_span,
-            project.organization,
+            organization,
             standalone=standalone,
         )
-
-    organization = project.organization
 
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):

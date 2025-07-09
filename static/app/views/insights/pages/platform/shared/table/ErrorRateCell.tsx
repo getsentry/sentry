@@ -1,10 +1,12 @@
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/container/flex';
-import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
 
 export function getErrorCellIssuesLink({
@@ -37,15 +39,16 @@ export function ErrorRateCell({
 
   const errorCountElement =
     issuesLink && errorCount > 0 ? (
-      <Link to={issuesLink}>({errorCount})</Link>
+      <Link to={issuesLink}>({formatAbbreviatedNumber(errorCount)})</Link>
     ) : (
-      <span style={{color: theme.subText}}>({errorCount})</span>
+      <span style={{color: theme.subText}}>({formatAbbreviatedNumber(errorCount)})</span>
     );
 
   return (
     <ThresholdCell value={errorRate}>
       <Flex align="center" justify="flex-end" gap={space(0.5)}>
-        {(errorRate * 100).toFixed(2)}%{defined(errorCount) ? errorCountElement : null}
+        {formatPercentage(errorRate, 2, {minimumValue: 0.0001})}
+        {defined(errorCount) ? errorCountElement : null}
       </Flex>
     </ThresholdCell>
   );

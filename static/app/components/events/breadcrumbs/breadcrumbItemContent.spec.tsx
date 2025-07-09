@@ -123,6 +123,26 @@ describe('BreadcrumbItemContent', function () {
     itemWithoutValue.unmount();
   });
 
+  it('renders exception crumbs with array of objects', function () {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.ERROR,
+      level: BreadcrumbLevelType.ERROR,
+      data: {
+        type: 'ValidationError',
+        value: [
+          {field: 'email', error: 'invalid'},
+          {field: 'password', error: 'too short'},
+        ],
+      },
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(
+      screen.getByText(
+        'ValidationError: {"field":"email","error":"invalid"}, {"field":"password","error":"too short"}'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('applies item limits with fullyExpanded', function () {
     const longMessage = 'longMessage'.repeat(100);
     const breadcrumb: BreadcrumbTypeDefault = {

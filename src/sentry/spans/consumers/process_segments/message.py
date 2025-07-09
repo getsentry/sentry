@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
+from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
@@ -24,12 +25,10 @@ from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import (
-    compute_breakdowns,
-    match_schemas,
-    set_exclusive_time,
-    set_shared_tags,
+    Enricher,
+    Span,
+    segment_span_measurement_updates,
 )
-from sentry.spans.consumers.process_segments.types import Span, UnprocessedSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -39,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
-def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
+def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -55,7 +54,13 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    compute_breakdowns(segment_span, spans, project)
+    segment_span.setdefault("measurements", {}).update(
+        segment_span_measurement_updates(
+            segment_span,
+            unprocessed_spans,
+            project.get_option("sentry:breakdowns"),
+        )
+    )
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -63,27 +68,8 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     return spans
 
 
-def _find_segment_span(spans: list[Span]) -> Span | None:
-    """
-    Finds the segment in the span in the list that has ``is_segment`` set to
-    ``True``.
-
-    At most one span in the list can be marked as segment span. If more than one
-    span is marked, the function does not have defined behavior.
-
-    If there is no segment span, the function returns ``None``.
-    """
-
-    # Iterate backwards since we usually expect the segment span to be at the end.
-    for span in reversed(spans):
-        if span.get("is_segment"):
-            return span
-
-    return None
-
-
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
-def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None, list[Span]]:
+def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, list[Span]]:
     """
     Enriches all spans with data derived from the span tree and the segment.
 
@@ -94,13 +80,7 @@ def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None
     Returns the segment span, if any, and the list of enriched spans.
     """
 
-    spans = cast(list[Span], unprocessed_spans)
-    segment = _find_segment_span(spans)
-
-    match_schemas(spans)
-    set_exclusive_time(spans)
-    if segment:
-        set_shared_tags(segment, spans)
+    segment, spans = Enricher.enrich_spans(unprocessed_spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
