@@ -7,8 +7,8 @@ from django.db.models import prefetch_related_objects
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
 from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
     AlertRuleSerializerResponse,
+    DetailedAlertRuleSerializer,
 )
 from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
@@ -54,7 +54,7 @@ class IncidentSerializer(Serializer):
             for d in serialize(
                 {i.alert_rule for i in item_list if i.alert_rule.id},
                 user,
-                AlertRuleSerializer(expand=self.expand),
+                DetailedAlertRuleSerializer(expand=self.expand),
             )
         }
 

@@ -8,6 +8,8 @@ from sentry import options
 from sentry.models.organization import Organization
 from sentry.search.events.types import SnubaParams
 
+UPSAMPLED_ERROR_AGGREGATION = "upsampled_count"
+
 
 def is_errors_query_for_error_upsampled_projects(
     snuba_params: SnubaParams,
@@ -19,15 +21,13 @@ def is_errors_query_for_error_upsampled_projects(
     Determine if this query should use error upsampling transformations.
     Only applies when ALL projects are allowlisted and we're querying error events.
     """
-    if not _are_all_projects_error_upsampled(snuba_params.project_ids, organization):
+    if not are_all_projects_error_upsampled(snuba_params.project_ids):
         return False
 
     return _should_apply_sample_weight_transform(dataset, request)
 
 
-def _are_all_projects_error_upsampled(
-    project_ids: Sequence[int], organization: Organization
-) -> bool:
+def are_all_projects_error_upsampled(project_ids: Sequence[int]) -> bool:
     """
     Check if ALL projects in the query are allowlisted for error upsampling.
     Only returns True if all projects pass the allowlist condition.
