@@ -62,7 +62,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
-) -> tuple[list[GroupEvent], list[GroupEvent], list[GroupEvent]]:
+) -> tuple[list[tuple[GroupEvent, int]], list[GroupEvent], list[GroupEvent]]:
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
