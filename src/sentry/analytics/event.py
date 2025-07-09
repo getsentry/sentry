@@ -78,15 +78,17 @@ def eventclass(
 @dataclass(kw_only=True)
 class Event:
     """
-    Base class for custom analytics Events. Subclasses *must* use the `eventclass` decorator.
+    Base class for custom analytics Events.
     """
 
-    type: ClassVar[str]
+    # the type of the event, used for serialization and matching. Can be None for abstract base event classes
+    type: ClassVar[str | None]
 
     # we use the _ postfix to avoid name conflicts inheritors fields
     uuid_: UUID = Field(default_factory=lambda: uuid1())
     datetime_: dt = Field(default_factory=timezone.now)
 
+    # TODO: this is the "old-style" attributes and data. Will be removed once all events are migrated to the new style.
     attributes: ClassVar[Sequence[Attribute] | None] = None
     data: dict[str, Any] | None = field(repr=False, init=False, default=None)
 

@@ -21,7 +21,7 @@ class ExampleEvent(Event):
     optional: bool | None = None
 
 
-class ExampleEventOldStyle(ExampleEvent):
+class ExampleEventOldStyle(Event):
     type = "example-old-style"
     attributes = [
         Attribute("id", int),
