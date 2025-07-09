@@ -1,5 +1,6 @@
 import {type CSSProperties, useState} from 'react';
 
+import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
@@ -174,8 +175,8 @@ const StyledSlider = chonkStyled('input')`
       width: 16px;
       height: 16px;
       background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
       border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 10;
@@ -195,8 +196,8 @@ const StyledSlider = chonkStyled('input')`
       width: 16px;
       height: 16px;
       background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
       border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 1;
@@ -240,7 +241,7 @@ const SliderLabel = chonkStyled('span')`
   width: min-content;
   text-align: center;
   background: ${p => p.theme.colors.chonk.blue300};
-  border: 1px solid ${p => p.theme.colors.chonk.blue100};
+  border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
   color: ${p => p.theme.white};
   border-radius: ${p => p.theme.radius['2xs']};
   z-index: ${p => p.theme.zIndex.tooltip};
