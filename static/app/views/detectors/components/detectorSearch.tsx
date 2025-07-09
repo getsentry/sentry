@@ -64,7 +64,6 @@ export function DetectorSearch() {
       disallowUnsupportedFilters
       disallowWildcard
       disallowLogicalOperators
-      searchOnChange
     />
   );
 }

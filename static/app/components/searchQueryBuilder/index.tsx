@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -137,44 +136,10 @@ export interface SearchQueryBuilderProps {
    */
   replaceRawSearchKeys?: string[];
   /**
-   * When true, will trigger the `onSearch` callback when the query changes.
-   */
-  searchOnChange?: boolean;
-  /**
-   * When true, will display a visual indicator when there are unsaved changes.
-   * This search is considered unsubmitted when query !== initialQuery.
-   */
-  showUnsubmittedIndicator?: boolean;
-  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
-}
-
-function SearchIndicator({
-  initialQuery,
-  showUnsubmittedIndicator,
-}: {
-  initialQuery?: string;
-  showUnsubmittedIndicator?: boolean;
-}) {
-  const {query} = useSearchQueryBuilder();
-
-  const unSubmittedChanges = query !== initialQuery;
-  const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
-
-  return (
-    <PositionedSearchIconContainer>
-      <Tooltip
-        title={t('The current search query is not active. Press Enter to submit.')}
-        disabled={!showIndicator}
-      >
-        <SearchIcon size="sm" />
-        {showIndicator ? <UnSubmittedDot /> : null}
-      </Tooltip>
-    </PositionedSearchIconContainer>
-  );
 }
 
 function ActionButtons({
@@ -217,15 +182,13 @@ function SearchQueryBuilderUI({
   initialQuery,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
-  showUnsubmittedIndicator,
   trailingItems,
   onChange,
-  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
-  useOnChange({onChange, searchOnChange});
+  useOnChange({onChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
@@ -243,10 +206,9 @@ function SearchQueryBuilderUI({
       data-test-id="search-query-builder"
     >
       <PanelProvider>
-        <SearchIndicator
-          initialQuery={initialQuery}
-          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
-        />
+        <PositionedSearchIconContainer>
+          <SearchIcon size="sm" />
+        </PositionedSearchIconContainer>
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
@@ -310,15 +272,4 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.subText};
   height: 22px;
-`;
-
-const UnSubmittedDot = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: ${p => p.theme.active};
-  border: solid 2px ${p => p.theme.background};
 `;

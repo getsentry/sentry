@@ -350,7 +350,6 @@ function ResultsSearchQueryBuilder(props: Props) {
 
   return (
     <SearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       placeholder={placeholderText}
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}
@@ -361,7 +360,6 @@ function ResultsSearchQueryBuilder(props: Props) {
       getTagValues={getEventFieldValues}
       recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       portalTarget={portalTarget}
-      showUnsubmittedIndicator
     />
   );
 }

@@ -67,7 +67,6 @@ export function AutomationSearch() {
       disallowUnsupportedFilters
       disallowWildcard
       disallowLogicalOperators
-      searchOnChange
     />
   );
 }

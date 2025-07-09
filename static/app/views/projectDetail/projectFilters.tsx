@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TagValueLoader} from 'sentry/views/issueList/types';
 
 type Props = {
@@ -28,7 +27,6 @@ const SUPPORTED_TAGS = {
 };
 
 function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
-  const organization = useOrganization();
   const getTagValues = useCallback(
     async (tag: Tag, currentQuery: string): Promise<string[]> => {
       const values = await tagValueLoader(tag.key, currentQuery);
@@ -44,14 +42,12 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
         <DatePageFilter relativeOptions={relativeDateOptions} />
       </PageFilterBar>
       <SearchQueryBuilder
-        searchOnChange={organization.features.includes('ui-search-on-change')}
         searchSource="project_filters"
         initialQuery={query ?? ''}
         placeholder={t('Search by release version, build, package, or stage')}
         filterKeys={SUPPORTED_TAGS}
         onSearch={onSearch}
         getTagValues={getTagValues}
-        showUnsubmittedIndicator
       />
     </FiltersWrapper>
   );
