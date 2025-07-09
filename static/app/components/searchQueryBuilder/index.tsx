@@ -60,6 +60,10 @@ export interface SearchQueryBuilderProps {
    */
   disallowWildcard?: boolean;
   /**
+   * When true, the Ask Seer option will be displayed in the search bar.
+   */
+  enableAISearch?: boolean;
+  /**
    * The lookup strategy for field definitions.
    * Each SearchQueryBuilder instance can support a different list of fields and
    * tags, their definitions may not overlap.

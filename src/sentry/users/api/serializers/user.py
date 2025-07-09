@@ -324,6 +324,10 @@ class DetailedSelfUserSerializerResponse(UserSerializerResponse):
     permissions: Sequence[str]
 
 
+class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):
+    organizations: Sequence[str]
+
+
 class DetailedSelfUserSerializer(UserSerializer):
     """
     Return additional information for operating on behalf of a user, like their permissions.
@@ -396,3 +400,49 @@ class DetailedSelfUserSerializer(UserSerializer):
                 "Incorrectly calling `DetailedSelfUserSerializer`. See docstring for details."
             )
         return d
+
+
+class UserSerializerWithOrgMemberships(UserSerializer):
+    def get_attrs(
+        self,
+        item_list: Sequence[User],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> MutableMapping[User, Any]:
+        attrs = super().get_attrs(item_list, user, **kwargs)
+
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_org_id_to_name = dict(
+            OrganizationMapping.objects.filter(
+                organization_id__in={m.organization_id for m in memberships},
+                status=OrganizationStatus.ACTIVE,
+            ).values_list("organization_id", "name")
+        )
+        active_organization_ids = active_org_id_to_name.keys()
+
+        user_org_memberships: DefaultDict[int, list[str]] = defaultdict(list)
+        for membership in memberships:
+            if membership.organization_id in active_organization_ids:
+                user_org_memberships[membership.user_id].append(
+                    active_org_id_to_name[membership.organization_id]
+                )
+        for item in item_list:
+            attrs[item]["organizations"] = user_org_memberships[item.id]
+
+        return attrs
+
+    def serialize(
+        self,
+        obj: User,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> UserSerializerWithOrgMembershipsResponse:
+        response = cast(
+            UserSerializerWithOrgMembershipsResponse, super().serialize(obj, attrs, user)
+        )
+
+        response["organizations"] = sorted(attrs["organizations"])
+        return response
