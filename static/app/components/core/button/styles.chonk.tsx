@@ -69,6 +69,8 @@ export function DO_NOT_USE_getChonkButtonStyles(
     },
   } as const;
 
+  const chonkButtonTheme = getChonkButtonTheme(type, p.theme);
+
   return {
     position: 'relative',
     display: 'inline-flex',
@@ -83,7 +85,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     padding: getChonkButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getChonkButtonSizeTheme(p.size, p.theme).borderRadius,
     border: 'none',
-    color: getChonkButtonTheme(type, p.theme).color,
+    color: chonkButtonTheme.color,
 
     background: 'none',
 
@@ -97,8 +99,8 @@ export function DO_NOT_USE_getChonkButtonStyles(
       height: `calc(100% - ${chonkElevation(p.size)})`,
       top: `${chonkElevation(p.size)}`,
       transform: `translateY(-${chonkElevation(p.size)})`,
-      boxShadow: `0 ${chonkElevation(p.size)} 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
-      background: getChonkButtonTheme(type, p.theme).background,
+      boxShadow: `0 ${chonkElevation(p.size)} 0 0px ${chonkButtonTheme.background}`,
+      background: chonkButtonTheme.background,
       borderRadius: 'inherit',
     },
 
@@ -107,16 +109,16 @@ export function DO_NOT_USE_getChonkButtonStyles(
       display: 'block',
       position: 'absolute',
       inset: '0',
-      background: getChonkButtonTheme(type, p.theme).surface,
+      background: chonkButtonTheme.surface,
       borderRadius: 'inherit',
-      border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
+      border: `1px solid ${chonkButtonTheme.background}`,
       transform: `translateY(-${chonkElevation(p.size)})`,
       transition: 'transform 0.06s ease-in-out',
     },
 
     '&:focus-visible': {
       outline: 'none',
-      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
+      color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
         border: `1px solid ${p.theme.focusBorder}`,
@@ -141,7 +143,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     },
 
     '&:hover': {
-      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
+      color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
         transform: `translateY(calc(-${chonkElevation(p.size)} - 2px))`,
