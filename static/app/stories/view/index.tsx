@@ -114,7 +114,7 @@ const StoryMainContainer = styled('div')`
   h4,
   h5,
   h6 {
-    scroll-margin-top: ${space(3)};
+    scroll-margin-top: 64px;
     margin: 0;
   }
 
