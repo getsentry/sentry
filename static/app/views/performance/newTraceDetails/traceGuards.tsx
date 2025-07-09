@@ -246,3 +246,18 @@ export function isEAPMeasurements(
 
   return Object.values(value).every(isEAPMeasurementValue);
 }
+
+export function isStandaloneSpanMeasurementNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+) {
+  if (node.value && 'op' in node.value && node.value.op) {
+    if (
+      node.value.op.startsWith('ui.webvital.') ||
+      node.value.op.startsWith('ui.interaction.')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}

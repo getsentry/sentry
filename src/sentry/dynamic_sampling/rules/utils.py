@@ -111,28 +111,6 @@ class DecayingRule(Rule):
 PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: Rule) -> RuleType | None:
-    # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
-    # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
-    # ids: 1500, 1501.
-    #
-    # This implementation MUST be changed in case we change the logic of rule ids.
-    if (
-        RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
-        <= rule["id"]
-        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + BOOSTED_RELEASES_LIMIT
-    ):
-        return RuleType.BOOST_LATEST_RELEASES_RULE
-    elif (
-        RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE]
-        <= rule["id"]
-        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
-    ):
-        return RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE
-
-    return REVERSE_RESERVED_IDS.get(rule["id"], None)
-
-
 def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
@@ -148,16 +126,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
         .decode()
         .__hash__()
     )
-
-
-def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
-    sampling = rule["samplingValue"]
-    if sampling["type"] == "reservoir":
-        return sampling["type"], float(sampling["limit"])
-    elif sampling["type"] in ("sampleRate", "factor"):
-        return sampling["type"], float(sampling["value"])
-    else:
-        return None
 
 
 def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
