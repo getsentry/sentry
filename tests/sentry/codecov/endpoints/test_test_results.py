@@ -249,3 +249,169 @@ class TestResultsEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {"details": "Cannot specify both `first` and `last`"}
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_term_filter(self, mock_codecov_client_class):
+        mock_graphql_response = {
+            "data": {
+                "owner": {
+                    "repository": {
+                        "__typename": "Repository",
+                        "testAnalytics": {
+                            "testResults": {
+                                "edges": [],
+                                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                                "totalCount": 0,
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {
+            "term": "sample_term",
+            "branch": "develop",
+            "filterBy": "FLAKY_TESTS",
+            "sortBy": "AVG_DURATION",
+            "interval": "INTERVAL_7_DAY",
+            "first": "15",
+        }
+        response = self.client.get(url, query_params)
+
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "develop",
+                "parameter": "FLAKY_TESTS",
+                "interval": "INTERVAL_7_DAY",
+                "flags": None,
+                "term": "sample_term",
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "ASC",
+                "parameter": "AVG_DURATION",
+            },
+            "first": 15,
+            "last": None,
+            "before": None,
+            "after": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_empty_term_filter(self, mock_codecov_client_class):
+        mock_graphql_response = {
+            "data": {
+                "owner": {
+                    "repository": {
+                        "__typename": "Repository",
+                        "testAnalytics": {
+                            "testResults": {
+                                "edges": [],
+                                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                                "totalCount": 0,
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {"term": ""}
+        response = self.client.get(url, query_params)
+
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "main",
+                "parameter": None,
+                "interval": "INTERVAL_30_DAY",
+                "flags": None,
+                "term": "",
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "DESC",
+                "parameter": "COMMITS_WHERE_FAIL",
+            },
+            "first": 20,
+            "last": None,
+            "before": None,
+            "after": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_term_filter_special_characters(self, mock_codecov_client_class):
+        mock_graphql_response = {
+            "data": {
+                "owner": {
+                    "repository": {
+                        "__typename": "Repository",
+                        "testAnalytics": {
+                            "testResults": {
+                                "edges": [],
+                                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                                "totalCount": 0,
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {"term": "test::function_with_underscores-and-dashes"}
+        response = self.client.get(url, query_params)
+
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "main",
+                "parameter": None,
+                "interval": "INTERVAL_30_DAY",
+                "flags": None,
+                "term": "test::function_with_underscores-and-dashes",
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "DESC",
+                "parameter": "COMMITS_WHERE_FAIL",
+            },
+            "first": 20,
+            "last": None,
+            "before": None,
+            "after": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
