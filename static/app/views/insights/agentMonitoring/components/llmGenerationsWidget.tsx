@@ -31,7 +31,6 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function LLMGenerationsWidget() {
@@ -41,7 +40,6 @@ export default function LLMGenerationsWidget() {
   });
 
   const theme = useTheme();
-  const neutralChartColor = useNeutralChartColor();
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
   const generationsRequest = useEAPSpans(
@@ -104,7 +102,8 @@ export default function LLMGenerationsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? neutralChartColor : colorPalette[index],
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })

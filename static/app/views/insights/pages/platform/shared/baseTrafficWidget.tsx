@@ -18,7 +18,6 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 
 interface TrafficWidgetProps extends LoadableChartWidgetProps {
   referrer: string;
@@ -42,7 +41,6 @@ export function BaseTrafficWidget({
   });
 
   const theme = useTheme();
-  const neutralChartColor = useNeutralChartColor();
 
   const {data, isLoading, error} = useEAPSeries(
     {
@@ -63,14 +61,14 @@ export function BaseTrafficWidget({
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: trafficSeriesName,
-        color: neutralChartColor,
+        color: theme.chart.neutral,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: t('Error Rate'),
         color: theme.error,
       }),
     ];
-  }, [data, theme.error, neutralChartColor, trafficSeriesName]);
+  }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
 
   const isEmpty = useMemo(
     () =>

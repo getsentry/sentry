@@ -1250,6 +1250,7 @@ export const lightTheme = {
     close: lightColors.white,
   },
   chart: {
+    neutral: lightColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1309,6 +1310,7 @@ export const darkTheme: typeof lightTheme = {
     close: lightColors.white,
   },
   chart: {
+    neutral: darkColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
