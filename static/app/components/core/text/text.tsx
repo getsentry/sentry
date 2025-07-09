@@ -27,6 +27,12 @@ interface TextProps {
    */
   ellipsis?: boolean;
   /**
+   * Determines if fractional numbers should be displayed using diagonal fractions.
+   * @default false
+   */
+  fraction?: boolean;
+
+  /**
    * Determines if the text should be italic.
    * @default false
    */
@@ -50,7 +56,7 @@ interface TextProps {
   strikethrough?: boolean;
 
   /**
-   * If true, the text will be displayed in a tabular font.
+   * If true, the text will be displayed in a tabular font (fixed width numbers)
    */
   tabular?: boolean;
 
@@ -101,7 +107,13 @@ export const Text = styled((props: TextProps) => {
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
-  font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
+  font-variant-numeric: ${p =>
+    [
+      p.tabular ? 'tabular-nums' : undefined,
+      p.fraction ? 'diagonal-fractions' : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
@@ -111,6 +123,12 @@ interface HeadingProps extends Omit<TextProps, 'as'> {
    * @default h1
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+  /**
+   * Headings are bold by default, but can be overridden to render as normal text.
+   * @default true
+   */
+  bold?: boolean;
 }
 
 export const Heading = styled((props: HeadingProps) => {
