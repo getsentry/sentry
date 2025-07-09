@@ -146,10 +146,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec, IssueSync
 
         try:
             # Update the issue with the assignee
-            client.put(
-                f"/repositories/{repo_name}/issues/{issue_id}",
-                data={"assignee": assignee}
-            )
+            client.put(f"/repositories/{repo_name}/issues/{issue_id}", data={"assignee": assignee})
         except Exception as e:
             self.logger.info(
                 "bitbucket.failed-to-assign",
@@ -173,10 +170,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec, IssueSync
         try:
             # Update the issue state
             state = "closed" if is_resolved else "open"
-            client.put(
-                f"/repositories/{repo_name}/issues/{issue_id}",
-                data={"state": state}
-            )
+            client.put(f"/repositories/{repo_name}/issues/{issue_id}", data={"state": state})
         except Exception as e:
             self.logger.info(
                 "bitbucket.failed-to-sync-status",

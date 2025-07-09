@@ -126,7 +126,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration, IssueSyncIntegration):
+class GitlabIntegration(
+    RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration, IssueSyncIntegration
+):
     # Issue sync configuration keys
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -185,8 +187,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         try:
             # Update the issue with the assignee
             client.put(
-                f"/projects/{project_id}/issues/{issue_iid}",
-                data={"assignee_id": assignee_id}
+                f"/projects/{project_id}/issues/{issue_iid}", data={"assignee_id": assignee_id}
             )
         except Exception as e:
             self.logger.info(
@@ -212,8 +213,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
             # Update the issue state
             state_event = "close" if is_resolved else "reopen"
             client.put(
-                f"/projects/{project_id}/issues/{issue_iid}",
-                data={"state_event": state_event}
+                f"/projects/{project_id}/issues/{issue_iid}", data={"state_event": state_event}
             )
         except Exception as e:
             self.logger.info(

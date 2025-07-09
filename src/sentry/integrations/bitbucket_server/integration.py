@@ -47,8 +47,8 @@ from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.users.services.user import RpcUser
-from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
@@ -312,10 +312,7 @@ class BitbucketServerIntegration(RepositoryIntegration, IssueSyncIntegration):
 
         try:
             # Update the issue with the assignee
-            client.put(
-                f"/projects/{project_key}/repos/{issue_id}",
-                data={"assignee": assignee}
-            )
+            client.put(f"/projects/{project_key}/repos/{issue_id}", data={"assignee": assignee})
         except Exception as e:
             self.logger.info(
                 "bitbucket_server.failed-to-assign",
@@ -339,10 +336,7 @@ class BitbucketServerIntegration(RepositoryIntegration, IssueSyncIntegration):
         try:
             # Update the issue state
             state = "RESOLVED" if is_resolved else "OPEN"
-            client.put(
-                f"/projects/{project_key}/repos/{issue_id}",
-                data={"state": state}
-            )
+            client.put(f"/projects/{project_key}/repos/{issue_id}", data={"state": state})
         except Exception as e:
             self.logger.info(
                 "bitbucket_server.failed-to-sync-status",

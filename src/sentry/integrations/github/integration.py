@@ -50,7 +50,6 @@ from sentry.integrations.source_code_management.commit_context import (
     PullRequestIssue,
     _open_pr_comment_log,
 )
-from sentry.users.services.user import RpcUser
 from sentry.integrations.source_code_management.language_parsers import (
     get_patch_parsers_for_organization,
 )
@@ -75,6 +74,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -215,7 +215,11 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration, IssueSyncIntegration
+    RepositoryIntegration,
+    GitHubIssuesSpec,
+    CommitContextIntegration,
+    RepoTreesIntegration,
+    IssueSyncIntegration,
 ):
     integration_name = IntegrationProviderSlug.GITHUB
 
@@ -256,10 +260,7 @@ class GitHubIntegration(
 
         try:
             # Update the issue with the assignees
-            client.patch(
-                f"/repos/{repo}/issues/{issue_number}",
-                data={"assignees": assignees}
-            )
+            client.patch(f"/repos/{repo}/issues/{issue_number}", data={"assignees": assignees})
         except Exception as e:
             self.logger.info(
                 "github.failed-to-assign",
@@ -283,10 +284,7 @@ class GitHubIntegration(
         try:
             # Update the issue state
             state = "closed" if is_resolved else "open"
-            client.patch(
-                f"/repos/{repo}/issues/{issue_number}",
-                data={"state": state}
-            )
+            client.patch(f"/repos/{repo}/issues/{issue_number}", data={"state": state})
         except Exception as e:
             self.logger.info(
                 "github.failed-to-sync-status",
