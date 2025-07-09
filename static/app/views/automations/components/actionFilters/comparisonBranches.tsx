@@ -1,6 +1,6 @@
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {
   COMPARISON_INTERVAL_CHOICES,
@@ -28,13 +28,12 @@ function ValueField() {
   return (
     <AutomationBuilderNumberInput
       name={`${condition_id}.comparison.value`}
+      aria-label={t('Value')}
       value={condition.comparison.value}
       min={1}
       step={1}
       onChange={(value: number) => {
-        onUpdate({
-          value,
-        });
+        onUpdate({comparison: {...condition.comparison, value}});
       }}
       placeholder="100"
     />
@@ -46,12 +45,11 @@ function IntervalField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.interval`}
+      aria-label={t('Interval')}
       value={condition.comparison.interval}
       options={INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          interval: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, interval: option.value}});
       }}
     />
   );
@@ -62,11 +60,12 @@ function ComparisonIntervalField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.comparison_interval`}
+      aria-label={t('Comparison interval')}
       value={condition.comparison.comparison_interval}
       options={COMPARISON_INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          comparison_interval: option.value,
+          comparison: {...condition.comparison, comparison_interval: option.value},
         });
       }}
     />

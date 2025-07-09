@@ -1,11 +1,15 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 import {uuid4} from '@sentry/core';
 
+import type {
+  Action,
+  ActionConfig,
+  ActionHandler,
+} from 'sentry/types/workflowEngine/actions';
 import {
-  type ActionConfig,
-  type ActionHandler,
   ActionTarget,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
@@ -15,7 +19,7 @@ import {
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
-export function useAutomationBuilderReducer() {
+export function useAutomationBuilderReducer(initialState?: AutomationBuilderState) {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
     (state, action): AutomationBuilderState => {
       switch (action.type) {
@@ -37,8 +41,6 @@ export function useAutomationBuilderReducer() {
           return removeIfCondition(state, action);
         case 'UPDATE_IF_CONDITION':
           return updateIfCondition(state, action);
-        case 'UPDATE_IF_CONDITION_TYPE':
-          return updateIfConditionType(state, action);
         case 'ADD_IF_ACTION':
           return addIfAction(state, action);
         case 'REMOVE_IF_ACTION':
@@ -54,7 +56,10 @@ export function useAutomationBuilderReducer() {
     []
   );
 
-  const [state, dispatch] = useReducer(reducer, initialAutomationBuilderState);
+  const [state, dispatch] = useReducer(
+    reducer,
+    initialState ?? initialAutomationBuilderState
+  );
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
@@ -67,8 +72,13 @@ export function useAutomationBuilderReducer() {
       [dispatch]
     ),
     updateWhenCondition: useCallback(
-      (id: string, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_WHEN_CONDITION', id, comparison}),
+      (
+        id: string,
+        params: {
+          comparison?: any;
+          type?: DataConditionType;
+        }
+      ) => dispatch({type: 'UPDATE_WHEN_CONDITION', id, params}),
       [dispatch]
     ),
     updateWhenLogicType: useCallback(
@@ -91,24 +101,17 @@ export function useAutomationBuilderReducer() {
         dispatch({type: 'REMOVE_IF_CONDITION', groupId, conditionId}),
       [dispatch]
     ),
-    updateIfConditionType: useCallback(
-      (groupId: string, conditionId: string, conditionType: DataConditionType) =>
-        dispatch({
-          type: 'UPDATE_IF_CONDITION_TYPE',
-          groupId,
-          conditionId,
-          conditionType,
-        }),
-      [dispatch]
-    ),
     updateIfCondition: useCallback(
-      (groupId: string, conditionId: string, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, comparison}),
+      (
+        groupId: string,
+        conditionId: string,
+        params: {comparison?: any; type?: DataConditionType}
+      ) => dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, params}),
       [dispatch]
     ),
     addIfAction: useCallback(
-      (groupId: string, actionId: string, actionHandler: ActionHandler) =>
-        dispatch({type: 'ADD_IF_ACTION', groupId, actionId, actionHandler}),
+      (groupId: string, actionHandler: ActionHandler) =>
+        dispatch({type: 'ADD_IF_ACTION', groupId, actionHandler}),
       [dispatch]
     ),
     removeIfAction: useCallback(
@@ -117,15 +120,8 @@ export function useAutomationBuilderReducer() {
       [dispatch]
     ),
     updateIfAction: useCallback(
-      (
-        groupId: string,
-        actionId: string,
-        params: {
-          config?: Record<string, any>;
-          data?: Record<string, any>;
-          integrationId?: string;
-        }
-      ) => dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
+      (groupId: string, actionId: string, params: Partial<Omit<Action, 'id' | 'type'>>) =>
+        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
@@ -149,7 +145,7 @@ export interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
-  addIfAction: (groupId: string, actionId: string, actionHandler: ActionHandler) => void;
+  addIfAction: (groupId: string, actionHandler: ActionHandler) => void;
   addIfCondition: (groupId: string, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
   removeIf: (groupId: string) => void;
@@ -159,21 +155,12 @@ interface AutomationActions {
   updateIfAction: (
     groupId: string,
     actionId: string,
-    params: {
-      config?: Record<string, any>;
-      data?: Record<string, any>;
-      integrationId?: string;
-    }
+    params: Partial<Omit<Action, 'id' | 'type'>>
   ) => void;
   updateIfCondition: (
     groupId: string,
     conditionId: string,
     comparison: Record<string, any>
-  ) => void;
-  updateIfConditionType: (
-    groupId: string,
-    conditionId: string,
-    conditionType: DataConditionType
   ) => void;
   updateIfLogicType: (groupId: string, logicType: DataConditionGroupLogicType) => void;
   updateWhenCondition: (id: string, comparison: Record<string, any>) => void;
@@ -206,6 +193,7 @@ export const initialAutomationBuilderState: AutomationBuilderState = {
       id: '0',
       logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
       conditions: [],
+      actions: [],
     },
   ],
 };
@@ -221,8 +209,11 @@ type RemoveWhenConditionAction = {
 };
 
 type UpdateWhenConditionAction = {
-  comparison: Record<string, any>;
   id: string;
+  params: {
+    comparison?: any;
+    type?: DataConditionType;
+  };
   type: 'UPDATE_WHEN_CONDITION';
 };
 
@@ -252,23 +243,18 @@ type RemoveIfConditionAction = {
   type: 'REMOVE_IF_CONDITION';
 };
 
-type UpdateIfConditionTypeAction = {
-  conditionId: string;
-  conditionType: DataConditionType;
-  groupId: string;
-  type: 'UPDATE_IF_CONDITION_TYPE';
-};
-
 type UpdateIfConditionAction = {
-  comparison: Record<string, any>;
   conditionId: string;
   groupId: string;
+  params: {
+    comparison?: any;
+    type?: DataConditionType;
+  };
   type: 'UPDATE_IF_CONDITION';
 };
 
 type AddIfActionAction = {
   actionHandler: ActionHandler;
-  actionId: string;
   groupId: string;
   type: 'ADD_IF_ACTION';
 };
@@ -282,11 +268,7 @@ type RemoveIfActionAction = {
 type UpdateIfActionAction = {
   actionId: string;
   groupId: string;
-  params: {
-    config?: Record<string, any>;
-    data?: Record<string, any>;
-    integrationId?: string;
-  };
+  params: Partial<Omit<Action, 'id' | 'type'>>;
   type: 'UPDATE_IF_ACTION';
 };
 
@@ -305,7 +287,6 @@ type AutomationBuilderAction =
   | RemoveIfAction
   | AddIfConditionAction
   | RemoveIfConditionAction
-  | UpdateIfConditionTypeAction
   | UpdateIfConditionAction
   | AddIfActionAction
   | RemoveIfActionAction
@@ -351,13 +332,14 @@ function updateWhenCondition(
   state: AutomationBuilderState,
   action: UpdateWhenConditionAction
 ): AutomationBuilderState {
-  const {id, comparison} = action;
+  const {id, params} = action;
+  const {comparison, type} = params;
   return {
     ...state,
     triggers: {
       ...state.triggers,
       conditions: state.triggers.conditions.map(c =>
-        c.id === id ? {...c, comparison: {...c.comparison, ...comparison}} : c
+        c.id === id ? {...c, ...(comparison && {comparison}), ...(type && {type})} : c
       ),
     },
   };
@@ -388,6 +370,7 @@ function addIf(
       {
         id: uuid4(),
         conditions: [],
+        actions: [],
         logicType: DataConditionGroupLogicType.ALL,
       },
     ],
@@ -423,7 +406,6 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            // comparison: true,
             comparison:
               dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
             conditionResult: true,
@@ -453,32 +435,12 @@ function removeIfCondition(
   };
 }
 
-function updateIfConditionType(
-  state: AutomationBuilderState,
-  action: UpdateIfConditionTypeAction
-): AutomationBuilderState {
-  const {groupId, conditionId, conditionType} = action;
-  return {
-    ...state,
-    actionFilters: state.actionFilters.map(group => {
-      if (group.id !== groupId) {
-        return group;
-      }
-      return {
-        ...group,
-        conditions: group.conditions.map(c =>
-          c.id === conditionId ? {...c, type: conditionType} : c
-        ),
-      };
-    }),
-  };
-}
-
 function updateIfCondition(
   state: AutomationBuilderState,
   action: UpdateIfConditionAction
 ): AutomationBuilderState {
-  const {groupId, conditionId, comparison} = action;
+  const {groupId, conditionId, params} = action;
+  const {comparison, type} = params;
   return {
     ...state,
     actionFilters: state.actionFilters.map(group => {
@@ -488,7 +450,9 @@ function updateIfCondition(
       return {
         ...group,
         conditions: group.conditions.map(c =>
-          c.id === conditionId ? {...c, comparison: {...c.comparison, ...comparison}} : c
+          c.id === conditionId
+            ? {...c, ...(comparison && {comparison}), ...(type && {type})}
+            : c
         ),
       };
     }),
@@ -519,6 +483,9 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
   return {
     target_type: targetType,
     ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    ...(actionHandler.sentryApp?.id && {
+      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+    }),
   };
 }
 
@@ -526,7 +493,7 @@ function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
-  const {groupId, actionId, actionHandler} = action;
+  const {groupId, actionHandler} = action;
 
   const defaultIntegration = actionHandler.integrations?.[0];
 
@@ -541,7 +508,7 @@ function addIfAction(
         actions: [
           ...(group.actions ?? []),
           {
-            id: actionId,
+            id: uuid4(),
             type: actionHandler.type,
             config: getDefaultConfig(actionHandler),
             ...(defaultIntegration && {
@@ -579,7 +546,6 @@ function updateIfAction(
   action: UpdateIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, params} = action;
-  const {integrationId, config, data} = params;
 
   return {
     ...state,
@@ -593,9 +559,7 @@ function updateIfAction(
           a.id === actionId
             ? {
                 ...a,
-                ...(integrationId && {integrationId}),
-                ...(config && {config: {...a.config, ...config}}),
-                ...(data && {data: {...a.data, ...data}}),
+                ...params,
               }
             : a
         ),

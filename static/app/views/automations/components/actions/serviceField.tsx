@@ -1,4 +1,5 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
+import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
@@ -14,6 +15,7 @@ export function ServiceField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.config.target_identifier`}
+      aria-label={t('Service')}
       value={action.config.target_identifier}
       options={integration.services?.map(service => ({
         label: service.name,
@@ -21,7 +23,7 @@ export function ServiceField() {
       }))}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          config: {target_identifier: option.value},
+          config: {...action.config, target_identifier: option.value},
         });
       }}
     />

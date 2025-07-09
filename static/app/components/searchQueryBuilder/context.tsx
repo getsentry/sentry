@@ -24,6 +24,7 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -33,10 +34,12 @@ interface SearchQueryBuilderContextData {
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displaySeerResults: boolean;
+  enableAISearch: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
+  genAIConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -78,6 +81,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  enableAISearch,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -98,21 +102,38 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const organization = useOrganization();
+  const genAIConsent = organization?.genAIConsent ?? false;
+
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
   });
 
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter,
+    [fieldDefinitionGetter]
+  );
+
+  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+
+  const stableGetSuggestedFilterKey = useCallback(
+    (key: string) => {
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+    },
+    [getSuggestedFilterKey]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
-      parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys,
+        filterKeys: stableFilterKeys,
         invalidMessages,
         filterKeyAliases,
       }),
@@ -121,8 +142,8 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      fieldDefinitionGetter,
-      filterKeys,
+      stableFieldDefinitionGetter,
+      stableFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
       filterKeyAliases,
@@ -146,14 +167,16 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      enableAISearch: Boolean(enableAISearch),
+      genAIConsent,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
-      filterKeys,
-      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
+      filterKeys: stableFilterKeys,
+      getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
+      getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
       actionBarRef,
@@ -169,29 +192,30 @@ export function SearchQueryBuilderProvider({
       filterKeyAliases,
     };
   }, [
-    state,
     disabled,
     disallowFreeText,
     disallowWildcard,
+    dispatch,
+    displaySeerResults,
+    enableAISearch,
+    filterKeyAliases,
+    filterKeyMenuWidth,
+    filterKeySections,
+    genAIConsent,
+    getTagValues,
+    handleSearch,
     parseQuery,
     parsedQuery,
-    filterKeySections,
-    filterKeyMenuWidth,
-    filterKeys,
-    getSuggestedFilterKey,
-    getTagValues,
-    fieldDefinitionGetter,
-    dispatch,
-    handleSearch,
     placeholder,
+    portalTarget,
     recentSearches,
+    replaceRawSearchKeys,
     searchSource,
     size,
-    portalTarget,
-    displaySeerResults,
-    setDisplaySeerResults,
-    replaceRawSearchKeys,
-    filterKeyAliases,
+    stableFieldDefinitionGetter,
+    stableFilterKeys,
+    stableGetSuggestedFilterKey,
+    state,
   ]);
 
   return (

@@ -1,6 +1,7 @@
 import functools
 import logging
 from collections.abc import Generator, Iterator
+from datetime import datetime
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -17,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
@@ -28,13 +30,18 @@ from sentry.replays.usecases.ingest.event_parser import (
     which,
 )
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.snuba import bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
 
-class ErrorEvent(TypedDict):
+class GroupEvent(TypedDict):
     id: str
     title: str
     message: str
@@ -87,6 +94,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         )
 
         error_ids = response[0].get("error_ids", []) if response else []
+        trace_ids = response[0].get("trace_ids", []) if response else []
 
         # Check if error fetching should be disabled
         disable_error_fetching = (
@@ -96,39 +104,178 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         if disable_error_fetching:
             error_events = []
         else:
-            error_events = fetch_error_details(project_id=project.id, error_ids=error_ids)
-
+            replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
+            trace_connected_errors = fetch_trace_connected_errors(
+                project=project,
+                trace_ids=trace_ids,
+                start=filter_params["start"],
+                end=filter_params["end"],
+            )
+            error_events = replay_errors + trace_connected_errors
         return self.paginate(
             request=request,
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=functools.partial(analyze_recording_segments, error_events, replay_id),
+            on_results=functools.partial(
+                analyze_recording_segments, error_events, replay_id, project.id
+            ),
         )
 
 
-def fetch_error_details(project_id: int, error_ids: list[str]) -> list[ErrorEvent]:
-    """Fetch error details given error IDs and return a list of ErrorEvent objects."""
+def fetch_error_details(project_id: int, error_ids: list[str]) -> list[GroupEvent]:
+    """Fetch error details given error IDs and return a list of GroupEvent objects."""
     try:
+        if not error_ids:
+            return []
+
         node_ids = [Event.generate_node_id(project_id, event_id=id) for id in error_ids]
         events = nodestore.backend.get_multi(node_ids)
 
         return [
-            ErrorEvent(
+            GroupEvent(
                 category="error",
                 id=event_id,
                 title=data.get("title", ""),
-                timestamp=data.get("timestamp", 0.0) * 1000,  # error timestamp is in seconds
+                timestamp=data.get("timestamp") * 1000,  # convert to milliseconds
                 message=data.get("message", ""),
             )
             for event_id, data in zip(error_ids, events.values())
-            if data is not None
+            if data is not None and data.get("timestamp") is not None
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []
 
 
-def generate_error_log_message(error: ErrorEvent) -> str:
+def parse_timestamp(timestamp_value: Any, unit: str) -> float:
+    """Parse a timestamp input to a float value.
+    The argument timestamp value can be string, float, or None.
+    The returned unit will be the same as the input unit.
+    """
+    if timestamp_value is not None:
+        if isinstance(timestamp_value, str):
+            try:
+                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
+            except (ValueError, AttributeError):
+                return 0.0
+        else:
+            return float(timestamp_value)
+    return 0.0
+
+
+def fetch_trace_connected_errors(
+    project: Project,
+    trace_ids: list[str],
+    start: datetime | None,
+    end: datetime | None,
+) -> list[GroupEvent]:
+    """Fetch error details given trace IDs and return a list of GroupEvent objects."""
+    try:
+        if not trace_ids:
+            return []
+
+        # Get projects in the organization that the user has access to
+        org_projects = list(
+            Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
+        )
+
+        queries = []
+        for trace_id in trace_ids:
+            snuba_params = SnubaParams(
+                projects=org_projects,
+                start=start,
+                end=end,
+                organization=project.organization,
+            )
+
+            # Generate a query for each trace ID. This will be executed in bulk.
+            error_query = DiscoverQueryBuilder(
+                Dataset.Events,
+                params={},
+                snuba_params=snuba_params,
+                query=f"trace:{trace_id}",
+                selected_columns=[
+                    "id",
+                    "timestamp_ms",
+                    "timestamp",
+                    "title",
+                    "message",
+                ],
+                orderby=["id"],
+                limit=100,
+                config=QueryBuilderConfig(
+                    auto_fields=False,
+                ),
+            )
+            queries.append(error_query)
+
+        if not queries:
+            return []
+
+        # Execute all queries
+        results = bulk_snuba_queries(
+            [query.get_snql_query() for query in queries],
+            referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
+        )
+
+        # Process results and convert to GroupEvent objects
+        error_events = []
+        for result, query in zip(results, queries):
+            error_data = query.process_results(result)["data"]
+
+            for event in error_data:
+                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
+                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
+                timestamp = timestamp_ms or timestamp_s * 1000
+
+                if timestamp:
+                    error_events.append(
+                        GroupEvent(
+                            category="error",
+                            id=event["id"],
+                            title=event.get("title", ""),
+                            timestamp=timestamp,
+                            message=event.get("message", ""),
+                        )
+                    )
+
+        return error_events
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return []
+
+
+def fetch_feedback_details(feedback_id: str | None, project_id):
+    """
+    Fetch user feedback associated with a specific feedback event ID.
+    """
+    if feedback_id is None:
+        return None
+
+    try:
+        node_id = Event.generate_node_id(project_id, event_id=feedback_id)
+        event = nodestore.backend.get(node_id)
+
+        return (
+            GroupEvent(
+                category="feedback",
+                id=feedback_id,
+                title="User Feedback",
+                timestamp=event.get("timestamp") * 1000,  # convert to milliseconds
+                message=event.get("contexts", {}).get("feedback", {}).get("message", ""),
+            )
+            if event and event.get("timestamp") is not None
+            else None
+        )
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def generate_error_log_message(error: GroupEvent) -> str:
     title = error["title"]
     message = error["message"]
     timestamp = error["timestamp"]
@@ -136,16 +283,28 @@ def generate_error_log_message(error: ErrorEvent) -> str:
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
+def generate_feedback_log_message(feedback: GroupEvent) -> str:
+    title = feedback["title"]
+    message = feedback["message"]
+    timestamp = feedback["timestamp"]
+
+    return f"User submitted feedback: '{title}: {message}' at {timestamp}"
+
+
 def get_request_data(
-    iterator: Iterator[tuple[int, memoryview]], error_events: list[ErrorEvent]
+    iterator: Iterator[tuple[int, memoryview]],
+    error_events: list[GroupEvent],
+    project_id: int,
 ) -> list[str]:
     # Sort error events by timestamp
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(gen_request_data(iterator, error_events))
+    return list(gen_request_data(iterator, error_events, project_id))
 
 
 def gen_request_data(
-    iterator: Iterator[tuple[int, memoryview]], error_events: list[ErrorEvent]
+    iterator: Iterator[tuple[int, memoryview]],
+    error_events: list[GroupEvent],
+    project_id,
 ) -> Generator[str]:
     """Generate log messages from events and errors in chronological order."""
     error_idx = 0
@@ -163,7 +322,14 @@ def gen_request_data(
                 error_idx += 1
 
             # Yield the current event's log message
-            if message := as_log_message(event):
+            event_type = which(event)
+            if event_type == EventType.FEEDBACK:
+                feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId", None)
+                feedback = fetch_feedback_details(feedback_id, project_id)
+                if feedback:
+                    yield generate_feedback_log_message(feedback)
+
+            elif message := as_log_message(event):
                 yield message
 
     # Yield any remaining error messages
@@ -175,12 +341,15 @@ def gen_request_data(
 
 @sentry_sdk.trace
 def analyze_recording_segments(
-    error_events: list[ErrorEvent],
+    error_events: list[GroupEvent],
     replay_id: str,
+    project_id: int,
     segments: list[RecordingSegmentStorageMeta],
 ) -> dict[str, Any]:
     # Combine breadcrumbs and error details
-    request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments), error_events)})
+    request_data = json.dumps(
+        {"logs": get_request_data(iter_segment_data(segments), error_events, project_id)}
+    )
 
     # Log when the input string is too large. This is potential for timeout.
     if len(request_data) > 100000:
@@ -271,6 +440,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             return None
         case EventType.OPTIONS:
             return None
+        case EventType.FEEDBACK:
+            return None  # the log message is processed before this method is called
 
 
 def make_seer_request(request_data: str) -> bytes:

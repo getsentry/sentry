@@ -225,8 +225,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
         assert assignee and (assignee.id == self.user.id)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+        self.subscription.refresh_from_db()
+        assert self.subscription.uptime_status == UptimeStatus.FAILED
 
         # Issue is resolved
         with (
@@ -477,8 +477,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+        self.subscription.refresh_from_db()
+        assert self.subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
         features = [
@@ -652,6 +652,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={**result},
             )
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed_check_updated_interval(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -803,6 +804,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed(self):
         features = [
             "organizations:uptime",
@@ -1028,7 +1030,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
 
-        uptime_subscription = self.project_subscription.uptime_subscription
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_SUCCESS,
@@ -1081,11 +1082,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
-        uptime_subscription.refresh_from_db()
-        assert uptime_subscription.interval_seconds == int(
+        self.subscription.refresh_from_db()
+        assert self.subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
-        assert uptime_subscription.url == uptime_subscription.url
+        assert self.subscription.url == self.subscription.url
 
     def test_parallel(self) -> None:
         """
@@ -1134,7 +1135,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
@@ -1183,6 +1186,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_provider_stats(self):
         features = [
             "organizations:uptime",
@@ -1619,7 +1623,9 @@ class ProcessResultSerialTest(ProcessResultTest):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"

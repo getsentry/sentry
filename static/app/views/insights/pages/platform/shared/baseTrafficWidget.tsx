@@ -18,19 +18,19 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 
 interface TrafficWidgetProps extends LoadableChartWidgetProps {
   referrer: string;
   title: string;
   trafficSeriesName: string;
-  baseQuery?: string;
+  query?: string;
 }
 
 export function BaseTrafficWidget({
   title,
   trafficSeriesName,
-  baseQuery,
+  query,
   referrer,
   ...props
 }: TrafficWidgetProps) {
@@ -40,15 +40,14 @@ export function BaseTrafficWidget({
     granularity: 'spans-low',
     pageFilters: props.pageFilters,
   });
-  const {query} = useTransactionNameQuery();
-  const theme = useTheme();
 
-  const fullQuery = `${baseQuery} ${query}`.trim();
+  const theme = useTheme();
+  const neutralChartColor = useNeutralChartColor();
 
   const {data, isLoading, error} = useEAPSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
+      search: query,
       yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
     },
     referrer,
@@ -64,14 +63,14 @@ export function BaseTrafficWidget({
     return [
       new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: trafficSeriesName,
-        color: theme.gray200,
+        color: neutralChartColor,
       }),
       new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: t('Error Rate'),
         color: theme.error,
       }),
     ];
-  }, [data, theme.error, theme.gray200, trafficSeriesName]);
+  }, [data, theme.error, neutralChartColor, trafficSeriesName]);
 
   const isEmpty = useMemo(
     () =>
@@ -118,7 +117,7 @@ export function BaseTrafficWidget({
               ],
               groupBy: ['trace.status'],
               sort: '-count(span.duration)',
-              query: fullQuery,
+              query,
               interval: pageFilterChartParams.interval,
             }}
             loaderSource={props.loaderSource}

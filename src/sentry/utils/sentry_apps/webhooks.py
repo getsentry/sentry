@@ -147,7 +147,8 @@ def send_and_save_webhook_request(
 
         elif 400 <= response.status_code < 500:
             lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}"
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}",
+                sample_log_rate=0.05,
             )
             raise ClientError(response.status_code, url, response=response)
 

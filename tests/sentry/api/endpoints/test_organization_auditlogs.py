@@ -29,18 +29,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         entry2 = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org2.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -56,12 +59,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(
@@ -84,12 +89,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=user2,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(org.slug, qs_params={"actor": self.user.id})
@@ -110,18 +117,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=user2,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(
@@ -138,6 +148,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(self.organization.slug, qs_params={"event": "wrong"})
@@ -151,6 +162,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_error_response(
@@ -173,6 +185,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         audit_log_api_names = set(audit_log.get_api_names())
 
@@ -191,6 +204,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=timezone.now(),
+            data={"thing": "to True"},
         )
         self.get_success_response(self.organization.slug)
 
@@ -205,12 +219,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now - timedelta(days=1),
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         start_time = now - timedelta(days=1)
@@ -236,6 +252,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now - timedelta(days=2),
+            data={"thing": "to True"},
         )
 
         recent_entry = AuditLogEntry.objects.create(
@@ -243,6 +260,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now - timedelta(hours=12),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(

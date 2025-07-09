@@ -241,26 +241,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
 
     @cached_property
-    def comparison_rule_above(self):
-        rule = self.rule
-        rule.update(comparison_delta=60 * 60, resolve_threshold=None)
-        rule.snuba_query.update(time_window=60 * 60)
-        self.trigger.update(alert_threshold=150)
-        return rule
-
-    @cached_property
-    def comparison_rule_below(self):
-        rule = self.rule
-        rule.update(
-            comparison_delta=60,
-            threshold_type=AlertRuleThresholdType.BELOW.value,
-            resolve_threshold=None,
-        )
-        rule.snuba_query.update(time_window=60 * 60)
-        self.trigger.update(alert_threshold=50)
-        return rule
-
-    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
@@ -405,8 +385,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_action_handler_called_with_actions(None, [])
 
     def test_alert_dedupe(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
+        """
+        Verify that an alert rule that only expects a single update to be over the
+        alert threshold triggers correctly
+        """
         rule = self.rule
         c_trigger = self.trigger
         create_alert_rule_trigger_action(
@@ -448,8 +430,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     def test_alert_nullable(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
+        """
+        Verify that an alert rule that only expects a single update to be over the
+        alert threshold triggers correctly
+        """
         rule = self.rule
         self.trigger
         processor = self.send_update(rule, None)
@@ -457,8 +441,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
 
     def test_alert_multiple_threshold_periods(self):
-        # Verify that a rule that expects two consecutive updates to be over the
-        # alert threshold triggers correctly
+        """
+        Verify that a rule that expects two consecutive updates to be over the
+        alert threshold triggers correctly
+        """
         rule = self.rule
         trigger = self.trigger
         rule.update(threshold_period=2)
@@ -488,8 +474,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     def test_no_new_incidents_within_ten_minutes(self):
-        # Verify that a new incident is not made for the same rule, trigger, and
-        # subscription if an incident was already made within the last 10 minutes.
+        """
+        Verify that a new incident is not made for the same rule, trigger, and
+        subscription if an incident was already made within the last 10 minutes.
+        """
         rule = self.rule
         trigger = self.trigger
         processor = self.send_update(
@@ -526,9 +514,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     def test_incident_made_after_ten_minutes(self):
-        # Verify that a new incident will be made for the same rule, trigger, and
-        # subscription if the last incident made for those was made more tha 10 minutes
-        # ago
+        """
+        Verify that a new incident will be made for the same rule, trigger, and
+        subscription if the last incident made for those was made more tha 10 minutes
+        ago
+        """
         rule = self.rule
         trigger = self.trigger
         processor = self.send_update(
@@ -554,8 +544,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 class ProcessUpdateResolveTest(ProcessUpdateTest):
     def test_no_active_incident_resolve(self):
-        # Test that we don't track stats for resolving if there are no active incidents
-        # related to the alert rule.
+        """
+        Test that we don't track stats for resolving if there are no active incidents
+        related to the alert rule.
+        """
         rule = self.rule
         trigger = self.trigger
         processor = self.send_update(rule, rule.resolve_threshold - 1)
@@ -565,8 +557,10 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         self.assert_action_handler_called_with_actions(None, [])
 
     def test_resolve_multiple_threshold_periods(self):
-        # Verify that a rule that expects two consecutive updates to be under the
-        # resolve threshold triggers correctly
+        """
+        Verify that a rule that expects two consecutive updates to be under the
+        resolve threshold triggers correctly
+        """
         rule = self.rule
         trigger = self.trigger
 
@@ -616,9 +610,11 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_resolve_multiple_threshold_periods_non_consecutive(self):
-        # Verify that a rule that expects two consecutive updates to be under the
-        # resolve threshold doesn't trigger if there's two updates that are below with
-        # an update that is above the threshold in the middle
+        """
+        Verify that a rule that expects two consecutive updates to be under the
+        resolve threshold doesn't trigger if there's two updates that are below with
+        an update that is above the threshold in the middle
+        """
         rule = self.rule
         trigger = self.trigger
 
@@ -661,8 +657,10 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         self.assert_action_handler_called_with_actions(incident, [])
 
     def test_auto_resolve(self):
-        # Verify that we resolve an alert rule automatically even if no resolve
-        # threshold is set
+        """
+        Verify that we resolve an alert rule automatically even if no resolve
+        threshold is set
+        """
         rule = self.rule
         rule.update(resolve_threshold=None)
         trigger = self.trigger
@@ -705,8 +703,10 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_auto_resolve_percent_boundary(self):
-        # Verify that we resolve an alert rule automatically even if no resolve
-        # threshold is set
+        """
+        Verify that we resolve an alert rule automatically even if no resolve
+        threshold is set
+        """
         rule = self.rule
         rule.update(resolve_threshold=None)
         trigger = self.trigger
@@ -750,8 +750,10 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_auto_resolve_boundary(self):
-        # Verify that we resolve an alert rule automatically if the value hits the
-        # original alert trigger value
+        """
+        Verify that we resolve an alert rule automatically if the value hits the
+        original alert trigger value
+        """
         rule = self.rule
         rule.update(resolve_threshold=None)
         trigger = self.trigger
@@ -794,7 +796,9 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_auto_resolve_reversed(self):
-        # Test auto resolving works correctly when threshold is reversed
+        """
+        Test auto resolving works correctly when threshold is reversed
+        """
         rule = self.rule
         rule.update(resolve_threshold=None, threshold_type=AlertRuleThresholdType.BELOW.value)
         trigger = self.trigger
@@ -837,7 +841,9 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_reversed_threshold_alert(self):
-        # Test that inverting thresholds correctly alerts
+        """
+        Test that inverting thresholds correctly alerts
+        """
         rule = self.rule
         trigger = self.trigger
         rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
@@ -868,7 +874,9 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_reversed_threshold_resolve(self):
-        # Test that inverting thresholds correctly resolves
+        """
+        Test that inverting thresholds correctly resolves
+        """
         rule = self.rule
         trigger = self.trigger
         rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
@@ -919,8 +927,10 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         )
 
     def test_multiple_subscriptions_do_not_conflict(self):
-        # Verify that multiple subscriptions associated with a rule don't conflict with
-        # each other
+        """
+        Verify that multiple subscriptions associated with a rule don't conflict with
+        each other
+        """
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger
@@ -1181,9 +1191,11 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         )
 
     def test_alert_multiple_triggers_non_consecutive(self):
-        # Verify that a rule that expects two consecutive updates to be over the
-        # alert threshold doesn't trigger if there are two updates that are above with
-        # an update that is below the threshold in the middle
+        """
+        Verify that a rule that expects two consecutive updates to be over the
+        alert threshold doesn't trigger if there are two updates that are above with
+        an update that is below the threshold in the middle
+        """
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger
@@ -1411,8 +1423,10 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         )
 
     def test_multiple_triggers_at_same_time(self):
-        # Check that both triggers fire if an update comes through that exceeds both of
-        # their thresholds
+        """
+        Check that both triggers fire if an update comes through that exceeds both of
+        their thresholds
+        """
         rule = self.rule
         trigger = self.trigger
         other_trigger = create_alert_rule_trigger(
@@ -1488,8 +1502,10 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         )
 
     def test_multiple_triggers_with_identical_actions_at_same_time(self):
-        # Check that both triggers fire if an update comes through that exceeds both of
-        # their thresholds
+        """
+        Check that both triggers fire if an update comes through that exceeds both of
+        their thresholds
+        """
         rule = self.rule
         trigger = self.trigger
         other_trigger = create_alert_rule_trigger(
@@ -1551,7 +1567,9 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         )
 
     def test_auto_resolve_multiple_trigger(self):
-        # Test auto resolving works correctly when multiple triggers are present.
+        """
+        Test auto resolving works correctly when multiple triggers are present.
+        """
         rule = self.rule
         rule.update(resolve_threshold=None)
         trigger = self.trigger
@@ -1618,7 +1636,9 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         )
 
     def test_multiple_triggers_resolve_separately(self):
-        # Check that resolve triggers fire separately
+        """
+        Check that resolve triggers fire separately
+        """
         rule = self.rule
         trigger = self.trigger
         other_trigger = create_alert_rule_trigger(
@@ -1723,6 +1743,26 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
 
 
 class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
+    @cached_property
+    def comparison_rule_above(self):
+        rule = self.rule
+        rule.update(comparison_delta=60 * 60, resolve_threshold=None)
+        rule.snuba_query.update(time_window=60 * 60)
+        self.trigger.update(alert_threshold=150)
+        return rule
+
+    @cached_property
+    def comparison_rule_below(self):
+        rule = self.rule
+        rule.update(
+            comparison_delta=60,
+            threshold_type=AlertRuleThresholdType.BELOW.value,
+            resolve_threshold=None,
+        )
+        rule.snuba_query.update(time_window=60 * 60)
+        self.trigger.update(alert_threshold=50)
+        return rule
+
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_comparison_alert_above(self, helper_metrics):
         rule = self.comparison_rule_above

@@ -103,9 +103,6 @@ export default function AutomationBuilder() {
           {t('If/Then Block')}
         </PurpleTextButton>
       </span>
-      <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-      </span>
     </Flex>
   );
 }
@@ -172,11 +169,8 @@ function ActionFilterBlock({
             conditions={actionFilter?.conditions || []}
             onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
             onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
-            updateCondition={(id, comparison) =>
-              actions.updateIfCondition(actionFilter.id, id, comparison)
-            }
-            updateConditionType={(id, type) =>
-              actions.updateIfConditionType(actionFilter.id, id, type)
+            updateCondition={(id, params) =>
+              actions.updateIfCondition(actionFilter.id, id, params)
             }
             conflictingConditionIds={conflictingConditions}
           />
@@ -188,16 +182,18 @@ function ActionFilterBlock({
             then: <ConditionBadge />,
           })}
         </StepLead>
-        {/* TODO: add actions dropdown here */}
         <ActionNodeList
           placeholder={t('Select an action')}
-          group={`actionFilters.${actionFilter.id}`}
+          conditionGroupId={actionFilter.id}
           actions={actionFilter?.actions || []}
-          onAddRow={(id, type) => actions.addIfAction(actionFilter.id, id, type)}
+          onAddRow={handler => actions.addIfAction(actionFilter.id, handler)}
           onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
           updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />
       </Step>
+      <span>
+        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+      </span>
     </IfThenWrapper>
   );
 }

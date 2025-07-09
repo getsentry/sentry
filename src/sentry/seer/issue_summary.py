@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from functools import lru_cache
 from typing import Any
 
 import orjson
@@ -175,15 +174,13 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-@lru_cache(maxsize=1)
-def create_fixability_connection_pool():
-    return connection_from_url(
-        settings.SEER_SEVERITY_URL,
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
-    )
+fixability_connection_pool = connection_from_url(
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
 
 
-def _generate_fixability_score_via_conn_pool(group: Group):
+def _generate_fixability_score(group: Group):
     payload = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
@@ -191,7 +188,7 @@ def _generate_fixability_score_via_conn_pool(group: Group):
         "project_id": group.project.id,
     }
     response = make_signed_seer_api_request(
-        create_fixability_connection_pool(),
+        fixability_connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
@@ -200,33 +197,6 @@ def _generate_fixability_score_via_conn_pool(group: Group):
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
-
-
-def _generate_fixability_score(group: Group):
-    path = "/v1/automation/summarize/fixability"
-    body = orjson.dumps(
-        {
-            "group_id": group.id,
-            "organization_slug": group.organization.slug,
-            "organization_id": group.organization.id,
-            "project_id": group.project.id,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
-
-    response = requests.post(
-        f"{settings.SEER_SEVERITY_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
-    )
-
-    response.raise_for_status()
-
-    return SummarizeIssueResponse.validate(response.json())
 
 
 def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
@@ -324,10 +294,7 @@ def _run_automation(
     )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        if group.organization.id == 1:  # TODO(kddubey): rm temp guard
-            issue_summary = _generate_fixability_score_via_conn_pool(group)
-        else:
-            issue_summary = _generate_fixability_score(group)
+        issue_summary = _generate_fixability_score(group)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
@@ -448,6 +415,9 @@ def get_issue_summary(
         user = AnonymousUser()
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
+
+    if group.organization.get_option("sentry:hide_ai_features"):
+        return {"detail": "AI features are disabled for this organization."}, 403
 
     if not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403

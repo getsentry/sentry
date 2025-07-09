@@ -51,10 +51,11 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
-from sentry.seer.anomaly_detection.get_historical_anomalies import (
+from sentry.seer.anomaly_detection.utils import (
+    anomaly_has_confidence,
     get_anomaly_evaluation_from_workflow_engine,
+    has_anomaly,
 )
-from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
@@ -400,6 +401,7 @@ class SubscriptionProcessor:
                     source_id=str(self.subscription.id), packet=packet
                 )
                 results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+
                 if features.has(
                     "organizations:workflow-engine-metric-alert-dual-processing-logs",
                     self.alert_rule.organization,

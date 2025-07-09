@@ -11,6 +11,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
@@ -29,19 +30,19 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolUsageWidget() {
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
   const theme = useTheme();
+  const neutralChartColor = useNeutralChartColor();
 
-  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
   const toolsRequest = useEAPSpans(
     {
@@ -101,7 +102,7 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
+              color: ts.seriesName === 'Other' ? neutralChartColor : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
