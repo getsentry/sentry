@@ -80,11 +80,11 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import ArrayValue from './arrayValue';
 import {
   BarContainer,
-  BrowserIconContainer,
   Container,
   FieldDateTime,
   FieldShortId,
   FlexContainer,
+  IconContainer,
   NumberContainer,
   OverflowFieldShortId,
   OverflowLink,
@@ -907,11 +907,32 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
+      const formattedName = browserName.split(' ').join('-').toLocaleLowerCase();
       return (
-        <BrowserIconContainer>
-          <ContextIcon name={browserName.toLocaleLowerCase()} size="md" />
+        <IconContainer>
+          <ContextIcon name={formattedName} size="md" />
           {browserName}
-        </BrowserIconContainer>
+        </IconContainer>
+      );
+    },
+  },
+  browser: {
+    sortField: 'browser',
+    renderFunc: data => {
+      const browser: string = data.browser;
+      if (!browser) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+
+      const broswerArray = browser.split(' ');
+      broswerArray.pop();
+      const formattedName = broswerArray.join('-').toLocaleLowerCase();
+
+      return (
+        <IconContainer>
+          <ContextIcon name={formattedName} size="md" />
+          {browser}
+        </IconContainer>
       );
     },
   },
@@ -923,11 +944,32 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
+      const formattedName = osName.split(' ').join('-').toLocaleLowerCase();
       return (
-        <BrowserIconContainer>
-          <ContextIcon name={osName.toLocaleLowerCase()} size="md" />
+        <IconContainer>
+          <ContextIcon name={formattedName} size="md" />
           {osName}
-        </BrowserIconContainer>
+        </IconContainer>
+      );
+    },
+  },
+  os: {
+    sortField: 'os',
+    renderFunc: data => {
+      const os: string = data.os;
+      if (!os) {
+        return <Container>{emptyStringValue}</Container>;
+      }
+
+      const osArray = os.split(' ');
+      osArray.pop();
+      const formattedName = osArray.join('-').toLocaleLowerCase();
+
+      return (
+        <IconContainer>
+          <ContextIcon name={formattedName} size="md" />
+          {os}
+        </IconContainer>
       );
     },
   },

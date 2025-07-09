@@ -63,7 +63,7 @@ export const UserIcon = styled(IconUser)`
   color: ${p => p.theme.gray400};
 `;
 
-export const BrowserIconContainer = styled('div')`
+export const IconContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   width: max-content;
