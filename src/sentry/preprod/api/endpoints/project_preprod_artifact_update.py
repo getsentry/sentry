@@ -11,7 +11,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
-from sentry.utils import json
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -173,7 +172,7 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                     parsed_apple_info[field] = apple_info[field]
 
             if parsed_apple_info:
-                preprod_artifact.extras = json.dumps(parsed_apple_info)
+                preprod_artifact.extras = parsed_apple_info
                 updated_fields.append("extras")
 
         # Save the artifact if any fields were updated
