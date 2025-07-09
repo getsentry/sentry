@@ -29,6 +29,15 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   // Decode from series name disambiguation
   seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
 
+  // Check if it's a release version. NOTE: This is not a good idea.
+  // `formatVersion` will aggressively assume that any `@` symbol in the string
+  // signifies a version, so user emails will be formatted as versions. All
+  // usage of `TimeSeriesWidgetVisualization` should be careful about using the
+  // `groupBy` property of a `TimeSeries`, because it'll _only parse the release
+  // tag_ as a version, and leave others alone. Once `groupBy` is in wide use,
+  // we can remove this parsing.
+  seriesName = formatVersion(seriesName);
+
   // Check for special-case measurement formatting
   const arg = getAggregateArg(seriesName);
   if (arg) {
