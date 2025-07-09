@@ -30,6 +30,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useNeutralChartColor} from 'sentry/views/insights/pages/platform/shared/useNeutralChartColor';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolUsageWidget() {
@@ -39,6 +40,7 @@ export default function ToolUsageWidget() {
   });
 
   const theme = useTheme();
+  const neutralChartColor = useNeutralChartColor();
 
   const fullQuery = useCombinedQuery(getAIToolCallsFilter());
 
@@ -100,7 +102,7 @@ export default function ToolUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
+              color: ts.seriesName === 'Other' ? neutralChartColor : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
