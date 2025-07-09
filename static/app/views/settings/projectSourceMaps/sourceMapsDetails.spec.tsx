@@ -242,12 +242,12 @@ describe('SourceMapsDetails', function () {
       // Release information
       expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
       expect(
-        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
+        await screen.findByText(textWithMarkupMatcher('v2.0(Dist: none)'))
       ).toBeInTheDocument();
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
-            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
+            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a(Dist: android, iOS)'
           )
         )
       ).toBeInTheDocument();

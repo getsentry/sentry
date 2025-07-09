@@ -19,10 +19,7 @@ export function AssociatedReleases({
     <ReleasesWrapper>
       {associations.length
         ? associations.map(association => (
-            <AssociatedReleaseWrapper
-              key={association.release}
-              data-test-id="associated-release"
-            >
+            <AssociatedReleaseWrapper key={association.release}>
               <Tooltip
                 showUnderline={association.exists === false}
                 title={
@@ -36,7 +33,7 @@ export function AssociatedReleases({
                   shouldFormatVersion={shouldFormatVersion}
                 />
               </Tooltip>
-              {` (Dist: ${formatDist(association.dist)})`}
+              {`(Dist: ${formatDist(association.dist)})`}
             </AssociatedReleaseWrapper>
           ))
         : t('No releases associated with this upload.')}
@@ -62,6 +59,7 @@ const ReleasesWrapper = styled('pre')`
 const AssociatedReleaseWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  gap: ${space(0.5)};
   :not(:last-child) {
     margin-bottom: ${space(0.5)};
   }
