@@ -64,11 +64,11 @@ export function AnrRootCause({event, organization}: Props) {
     });
   }, [anrCulprit, organization, event?.groupID]);
 
-  if (tree.type !== 'trace' || !traceNode) {
+  if (tree.type === 'loading' || tree.type === 'error') {
     return null;
   }
 
-  const occurrences = Array.from(traceNode.occurrences);
+  const occurrences = Array.from(traceNode?.occurrences ?? []);
   const noPerfIssueOnTrace = occurrences.length === 0;
 
   if (noPerfIssueOnTrace && !anrCulprit) {
