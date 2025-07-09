@@ -260,7 +260,6 @@ DETAILED_PROJECT = {
         {"id": "boostReplayId", "active": True},
         {"id": "recalibrationRule", "active": True},
     ],
-    "dynamicSamplingMinimumSampleRate": True,
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
