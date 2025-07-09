@@ -170,10 +170,10 @@ const Container = styled('div')`
 
 // TODO: DAIN-719 Update the widths to be consistent with mockup
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
-  grid-template-areas: 'star name project envs num-widgets created-by last-viewed created actions';
+  grid-template-areas: 'star name project envs filter num-widgets created-by last-viewed created actions';
   grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px) minmax(0, 120px)
-    minmax(0, 120px) auto 48px;
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px)
+    minmax(auto, 120px) auto auto auto 48px;
 `;
 
 const TableHeading = styled('h2')`
