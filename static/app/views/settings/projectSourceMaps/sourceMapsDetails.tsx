@@ -175,8 +175,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     {
       staleTime: Infinity,
       retry: false,
-      enabled:
-        isDebugIdBundle && !debugIdBundlesArtifactsLoading && !!releaseVersions?.length,
+      enabled: !!releaseVersions?.length,
     }
   );
 
