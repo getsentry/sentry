@@ -392,7 +392,10 @@ function SourceMapUploadsList({
               />
             </ItemHeader>
             <ItemContent>
-              <SourceMapUploadDetails sourceMapUpload={sourceMapUpload} />
+              <SourceMapUploadDetails
+                sourceMapUpload={sourceMapUpload}
+                projectId={project.id}
+              />
             </ItemContent>
           </Item>
         ))}
@@ -402,7 +405,13 @@ function SourceMapUploadsList({
   );
 }
 
-function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUpload}) {
+function SourceMapUploadDetails({
+  sourceMapUpload,
+  projectId,
+}: {
+  projectId: string;
+  sourceMapUpload: SourceMapUpload;
+}) {
   const [showAll, setShowAll] = useState(false);
   const detailsData = useMemo<KeyValueListData>(() => {
     const rows = sourceMapUpload.associations;
@@ -422,10 +431,12 @@ function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUp
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
-        value: <AssociatedReleases associations={visibleAssociations} />,
+        value: (
+          <AssociatedReleases associations={visibleAssociations} projectId={projectId} />
+        ),
       },
     ];
-  }, [sourceMapUpload, showAll]);
+  }, [sourceMapUpload, showAll, projectId]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }

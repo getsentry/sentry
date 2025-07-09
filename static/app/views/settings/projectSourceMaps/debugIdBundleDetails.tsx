@@ -11,8 +11,10 @@ import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associ
 
 export function DebugIdBundleDetails({
   debugIdBundle,
+  projectId,
 }: {
   debugIdBundle: DebugIdBundle | DebugIdBundleArtifact;
+  projectId: string;
 }) {
   const [showAll, setShowAll] = useState(false);
   const detailsData = useMemo<KeyValueListData>(() => {
@@ -36,6 +38,7 @@ export function DebugIdBundleDetails({
           <AssociatedReleases
             associations={visibleAssociations}
             shouldFormatVersion={false}
+            projectId={projectId}
           />
         ),
       },
@@ -49,7 +52,13 @@ export function DebugIdBundleDetails({
         ),
       },
     ];
-  }, [debugIdBundle.associations, debugIdBundle.date, debugIdBundle.fileCount, showAll]);
+  }, [
+    debugIdBundle.associations,
+    debugIdBundle.date,
+    debugIdBundle.fileCount,
+    showAll,
+    projectId,
+  ]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }
