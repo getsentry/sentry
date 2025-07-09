@@ -107,7 +107,6 @@ const PaddedFluidHeight = styled(FluidHeight)`
 `;
 
 const OverflowBody = styled('section')`
-  position: relative;
   flex: 1 1 auto;
   overflow: auto;
 `;
