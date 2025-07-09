@@ -13,7 +13,6 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 class AuthUserMergeVerificationCodeEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (SentryIsAuthenticated,)
