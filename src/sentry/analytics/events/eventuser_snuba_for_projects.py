@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("eventuser_snuba.for_projects")
 class EventUserSnubaForProjects(analytics.Event):
-    type = "eventuser_snuba.for_projects"
-
-    attributes = (
-        analytics.Attribute("project_ids", type=list),
-        analytics.Attribute("total_tries", type=int),
-        analytics.Attribute("total_rows_returned", required=True, type=int),
-        analytics.Attribute("total_time_ms", type=int),
-    )
+    project_ids: list
+    total_tries: int
+    total_rows_returned: int
+    total_time_ms: int
 
 
 analytics.register(EventUserSnubaForProjects)
