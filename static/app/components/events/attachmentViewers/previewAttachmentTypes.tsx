@@ -2,7 +2,7 @@ import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer'
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
-import {WebMViewer} from 'sentry/components/events/attachmentViewers/webmViewer';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import type {IssueAttachment} from 'sentry/types/group';
 
 export const imageMimeTypes = [
@@ -12,6 +12,7 @@ export const imageMimeTypes = [
   'image/png',
   'image/gif',
   'image/webp',
+  'image/avif',
 ];
 
 const logFileMimeTypes = [
@@ -29,13 +30,13 @@ const jsonMimeTypes = [
   'text/x-json',
 ];
 
-export const webmMimeType = 'video/webm';
+export const webmMimeTypes = ['video/webm', 'video/mp4'];
 
 type AttachmentRenderer =
   | typeof ImageViewer
   | typeof LogFileViewer
   | typeof RRWebJsonViewer
-  | typeof WebMViewer;
+  | typeof VideoViewer;
 
 export const getImageAttachmentRenderer = (
   attachment: IssueAttachment
@@ -43,8 +44,8 @@ export const getImageAttachmentRenderer = (
   if (imageMimeTypes.includes(attachment.mimetype)) {
     return ImageViewer;
   }
-  if (webmMimeType === attachment.mimetype) {
-    return WebMViewer;
+  if (webmMimeTypes.includes(attachment.mimetype)) {
+    return VideoViewer;
   }
   return undefined;
 };

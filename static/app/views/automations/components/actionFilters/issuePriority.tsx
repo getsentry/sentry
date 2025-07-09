@@ -1,5 +1,5 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -18,10 +18,11 @@ export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
 
 export function IssuePriorityNode() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-  return tct('Current issue priority is [level]', {
-    level: (
+  return tct('Current issue priority is [priority]', {
+    priority: (
       <AutomationBuilderSelect
         name={`${condition_id}.comparison`}
+        aria-label={t('Priority')}
         value={condition.comparison}
         options={PRIORITY_CHOICES}
         onChange={(option: SelectValue<Priority>) => {

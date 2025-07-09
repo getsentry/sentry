@@ -66,7 +66,7 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
@@ -226,7 +226,6 @@ describe('Dashboards > Detail', function () {
       ...RouteComponentPropsFixture(),
       organization: {
         ...mockAuthorizedOrg,
-        features: [...FEATURES, 'dashboards-table-view'],
       },
     });
 
