@@ -6,7 +6,7 @@ from sentry import options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import (
-    delete_grouping_records_by_hash,
+    call_seer_to_delete_these_hashes,
     delete_project_grouping_records,
 )
 from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
@@ -16,7 +16,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 100
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.delete_seer_grouping_records_by_hash",
     queue="delete_seer_grouping_records_by_hash",
-    max_retries=0,
+    max_retries=0,  # XXX: Why do we not retry?
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * (15 + 5),
@@ -49,10 +49,9 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
-    end_index = min(last_deleted_index + batch_size, len_hashes)
-    delete_grouping_records_by_hash(project_id, hashes[last_deleted_index:end_index])
+    end_index = min(last_deleted_index + BATCH_SIZE, len_hashes)
+    call_seer_to_delete_these_hashes(project_id, hashes[last_deleted_index:end_index])
     if end_index < len_hashes:
         delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hashes, end_index])
 

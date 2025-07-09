@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.delete_seer_grouping_records import (
+    BATCH_SIZE,
     call_delete_seer_grouping_records_by_hash,
     delete_seer_grouping_records_by_hash,
 )
@@ -12,21 +13,22 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestDeleteSeerGroupingRecordsByHash(TestCase):
-    @patch("sentry.tasks.delete_seer_grouping_records.delete_grouping_records_by_hash")
+    @patch("sentry.tasks.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_seer_grouping_records_by_hash_batches(
         self,
         mock_delete_seer_grouping_records_by_hash_apply_async: MagicMock,
-        mock_delete_grouping_records_by_hash: MagicMock,
+        mock_call_seer_to_delete_these_hashes: MagicMock,
     ) -> None:
         """
-        Test that when delete_seer_grouping_records_by_hash is called with over 20 hashes, it spawns
-        another task with the end index of the previous batch.
+        Test that when delete_seer_grouping_records_by_hash is called with over BATCH_SIZE hashes,
+        it spawns another task with the end index of the previous batch.
         """
-        mock_delete_grouping_records_by_hash.return_value = True
-        project_id, hashes = 1, [str(i) for i in range(101)]
+        mock_call_seer_to_delete_these_hashes.return_value = True
+        project_id, hashes = 1, [str(i) for i in range(BATCH_SIZE + 1)]
+        # We call it as a function and will schedule a task for the extra hash
         delete_seer_grouping_records_by_hash(project_id, hashes, 0)
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [project_id, hashes, 100]
@@ -91,12 +93,14 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             first_call_args = mock_apply_async.call_args_list[0][1]["args"]
             assert len(first_call_args[1]) == batch_size
             assert first_call_args[0] == self.project.id
+            assert first_call_args[1] == expected_hashes[0:batch_size]
             assert first_call_args[2] == 0
 
             # Verify the second chunk has 5 hashes (remainder)
             second_call_args = mock_apply_async.call_args_list[1][1]["args"]
             assert len(second_call_args[1]) == 5
             assert second_call_args[0] == self.project.id
+            assert second_call_args[1] == expected_hashes[batch_size:]
             assert second_call_args[2] == 0
 
     @patch(
