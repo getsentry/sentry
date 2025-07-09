@@ -1,4 +1,4 @@
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -25,12 +25,7 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
   }
 }
 
-export function getMetricDetectorSuffix(detector: Detector) {
-  // TODO: Use a MetricDetector type to avoid checking for this
-  if (!('detectionType' in detector.config)) {
-    return '';
-  }
-
+export function getMetricDetectorSuffix(detector: MetricDetector) {
   switch (detector.config.detectionType) {
     case 'static':
     case 'dynamic':
