@@ -1,5 +1,5 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -58,7 +58,7 @@ export function validateIssueCategoryCondition(
   condition: DataCondition
 ): string | undefined {
   if (!condition.comparison.value) {
-    return 'You must select an issue category.';
+    return t('You must select an issue category.');
   }
   return undefined;
 }

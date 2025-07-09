@@ -103,7 +103,7 @@ export function validateAgeComparisonCondition(
 ): string | undefined {
   if (
     !condition.comparison.comparison_type ||
-    !condition.comparison.value ||
+    condition.comparison.value === undefined ||
     !condition.comparison.time
   ) {
     return t('Ensure all fields are filled in.');
