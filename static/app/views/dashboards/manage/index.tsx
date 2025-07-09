@@ -38,11 +38,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
+import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import DashboardsOwnedTable, {
+  OWNED_CURSOR_KEY,
+} from 'sentry/views/dashboards/manage/tableView/dashboardsOwnedTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -128,8 +132,21 @@ function ManageDashboards() {
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+      enabled: !(
+        organization.features.includes('dashboards-starred-reordering') &&
+        dashboardsLayout === TABLE
+      ),
+    }
   );
+
+  const ownedDashboards = useOwnedDashboards({
+    query: decodeScalar(location.query.query, ''),
+    cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
+    sort: getActiveSort()!.value,
+    enabled: dashboardsLayout === TABLE,
+  });
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
@@ -275,14 +292,14 @@ function ManageDashboards() {
           aria-label={t('Layout Control')}
         >
           <SegmentedControl.Item
-            key="grid"
-            textValue="grid"
+            key={GRID}
+            textValue={GRID}
             aria-label={t('Grid View')}
             icon={<IconGrid />}
           />
           <SegmentedControl.Item
-            key="list"
-            textValue="list"
+            key={TABLE}
+            textValue={TABLE}
             aria-label={t('List View')}
             icon={<IconList />}
           />
@@ -319,6 +336,12 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
+      />
+    ) : organization.features.includes('dashboards-starred-reordering') ? (
+      <DashboardsOwnedTable
+        dashboards={ownedDashboards.data ?? []}
+        isLoading={ownedDashboards.isLoading}
+        pageLinks={ownedDashboards.getResponseHeader?.('Link') ?? undefined}
       />
     ) : (
       <DashboardTable
@@ -492,7 +515,10 @@ function ManageDashboards() {
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
                     </div>
-                    {renderPagination()}
+                    {!(
+                      organization.features.includes('dashboards-starred-reordering') &&
+                      dashboardsLayout === TABLE
+                    ) && renderPagination()}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
