@@ -1,13 +1,18 @@
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
-export function TraceExploreAiQueryProvider({children}: {children: React.ReactNode}) {
+interface UseTraceExploreAiQuerySetupArgs {
+  enableAISearch: boolean;
+}
+
+export function useTraceExploreAiQuerySetup({
+  enableAISearch,
+}: UseTraceExploreAiQuerySetupArgs) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const client = useApi();
@@ -21,6 +26,8 @@ export function TraceExploreAiQueryProvider({children}: {children: React.ReactNo
       pageFilters.selection.projects[0] !== -1
         ? pageFilters.selection.projects
         : memberProjects.map(p => p.id);
+
+    if (!enableAISearch) return;
 
     (async () => {
       try {
@@ -40,16 +47,10 @@ export function TraceExploreAiQueryProvider({children}: {children: React.ReactNo
     })();
   }, [
     client,
+    enableAISearch,
+    memberProjects,
     organization.id,
     organization.slug,
     pageFilters.selection.projects,
-    projects,
-    memberProjects,
   ]);
-
-  return (
-    <TraceExploreAiQueryContext.Provider value={{}}>
-      {children}
-    </TraceExploreAiQueryContext.Provider>
-  );
 }
