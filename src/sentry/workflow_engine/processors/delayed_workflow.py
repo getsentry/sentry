@@ -425,7 +425,7 @@ def get_condition_group_results(
 
     all_group_ids: set[GroupId] = set()
     # bulk gather groups and fetch them
-    for unique_condition, time_and_groups in queries_to_groups.items():
+    for time_and_groups in queries_to_groups.values():
         all_group_ids.update(time_and_groups.group_ids)
 
     all_groups: list[GroupValues] = list(
