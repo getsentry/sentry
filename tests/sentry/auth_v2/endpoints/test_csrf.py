@@ -10,7 +10,6 @@ from sentry.testutils.silo import control_silo_test
 @override_settings(AUTH_V2_SECRET="test")
 class CsrfTokenEndpointTest(APITestCase):
     endpoint = "sentry-api-0-auth-v2-csrf"
-    headers = {"HTTP_X_SENTRY_AUTH_V2": "test"}
 
     def setUp(self):
         super().setUp()
@@ -18,7 +17,7 @@ class CsrfTokenEndpointTest(APITestCase):
         self.user = self.create_user()
 
     def test_get_csrf_token_anonymous(self):
-        response = self.client.get(self.url, **self.headers)
+        response = self.client.get(self.url, HTTP_X_SENTRY_AUTH_V2="test")
 
         assert response.status_code == 200
         assert response.json()["detail"] == "Set CSRF cookie"
@@ -31,7 +30,7 @@ class CsrfTokenEndpointTest(APITestCase):
 
     def test_get_csrf_token_authenticated(self):
         self.login_as(self.user)
-        response = self.client.get(self.url, **self.headers)
+        response = self.client.get(self.url, HTTP_X_SENTRY_AUTH_V2="test")
 
         assert response.status_code == 200
         assert response.json()["detail"] == "Set CSRF cookie"
@@ -44,11 +43,11 @@ class CsrfTokenEndpointTest(APITestCase):
 
     def test_rotate_csrf_token_anonymous(self):
         # Get initial CSRF token
-        initial_response = self.client.get(self.url, **self.headers)
+        initial_response = self.client.get(self.url, HTTP_X_SENTRY_AUTH_V2="test")
         initial_csrf = initial_response.cookies[settings.CSRF_COOKIE_NAME].value
 
         # Then rotate the token
-        response = self.client.put(self.url, **self.headers)
+        response = self.client.put(self.url, HTTP_X_SENTRY_AUTH_V2="test")
         assert response.status_code == 200
 
         assert response.json()["detail"] == "Rotated CSRF cookie"
@@ -65,11 +64,11 @@ class CsrfTokenEndpointTest(APITestCase):
         self.login_as(self.user)
 
         # Get initial CSRF token
-        initial_response = self.client.get(self.url, **self.headers)
+        initial_response = self.client.get(self.url, HTTP_X_SENTRY_AUTH_V2="test")
         initial_csrf = initial_response.cookies[settings.CSRF_COOKIE_NAME].value
 
         # Then rotate the token
-        response = self.client.put(self.url, **self.headers)
+        response = self.client.put(self.url, HTTP_X_SENTRY_AUTH_V2="test")
         assert response.status_code == 200
 
         assert response.json()["detail"] == "Rotated CSRF cookie"
