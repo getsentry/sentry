@@ -831,6 +831,7 @@ def test_as_trace_item_context_dead_click_event():
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_rage_click_event():
@@ -855,6 +856,7 @@ def test_as_trace_item_context_rage_click_event():
     assert result is not None
     assert result["attributes"]["is_dead"] is True
     assert result["attributes"]["is_rage"] is True
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_navigation_event():
@@ -870,6 +872,7 @@ def test_as_trace_item_context_navigation_event():
     assert result["attributes"]["category"] == "navigation"
     assert result["attributes"]["from"] == "/old-page"
     assert result["attributes"]["to"] == "/new-page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_navigation_event_missing_optional_fields():
@@ -880,6 +883,7 @@ def test_as_trace_item_context_navigation_event_missing_optional_fields():
     assert result["attributes"]["category"] == "navigation"
     assert "from" not in result["attributes"]
     assert "to" not in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_resource_fetch_event():
@@ -898,6 +902,7 @@ def test_as_trace_item_context_resource_fetch_event():
     assert result["attributes"]["category"] == "resource.fetch"
     assert result["attributes"]["request_size"] == 1024
     assert result["attributes"]["response_size"] == 2048
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_resource_xhr_event():
@@ -915,6 +920,7 @@ def test_as_trace_item_context_resource_xhr_event():
     assert result["attributes"]["category"] == "resource.xhr"
     assert result["attributes"]["request_size"] == 512
     assert result["attributes"]["response_size"] == 1024
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_resource_no_sizes():
@@ -925,6 +931,7 @@ def test_as_trace_item_context_resource_no_sizes():
     assert result["attributes"]["category"] == "resource.fetch"
     assert "request_size" not in result["attributes"]
     assert "response_size" not in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_lcp_event():
@@ -944,6 +951,7 @@ def test_as_trace_item_context_lcp_event():
     assert result["attributes"]["rating"] == "good"
     assert result["attributes"]["size"] == 1024
     assert result["attributes"]["value"] == 1500
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_fcp_event():
@@ -962,6 +970,7 @@ def test_as_trace_item_context_fcp_event():
     assert result["attributes"]["rating"] == "needs-improvement"
     assert result["attributes"]["size"] == 512
     assert result["attributes"]["value"] == 2000
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_hydration_error():
@@ -976,6 +985,7 @@ def test_as_trace_item_context_hydration_error():
     assert result["timestamp"] == 1674298825.0
     assert result["attributes"]["category"] == "replay.hydrate-error"
     assert result["attributes"]["url"] == "https://example.com/page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_mutations():
@@ -986,6 +996,7 @@ def test_as_trace_item_context_mutations():
     assert result["timestamp"] == 1674298825000
     assert result["attributes"]["category"] == "replay.mutations"
     assert result["attributes"]["count"] == 42
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_options():
@@ -1025,6 +1036,7 @@ def test_as_trace_item_context_options():
     assert result["attributes"]["networkCaptureBodies"] is False
     assert result["attributes"]["networkRequestHasHeaders"] is True
     assert result["attributes"]["networkResponseHasHeaders"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_memory():
@@ -1050,6 +1062,7 @@ def test_as_trace_item_context_memory():
     assert result["attributes"]["totalJSHeapSize"] == 50331648
     assert result["attributes"]["usedJSHeapSize"] == 30000000
     assert result["attributes"]["endTimestamp"] == 1674298826.5
+    assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
 def test_as_trace_item_context_returns_none_for_unsupported_events():
