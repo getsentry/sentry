@@ -2,11 +2,11 @@ from sentry import analytics
 
 
 class BaseIncidentEvent(analytics.Event):
-    attributes: tuple[analytics.Attribute, ...] = (
+    attributes = [
         analytics.Attribute("incident_id"),
         analytics.Attribute("organization_id"),
         analytics.Attribute("incident_type"),
-    )
+    ]
 
 
 class IncidentCreatedEvent(BaseIncidentEvent):
@@ -15,10 +15,10 @@ class IncidentCreatedEvent(BaseIncidentEvent):
 
 class IncidentStatusUpdatedEvent(BaseIncidentEvent):
     type = "incident.status_change"
-    attributes = BaseIncidentEvent.attributes + (
+    attributes = BaseIncidentEvent.attributes + [
         analytics.Attribute("prev_status"),
         analytics.Attribute("status"),
-    )
+    ]
 
 
 analytics.register(IncidentCreatedEvent)
