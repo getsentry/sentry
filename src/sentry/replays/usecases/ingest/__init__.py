@@ -33,7 +33,7 @@ logger = logging.getLogger("sentry.replays")
 logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
-class HaltIngestion(Exception):
+class DropEvent(Exception):
     pass
 
 
@@ -132,7 +132,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
                 "replay_id": recording.context["replay_id"],
             },
         )
-        raise HaltIngestion("Could not find project.") from exc
+        raise DropEvent("Could not find project.") from exc
 
     # Write to billing consumer if its a billable event.
     if recording.context["segment_id"] == 0:
