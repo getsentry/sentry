@@ -41,7 +41,7 @@ function MergeAccounts() {
         <ButtonSection>
           <Button priority="primary">Generate verification code</Button>
         </ButtonSection>
-        {RenderSelectAccounts()}
+        <RenderSelectAccounts />
         <StyledListItem>{t('Enter Your Verification Code')}</StyledListItem>
         <StyledInput type="text" />
         <StyledListItem>{t('Submit')}</StyledListItem>
@@ -59,7 +59,7 @@ function makeMergeAccountsEndpointKey(): ApiQueryKey {
   return [ENDPOINT];
 }
 
-export function RenderSelectAccounts() {
+function RenderSelectAccounts() {
   const signedInUser = useUser();
   // const api = useApi();
   // const [isUpdating, setIsUpdating] = useState(false);
