@@ -57,8 +57,9 @@ class EventTest(TestCase):
     def test_simple_old_style(self, mock_uuid1):
         mock_uuid1.return_value = self.get_mock_uuid()
 
-        result = ExampleEventOldStyle(
-            id="1",  # type: ignore[arg-type]
+        result = ExampleEventOldStyle.from_instance(
+            None,
+            id="1",
             map={"key": "value"},
             optional=False,
         )
