@@ -21,6 +21,8 @@ import {Container, FieldShortId, OverflowLink} from 'sentry/utils/discover/style
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -79,9 +81,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          <OverflowLink to={target} aria-label={issueID}>
-            <FieldShortId shortId={`${data.issue}`} />
-          </OverflowLink>
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.ISSUE}
+            organization={organization}
+          >
+            <OverflowLink to={target} aria-label={issueID}>
+              <FieldShortId shortId={`${data.issue}`} />
+            </OverflowLink>
+          </QuickContextHoverWrapper>
         </Container>
       );
     },

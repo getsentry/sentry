@@ -64,9 +64,10 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   filterToLocationQuery,
@@ -150,6 +151,9 @@ const missingUserMisery = tct(
       <ExternalLink href="https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/" />
     ),
   }
+);
+const userAgentLocking = t(
+  'This OS locks newer versions to the this version in the user-agent HTTP header. The exact OS version is unknown.'
 );
 
 export function nullableValue(value: string | null): string | React.ReactElement {
@@ -510,23 +514,29 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'span.description',
     renderFunc: data => {
       const value = data['span.description'];
+      const op: string = data['span.op'];
 
-      return (
-        <Tooltip
-          title={value}
-          containerDisplayMode="block"
-          showOnlyOnOverflow
-          maxWidth={400}
-        >
-          <OverflowContainer>
-            {isUrl(value) ? (
-              <ExternalLink href={value}>{value}</ExternalLink>
-            ) : (
-              nullableValue(value)
-            )}
-          </OverflowContainer>
-        </Tooltip>
-      );
+      if (!op || !(op === ModuleName.DB || op === ModuleName.RESOURCE)) {
+        return (
+          <Tooltip
+            title={value}
+            containerDisplayMode="block"
+            showOnlyOnOverflow
+            maxWidth={400}
+          >
+            <OverflowContainer>
+              {isUrl(value) ? (
+                <ExternalLink href={value}>{value}</ExternalLink>
+              ) : (
+                nullableValue(value)
+              )}
+            </OverflowContainer>
+          </Tooltip>
+        );
+      }
+
+      // TODO: Figure this out
+      return <SpanDescriptionCell description={value} moduleName={op} projectId={-1} />;
     },
   },
   trace: {
@@ -962,13 +972,20 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
 
       const osArray = os.split(' ');
+      const hasUserAgentLocking = osArray[osArray.length - 1]?.includes('>=');
       osArray.pop();
       const formattedName = osArray.join('-').toLocaleLowerCase();
 
       return (
         <IconContainer>
           <ContextIcon name={formattedName} size="md" />
-          {os}
+          {hasUserAgentLocking ? (
+            <Tooltip title={userAgentLocking} showUnderline>
+              {os}
+            </Tooltip>
+          ) : (
+            os
+          )}
         </IconContainer>
       );
     },
