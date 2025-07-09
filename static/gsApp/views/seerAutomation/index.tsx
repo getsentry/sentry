@@ -73,7 +73,7 @@ function SeerAutomationRoot() {
           'Seer can automatically find a root cause and solution for incoming issues.'
         )}
       />
-      <StyledAlert type="info">
+      <StyledAlert type="info" showIcon={false}>
         {tct(
           "Choose how Seer automates analysis of incoming issues across your projects. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
           {

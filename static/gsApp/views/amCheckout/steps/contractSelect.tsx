@@ -41,7 +41,7 @@ class ContractSelect extends Component<Props> {
 
   get annualContractWarning() {
     return (
-      <ContractAlert type="info">
+      <ContractAlert type="info" showIcon={false}>
         {t(
           'You are currently on an annual contract so any subscription downgrades will take effect at the end of your contract period.'
         )}

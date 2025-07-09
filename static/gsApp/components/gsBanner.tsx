@@ -1132,6 +1132,7 @@ class GSBanner extends Component<Props, State> {
             system
             data-test-id="banner-alert-past-due"
             type="muted"
+            showIcon={false}
             trailingItems={<Badge type="warning">{t('Action Required')}</Badge>}
           >
             {billingPermissions
@@ -1196,6 +1197,7 @@ class GSBanner extends Component<Props, State> {
             <BannerAlert
               system
               type="muted"
+              showIcon={false}
               trailingItems={
                 <ButtonBar gap={1}>
                   <LinkButton
