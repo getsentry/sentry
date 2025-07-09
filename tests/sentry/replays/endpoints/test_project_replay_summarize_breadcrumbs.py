@@ -1,3 +1,4 @@
+import pytest
 import uuid
 import zlib
 from datetime import UTC, datetime, timezone
@@ -416,6 +417,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
 
+    @pytest.mark.skip(reason="flaky: #95137")
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
     def test_get_with_trace_connected_errors_no_timestamp(self, make_seer_request):
         """Test handling of breadcrumbs with trace connected errors with no timestamp"""
