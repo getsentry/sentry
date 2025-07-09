@@ -54,6 +54,7 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
         )
 
     yield inner
+    client.close()
 
 
 @no_silo_test
