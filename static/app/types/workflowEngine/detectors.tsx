@@ -25,6 +25,9 @@ interface SnubaQuery {
   environment?: string;
 }
 
+/**
+ * See DataSourceSerializer
+ */
 interface BaseDataSource {
   id: string;
   organizationId: string;
@@ -62,11 +65,6 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
   };
   type: 'uptime_subscription';
 }
-
-/**
- * See DataSourceSerializer
- */
-export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType =
   | 'error'
@@ -139,7 +137,7 @@ export interface UptimeDetector extends BaseDetector {
   readonly type: 'uptime_domain_failure';
 }
 
-export interface CronDetector extends BaseDetector {
+interface CronDetector extends BaseDetector {
   // TODO: Add cron detector type fields
   readonly type: 'uptime_subscription';
 }
@@ -151,7 +149,7 @@ export interface ErrorDetector extends BaseDetector {
 
 export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
-export interface UpdateConditionGroupPayload {
+interface UpdateConditionGroupPayload {
   conditions: Array<Omit<DataCondition, 'id'>>;
   logicType: DataConditionGroup['logicType'];
 }
