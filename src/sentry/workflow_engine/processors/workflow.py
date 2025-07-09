@@ -197,6 +197,13 @@ def evaluate_action_filters(
     dcg_to_workflow_id: dict[DataConditionGroup, int],
     workflows_by_id: dict[int, Workflow],
 ) -> set[DataConditionGroup]:
+    """
+    Evaluate the action filters for the given mapping of DataConditionGroup to Workflow. (dcg_to_workflow_id)
+    Returns a set of DataConditionGroups that were evaluated to True.
+
+    Use this function if you are repeatedly evaluating action filters in a loop --
+    query for all the DataConditionGroups in a single query before using this function to avoid N+1s queries.
+    """
     filtered_action_groups: set[DataConditionGroup] = set()
     queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
@@ -274,6 +281,12 @@ def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
 ) -> set[DataConditionGroup]:
+    """
+    Evaluate the action filters for the given workflows.
+    Returns a set of DataConditionGroups that were evaluated to True.
+
+    Use this function if you only have a set of workflows to evaluate and will not repeatedly evaluate action filters in a loop.
+    """
     action_conditions = (
         DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
         .annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))

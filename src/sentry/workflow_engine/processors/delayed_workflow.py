@@ -56,7 +56,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.detector import get_detectors_by_events_bulk
+from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import log_if_slow, track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
@@ -574,7 +574,8 @@ def get_dcgs_by_group(
     dcg_type: DataConditionHandler.Group,
 ) -> dict[GroupId, set[DataConditionGroup]]:
     """
-    Extract DataConditionGroups from groups_to_fire, grouped by group ID.
+    Extract DataConditionGroups from groups_to_fire, grouped by group ID, for a particular DataConditionGroup type (e.g. workflow trigger)
+    trigger_group_to_dcg_model is the mapping from DataConditionGroup type to DataConditionGroup id to Workflow id
     Returns a dict mapping GroupId to set of DCGs.
     """
     workflow_dcg_ids = set(event_data.trigger_group_to_dcg_model[dcg_type].keys())
@@ -615,7 +616,7 @@ def fire_actions_for_groups(
     all_workflow_triggers = set().union(*list(workflow_triggers.values()))
 
     # Bulk fetch detectors
-    event_id_to_detector = get_detectors_by_events_bulk(list(group_to_groupevent.values()))
+    event_id_to_detector = get_detectors_by_groupevents_bulk(list(group_to_groupevent.values()))
 
     # Bulk fetch action filters for workflow triggers
     workflows = Workflow.objects.filter(when_condition_group_id__in=all_workflow_triggers)

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import sentry_sdk
 
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -59,93 +60,113 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
-def get_detectors_by_events_bulk(
+def _update_event_detector_map(
+    map: dict[str, Detector],
+    detectors: BaseQuerySet[Detector],
+    key_event_map: dict[int, list[GroupEvent]],
+    detector_key_extractor: Callable[[Detector], int],
+) -> tuple[dict[str, Detector], set[int]]:
+    # used to track existing keys (detector_id or project_id) to log missing keys
+    keys = set()
+
+    for detector in detectors:
+        key = detector_key_extractor(detector)
+        keys.add(key)
+        detector_events = key_event_map[key]
+        map.update({event.event_id: detector for event in detector_events})
+
+    return map, keys
+
+
+def get_detectors_by_groupevents_bulk(
     event_list: list[GroupEvent],
 ) -> Mapping[str, Detector]:
     if not event_list:
         return {}
 
+    result: dict[str, Detector] = {}
+
     # Separate events by whether they have occurrences or not
-    events_with_occurrences: list[tuple[GroupEvent, IssueOccurrence]] = []
-    events_without_occurrences: list[GroupEvent] = []
+    events_with_occurrences: list[tuple[GroupEvent, int]] = []
+    events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
+    events_missing_detectors: list[GroupEvent] = []
 
     for event in event_list:
         issue_occurrence = event.occurrence
 
         if issue_occurrence is None:
             events_without_occurrences.append(event)
+        elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
+            events_with_occurrences.append((event, detector_id))
         else:
-            events_with_occurrences.append((event, issue_occurrence))
-
-    result: dict[str, Detector] = {}
+            events_missing_detectors.append(event)
 
     # Fetch detectors for events with occurrences (by detector_id)
+    missing_detector_ids = set()
     if events_with_occurrences:
-        detector_ids = []
-        event_to_detector_id: dict[GroupEvent, int] = {}
+        detector_id_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
 
-        for event, occurrence in events_with_occurrences:
-            detector_id = occurrence.evidence_data.get("detector_id")
-            if detector_id is not None:
-                detector_ids.append(detector_id)
-                event_to_detector_id[event] = detector_id
+        for event, detector_id in events_with_occurrences:
+            detector_id_to_events[detector_id].append(event)
 
-        if detector_ids:
-            detectors_by_id = {
-                detector.id: detector for detector in Detector.objects.filter(id__in=detector_ids)
-            }
+        def _extract_events_lookup_key(detector: Detector) -> int:
+            return detector.id
 
-            for event, detector_id in event_to_detector_id.items():
-                detector = detectors_by_id.get(detector_id)
-                if detector:
-                    result[event.event_id] = detector
-                else:
-                    metrics.incr("workflow_engine.detectors.error")
-                    logger.warning(
-                        "Detector not found for event",
-                        extra={
-                            "event_id": event.event_id,
-                            "group_id": event.group_id,
-                            "detector_id": detector_id,
-                        },
-                    )
+        if detector_id_to_events:
+            detectors = Detector.objects.filter(id__in=list(detector_id_to_events.keys()))
+            result, found_detector_ids = _update_event_detector_map(
+                result,
+                detectors,
+                key_event_map=detector_id_to_events,
+                detector_key_extractor=_extract_events_lookup_key,
+            )
 
-    # Fetch detectors for events without occurrences (by project_id and issue_type)
+            missing_detector_ids = set(detector_id_to_events.keys()) - found_detector_ids
+
+    # Fetch detectors for events without occurrences (by project_id)
+    projects_missing_detectors = set()
     if events_without_occurrences:
         # Group events by project_id
-        project_events: dict[int, list[GroupEvent]] = defaultdict(list)
-        detector_types: set[str] = set()
+        project_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
 
         for event in events_without_occurrences:
-            project_events[event.project_id].append(event)
-            detector_types.add(event.group.issue_type.slug)
+            project_to_events[event.project_id].append(event)
 
-        # Fetch all detectors for the projects in one query
-        project_ids = list(project_events.keys())
-        detectors_by_project: dict[int, dict[str, Detector]] = defaultdict(dict)
+        def _extract_events_lookup_key(detector: Detector) -> int:
+            return detector.project_id
 
-        for detector in Detector.objects.filter(
-            project_id__in=project_ids, type__in=detector_types
-        ):
-            detectors_by_project[detector.project_id][detector.type] = detector
+        if project_to_events:
+            detectors = Detector.objects.filter(
+                project_id__in=project_to_events.keys(),
+                type=events_without_occurrences[0].group.issue_type.slug,  # error type
+            )
+            result, projects_with_error_detectors = _update_event_detector_map(
+                result,
+                detectors,
+                key_event_map=project_to_events,
+                detector_key_extractor=_extract_events_lookup_key,
+            )
 
-        # Assign detectors to events
-        for project_id, events in project_events.items():
-            project_detectors = detectors_by_project.get(project_id, {})
-            for event in events:
-                detector = project_detectors.get(event.group.issue_type.slug)
-                if detector:
-                    result[event.event_id] = detector
-                else:
-                    metrics.incr("workflow_engine.detectors.error")
-                    logger.warning(
-                        "Detector not found for event",
-                        extra={
-                            "event_id": event.event_id,
-                            "group_id": event.group_id,
-                            "detector_id": None,
-                        },
-                    )
+            projects_missing_detectors = (
+                set(project_to_events.keys()) - projects_with_error_detectors
+            )
+
+    # Log all missing detectors
+    if missing_detector_ids or projects_missing_detectors or events_missing_detectors:
+        metrics.incr(
+            "workflow_engine.detectors.error",
+            amount=len(projects_missing_detectors) + len(missing_detector_ids),
+        )
+        logger.error(
+            "Detectors not found for events",
+            extra={
+                "projects_missing_error_detectors": projects_missing_detectors,
+                "missing_detectors": missing_detector_ids,
+                "events_missing_detectors": [
+                    (event.event_id, event.group_id) for event in events_missing_detectors
+                ],
+            },
+        )
 
     return result
 

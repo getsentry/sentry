@@ -23,7 +23,7 @@ from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.detector import (
     get_detector_by_event,
-    get_detectors_by_events_bulk,
+    get_detectors_by_groupevents_bulk,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -894,7 +894,7 @@ class TestGetDetectorByEvent(TestCase):
             get_detector_by_event(event_data)
 
 
-class TestGetDetectorsByEventsBulk(TestCase):
+class TestGetDetectorsByGroupEventsBulk(TestCase):
     def setUp(self):
         super().setUp()
         self.project1 = self.create_project()
@@ -910,7 +910,7 @@ class TestGetDetectorsByEventsBulk(TestCase):
         self.event2 = self.store_event(project_id=self.project2.id, data={})
 
     def test_empty_list(self):
-        result = get_detectors_by_events_bulk([])
+        result = get_detectors_by_groupevents_bulk([])
         assert result == {}
 
     def test_mixed_occurrences(self):
@@ -938,7 +938,7 @@ class TestGetDetectorsByEventsBulk(TestCase):
         group_event2.occurrence = None
 
         events = [group_event1, group_event2]
-        result = get_detectors_by_events_bulk(events)
+        result = get_detectors_by_groupevents_bulk(events)
 
         assert result[group_event1.event_id] == self.detector1
         assert result[group_event2.event_id] == self.detector2
@@ -971,7 +971,7 @@ class TestGetDetectorsByEventsBulk(TestCase):
         events = [group_event1, group_event2]
 
         with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
-            result = get_detectors_by_events_bulk(events)
+            result = get_detectors_by_groupevents_bulk(events)
 
             assert result == {}
-            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error")
+            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
