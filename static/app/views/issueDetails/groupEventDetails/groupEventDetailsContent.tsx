@@ -44,6 +44,7 @@ import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -76,6 +77,8 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -273,7 +276,14 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
-      {isANR && <AnrRootCause event={event} organization={organization} />}
+      {isANR && (
+        <TraceStateProvider
+          initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}
+          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
+        >
+          <AnrRootCause event={event} organization={organization} />
+        </TraceStateProvider>
+      )}
       {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
           event={event as EventTransaction}
