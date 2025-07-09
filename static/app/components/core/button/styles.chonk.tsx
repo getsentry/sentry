@@ -1,7 +1,7 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import color from 'color';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
+import {computeChonk} from 'sentry/components/core/chonk';
 // eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject} from 'sentry/utils/theme';
 // eslint-disable-next-line boundaries/element-types
@@ -249,14 +249,6 @@ export function DO_NOT_USE_getChonkButtonStyles(
   };
 }
 
-function computeBackground(theme: DO_NOT_USE_ChonkTheme, baseColor: string) {
-  const input = color(baseColor).hsl();
-
-  return theme.type === 'dark'
-    ? color.hsl(input.hue(), input.saturationl() * 0.1, input.lightness() * 0.1).hex()
-    : color.hsl(input.hue(), input.saturationl() * 0.75, input.lightness() * 0.75).hex();
-}
-
 function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme) {
   switch (type) {
     case 'default':
@@ -268,19 +260,19 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
     case 'accent':
       return {
         surface: theme.colors.chonk.blue400,
-        background: computeBackground(theme, theme.colors.chonk.blue400),
+        background: computeChonk(theme, theme.colors.chonk.blue400),
         color: theme.colors.white,
       };
     case 'warning':
       return {
         surface: theme.colors.chonk.yellow400,
-        background: computeBackground(theme, theme.colors.chonk.yellow400),
+        background: computeChonk(theme, theme.colors.chonk.yellow400),
         color: theme.colors.black,
       };
     case 'danger':
       return {
         surface: theme.colors.chonk.red400,
-        background: computeBackground(theme, theme.colors.chonk.red400),
+        background: computeChonk(theme, theme.colors.chonk.red400),
         color: theme.colors.white,
       };
     case 'transparent':
