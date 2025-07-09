@@ -16,6 +16,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
@@ -25,6 +26,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
+from sentry.utils.numbers import base32_encode
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3)
@@ -44,6 +46,9 @@ class SerializedIssue(SerializedEvent):
     level: str
     start_timestamp: float
     end_timestamp: NotRequired[datetime]
+    culprit: str | None
+    short_id: str
+    issue_type: str
 
 
 class SerializedSpan(SerializedEvent):
@@ -94,10 +99,23 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             include_all_accessible=True,
         )
 
-    def serialize_rpc_issue(self, event: dict[str, Any]) -> SerializedIssue:
+    def serialize_rpc_issue(
+        self, event: dict[str, Any], group_cache: dict[int, Group]
+    ) -> SerializedIssue:
+        def _qualify_short_id(project: str, short_id: int) -> str:
+            """Logic for qualified_short_id is copied from property on the Group model
+            to prevent an N+1 query from accessing project.slug everytime"""
+            return f"{project.upper()}-{base32_encode(short_id)}"
+
         if event.get("event_type") == "occurrence":
             occurrence = event["issue_data"]["occurrence"]
             span = event["span"]
+            issue_id = event["issue_data"]["issue_id"]
+            if issue_id in group_cache:
+                issue = group_cache[issue_id]
+            else:
+                issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+                group_cache[issue_id] = issue
             return SerializedIssue(
                 event_id=occurrence.id,
                 project_id=occurrence.project_id,
@@ -107,8 +125,11 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 transaction=span["transaction"],
                 description=occurrence.issue_title,
                 level=occurrence.level,
-                issue_id=event["issue_data"]["issue_id"],
+                issue_id=issue_id,
                 event_type="occurrence",
+                culprit=issue.culprit,
+                short_id=_qualify_short_id(span["project.slug"], issue.short_id),
+                issue_type=issue.type,
             )
         elif event.get("event_type") == "error":
             timestamp = (
@@ -116,6 +137,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 if "timestamp_ms" in event and event["timestamp_ms"] is not None
                 else datetime.fromisoformat(event["timestamp"]).timestamp()
             )
+            issue_id = event["issue.id"]
+            if issue_id in group_cache:
+                issue = group_cache[issue_id]
+            else:
+                issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+                group_cache[issue_id] = issue
 
             return SerializedIssue(
                 event_id=event["id"],
@@ -127,16 +154,25 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 level=event["tags[level]"],
                 issue_id=event["issue.id"],
                 event_type="error",
+                culprit=issue.culprit,
+                short_id=_qualify_short_id(event["project.name"], issue.short_id),
+                issue_type=issue.type,
             )
         else:
             raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
 
-    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent | SerializedIssue:
+    def serialize_rpc_event(
+        self, event: dict[str, Any], group_cache: dict[int, Group]
+    ) -> SerializedEvent | SerializedIssue:
         if event.get("event_type") == "span":
             return SerializedSpan(
-                children=[self.serialize_rpc_event(child) for child in event["children"]],
-                errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
-                occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
+                children=[
+                    self.serialize_rpc_event(child, group_cache) for child in event["children"]
+                ],
+                errors=[self.serialize_rpc_issue(error, group_cache) for error in event["errors"]],
+                occurrences=[
+                    self.serialize_rpc_issue(error, group_cache) for error in event["occurrences"]
+                ],
                 event_id=event["id"],
                 transaction_id=event["transaction.event_id"],
                 project_id=event["project.id"],
@@ -163,7 +199,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="span",
             )
         else:
-            return self.serialize_rpc_issue(event)
+            return self.serialize_rpc_issue(event, group_cache)
 
     def errors_query(self, snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
         """Run an error query, getting all the errors for a given trace id"""
@@ -321,7 +357,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 )
         for errors in id_to_error.values():
             result.extend(errors)
-        return [self.serialize_rpc_event(root) for root in result]
+        group_cache: dict[int, Group] = {}
+        return [self.serialize_rpc_event(root, group_cache) for root in result]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return bool(
