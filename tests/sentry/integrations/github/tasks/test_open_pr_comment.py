@@ -102,14 +102,15 @@ class TestSafeForComment(GithubCommentTestCase):
     @responses.activate
     def test_simple(self):
         data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "foo.py", "changes": 50, "status": "modified"},
+            {"filename": "bar.js", "changes": 50, "status": "modified"},
+            {"filename": "baz.py", "changes": 50, "status": "added"},
+            {"filename": "bee.py", "changes": 50, "status": "deleted"},
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
-            {"filename": "bop.php", "changes": 100, "status": "modified"},
-            {"filename": "doo.rb", "changes": 100, "status": "modified"},
-            {"filename": "raj.cs", "changes": 100, "status": "modified"},
+            {"filename": "bop.php", "changes": 50, "status": "modified"},
+            {"filename": "doo.rb", "changes": 50, "status": "modified"},
+            {"filename": "raj.cs", "changes": 50, "status": "modified"},
+            {"filename": "raj.go", "changes": 50, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -120,62 +121,12 @@ class TestSafeForComment(GithubCommentTestCase):
 
         pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
         assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "bop.php", "changes": 100, "status": "modified"},
-            {"filename": "doo.rb", "changes": 100, "status": "modified"},
-        ]
-
-    @responses.activate
-    @with_feature("organizations:csharp-open-pr-comments")
-    def test_simple_with_csharp(self):
-        data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
-            {"filename": "boo.js", "changes": 0, "status": "renamed"},
-            {"filename": "bop.cs", "changes": 100, "status": "modified"},
-        ]
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json=data,
-        )
-
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "bop.cs", "changes": 100, "status": "modified"},
-        ]
-
-    @responses.activate
-    @with_feature("organizations:go-open-pr-comments")
-    def test_simple_with_go(self):
-        data = [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "baz.py", "changes": 100, "status": "added"},
-            {"filename": "main.go", "changes": 100, "status": "modified"},
-            {"filename": "service.go", "changes": 50, "status": "modified"},
-            {"filename": "handler.rb", "changes": 100, "status": "modified"},
-        ]
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json=data,
-        )
-
-        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
-        assert pr_files == [
-            {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "main.go", "changes": 100, "status": "modified"},
-            {"filename": "service.go", "changes": 50, "status": "modified"},
-            {"filename": "handler.rb", "changes": 100, "status": "modified"},
+            {"filename": "foo.py", "changes": 50, "status": "modified"},
+            {"filename": "bar.js", "changes": 50, "status": "modified"},
+            {"filename": "bop.php", "changes": 50, "status": "modified"},
+            {"filename": "doo.rb", "changes": 50, "status": "modified"},
+            {"filename": "raj.cs", "changes": 50, "status": "modified"},
+            {"filename": "raj.go", "changes": 50, "status": "modified"},
         ]
 
     @responses.activate
