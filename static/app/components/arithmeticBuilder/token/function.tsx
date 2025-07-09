@@ -38,16 +38,17 @@ export function ArithmeticTokenFunction({
   state,
   token,
 }: ArithmeticTokenFunctionProps) {
-  if (token.attributes.length !== 1) {
-    throw new Error('Only functions with 1 argument supported.');
+  if (token.attributes.length > 1) {
+    throw new Error('Only functions with at most 1 argument supported.');
   }
-  const attribute = token.attributes[0]!;
+  const attribute = token.attributes[0];
 
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
+    focusable: defined(attribute), // if there are no attributes, it's not focusable
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
@@ -59,27 +60,29 @@ export function ArithmeticTokenFunction({
       {...rowProps}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute.text})`}
+      aria-label={`${token.function}(${attribute?.text ?? ''})`}
       aria-invalid={false}
       state={'valid'}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
-      <BaseGridCell {...gridCellProps}>
-        <InternalInput
-          item={item}
-          state={state}
-          token={token}
-          attribute={attribute}
-          rowRef={ref}
-          argumentIndex={0}
-        />
-        {showUnfocusedState && (
-          // Inject a floating span with the attribute name so when it's
-          // not focused, it doesn't look like the placeholder text
-          <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
-        )}
-      </BaseGridCell>
+      {defined(attribute) && (
+        <BaseGridCell {...gridCellProps}>
+          <InternalInput
+            item={item}
+            state={state}
+            token={token}
+            attribute={attribute}
+            rowRef={ref}
+            argumentIndex={0}
+          />
+          {showUnfocusedState && (
+            // Inject a floating span with the attribute name so when it's
+            // not focused, it doesn't look like the placeholder text
+            <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
+          )}
+        </BaseGridCell>
+      )}
       {')'}
       <BaseGridCell {...gridCellProps}>
         <DeleteFunction token={token} />

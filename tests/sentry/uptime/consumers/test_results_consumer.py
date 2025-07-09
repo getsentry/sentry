@@ -1135,7 +1135,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
@@ -1621,7 +1623,9 @@ class ProcessResultSerialTest(ProcessResultTest):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
