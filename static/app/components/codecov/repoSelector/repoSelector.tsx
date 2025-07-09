@@ -55,7 +55,7 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, changeContextValue} = useCodecovContext();
+  const {repository, integratedOrg, changeContextValue} = useCodecovContext();
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -82,6 +82,8 @@ export function RepoSelector() {
     });
   }, [repository]);
 
+  const disabled = !integratedOrg;
+
   return (
     <CompactSelect
       searchable
@@ -92,6 +94,8 @@ export function RepoSelector() {
       menuWidth={'16rem'}
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
+      disabled={disabled}
+      emptyMessage={'No repositories found'}
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository
