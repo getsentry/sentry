@@ -11,8 +11,10 @@ import {defined} from 'sentry/utils';
 export function AssociatedReleases({
   associations,
   shouldFormatVersion,
+  projectId,
 }: {
   associations: DebugIdBundleAssociation[];
+  projectId: string;
   shouldFormatVersion?: boolean;
 }) {
   return (
@@ -31,6 +33,7 @@ export function AssociatedReleases({
                   version={association.release}
                   anchor={association.exists}
                   shouldFormatVersion={shouldFormatVersion}
+                  projectId={projectId}
                 />
               </Tooltip>
               {`(Dist: ${formatDist(association.dist)})`}

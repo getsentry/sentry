@@ -239,7 +239,10 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
-          <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
+          <DebugIdBundleDetails
+            debugIdBundle={debugIdBundlesArtifactsData}
+            projectId={project.id}
+          />
         </DetailsPanel>
       )}
       <SearchBarWithMarginBottom
