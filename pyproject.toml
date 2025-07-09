@@ -427,7 +427,6 @@ module = [
     "sentry.utils.math",
     "sentry.utils.memory",
     "sentry.utils.metrics",
-    "sentry.utils.migrations",
     "sentry.utils.numbers",
     "sentry.utils.otp",
     "sentry.utils.projectflags",
