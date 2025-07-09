@@ -237,7 +237,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               {
                 linkOther: (
                   <Button
-                    aria-label={t("Select 'Other'")}
+                    aria-label={t("Select redesign 'Other'")}
                     priority="link"
                     onClick={() => {
                       this.setState({filter: otherPlatform.name});

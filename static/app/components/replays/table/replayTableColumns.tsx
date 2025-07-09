@@ -322,11 +322,11 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     return (
       <PlayPauseButtonContainer>
         <Button
-          key="playPause-select"
+          key="playPause-select" redesign
           aria-label={t('Play')}
           borderless
           data-test-id="replay-table-play-button"
-          icon={<IconPlay />}
+          icon={<IconPlay redesign />}
           onClick={() => setSelectedReplayIndex(rowIndex)}
           priority="default"
           size="sm"

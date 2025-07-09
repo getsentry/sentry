@@ -193,10 +193,10 @@ export default function ProjectCreationModal({
         </Fragment>
       )}
       <Footer>
-        {step === 1 && <Button onClick={() => setStep(step - 1)}>{t('Back')}</Button>}
+        {step === 1 && <Button onClick={() redesign => setStep(step - 1)}>{t('Back')}</Button>}
         {step === 0 && (
           <Button
-            priority="primary"
+            priority="primary" redesign
             disabled={!platform}
             onClick={() => setStep(step + 1)}
           >
@@ -205,7 +205,7 @@ export default function ProjectCreationModal({
         )}
         {step === 1 && (
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={() => {
               setCreating(true);
               createProject();

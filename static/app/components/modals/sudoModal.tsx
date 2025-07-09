@@ -291,11 +291,11 @@ function SudoModal({
               extraButton={
                 <BackWrapper>
                   {showAccessForms ? (
-                    <Button type="submit" onClick={handleSubmitCOPS}>
+                    <Button type="submit" redesign onClick={handleSubmitCOPS}>
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button borderless size="sm" onClick={handleChangeReason}>
+                    <Button borderless redesign size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}
@@ -315,7 +315,7 @@ function SudoModal({
               )}
             </Form>
           ) : (
-            <LinkButton priority="primary" href={getAuthLoginPath()}>
+            <LinkButton priority="primary" redesign href={getAuthLoginPath()}>
               {t('Continue')}
             </LinkButton>
           )}

@@ -81,8 +81,8 @@ export default function ReplayComparisonModal({
                   onBlur={() => focusTrap?.unpause()}
                 >
                   <Button
-                    aria-label={t('Adjust diff')}
-                    icon={<IconSliders size="md" direction="up" />}
+                    aria-label={t('Adjust redesign diff')}
+                    icon={<IconSliders size="md" direction="up" redesign />}
                     borderless
                   />
                 </AutoWideHovercard>

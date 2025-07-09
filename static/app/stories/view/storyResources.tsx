@@ -57,7 +57,7 @@ function FigmaResource(props: {href: string}) {
     <tr>
       <td>Design</td>
       <td>
-        <LinkButton href={props.href} icon={<IconFigma />} size="sm" external>
+        <LinkButton href={props.href} redesign icon={<IconFigma redesign />} size="sm" external>
           Open in Figma
         </LinkButton>
       </td>
@@ -73,7 +73,7 @@ function JsResource(props: {href: string}) {
     <tr>
       <td>Implementation</td>
       <td>
-        <LinkButton href={props.href} icon={<IconGithub />} size="sm" external>
+        <LinkButton href={props.href} redesign icon={<IconGithub redesign />} size="sm" external>
           Open in GitHub
         </LinkButton>
       </td>

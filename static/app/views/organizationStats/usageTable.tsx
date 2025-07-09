@@ -138,7 +138,7 @@ class UsageTable extends Component<Props> {
       <CellStat key={6}>
         <ButtonBar gap={1}>
           <Button
-            icon={<IconGraph type="bar" />}
+            icon={<IconGraph redesign type="bar" redesign />}
             title="Go to project level stats"
             data-test-id={project.slug}
             size="xs"
@@ -149,7 +149,7 @@ class UsageTable extends Component<Props> {
             {t('View Stats')}
           </Button>
           <LinkButton
-            icon={<IconSettings />}
+            icon={<IconSettings redesign redesign />}
             size="xs"
             aria-label={t('Project Settings')}
             title={t('Go to project settings')}

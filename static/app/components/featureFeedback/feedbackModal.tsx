@@ -216,13 +216,13 @@ export function FeedbackModal<T extends Data>({
           )}
           {onBack && (
             <BackButtonWrapper>
-              <Button onClick={onBack}>{t('Back')}</Button>
+              <Button onClick={onBack} redesign>{t('Back')}</Button>
             </BackButtonWrapper>
           )}
           <ButtonBar gap={1}>
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
             <Button
-              priority="primary"
+              priority="primary" redesign
               title={
                 props.children === undefined
                   ? defined(state.subject)

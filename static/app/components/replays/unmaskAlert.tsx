@@ -26,8 +26,8 @@ function UnmaskAlert() {
         type="info"
         trailingItems={
           <Button
-            aria-label={t('Close Alert')}
-            icon={<IconClose />}
+            aria-label={t('Close redesign Alert')}
+            icon={<IconClose redesign />}
             onClick={dismiss}
             size="zero"
             borderless

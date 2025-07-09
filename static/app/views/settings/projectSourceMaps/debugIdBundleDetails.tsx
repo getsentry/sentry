@@ -30,7 +30,7 @@ export function DebugIdBundleDetails({
         key: 'releases',
         subject: t('Associated Releases'),
         actionButton: associations.length > 3 && (
-          <Button size="xs" onClick={() => setShowAll(value => !value)}>
+          <Button size="xs" redesign onClick={() => setShowAll(value => !value)}>
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),

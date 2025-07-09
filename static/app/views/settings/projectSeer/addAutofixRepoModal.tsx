@@ -195,7 +195,7 @@ export function AddAutofixRepoModalContent({
             )}
           </div>
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={() => {
               onSave(modalSelectedRepoIds);
               closeModal();

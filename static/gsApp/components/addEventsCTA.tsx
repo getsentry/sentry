@@ -111,7 +111,7 @@ function AddEventsCTA(props: Props) {
     case 'add_events':
       return (
         <LinkButton
-          to={subscriptionUrl}
+          to={subscriptionUrl} redesign
           onClick={() => manageOnDemand()}
           {...(commonProps as LinkButtonProps)}
         >
@@ -124,7 +124,7 @@ function AddEventsCTA(props: Props) {
     case 'request_add_events':
       return (
         <Button
-          onClick={async () => {
+          onClick={async redesign () => {
             handleAnalytics();
             await wrapRequest(
               sendAddEventsRequest({
@@ -162,7 +162,7 @@ function AddEventsCTA(props: Props) {
     case 'request_upgrade':
       return (
         <Button
-          onClick={async () => {
+          onClick={async redesign () => {
             handleAnalytics();
             await wrapRequest(sendUpgradeRequest(requestArgs));
             handleRequestSent?.();
@@ -176,7 +176,7 @@ function AddEventsCTA(props: Props) {
     default:
       return (
         <LinkButton
-          to={checkoutUrl}
+          to={checkoutUrl} redesign
           onClick={handleAnalytics}
           {...(commonProps as LinkButtonProps)}
         >

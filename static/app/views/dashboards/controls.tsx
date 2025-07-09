@@ -62,7 +62,7 @@ function Controls({
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
-        data-test-id="dashboard-cancel"
+        data-test-id="dashboard-cancel" redesign
         size="sm"
         onClick={e => {
           e.preventDefault();
@@ -88,12 +88,12 @@ function Controls({
           onConfirm={onDelete}
           disabled={dashboards.length <= 1}
         >
-          <Button size="sm" data-test-id="dashboard-delete" priority="danger">
+          <Button size="sm" redesign data-test-id="dashboard-delete" priority="danger">
             {t('Delete')}
           </Button>
         </Confirm>
         <Button
-          data-test-id="dashboard-commit"
+          data-test-id="dashboard-commit" redesign
           size="sm"
           onClick={e => {
             e.preventDefault();
@@ -112,7 +112,7 @@ function Controls({
       <StyledButtonBar gap={1} key="create-controls">
         {renderCancelButton()}
         <Button
-          data-test-id="dashboard-commit"
+          data-test-id="dashboard-commit" redesign
           size="sm"
           onClick={e => {
             e.preventDefault();
@@ -131,7 +131,7 @@ function Controls({
       <StyledButtonBar gap={1} key="preview-controls">
         {renderCancelButton(t('Go Back'))}
         <Button
-          data-test-id="dashboard-commit"
+          data-test-id="dashboard-commit" redesign
           size="sm"
           onClick={e => {
             e.preventDefault();
@@ -183,7 +183,7 @@ function Controls({
           <Fragment>
             <Feature features="dashboards-import">
               <Button
-                data-test-id="dashboard-export"
+                data-test-id="dashboard-export" redesign
                 onClick={e => {
                   e.preventDefault();
                   exportDashboard();
@@ -197,14 +197,14 @@ function Controls({
             </Feature>
             {dashboard.id !== 'default-overview' && (
               <Button
-                size="sm"
+                size="sm" redesign
                 aria-label={'dashboards-favourite'}
                 icon={
                   <IconStar
                     color={isFavorited ? 'yellow300' : 'gray300'}
                     isSolid={isFavorited}
                     aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'} redesign
                   />
                 }
                 onClick={async () => {
@@ -236,7 +236,7 @@ function Controls({
               />
             )}
             <Button
-              data-test-id="dashboard-edit"
+              data-test-id="dashboard-edit" redesign
               onClick={e => {
                 e.preventDefault();
                 onEdit();

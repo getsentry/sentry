@@ -14,7 +14,7 @@ function AutofixFeedback() {
 
   return (
     <Button
-      ref={buttonRef}
+      ref={buttonRef} redesign
       size="xs"
       onClick={() =>
         openForm({

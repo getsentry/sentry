@@ -24,7 +24,7 @@ export default Storybook.story('Confirm', story => {
         <p>Current state is: {state}.</p>
         <Storybook.SideBySide>
           <Button
-            onClick={() =>
+            onClick={() redesign =>
               openConfirmModal({
                 onConfirm: () => {
                   setState('confirmed');
@@ -60,7 +60,7 @@ export default Storybook.story('Confirm', story => {
       </p>
       <Storybook.SideBySide>
         <Button
-          onClick={() =>
+          onClick={() redesign =>
             openConfirmModal({
               header: 'Are you sure?',
               message: 'You are about to delete everything.',
@@ -73,7 +73,7 @@ export default Storybook.story('Confirm', story => {
           With String Labels
         </Button>
         <Button
-          onClick={() =>
+          onClick={() redesign =>
             openConfirmModal({
               renderMessage: _props => (
                 <span>
@@ -92,7 +92,7 @@ export default Storybook.story('Confirm', story => {
                 </Link>
               ),
               renderConfirmButton: ({defaultOnClick}) => (
-                <Button onClick={defaultOnClick}>Just do it</Button>
+                <Button onClick={defaultOnClick} redesign>Just do it</Button>
               ),
             })
           }
@@ -149,7 +149,7 @@ export default Storybook.story('Confirm', story => {
         </p>
         <Storybook.SideBySide>
           <Button
-            onClick={() =>
+            onClick={() redesign =>
               openConfirmModal({
                 bypass: false,
                 onRender: () => setCallbacks(prev => prev.concat('onRender')),
@@ -163,7 +163,7 @@ export default Storybook.story('Confirm', story => {
             With callbacks (bypass = false)
           </Button>
           <Button
-            onClick={() =>
+            onClick={() redesign =>
               openConfirmModal({
                 bypass: true,
                 onRender: () => setCallbacks(prev => prev.concat('onRender')),
@@ -196,7 +196,7 @@ export default Storybook.story('Confirm', story => {
         Here's an example where <Storybook.JSXProperty name="children" value={Function} />{' '}
         is a render function:
       </p>
-      <Confirm>{({open}) => <Button onClick={open}>Open the modal</Button>}</Confirm>
+      <Confirm>{({open}) => <Button onClick={open} redesign>Open the modal</Button>}</Confirm>
     </Fragment>
   ));
 
@@ -217,7 +217,7 @@ export default Storybook.story('Confirm', story => {
             stopPropagation: [false, true],
           }}
           render={props => (
-            <Button onClick={() => setClicks(prev => prev + 1)}>
+            <Button onClick={() redesign => setClicks(prev => prev + 1)}>
               <Confirm {...props}>
                 <ModalTrigger>Click the green area to open modal</ModalTrigger>
               </Confirm>

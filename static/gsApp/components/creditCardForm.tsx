@@ -211,7 +211,7 @@ function CreditCardForm({
             <AlertContent>
               {error}
               {errorRetry && (
-                <Button size="sm" onClick={handleErrorRetry}>
+                <Button size="sm" redesign onClick={handleErrorRetry}>
                   {t('Retry')}
                 </Button>
               )}
@@ -265,7 +265,7 @@ function CreditCardForm({
           <StyledButtonBar gap={1}>
             {onCancel && (
               <Button
-                data-test-id="cancel"
+                data-test-id="cancel" redesign
                 priority="default"
                 disabled={disabled}
                 onClick={handleCancel}
@@ -274,7 +274,7 @@ function CreditCardForm({
               </Button>
             )}
             <Button
-              data-test-id="submit"
+              data-test-id="submit" redesign
               type="submit"
               priority="primary"
               disabled={disabled}

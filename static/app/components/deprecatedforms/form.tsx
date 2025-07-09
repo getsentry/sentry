@@ -162,7 +162,7 @@ class Form<
           {this.props.children}
           <div className={this.props.footerClass} style={{marginTop: 25}}>
             <Button
-              priority="primary"
+              priority="primary" redesign
               disabled={isSaving || this.props.submitDisabled || !hasChanges}
               type="submit"
               aria-label={this.props.submitLabel ?? t('Submit')}
@@ -171,7 +171,7 @@ class Form<
             </Button>
             {this.props.onCancel && (
               <Button
-                disabled={isSaving}
+                disabled={isSaving} redesign
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}
                 aria-label={this.props.cancelLabel ?? t('Cancel')}

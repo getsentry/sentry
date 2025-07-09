@@ -304,9 +304,9 @@ function AllocationForm({
             </Title>
             <ButtonBar gap={1}>
               <Button
-                aria-label="reduce-allocation"
+                aria-label="reduce-allocation" redesign
                 size="sm"
-                icon={<IconChevron size="xs" direction="left" />}
+                icon={<IconChevron size="xs" direction="left" redesign />}
                 onClick={() => {
                   setAllocationVolume(
                     Math.max(
@@ -338,9 +338,9 @@ function AllocationForm({
                 {showPrice ? '$' : metricUnit === BigNumUnits.KILO_BYTES && 'KB'}
               </InputWrapper>
               <Button
-                aria-label="increase-allocation"
+                aria-label="increase-allocation" redesign
                 size="sm"
-                icon={<IconChevron size="xs" direction="right" />}
+                icon={<IconChevron size="xs" direction="right" redesign />}
                 onClick={() => {
                   setAllocationVolume(
                     showPrice ? spendToVolume(allocationSpend + 1) : allocationVolume + 1
@@ -471,9 +471,9 @@ function AllocationForm({
               </div>
             </Alert>
           )}
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
           <Button
-            data-test-id="spend-allocation-submit"
+            data-test-id="spend-allocation-submit" redesign
             priority="primary"
             onClick={onSubmit}
             disabled={overBudgetedEvents || !rootAllocation}

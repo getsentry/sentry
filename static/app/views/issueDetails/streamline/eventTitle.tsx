@@ -149,12 +149,12 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
           <EventIdWrapper>
             <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
             <Button
-              aria-label={t('Copy Event ID')}
+              aria-label={t('Copy redesign Event ID')}
               title={t('Copy Event ID')}
               onClick={copyEventId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" color="subText" redesign />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -235,7 +235,7 @@ function EventNavigationLink({
   );
   return (
     <LinkButton
-      to={{
+      to={{ redesign
         ...location,
         hash: `#${config.key}`,
       }}

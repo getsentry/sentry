@@ -40,13 +40,13 @@ export function StoryHeader() {
       <StorySearch />
       <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
         <LinkButton
-          size="xs"
+          size="xs" redesign
           href="https://github.com/getsentry/sentry"
-          icon={<IconGithub />}
+          icon={<IconGithub redesign />}
         >
           GitHub
         </LinkButton>
-        <LinkButton size="xs" href="https://sentry.io" icon={<IconLink />}>
+        <LinkButton size="xs" redesign href="https://sentry.io" icon={<IconLink redesign />}>
           sentry.io
         </LinkButton>
         <span />

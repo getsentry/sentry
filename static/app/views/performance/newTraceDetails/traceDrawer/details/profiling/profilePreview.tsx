@@ -177,7 +177,7 @@ export function ProfilePreview({
           type="no_instrumentation_profile"
           initialCollapse={false}
           actions={
-            <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
+            <LinkButton size="xs" redesign onClick={handleGoToProfile} to={target}>
               {t('Open in Profiling')}
             </LinkButton>
           }
@@ -263,7 +263,7 @@ function SetupProfiling({link}: {link: string}) {
               'Profiles can also give you additional context on which functions are getting sampled at the time of these spans.'
             )}
           </TextBlock>
-          <LinkButton size="sm" priority="primary" href={link} external>
+          <LinkButton size="sm" redesign priority="primary" href={link} external>
             {t('Get Started')}
           </LinkButton>
         </span>

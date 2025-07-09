@@ -552,7 +552,7 @@ const makeTransactionNameRow = (
   });
 
   const actionButton = projectSlug ? (
-    <LinkButton size="xs" to={eventDetailsLocation}>
+    <LinkButton size="xs" redesign to={eventDetailsLocation}>
       {t('View Full Trace')}
     </LinkButton>
   ) : undefined;

@@ -101,8 +101,8 @@ function DebugFileRow({
             isHoverable
           >
             <LinkButton
-              size="xs"
-              icon={<IconDownload />}
+              size="xs" redesign
+              icon={<IconDownload redesign />}
               href={downloadUrl}
               disabled={!hasRole}
             >
@@ -122,8 +122,8 @@ function DebugFileRow({
                   disabled={!hasAccess}
                 >
                   <Button
-                    priority="danger"
-                    icon={<IconDelete />}
+                    priority="danger" redesign
+                    icon={<IconDelete redesign />}
                     size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"

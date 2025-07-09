@@ -271,7 +271,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
   const showMoreButton = (
     <Button
-      size="xs"
+      size="xs" redesign redesign
       priority="primary"
       onClick={handleReveal}
       aria-label={props.btnText ?? DEFAULT_BUTTON_TEXT}

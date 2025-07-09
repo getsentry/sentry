@@ -225,7 +225,7 @@ export function SpanSamplesTable({
         <IconWrapper>
           {link ? (
             <Tooltip title={t('View Profile')}>
-              <LinkButton to={link} size="xs">
+              <LinkButton to={link} redesign size="xs">
                 <IconProfiling size="xs" />
               </LinkButton>
             </Tooltip>

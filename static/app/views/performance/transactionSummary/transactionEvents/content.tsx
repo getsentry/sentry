@@ -271,7 +271,7 @@ function Search(props: Props) {
         }))}
       />
       <LinkButton
-        to={eventView.getResultsViewUrlTarget(
+        to={eventView.getResultsViewUrlTarget( redesign
           organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined

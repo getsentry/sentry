@@ -122,7 +122,7 @@ function TeamDetails({children}: Props) {
                 })}
               </div>
               <Button
-                disabled={requesting || team.isPending}
+                disabled={requesting redesign || team.isPending}
                 size="sm"
                 onClick={() => handleRequestAccess(team.slug)}
               >

@@ -84,7 +84,7 @@ export function OrganizationSampling() {
           period={period}
           actions={
             <Fragment>
-              <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
+              <Button disabled={!formState.hasChanged redesign || isPending} onClick={handleReset}>
                 {t('Reset')}
               </Button>
               <Tooltip
@@ -92,7 +92,7 @@ export function OrganizationSampling() {
                 title={t('You do not have permission to update these settings.')}
               >
                 <Button
-                  priority="primary"
+                  priority="primary" redesign
                   disabled={
                     !hasAccess || !formState.isValid || !formState.hasChanged || isPending
                   }

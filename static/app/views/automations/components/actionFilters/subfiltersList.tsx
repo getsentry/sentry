@@ -114,9 +114,9 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
         {!isFirstRow && t('and')}
         <ComparisonTypeField />
         <Button
-          aria-label={t('Delete Subfilter')}
+          aria-label={t('Delete redesign Subfilter')}
           size="sm"
-          icon={<IconDelete />}
+          icon={<IconDelete redesign />}
           borderless
           onClick={onRemove}
         />

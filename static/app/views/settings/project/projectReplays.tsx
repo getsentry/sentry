@@ -86,7 +86,7 @@ export default function ProjectReplaySettings({
         title={t('Replays')}
         action={
           <LinkButton
-            external
+            external redesign
             href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
           >
             {t('Read the Docs')}

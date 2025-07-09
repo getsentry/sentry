@@ -540,7 +540,7 @@ export const TourAction = styled(Button)`
 `;
 
 function TransparentButton(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" borderless />;
+  return <Button {...props} redesign priority="transparent" borderless redesign />;
 }
 
 export const TextTourAction = styled(TransparentButton)`

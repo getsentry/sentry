@@ -166,8 +166,8 @@ export function EventDetailsContent({
             hasStreamlinedUI ? null : (
               <ErrorBoundary mini>
                 <Button
-                  size="xs"
-                  icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                  size="xs" redesign
+                  icon={<IconChevron direction={showFeedback ? 'up' : 'down'} redesign />}
                   onClick={showFeedback ? dismissPrompt : showPrompt}
                   title={
                     showFeedback

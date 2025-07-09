@@ -305,9 +305,9 @@ function SourceMapsEmptyState({
                 {
                   clear: (
                     <Button
-                      priority="link"
+                      priority="link" redesign
                       aria-label={t('Clear Search')}
-                      onClick={onClearSearch}
+                      onClick={onClearSearch} redesign
                     />
                   ),
                 }
@@ -427,7 +427,7 @@ function SourceMapUploadDetails({
         key: 'releases',
         subject: t('Found in Releases'),
         actionButton: rows.length > 3 && (
-          <Button size="xs" onClick={() => setShowAll(value => !value)}>
+          <Button size="xs" redesign onClick={() => setShowAll(value => !value)}>
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
@@ -469,7 +469,7 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
             message={t('Are you sure you want to delete Source Maps?')}
             disabled={!hasAccess || !onDelete}
           >
-            <Button icon={<IconDelete size="xs" />} size="xs" disabled={!hasAccess}>
+            <Button icon={<IconDelete redesign size="xs" redesign />} size="xs" disabled={!hasAccess}>
               {t('Delete Source Maps')}
             </Button>
           </Confirm>

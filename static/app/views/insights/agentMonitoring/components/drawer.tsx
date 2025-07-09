@@ -85,7 +85,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
       <StyledDrawerHeader>
         <HeaderContent>
           {t('Abbreviated Trace')}
-          <LinkButton size="xs" onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
+          <LinkButton size="xs" redesign onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>

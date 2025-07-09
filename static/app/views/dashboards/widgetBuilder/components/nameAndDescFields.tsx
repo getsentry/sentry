@@ -62,7 +62,7 @@ function WidgetBuilderNameAndDescription({
       />
       {!isDescSelected && (
         <Button
-          priority="link"
+          priority="link" redesign
           aria-label={t('Add Widget Description')}
           onClick={() => {
             setIsDescSelected(true);

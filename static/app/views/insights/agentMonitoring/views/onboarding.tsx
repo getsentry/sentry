@@ -109,7 +109,7 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+    <Button priority="primary" redesign busy={fetching} onClick={reloadProjects}>
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -280,7 +280,7 @@ export function Onboarding() {
             )}
           </p>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/product/insights/agent-monitoring/"
             external
           >

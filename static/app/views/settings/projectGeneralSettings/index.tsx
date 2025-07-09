@@ -169,7 +169,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
             }
           >
             <div>
-              <Button priority="danger">{t('Remove Project')}</Button>
+              <Button priority="danger" redesign>{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -245,7 +245,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
             )}
           >
             <div>
-              <Button priority="danger">{t('Transfer Project')}</Button>
+              <Button priority="danger" redesign>{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}

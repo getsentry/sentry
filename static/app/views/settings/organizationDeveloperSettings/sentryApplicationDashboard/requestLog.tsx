@@ -250,13 +250,13 @@ export default function RequestLog({app}: RequestLogProps) {
 
       <PaginationButtons>
         <Button
-          icon={<IconChevron direction="left" />}
+          icon={<IconChevron redesign direction="left" redesign />}
           onClick={handlePrevPage}
           disabled={!hasPrevPage}
           aria-label={t('Previous page')}
         />
         <Button
-          icon={<IconChevron direction="right" />}
+          icon={<IconChevron redesign direction="right" redesign />}
           onClick={handleNextPage}
           disabled={!hasNextPage}
           aria-label={t('Next page')}

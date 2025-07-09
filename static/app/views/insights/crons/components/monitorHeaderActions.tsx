@@ -75,8 +75,8 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     <ButtonBar gap={1}>
       <FeedbackWidgetButton />
       <Button
-        size="sm"
-        icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
+        size="sm" redesign
+        icon={monitor.isMuted ? <IconSubscribed redesign /> : <IconUnsubscribed />}
         onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
         {...disableProps}
       >
@@ -94,15 +94,15 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         disabled={!canEdit}
       >
         <Button
-          size="sm"
-          icon={<IconDelete size="xs" />}
+          size="sm" redesign
+          icon={<IconDelete size="xs" redesign />}
           aria-label={t('Delete')}
           title={canEdit ? undefined : permissionTooltipText}
         />
       </Confirm>
       <LinkButton
-        size="sm"
-        icon={<IconEdit />}
+        size="sm" redesign
+        icon={<IconEdit redesign />}
         to={{
           pathname: makeAlertsPathname({
             path: `/crons-rules/${monitor.project.slug}/${monitor.slug}/`,

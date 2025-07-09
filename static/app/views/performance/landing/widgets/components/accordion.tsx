@@ -27,10 +27,10 @@ function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
           <AccordionHeader>
             {item.header}
             <Button
-              icon={
+              icon={ redesign
                 <IconChevron
                   size="xs"
-                  direction={index === expandedIndex ? 'up' : 'down'}
+                  direction={index === expandedIndex ? 'up' : 'down'} redesign
                 />
               }
               aria-label={t('Expand')}

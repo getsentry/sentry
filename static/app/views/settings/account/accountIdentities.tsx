@@ -100,11 +100,11 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
               </Fragment>
             }
           >
-            <Button size="sm">{t('Disconnect')}</Button>
+            <Button size="sm" redesign>{t('Disconnect')}</Button>
           </Confirm>
         ) : (
           <Button
-            size="sm"
+            size="sm" redesign
             disabled
             title={
               identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH

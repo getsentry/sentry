@@ -236,7 +236,7 @@ export default function IntegrationOrganizationLink() {
             {addIntegrationWithInstallationId => (
               <ButtonWrapper>
                 <Button
-                  priority="primary"
+                  priority="primary" redesign
                   disabled={!hasAccess || disabled}
                   onClick={() =>
                     installationId

@@ -122,11 +122,11 @@ export function IssueDetailsEventNavigation({
     <Fragment>
       <Navigation>
         <LinkButton
-          aria-label={t('Previous Event')}
+          aria-label={t('Previous redesign Event')}
           title={t('Previous Event')}
           borderless
           size="xs"
-          icon={<IconChevron direction="left" />}
+          icon={<IconChevron direction="left" redesign />}
           disabled={!defined(event?.previousEventID)}
           analyticsEventKey="issue_details.previous_event_clicked"
           analyticsEventName="Issue Details: Previous Event Clicked"
@@ -146,11 +146,11 @@ export function IssueDetailsEventNavigation({
           }}
         />
         <LinkButton
-          aria-label={t('Next Event')}
+          aria-label={t('Next redesign Event')}
           title={t('Next Event')}
           borderless
           size="xs"
-          icon={<IconChevron direction="right" />}
+          icon={<IconChevron direction="right" redesign />}
           disabled={!defined(event?.nextEventID)}
           analyticsEventKey="issue_details.next_event_clicked"
           analyticsEventName="Issue Details: Next Event Clicked"

@@ -123,7 +123,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       <ProfilingDetailsFrameTabs>
         <ProfilingDetailsListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
-            data-title={t('Bottom Up')}
+            data-title={t('Bottom redesign Up')}
             priority="link"
             size="zero"
             onClick={onBottomUpClick}
@@ -136,7 +136,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           className={tab === 'top down' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Top Down')}
+            data-title={t('Top redesign Down')}
             priority="link"
             size="zero"
             onClick={onTopDownClick}
@@ -147,7 +147,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <Separator />
         <ProfilingDetailsListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
-            data-title={t('All Frames')}
+            data-title={t('All redesign Frames')}
             priority="link"
             size="zero"
             onClick={onAllApplicationsClick}
@@ -159,7 +159,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           className={treeType === 'application' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Application Frames')}
+            data-title={t('Application redesign Frames')}
             priority="link"
             size="zero"
             onClick={onApplicationsClick}
@@ -172,7 +172,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           className={treeType === 'system' ? 'active' : undefined}
         >
           <Button
-            data-title={t('System Frames')}
+            data-title={t('System redesign Frames')}
             priority="link"
             size="zero"
             onClick={onSystemsClick}

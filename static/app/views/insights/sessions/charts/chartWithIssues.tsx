@@ -120,17 +120,17 @@ export default function ChartWithIssues(props: Props) {
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription description={description} />
           <Button
-            size="xs"
+            size="xs" redesign
             aria-label={t('Open Full-Screen View')}
             borderless
-            icon={<IconExpand />}
+            icon={<IconExpand redesign />}
             onClick={() => {
               openInsightChartModal({
                 title: (
                   <Flex justify="space-between">
                     {title}
                     {hasData && recentIssues?.length ? (
-                      <LinkButton size="xs" to={{pathname: `/issues/`}}>
+                      <LinkButton size="xs" redesign to={{pathname: `/issues/`}}>
                         {t('View All')}
                       </LinkButton>
                     ) : null}
@@ -155,7 +155,7 @@ export default function ChartWithIssues(props: Props) {
             }}
           />
           {hasData && recentIssues?.length ? (
-            <LinkButton size="xs" to={{pathname: `/issues/`}}>
+            <LinkButton size="xs" redesign to={{pathname: `/issues/`}}>
               {t('View All')}
             </LinkButton>
           ) : null}

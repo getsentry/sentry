@@ -12,9 +12,9 @@ function DiscoverButton(buttonProps: LinkButtonProps) {
     <DiscoverFeature>
       {({hasFeature}) => (
         <LinkButton
-          disabled={!hasFeature}
+          disabled={!hasFeature} redesign redesign
           aria-label={t('Open in Discover')}
-          {...buttonProps}
+          {...buttonProps} redesign redesign
         />
       )}
     </DiscoverFeature>

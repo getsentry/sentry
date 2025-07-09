@@ -75,8 +75,8 @@ export function ServiceIncidentDetails({incident}: Props) {
     <Fragment>
       <Title>{incident.name}</Title>
       <LinkButton
-        size="xs"
-        icon={<IconOpen />}
+        size="xs" redesign
+        icon={<IconOpen redesign />}
         priority="link"
         href={incident.shortlink}
         external

@@ -157,7 +157,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
           <ButtonBar gap={1}>
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
-                to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
+                to={`/settings/account/security/mfa/${authenticator.id}/enroll/`} redesign
               >
                 {t('Rotate Secret Key')}
               </LinkButton>
@@ -165,7 +165,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
             {authenticator.isEnrolled && authenticator.removeButton && (
               <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
                 <Button
-                  title={
+                  title={ redesign
                     deleteDisabled
                       ? t(
                           "Two-factor authentication is required for at least one organization you're a member of."

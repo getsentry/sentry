@@ -92,9 +92,9 @@ export function Alert({
         {showExpand && (
           <ExpandIconWrap>
             <Button
-              size="zero"
+              size="zero" redesign
               borderless
-              icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+              icon={<IconChevron direction={isExpanded ? 'up' : 'down'} redesign />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => setIsExpanded(!isExpanded)}
             />

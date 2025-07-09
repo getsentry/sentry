@@ -80,10 +80,10 @@ function Screenshot({
       {totalScreenshots > 1 && (
         <StyledPanelHeader lightText>
           <Button
-            disabled={screenshotInFocus === 0}
+            disabled={screenshotInFocus redesign === 0}
             aria-label={t('Previous Screenshot')}
             onClick={onPrevious}
-            icon={<IconChevron direction="left" />}
+            icon={<IconChevron direction="left" redesign />}
             size="xs"
           />
           {tct('[currentScreenshot] of [totalScreenshots]', {
@@ -91,10 +91,10 @@ function Screenshot({
             totalScreenshots,
           })}
           <Button
-            disabled={screenshotInFocus + 1 === totalScreenshots}
+            disabled={screenshotInFocus redesign + 1 === totalScreenshots}
             aria-label={t('Next Screenshot')}
             onClick={onNext}
-            icon={<IconChevron direction="right" />}
+            icon={<IconChevron direction="right" redesign />}
             size="xs"
           />
         </StyledPanelHeader>
@@ -124,7 +124,7 @@ function Screenshot({
         <StyledPanelFooter>
           <ButtonBar gap={1}>
             <Button
-              size="xs"
+              size="xs" redesign
               onClick={() =>
                 openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
               }

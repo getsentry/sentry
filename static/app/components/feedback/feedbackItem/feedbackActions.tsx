@@ -66,20 +66,20 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   return (
     <Fragment>
       <Button
-        size="xs"
+        size="xs" redesign
         priority={isResolved ? 'danger' : 'primary'}
         onClick={onResolveClick}
       >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
-      <Button size="xs" priority="default" onClick={onSpamClick}>
+      <Button size="xs" redesign priority="default" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
       <Tooltip
         disabled={enableMarkAsRead}
         title={t('You must be a member of the project')}
       >
-        <Button size="xs" onClick={onMarkAsReadClick} disabled={!enableMarkAsRead}>
+        <Button size="xs" redesign onClick={onMarkAsReadClick} disabled={!enableMarkAsRead}>
           {hasSeen ? t('Mark Unread') : t('Mark Read')}
         </Button>
       </Tooltip>
@@ -87,7 +87,7 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
         disabled={enableDelete}
         title={t('You must be an admin to delete feedback')}
       >
-        <Button size="xs" onClick={onDelete} disabled={!enableDelete}>
+        <Button size="xs" redesign onClick={onDelete} disabled={!enableDelete}>
           {t('Delete')}
         </Button>
       </Tooltip>
@@ -111,7 +111,7 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   return (
     <Fragment>
       <Button
-        size="xs"
+        size="xs" redesign
         priority={isResolved ? 'danger' : 'primary'}
         onClick={onResolveClick}
       >

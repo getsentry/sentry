@@ -25,7 +25,7 @@ function ScreenshotPagination({
   return (
     <Wrapper className={className} lightText>
       <Button
-        icon={<IconChevron direction="left" />}
+        icon={<IconChevron redesign direction="left" redesign />}
         aria-label={t('Previous')}
         size="xs"
         disabled={previousDisabled}
@@ -33,7 +33,7 @@ function ScreenshotPagination({
       />
       <span>{headerText}</span>
       <Button
-        icon={<IconChevron direction="right" />}
+        icon={<IconChevron redesign direction="right" redesign />}
         aria-label={t('Next')}
         size="xs"
         disabled={nextDisabled}

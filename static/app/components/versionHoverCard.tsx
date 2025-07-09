@@ -72,7 +72,7 @@ function VersionHoverCard({
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton to={`/settings/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/settings/${orgSlug}/repos/`} redesign priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>

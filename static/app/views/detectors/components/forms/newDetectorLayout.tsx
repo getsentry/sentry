@@ -133,12 +133,12 @@ export function NewDetectorLayout({
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
           <LinkButton
-            priority="default"
+            priority="default" redesign
             to={`${makeMonitorBasePathname(organization.slug)}new/`}
           >
             {t('Back')}
           </LinkButton>
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Create Monitor')}
           </Button>
         </Flex>

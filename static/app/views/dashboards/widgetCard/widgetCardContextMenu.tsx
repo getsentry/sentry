@@ -175,10 +175,10 @@ function WidgetCardContextMenu({
               position="bottom-end"
             />
             <Button
-              aria-label={t('Open Widget Viewer')}
+              aria-label={t('Open redesign Widget Viewer')}
               borderless
               size="xs"
-              icon={<IconExpand />}
+              icon={<IconExpand redesign />}
               onClick={() => {
                 if (seriesData || tableData) {
                   setData({
@@ -259,10 +259,10 @@ function WidgetCardContextMenu({
             position="bottom-end"
           />
           <Button
-            aria-label={t('Open Widget Viewer')}
+            aria-label={t('Open redesign Widget Viewer')}
             borderless
             size="xs"
-            icon={<IconExpand />}
+            icon={<IconExpand redesign />}
             onClick={() => {
               setData({
                 seriesData,

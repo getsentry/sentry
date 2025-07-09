@@ -65,7 +65,7 @@ function CodecovPromotionModal(props: Props) {
 
         <StyledButtonBar gap={1}>
           <Button
-            size="md"
+            size="md" redesign
             priority="primary"
             disabled={isPending || !codecovLink}
             onClick={() => {
@@ -82,7 +82,7 @@ function CodecovPromotionModal(props: Props) {
             {t('Start 14-day Free Trial')}
           </Button>
           <Button
-            data-test-id="maybe-later"
+            data-test-id="maybe-later" redesign
             priority="default"
             onClick={() => {
               trackGetsentryAnalytics('growth.codecov_promotion_decline', {

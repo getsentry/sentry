@@ -46,9 +46,9 @@ function OrganizationApiKeysList({
 
   const action = (
     <Button
-      priority="primary"
+      priority="primary" redesign
       size="sm"
-      icon={<IconAdd isCircled />}
+      icon={<IconAdd isCircled redesign />}
       busy={busy}
       disabled={busy}
       onClick={onAddApiKey}
@@ -104,7 +104,7 @@ function OrganizationApiKeysList({
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
                 >
-                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                  <Button priority="danger" redesign size="sm" icon={<IconDelete redesign />}>
                     {t('Remove API Key')}
                   </Button>
                 </Confirm>

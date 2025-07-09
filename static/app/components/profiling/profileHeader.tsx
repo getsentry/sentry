@@ -92,7 +92,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
       <StyledHeaderActions>
         <FeedbackWidgetButton />
         {transactionTarget && (
-          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+          <LinkButton size="sm" redesign onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Trace')}
           </LinkButton>
         )}

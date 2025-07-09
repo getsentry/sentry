@@ -109,13 +109,13 @@ export default function UptimeOverview() {
           <ButtonBar gap={1}>
             <FeedbackWidgetButton />
             <LinkButton
-              size="sm"
+              size="sm" redesign
               priority="primary"
               to={makeAlertsPathname({
                 path: `/new/uptime/`,
                 organization,
               })}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd isCircled redesign />}
               disabled={!canCreateAlert}
               title={canCreateAlert ? undefined : permissionTooltipText}
             >
@@ -163,13 +163,13 @@ export default function UptimeOverview() {
                 title={t('The selected projects have no uptime monitors')}
                 action={
                   <LinkButton
-                    size="sm"
+                    size="sm" redesign
                     priority="primary"
                     to={makeAlertsPathname({
                       path: `/new/uptime/`,
                       organization,
                     })}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd isCircled redesign />}
                   >
                     {t('Add Uptime Monitor')}
                   </LinkButton>

@@ -244,7 +244,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       </Body>
       <Footer>
         <Button
-          onClick={handleSubmit}
+          onClick={handleSubmit} redesign
           priority="primary"
           disabled={isFormInvalid() || formUnchanged()}
         >

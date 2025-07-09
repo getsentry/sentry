@@ -196,10 +196,10 @@ export function DataScrubbing({
           />
         )}
         <PanelAction>
-          <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>
+          <LinkButton href={ADVANCED_DATASCRUBBING_LINK} redesign external>
             {t('Read Docs')}
           </LinkButton>
-          <Button disabled={disabled} onClick={handleAdd} priority="primary">
+          <Button disabled={disabled} redesign onClick={handleAdd} priority="primary">
             {t('Add Rule')}
           </Button>
         </PanelAction>

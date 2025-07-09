@@ -73,7 +73,7 @@ class SessionStackContextType extends Component<Props, State> {
             height={this.state.height}
           />
         ) : (
-          <Button type="button" onClick={() => this.playSession()}>
+          <Button type="button" redesign onClick={() => this.playSession()}>
             Play session
           </Button>
         )}

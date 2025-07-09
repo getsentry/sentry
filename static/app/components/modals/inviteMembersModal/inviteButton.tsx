@@ -12,7 +12,7 @@ interface Props extends Omit<ButtonProps, 'children'> {
 export default function InviteButton({invites, willInvite, ...buttonProps}: Props) {
   const label = buttonLabel(invites, willInvite);
 
-  return <Button {...buttonProps}>{label}</Button>;
+  return <Button {...buttonProps} redesign redesign>{label}</Button>;
 }
 
 function buttonLabel(invites: NormalizedInvite[], willInvite: boolean) {

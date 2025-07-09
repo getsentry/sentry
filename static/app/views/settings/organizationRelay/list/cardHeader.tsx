@@ -30,8 +30,8 @@ function CardHeader({
 
   const deleteButton = (
     <Button
-      size="sm"
-      icon={<IconDelete />}
+      size="sm" redesign
+      icon={<IconDelete redesign />}
       aria-label={t('Delete Key')}
       disabled={disabled}
       title={disabled ? t('You do not have permission to delete keys') : undefined}
@@ -47,13 +47,13 @@ function CardHeader({
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar gap={1}>
-        <Button size="sm" icon={<IconCopy />} onClick={onClick}>
+        <Button size="sm" redesign icon={<IconCopy redesign />} onClick={onClick}>
           {t('Copy Key')}
         </Button>
         <Button
-          size="sm"
+          size="sm" redesign
           onClick={onEdit(publicKey)}
-          icon={<IconEdit />}
+          icon={<IconEdit redesign />}
           aria-label={t('Edit Key')}
           disabled={disabled}
           title={disabled ? t('You do not have permission to edit keys') : undefined}

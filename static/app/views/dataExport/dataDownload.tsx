@@ -183,7 +183,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     return type === 'Discover' ? (
       <Fragment>
         <p>{t('Need to make changes?')}</p>
-        <Button priority="primary" onClick={() => openInDiscover()}>
+        <Button priority="primary" redesign onClick={() => openInDiscover()}>
           {t('Open in Discover')}
         </Button>
         <br />
@@ -202,8 +202,8 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
         <Body>
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
           <LinkButton
-            priority="primary"
-            icon={<IconDownload />}
+            priority="primary" redesign
+            icon={<IconDownload redesign />}
             href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
           >
             {t('Download CSV')}

@@ -115,7 +115,7 @@ export function SubscriptionCard({subscription, organization}: SubscriptionCardP
           {subscription.isPastDue && (
             <PastDueWrapper>
               <LinkButton
-                to={`/settings/${organization.slug}/billing/details/`}
+                to={`/settings/${organization.slug}/billing/details/`} redesign
                 size="xs"
               >
                 {t('Manage Billing Details')}

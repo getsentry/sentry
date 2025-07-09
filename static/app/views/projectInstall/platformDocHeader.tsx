@@ -93,14 +93,14 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       </h2>
       <ButtonBar gap={1}>
         <Button
-          size="sm"
-          icon={<IconChevron direction="left" size="xs" />}
+          size="sm" redesign
+          icon={<IconChevron direction="left" size="xs" redesign />}
           onClick={handleGoBack}
         >
           {t('Back to Platform Selection')}
         </Button>
         {platform.key !== 'other' && (
-          <LinkButton size="sm" href={platform.link ?? ''} external>
+          <LinkButton size="sm" redesign href={platform.link ?? ''} external>
             {t('Full Documentation')}
           </LinkButton>
         )}

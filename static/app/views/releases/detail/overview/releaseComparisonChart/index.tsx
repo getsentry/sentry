@@ -1002,9 +1002,9 @@ function ReleaseComparisonChart({
             </ShowMoreTitle>
             <ShowMoreButton>
               <Button
-                borderless
+                borderless redesign
                 size="zero"
-                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} redesign />}
                 aria-label={t('Toggle additional charts')}
               />
             </ShowMoreButton>

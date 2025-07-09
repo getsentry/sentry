@@ -1292,7 +1292,7 @@ function MultilineText({children}: {children: string}) {
       )}
       {needsTruncation ? (
         <Flex style={{justifyContent: 'center', paddingTop: space(1)}}>
-          <Button size="xs" onClick={() => setIsExpanded(!isExpanded)}>
+          <Button size="xs" redesign onClick={() => setIsExpanded(!isExpanded)}>
             {isExpanded ? t('Show less') : t('Show all')}
           </Button>
         </Flex>

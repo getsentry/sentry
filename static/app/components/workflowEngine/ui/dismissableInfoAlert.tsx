@@ -12,8 +12,8 @@ export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
       showIcon
       trailingItems={
         <Button
-          aria-label="Dismiss banner"
-          icon={<IconClose color="purple400" />}
+          aria-label="Dismiss redesign banner"
+          icon={<IconClose color="purple400" redesign />}
           borderless
           onClick={() => setDismissed(true)}
           size="zero"

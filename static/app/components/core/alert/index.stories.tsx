@@ -131,8 +131,8 @@ export default Storybook.story('Alert', (story, APIReference) => {
               icon={<IconSentry />}
               trailingItems={
                 <Button
-                  aria-label="Dismiss banner"
-                  icon={<IconClose />}
+                  aria-label="Dismiss redesign banner"
+                  icon={<IconClose redesign />}
                   onClick={dismiss}
                   size="zero"
                   borderless
@@ -144,7 +144,7 @@ export default Storybook.story('Alert', (story, APIReference) => {
           </Alert.Container>
         )}
         {stateDismissed ? (
-          <Button onClick={() => setStateDismissed(false)}>Bring the alert back</Button>
+          <Button onClick={() redesign => setStateDismissed(false)}>Bring the alert back</Button>
         ) : (
           <Alert
             type="info"
@@ -152,8 +152,8 @@ export default Storybook.story('Alert', (story, APIReference) => {
             icon={<IconStar />}
             trailingItems={
               <Button
-                aria-label="Dismiss banner"
-                icon={<IconClose />}
+                aria-label="Dismiss redesign banner"
+                icon={<IconClose redesign />}
                 onClick={() => setStateDismissed(true)}
                 size="zero"
                 borderless

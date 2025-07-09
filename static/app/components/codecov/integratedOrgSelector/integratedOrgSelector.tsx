@@ -19,9 +19,9 @@ const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
-      href="https://github.com/apps/sentry-io"
+      href="https://github.com/apps/sentry-io" redesign
       size="sm"
-      icon={<IconAdd size="sm" />}
+      icon={<IconAdd size="sm" redesign />}
       priority="default"
     >
       {t('Integrated Organization')}

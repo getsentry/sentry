@@ -56,7 +56,7 @@ export default function FirstEventFooter({
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
     if (!project?.firstEvent && !isLast) {
-      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+      return <Button onClick={onClickSetupLater} redesign>{t('Next Platform')}</Button>;
     }
     return null;
   }, [project?.firstEvent, isLast, onClickSetupLater]);
@@ -76,7 +76,7 @@ export default function FirstEventFooter({
     }
     return (
       <LinkButton
-        onClick={() =>
+        onClick={() redesign =>
           trackAnalytics('growth.onboarding_take_to_error', {
             organization: project.organization,
             platform: project.platform,

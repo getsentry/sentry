@@ -21,7 +21,7 @@ export function CronsBannerUpgradeCTA({hasBillingAccess}: UpgradeCTAProps) {
   if (hasBillingAccess) {
     return (
       <LinkButton
-        href={normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)}
+        href={normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)} redesign
         size="xs"
         analyticsEventName="Crons: Clicked Trial Banner CTA"
         analyticsEventKey="crons.clicked_trial_banner_cta"
@@ -34,7 +34,7 @@ export function CronsBannerUpgradeCTA({hasBillingAccess}: UpgradeCTAProps) {
 
   return (
     <Button
-      onClick={() => {
+      onClick={() redesign => {
         sendUpgradeRequest({api, organization});
       }}
       size="xs"
@@ -77,7 +77,7 @@ export function CronsBannerOnDemandCTA({
   if (hasBillingAccess) {
     return (
       <Button
-        size="xs"
+        size="xs" redesign
         onClick={openOnDemandBudgetEditModal}
         analyticsEventName="Crons: Clicked On Demand Banner CTA"
         analyticsEventKey="crons.clicked_on_demand_banner_cta"

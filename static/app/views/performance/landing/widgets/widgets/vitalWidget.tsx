@@ -416,7 +416,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <Fragment>
             <div>
               <LinkButton
-                onClick={handleViewAllClick}
+                onClick={handleViewAllClick} redesign
                 to={target}
                 size="sm"
                 data-test-id="view-all-button"

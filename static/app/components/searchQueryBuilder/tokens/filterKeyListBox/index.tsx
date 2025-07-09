@@ -94,8 +94,8 @@ function FeedbackFooter() {
   return (
     <SectionedOverlayFooter>
       <Button
-        size="xs"
-        icon={<IconMegaphone />}
+        size="xs" redesign
+        icon={<IconMegaphone redesign />}
         onClick={() =>
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),

@@ -117,7 +117,7 @@ export function ConnectedAutomationsList({
               </SimpleTable.RowCell>
               {canEdit && (
                 <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
-                  <Button onClick={() => toggleConnected?.(automation.id)} size="sm">
+                  <Button onClick={() redesign => toggleConnected?.(automation.id)} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
                       : t('Connect')}

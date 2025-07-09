@@ -123,7 +123,7 @@ export default function FiltersBar({
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons>
             <Button
-              title={
+              title={ redesign
                 !hasEditAccess && t('You do not have permission to edit this dashboard')
               }
               priority="primary"
@@ -136,7 +136,7 @@ export default function FiltersBar({
             >
               {t('Save')}
             </Button>
-            <Button data-test-id={'filter-bar-cancel'} onClick={onCancel}>
+            <Button data-test-id={'filter-bar-cancel'} redesign onClick={onCancel}>
               {t('Cancel')}
             </Button>
           </FilterButtons>

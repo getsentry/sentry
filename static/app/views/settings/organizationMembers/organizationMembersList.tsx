@@ -437,11 +437,11 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      priority="primary" redesign
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
-      icon={<IconMail />}
+      icon={<IconMail redesign />}
       disabled={disabled}
     >
       {t('Invite Members')}

@@ -516,7 +516,7 @@ function AutofixSolutionDisplay({
                 }
               >
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   priority={
                     !solutionSelected || !valueIsEqual(solutionItems, solution, true)
                       ? 'primary'

@@ -40,6 +40,10 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'transparent';
   /**
+   * Enables the redesigned button styles.
+   */
+  redesign?: boolean;
+  /**
    * The size of the button
    */
   size?: 'zero' | 'xs' | 'sm' | 'md';

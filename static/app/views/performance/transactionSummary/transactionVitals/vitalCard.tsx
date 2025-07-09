@@ -207,7 +207,7 @@ class VitalCard extends Component<Props, State> {
         <Description>{description}</Description>
         <div>
           <LinkButton
-            size="xs"
+            size="xs" redesign
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])

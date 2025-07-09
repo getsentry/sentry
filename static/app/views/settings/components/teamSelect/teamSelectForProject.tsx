@@ -139,7 +139,7 @@ function TeamRow({
         disabled={disabled}
         confirmText="Remove Team"
       >
-        <Button size="xs" icon={<IconSubtract isCircled />} disabled={disabled}>
+        <Button size="xs" redesign icon={<IconSubtract isCircled redesign />} disabled={disabled}>
           {t('Remove')}
         </Button>
       </Confirm>

@@ -68,8 +68,8 @@ function ProjectProguardRow({
             isHoverable
           >
             <LinkButton
-              size="sm"
-              icon={<IconDownload size="sm" />}
+              size="sm" redesign
+              icon={<IconDownload size="sm" redesign />}
               disabled={!hasRole}
               href={downloadUrl}
               title={hasRole ? t('Download Mapping') : undefined}
@@ -89,8 +89,8 @@ function ProjectProguardRow({
                   disabled={!hasAccess}
                 >
                   <Button
-                    size="sm"
-                    icon={<IconDelete size="sm" />}
+                    size="sm" redesign
+                    icon={<IconDelete size="sm" redesign />}
                     title={hasAccess ? t('Remove Mapping') : undefined}
                     aria-label={t('Remove Mapping')}
                     disabled={!hasAccess}

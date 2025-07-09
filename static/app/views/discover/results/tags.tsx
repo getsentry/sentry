@@ -220,7 +220,7 @@ class Tags extends Component<Props, State> {
             ) : (
               <ButtonWrapper>
                 <Button
-                  size="xs"
+                  size="xs" redesign
                   priority="primary"
                   disabled={loading}
                   aria-label={t('Show More')}

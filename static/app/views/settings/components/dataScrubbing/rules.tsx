@@ -30,7 +30,7 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
             <TextOverflow>{ruleDescription}</TextOverflow>
             {onEditRule && (
               <Button
-                aria-label={t('Edit Rule')}
+                aria-label={t('Edit redesign Rule')}
                 size="sm"
                 onClick={() => onEditRule(id)}
                 icon={<IconEdit />}
@@ -50,9 +50,9 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
                 stopPropagation
               >
                 <Button
-                  aria-label={t('Delete Rule')}
+                  aria-label={t('Delete redesign Rule')}
                   size="sm"
-                  icon={<IconDelete />}
+                  icon={<IconDelete redesign />}
                   disabled={disabled}
                   title={
                     disabled ? t('You do not have permission to delete rules') : undefined

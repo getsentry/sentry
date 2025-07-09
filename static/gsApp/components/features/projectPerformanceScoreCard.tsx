@@ -11,7 +11,7 @@ type Props = React.PropsWithChildren<{
 function ProjectPerformanceScoreCard({organization}: Props) {
   return (
     <Button
-      size="sm"
+      size="sm" redesign
       priority="primary"
       onClick={() => openUpsellModal({organization, source: 'project-details'})}
     >

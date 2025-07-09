@@ -28,7 +28,7 @@ export default function IntegrationAlertRules() {
           <ProjectItem key={project.slug}>
             <ProjectBadge project={project} avatarSize={16} />
             <LinkButton
-              to={makeAlertsPathname({
+              to={makeAlertsPathname({ redesign
                 path: `/${project.slug}/wizard/`,
                 organization,
               })}

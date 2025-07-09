@@ -48,7 +48,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <DoneWrapper>
         <DoneIcon color="success" size="2xl" isCircled />
         <p>{t("You've successfully configured write access!")}</p>
-        <Button onClick={closeModal} priority="primary">
+        <Button onClick={closeModal} redesign priority="primary">
           {t("Let's go")}
         </Button>
       </DoneWrapper>
@@ -117,9 +117,9 @@ export function AutofixSetupWriteAccessModal({
       {!canCreatePullRequests && (
         <Footer>
           <ButtonBar gap={1}>
-            <Button onClick={closeModal}>{t('Later')}</Button>
+            <Button onClick={closeModal} redesign>{t('Later')}</Button>
             <LinkButton
-              href="https://github.com/apps/seer-by-sentry/installations/new"
+              href="https://github.com/apps/seer-by-sentry/installations/new" redesign
               external
               priority="primary"
             >

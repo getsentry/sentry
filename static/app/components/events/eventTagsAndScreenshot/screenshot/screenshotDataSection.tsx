@@ -118,7 +118,7 @@ export function ScreenshotDataSection({
       type={SectionKey.SCREENSHOT}
       actions={
         hasStreamlinedUI ? (
-          <LinkButton to={linkPath} size="xs">
+          <LinkButton to={linkPath} redesign size="xs">
             {t('View All')}
           </LinkButton>
         ) : null

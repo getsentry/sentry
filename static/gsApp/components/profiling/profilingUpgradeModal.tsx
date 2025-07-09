@@ -241,14 +241,14 @@ function ActionButtons({
   return hasBillingAccess ? (
     <ButtonRow>
       <Button
-        priority="primary"
+        priority="primary" redesign
         onClick={onUpdatePlan}
         disabled={isActionDisabled === true}
       >
         {t('Update Now')}
       </Button>
       <LinkButton
-        to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
+        to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`} redesign
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}
@@ -257,7 +257,7 @@ function ActionButtons({
   ) : (
     <ButtonRow>
       <Button
-        disabled
+        disabled redesign
         title={t(
           'Only members with the role “Owner” or “Billing” can manage subscriptions'
         )}

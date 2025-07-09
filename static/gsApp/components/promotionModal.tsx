@@ -159,11 +159,11 @@ const PromotionModal = withPromotions(
         <Subheader>{t('Limited Time Offer')}</Subheader>
         {modalBody}
         <StyledButtonBar gap={1}>
-          <Button size="md" priority="primary" onClick={() => handleClick()}>
+          <Button size="md" redesign priority="primary" onClick={() => handleClick()}>
             {acceptText}
           </Button>
           <Button
-            size="md"
+            size="md" redesign
             onClick={async () => {
               closeModal();
               trackGetsentryAnalytics('growth.promo_modal_decline', {

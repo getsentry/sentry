@@ -179,7 +179,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
   const {startTour, isRegistered} = useMyTour();
   return (
     <Button
-      onClick={() => startTour()}
+      onClick={() redesign => startTour()}
       disabled={!isRegistered}
     >
       Start Tour
@@ -312,7 +312,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
 function StartTourButton() {
   const {startTour, isRegistered} = useMyTour();
   return (
-    <Button icon={<IconStar />} onClick={() => startTour()} disabled={!isRegistered}>
+    <Button icon={<IconStar redesign redesign />} onClick={() => startTour()} disabled={!isRegistered}>
       Start Tour
     </Button>
   );

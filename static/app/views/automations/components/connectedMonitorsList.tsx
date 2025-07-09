@@ -71,7 +71,7 @@ export default function ConnectedMonitorsList({
             </SimpleTable.RowCell>
             {canEdit && (
               <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
-                <Button onClick={() => toggleConnected(monitor.id)} size="sm">
+                <Button onClick={() redesign => toggleConnected(monitor.id)} size="sm">
                   {connectedIds?.has(monitor.id) ? t('Disconnect') : t('Connect')}
                 </Button>
               </SimpleTable.RowCell>

@@ -21,7 +21,7 @@ export default function FinishSetupAlert({
       icon={<IconLightning />}
       trailingItems={
         <LinkButton
-          size="xs"
+          size="xs" redesign
           priority="primary"
           external
           href="https://docs.sentry.io/performance-monitoring/getting-started/"

@@ -184,12 +184,12 @@ function AutomationEditForm({automation}: {automation: Automation}) {
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
           <LinkButton
-            priority="default"
+            priority="default" redesign
             to={makeAutomationDetailsPathname(organization.slug, params.automationId)}
           >
             {t('Cancel')}
           </LinkButton>
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Save')}
           </Button>
         </Flex>

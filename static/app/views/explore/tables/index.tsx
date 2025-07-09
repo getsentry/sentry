@@ -114,12 +114,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           </TabList>
         </Tabs>
         {tab === Tab.SPAN ? (
-          <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+          <Button onClick={openColumnEditor} redesign icon={<IconTable redesign />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : tab === Mode.AGGREGATE &&
           organization.features.includes('visibility-explore-aggregate-editor') ? (
-          <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
+          <Button onClick={openAggregateColumnEditor} redesign icon={<IconTable redesign />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : (
@@ -130,7 +130,7 @@ export function ExploreTables(props: ExploreTablesProps) {
                 : t('Use the Group By and Visualize controls to change table columns')
             }
           >
-            <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
+            <Button disabled redesign onClick={openColumnEditor} icon={<IconTable redesign />} size="sm">
               {t('Edit Table')}
             </Button>
           </Tooltip>

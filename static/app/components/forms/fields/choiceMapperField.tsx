@@ -236,7 +236,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                 {i === mappedKeys.length - 1 && (
                   <Actions>
                     <Button
-                      icon={<IconDelete />}
+                      icon={<IconDelete redesign redesign />}
                       size="sm"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}

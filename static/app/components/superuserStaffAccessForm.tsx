@@ -225,7 +225,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             initialData={{isSuperuserModal: true}}
             extraButton={
               <BackWrapper>
-                <Button type="submit" onClick={this.handleSubmitCOPS}>
+                <Button type="submit" redesign onClick={this.handleSubmitCOPS}>
                   {t('COPS/CSM')}
                 </Button>
               </BackWrapper>

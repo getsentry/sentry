@@ -239,7 +239,7 @@ function TeamReleases({
         emptyMessage={t('No releases were setup for this team’s projects')}
         emptyAction={
           <LinkButton
-            size="sm"
+            size="sm" redesign
             external
             href="https://docs.sentry.io/product/releases/setup/"
           >

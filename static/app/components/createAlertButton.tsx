@@ -190,9 +190,9 @@ export default function CreateAlertButton({
 
   const renderButton = (hasAccess: boolean) => (
     <LinkButton
-      disabled={!hasAccess}
+      disabled={!hasAccess} redesign redesign
       title={hasAccess ? undefined : permissionTooltipText}
-      icon={!hideIcon && <IconSiren {...iconProps} />}
+      icon={!hideIcon && <IconSiren {...iconProps} redesign redesign />}
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
         isHoverable: true,

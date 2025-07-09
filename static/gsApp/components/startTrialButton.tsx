@@ -47,7 +47,7 @@ function StartTrialButton({
         ) {
           return (
             <LinkButton
-              disabled={trialStarting || trialStarted}
+              disabled={trialStarting redesign || trialStarted}
               data-test-id="start-trial-button"
               onClick={() => {
                 handleClick?.();
@@ -62,7 +62,7 @@ function StartTrialButton({
 
         return (
           <Button
-            disabled={trialStarting || trialStarted}
+            disabled={trialStarting redesign || trialStarted}
             data-test-id="start-trial-button"
             onClick={() => {
               handleClick?.();

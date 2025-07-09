@@ -86,8 +86,8 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
         <div>{t('Error loading Trace Summary')}</div>
         {openFeedbackForm && (
           <Button
-            size="xs"
-            icon={<IconMegaphone size="xs" />}
+            size="xs" redesign
+            icon={<IconMegaphone size="xs" redesign />}
             onClick={() =>
               openFeedbackForm({
                 messagePlaceholder: t(
@@ -168,8 +168,8 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
       {openFeedbackForm && (
         <FeedbackButtonContainer>
           <Button
-            size="xs"
-            icon={<IconMegaphone size="xs" />}
+            size="xs" redesign
+            icon={<IconMegaphone size="xs" redesign />}
             onClick={() =>
               openFeedbackForm({
                 messagePlaceholder: t(

@@ -144,7 +144,7 @@ function HomePage(props: Props) {
 
       <OverviewWrap>
         <div>Looking for the old overview page?</div>
-        <Button size="xs" onClick={() => setOldSplash(true)}>
+        <Button size="xs" redesign onClick={() => setOldSplash(true)}>
           click here
         </Button>
       </OverviewWrap>

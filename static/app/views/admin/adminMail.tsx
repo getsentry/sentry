@@ -108,7 +108,7 @@ export default function AdminMail() {
         )}
       </p>
 
-      <Button onClick={sendTestEmail}>
+      <Button onClick={sendTestEmail} redesign>
         {t('Send a test email to %s', testMailEmail)}
       </Button>
     </div>

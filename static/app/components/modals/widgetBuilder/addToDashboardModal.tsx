@@ -353,7 +353,7 @@ function AddToDashboardModal({
         <StyledButtonBar gap={1.5}>
           {actions.includes('add-and-stay-on-current-page') && (
             <Button
-              onClick={handleAddAndStayOnCurrentPage}
+              onClick={handleAddAndStayOnCurrentPage} redesign
               disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
             >
@@ -362,7 +362,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              onClick={handleAddAndOpenDashboard}
+              onClick={handleAddAndOpenDashboard} redesign
               disabled={!canSubmit}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
             >
@@ -371,7 +371,7 @@ function AddToDashboardModal({
           )}
           {actions.includes('open-in-widget-builder') && (
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}

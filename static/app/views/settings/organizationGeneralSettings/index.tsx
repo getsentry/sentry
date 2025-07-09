@@ -141,7 +141,7 @@ export default function OrganizationGeneralSettings() {
                   message={removeConfirmMessage}
                   onConfirm={handleConfirmRemoveOrg}
                 >
-                  <Button priority="danger">{t('Remove Organization')}</Button>
+                  <Button priority="danger" redesign>{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
             </FieldGroup>

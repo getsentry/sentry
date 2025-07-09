@@ -32,7 +32,7 @@ function ProjectTeamAccess({organization, project}: Props) {
     if (project.teams.length === 0) {
       return (
         <LinkButton
-          to={settingsLink}
+          to={settingsLink} redesign
           disabled={!hasEditPermissions}
           title={
             hasEditPermissions ? undefined : t('You do not have permission to do this')
@@ -48,7 +48,7 @@ function ProjectTeamAccess({organization, project}: Props) {
     return (
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
-          <Button priority="link" onClick={onExpand}>
+          <Button priority="link" redesign onClick={onExpand}>
             {tn('Show %s collapsed team', 'Show %s collapsed teams', numberOfHiddenItems)}
           </Button>
         )}

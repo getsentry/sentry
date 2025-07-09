@@ -30,7 +30,7 @@ function SubscribeAction({
 
   return (
     <Button
-      className={className}
+      className={className} redesign
       disabled={disabled || disabledNotifications}
       title={getSubscriptionReason(group)}
       tooltipProps={{delay: 300}}
@@ -38,7 +38,7 @@ function SubscribeAction({
       size={size}
       aria-label={t('Subscribe')}
       onClick={onClick}
-      icon={icon ?? <IconSubscribed size={size} />}
+      icon={icon ?? <IconSubscribed size={size} redesign />}
     />
   );
 }

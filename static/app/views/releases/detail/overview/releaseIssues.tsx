@@ -396,7 +396,7 @@ class ReleaseIssues extends Component<Props, State> {
           </DemoTourElement>
 
           <OpenInButtonBar gap={1}>
-            <LinkButton to={this.getIssuesUrl()} size="xs">
+            <LinkButton to={this.getIssuesUrl()} redesign size="xs">
               {t('Open in Issues')}
             </LinkButton>
 

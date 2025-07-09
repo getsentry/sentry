@@ -41,8 +41,8 @@ export function DifferentialFlamegraphSettingsButton(
   return (
     <Fragment>
       <Button
-        ref={setButtonRef}
-        icon={<IconSettings />}
+        ref={setButtonRef} redesign
+        icon={<IconSettings redesign />}
         size="xs"
         aria-label={t('Differential Flamegraph Settings')}
         onClick={onToggleMenu}

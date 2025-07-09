@@ -118,7 +118,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
         showIcon
         trailingItems={
           <Button
-            icon={<IconClose size="sm" />}
+            icon={<IconClose redesign size="sm" redesign />}
             aria-label={t('Close')}
             size="zero"
             onClick={() => setIsOpen(false)}

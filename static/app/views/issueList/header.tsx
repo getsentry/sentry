@@ -124,11 +124,11 @@ function IssueListHeader({
           <IssueListSetAsDefault {...{sort, query, organization}} />
           <DisableInDemoMode>
             <Button
-              size="sm"
+              size="sm" redesign
               data-test-id="real-time"
               title={realtimeTitle}
               aria-label={realtimeTitle}
-              icon={realtimeActive ? <IconPause /> : <IconPlay />}
+              icon={realtimeActive ? <IconPause redesign /> : <IconPlay />}
               onClick={() => onRealtimeChange(!realtimeActive)}
             />
           </DisableInDemoMode>

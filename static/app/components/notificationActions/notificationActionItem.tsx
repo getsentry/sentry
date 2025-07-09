@@ -249,10 +249,10 @@ function NotificationActionItem({
           items={menuItems}
           trigger={triggerProps => (
             <Button
-              {...triggerProps}
+              {...triggerProps} redesign
               aria-label={t('Actions')}
               size="xs"
-              icon={<IconEllipsis direction="down" size="sm" />}
+              icon={<IconEllipsis direction="down" size="sm" redesign />}
               data-test-id="edit-dropdown"
             />
           )}
@@ -286,10 +286,10 @@ function NotificationActionItem({
           <NotificationActionFormContainer>
             <NotificationActionCell>{renderDescription()}</NotificationActionCell>
             <ButtonBar gap={0.5}>
-              <Button onClick={handleCancel} size="xs">
+              <Button onClick={handleCancel} redesign size="xs">
                 {t('Cancel')}
               </Button>
-              <Button priority="primary" size="xs" onClick={handleSave}>
+              <Button priority="primary" redesign size="xs" onClick={handleSave}>
                 {t('Save')}
               </Button>
             </ButtonBar>

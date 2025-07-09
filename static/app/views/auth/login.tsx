@@ -131,7 +131,7 @@ class Login extends Component<Props, State> {
                 <Alert
                   type="warning"
                   trailingItems={
-                    <LinkButton to="/" size="xs">
+                    <LinkButton to="/" redesign size="xs">
                       Reload
                     </LinkButton>
                   }

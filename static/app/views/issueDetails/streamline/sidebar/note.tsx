@@ -178,12 +178,12 @@ function StreamlinedNoteInput({
       {(isSubmitVisible || existingItem) && (
         <ButtonBar gap={0.5}>
           {existingItem && (
-            <Button size="xs" onClick={onCancel}>
+            <Button size="xs" redesign onClick={onCancel}>
               {t('Cancel')}
             </Button>
           )}
           <Button
-            priority="primary"
+            priority="primary" redesign
             size="xs"
             disabled={!canSubmit}
             aria-label={existingItem ? t('Save comment') : t('Submit comment')}

@@ -81,7 +81,7 @@ export function getUploadSourceMapsStep({
 function CopyRulesButton({rules}: {rules: string}) {
   const {onClick} = useCopyToClipboard({text: rules});
   return (
-    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+    <Button size="xs" redesign icon={<IconCopy redesign />} onClick={onClick}>
       {t('Copy Rules')}
     </Button>
   );

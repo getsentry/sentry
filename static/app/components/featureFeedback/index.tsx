@@ -27,7 +27,7 @@ export function FeatureFeedback<T extends Data>({
   }
 
   return (
-    <Button {...buttonProps} icon={<IconMegaphone />} onClick={handleClick}>
+    <Button {...buttonProps} redesign redesign icon={<IconMegaphone redesign redesign />} onClick={handleClick}>
       {t('Give Feedback')}
     </Button>
   );

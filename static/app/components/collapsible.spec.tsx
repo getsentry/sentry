@@ -47,10 +47,10 @@ describe('Collapsible', function () {
     render(
       <Collapsible
         collapseButton={({onCollapse}) => (
-          <Button onClick={onCollapse}>Custom Collapse</Button>
+          <Button onClick={onCollapse} redesign>Custom Collapse</Button>
         )}
         expandButton={({onExpand, numberOfHiddenItems}) => (
-          <Button onClick={onExpand} aria-label="Expand">
+          <Button onClick={onExpand} redesign aria-label="Expand">
             Custom Expand {numberOfHiddenItems}
           </Button>
         )}

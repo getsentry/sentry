@@ -158,7 +158,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       {transactionSummaryTarget && (
         <StyledHeaderActions>
           <FeedbackWidgetButton />
-          <LinkButton to={transactionSummaryTarget} size="sm">
+          <LinkButton to={transactionSummaryTarget} redesign size="sm">
             {t('View Summary')}
           </LinkButton>
         </StyledHeaderActions>
@@ -564,7 +564,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         canvasPoolManager={props.canvasPoolManager}
         flamegraphs={flamegraphs}
       />
-      <Button size="xs" onClick={onResetZoom}>
+      <Button size="xs" redesign onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
@@ -574,7 +574,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         options={frameSelectOptions}
       />
       <Button
-        size="xs"
+        size="xs" redesign
         onClick={props.onHideRegressionsClick}
         title={t('Expand or collapse the view')}
       >

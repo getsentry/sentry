@@ -860,7 +860,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`${route}/`} size="sm">
+          <LinkButton to={`${route}/`} redesign size="sm">
             {t('View All')}
           </LinkButton>
         </div>

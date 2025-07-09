@@ -108,7 +108,7 @@ function AddPaymentMethod({
       {isActive && renderBody()}
       {isActive && hasPayment && useExisting && (
         <StepFooter data-test-id="footer-payment-method">
-          <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
+          <Button priority="primary" redesign onClick={() => onCompleteStep(stepNumber)}>
             {t('Continue')}
           </Button>
         </StepFooter>

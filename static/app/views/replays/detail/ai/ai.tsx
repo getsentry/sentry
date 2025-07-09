@@ -57,8 +57,8 @@ function AiContent() {
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return openForm ? (
       <Button
-        aria-label={t('Give feedback on the AI summary section')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+        aria-label={t('Give redesign feedback on the AI summary section')}
+        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} redesign />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
         size={'xs'}
         onClick={() =>
@@ -140,7 +140,7 @@ function AiContent() {
               {feedbackButton({type: 'negative'})}
             </Flex>
             <Button
-              priority="default"
+              priority="default" redesign
               type="button"
               size="xs"
               onClick={() => refetch()}

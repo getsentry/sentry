@@ -112,7 +112,7 @@ function TeamNotificationSettingsPanel({
             onConfirm={() => onDelete(externalTeam)}
             message={t('Are you sure you want to remove this Slack team link?')}
           >
-            <Button icon={<IconDelete />} disabled={!hasWriteAccess}>
+            <Button icon={<IconDelete redesign redesign />} disabled={!hasWriteAccess}>
               {t('Unlink')}
             </Button>
           </Confirm>

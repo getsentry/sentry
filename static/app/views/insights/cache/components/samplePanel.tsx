@@ -392,7 +392,7 @@ export function CacheSamplePanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <Button
-                  onClick={() => {
+                  onClick={() redesign => {
                     trackAnalytics(
                       'performance_views.sample_spans.try_different_samples_clicked',
                       {organization, source: ModuleName.CACHE}

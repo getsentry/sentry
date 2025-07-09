@@ -152,7 +152,7 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
 
   return (
     <Button
-      onClick={handleStarFixabilityView}
+      onClick={handleStarFixabilityView} redesign
       size="sm"
       priority="primary"
       disabled={isCompleted}

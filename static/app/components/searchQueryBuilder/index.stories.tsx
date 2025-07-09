@@ -721,7 +721,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
 
       return (
         <Button
-          style={{marginTop: '16px'}}
+          style={{marginTop: redesign '16px'}}
           onClick={() =>
             dispatch({
               type: 'UPDATE_QUERY',
@@ -792,7 +792,7 @@ function OpenDropdownButton() {
   }
 
   return (
-    <Button onClick={handleClick}>
+    <Button onClick={handleClick} redesign>
       {'Open Dropdown'}
     </Button>
   );

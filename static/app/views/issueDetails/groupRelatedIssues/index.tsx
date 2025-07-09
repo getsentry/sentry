@@ -162,7 +162,7 @@ const getTraceConnectedContent = (
 const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: string) => {
   return (
     <LinkButton
-      to={to}
+      to={to} redesign
       size="xs"
       analyticsEventName={eventName}
       analyticsEventKey={eventKey}

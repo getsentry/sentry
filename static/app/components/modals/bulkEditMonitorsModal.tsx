@@ -131,7 +131,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
                 <Button
-                  key={i}
+                  key={i} redesign
                   size="sm"
                   onClick={() => handleBulkEdit(operation)}
                   disabled={isUpdating || selectedMonitors.length === 0}
@@ -202,7 +202,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal} aria-label={t('Done')}>
+        <Button priority="primary" redesign onClick={closeModal} aria-label={t('Done')}>
           {t('Done')}
         </Button>
       </Footer>

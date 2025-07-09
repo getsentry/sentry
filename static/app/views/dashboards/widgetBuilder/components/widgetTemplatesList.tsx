@@ -95,7 +95,7 @@ function WidgetTemplatesList({
                 {selectedWidget === index && (
                   <ButtonsWrapper>
                     <Button
-                      size="sm"
+                      size="sm" redesign
                       onClick={e => {
                         e.stopPropagation();
                         setOpenWidgetTemplates(false);
@@ -115,7 +115,7 @@ function WidgetTemplatesList({
                       {t('Customize')}
                     </Button>
                     <Button
-                      size="sm"
+                      size="sm" redesign
                       onClick={e => {
                         e.stopPropagation();
                         handleSave(widget);

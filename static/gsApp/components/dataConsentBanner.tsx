@@ -70,7 +70,7 @@ function DataConsentBanner({
       <div>
         <DataConsentBannerTitle>{bannerTitle}</DataConsentBannerTitle>
         <Button
-          analyticsEventKey="data_consent_banner.learn_more"
+          analyticsEventKey="data_consent_banner.learn_more" redesign
           analyticsEventName="Data Consent Banner: Learn More"
           analyticsParams={{source}}
           size="sm"

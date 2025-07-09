@@ -159,9 +159,9 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
                   )}
                 >
                   <Button
-                    size="sm"
+                    size="sm" redesign
                     disabled={!hasWriteAccess}
-                    icon={<IconSubtract isCircled />}
+                    icon={<IconSubtract isCircled redesign />}
                     aria-label={t('Remove')}
                     onClick={() => {
                       handleLinkProject(project, 'remove');

@@ -26,7 +26,7 @@ function LoadingError({
         className={className}
         trailingItems={
           onRetry && (
-            <Button onClick={onRetry} priority="default" size="sm">
+            <Button onClick={onRetry} redesign priority="default" size="sm">
               {t('Retry')}
             </Button>
           )

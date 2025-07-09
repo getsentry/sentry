@@ -89,10 +89,10 @@ export default function TestPreOnboardingPage() {
           <h2>{instructionSet.header}</h2>
           <p>{instructionSet.subtext}</p>
           <ButtonBar>
-            <LinkButton priority="primary" href={instructionSet.mainCTA}>
+            <LinkButton priority="primary" redesign href={instructionSet.mainCTA}>
               {instructionSet.mainCTA}
             </LinkButton>
-            <LinkButton priority="default" href="/settings/integrations/github">
+            <LinkButton priority="default" redesign href="/settings/integrations/github">
               Learn more
             </LinkButton>
           </ButtonBar>
@@ -111,8 +111,8 @@ export default function TestPreOnboardingPage() {
               </Prereq>
               <Prereq>
                 <LinkButton
-                  priority="default"
-                  icon={<IconGithub />}
+                  priority="default" redesign
+                  icon={<IconGithub redesign />}
                   href="https://github.com"
                 >
                   {t('Sign in with GitHub')}

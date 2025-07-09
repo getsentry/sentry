@@ -53,12 +53,12 @@ export function CredentialRow({
             disabled={isRemoving || !removeCredential}
           >
             <Button
-              size="xs"
+              size="xs" redesign
               disabled={isRemoving || !removeCredential}
               aria-label={t('Remove credentials')}
               icon={
                 isRemoving ? (
-                  <LoadingIndicator mini />
+                  <LoadingIndicator mini redesign />
                 ) : (
                   <IconSubtract isCircled size="xs" />
                 )

@@ -213,11 +213,11 @@ class OwnerInput extends Component<Props, State> {
           <ActionBar>
             <div>{this.parseError(error)}</div>
             <ButtonBar gap={1}>
-              <Button type="button" size="sm" onClick={this.props.onCancel}>
+              <Button type="button" redesign size="sm" onClick={this.props.onCancel}>
                 {t('Cancel')}
               </Button>
               <Button
-                size="sm"
+                size="sm" redesign
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
                 disabled={disabled || !hasChanges}

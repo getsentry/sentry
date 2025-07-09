@@ -20,7 +20,7 @@ export function SampleEventAlert({
       icon={<IconLightning />}
       trailingItems={
         <LinkButton
-          size="xs"
+          size="xs" redesign
           priority="primary"
           to={`/${organization.slug}/${project.slug}/getting-started/${
             project.platform || ''

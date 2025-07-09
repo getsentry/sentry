@@ -78,7 +78,7 @@ function DeletionPending({organization}: OrganizationProps) {
               )}
             </p>
             <p>
-              <Button priority="primary" onClick={onRestore} disabled={isRestoring}>
+              <Button priority="primary" redesign onClick={onRestore} disabled={isRestoring}>
                 {t('Restore Organization')}
               </Button>
             </p>

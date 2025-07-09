@@ -489,8 +489,8 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 onChange={this.onQueryChange}
               />
               <Button
-                type="submit"
-                icon={<IconSearch />}
+                type="submit" redesign
+                icon={<IconSearch redesign />}
                 priority="primary"
                 size="sm"
                 aria-label={'Search'}

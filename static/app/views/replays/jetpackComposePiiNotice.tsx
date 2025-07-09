@@ -23,8 +23,8 @@ export function JetpackComposePiiNotice() {
         showIcon
         trailingItems={
           <Button
-            aria-label={t('Dismiss')}
-            icon={<IconClose />}
+            aria-label={t('Dismiss')} redesign
+            icon={<IconClose redesign />}
             onClick={dismiss}
             size="zero"
             borderless

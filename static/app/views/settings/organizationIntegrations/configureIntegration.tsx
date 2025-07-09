@@ -238,9 +238,9 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         >
           {onClick => (
             <Button
-              priority="primary"
+              priority="primary" redesign
               size="sm"
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd isCircled redesign />}
               onClick={() => onClick()}
             >
               {t('Add Services')}
@@ -253,7 +253,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     if (provider.key === 'discord') {
       return (
         <LinkButton
-          aria-label={t('Open this server in the Discord app')}
+          aria-label={t('Open redesign this server in the Discord app')}
           size="sm"
           href={`https://discord.com/channels/${integration.externalId}`}
         >
@@ -295,7 +295,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button priority="primary" redesign disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -336,7 +336,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button priority="primary" redesign disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -504,7 +504,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       />
       <BackButtonWrapper>
         <LinkButton
-          icon={<IconArrow direction="left" size="sm" />}
+          icon={<IconArrow redesign direction="left" size="sm" redesign />}
           size="sm"
           to={`/settings/${organization.slug}/integrations/${provider.key}/`}
         >

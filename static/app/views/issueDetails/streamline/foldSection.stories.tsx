@@ -92,13 +92,13 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
           title="Header with Actions"
           actions={
             <ButtonBar gap={1}>
-              <Button size="xs" icon={<IconAdd />}>
+              <Button size="xs" redesign icon={<IconAdd redesign />}>
                 Add
               </Button>
-              <Button size="xs" icon={<IconSubtract />}>
+              <Button size="xs" redesign icon={<IconSubtract redesign />}>
                 Remove
               </Button>
-              <Button size="xs" icon={<IconCopy />}>
+              <Button size="xs" redesign icon={<IconCopy redesign />}>
                 Copy
               </Button>
             </ButtonBar>

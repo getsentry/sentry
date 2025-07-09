@@ -253,7 +253,7 @@ function Form({
                 <Observer>
                   {() => (
                     <Button
-                      disabled={formModel.isSaving}
+                      disabled={formModel.isSaving} redesign redesign
                       onClick={onCancel}
                       style={{marginLeft: 5}}
                     >
@@ -266,7 +266,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    title={getSubmitButtonTitle(formModel)} redesign redesign
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={

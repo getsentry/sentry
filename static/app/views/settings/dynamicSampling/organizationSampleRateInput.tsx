@@ -57,7 +57,7 @@ export function OrganizationSampleRateInput({
         <Flex gap={space(1)}>
           {showBulkEditButton && (
             <Button
-              title={t('Proportionally scale project rates')}
+              title={t('Proportionally redesign scale project rates')}
               aria-label={t('Proportionally scale project rates')}
               borderless
               size="sm"

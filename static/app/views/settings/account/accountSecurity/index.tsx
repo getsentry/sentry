@@ -185,7 +185,7 @@ function AccountSecurity({
                   <ButtonBar gap={1}>
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
-                        to={`/settings/account/security/mfa/${id}/enroll/`}
+                        to={`/settings/account/security/mfa/${id}/enroll/`} redesign
                         size="sm"
                         priority="primary"
                       >
@@ -193,14 +193,14 @@ function AccountSecurity({
                       </LinkButton>
                     )}
                     {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
-                      <Button onClick={handleAdd2FAClicked} size="sm" priority="primary">
+                      <Button onClick={handleAdd2FAClicked} redesign size="sm" priority="primary">
                         {t('Add')}
                       </Button>
                     )}
 
                     {isEnrolled && authId && (
                       <LinkButton
-                        to={`/settings/account/security/mfa/${authId}/`}
+                        to={`/settings/account/security/mfa/${authId}/`} redesign
                         size="sm"
                       >
                         {configureButton}
@@ -213,9 +213,9 @@ function AccountSecurity({
                         disabled={deleteDisabled}
                       >
                         <Button
-                          size="sm"
+                          size="sm" redesign
                           aria-label={t('Delete')}
-                          icon={<IconDelete />}
+                          icon={<IconDelete redesign />}
                           title={
                             deleteDisabled
                               ? t(

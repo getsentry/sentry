@@ -273,7 +273,7 @@ function ArchiveActions({
   if (isArchived) {
     return (
       <Button
-        priority="primary"
+        priority="primary" redesign
         size="xs"
         title={t('Change status to unresolved')}
         onClick={() =>

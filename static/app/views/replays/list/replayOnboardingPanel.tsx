@@ -233,7 +233,7 @@ export function SetupReplaysCTA({
           disabled={!disabled} // we only want to show the tooltip when the button is disabled
         >
           <Button
-            data-test-id="setup-replays-btn"
+            data-test-id="setup-replays-btn" redesign
             type="button"
             onClick={() => activateSidebar()}
             priority="primary"
@@ -255,7 +255,7 @@ export function SetupReplaysCTA({
         disabled={!disabled}
       >
         <LinkButton
-          data-test-id="create-project-btn"
+          data-test-id="create-project-btn" redesign
           to={makeProjectsPathname({
             path: '/new/',
             organization,
@@ -280,7 +280,7 @@ export function SetupReplaysCTA({
       <ButtonList gap={1}>
         {renderCTA()}
         <LinkButton
-          href={
+          href={ redesign
             allMobileProj
               ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
               : 'https://docs.sentry.io/product/explore/session-replay/'

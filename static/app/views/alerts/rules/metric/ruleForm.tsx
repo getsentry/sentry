@@ -1415,7 +1415,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                         this.handleDeleteRule();
                       }}
                     >
-                      <Button priority="danger">{t('Delete Rule')}</Button>
+                      <Button priority="danger" redesign>{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }

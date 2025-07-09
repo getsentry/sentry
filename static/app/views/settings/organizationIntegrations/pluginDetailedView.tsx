@@ -249,7 +249,7 @@ function PluginDetailedView() {
         )}
         isHoverable
       >
-        <Button disabled>Add to Project</Button>
+        <Button disabled redesign>Add to Project</Button>
       </Tooltip>
     );
   }, []);

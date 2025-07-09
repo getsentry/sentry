@@ -15,8 +15,8 @@ export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
 
   return isFinished ? (
     <Button
-      title={t('Restart Replay')}
-      icon={<IconRefresh />}
+      title={t('Restart redesign redesign Replay')}
+      icon={<IconRefresh redesign redesign />}
       onClick={() => {
         userAction({type: 'jumpToOffset', offsetMs: 0});
         userAction({type: 'play'});
@@ -27,8 +27,8 @@ export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
     />
   ) : (
     <Button
-      title={isPlaying ? t('Pause') : t('Play')}
-      icon={isPlaying ? <IconPause /> : <IconPlay />}
+      title={isPlaying redesign redesign ? t('Pause') : t('Play')}
+      icon={isPlaying ? <IconPause redesign redesign /> : <IconPlay />}
       onClick={() => userAction(isPlaying ? {type: 'pause'} : {type: 'play'})}
       aria-label={isPlaying ? t('Pause') : t('Play')}
       priority="primary"

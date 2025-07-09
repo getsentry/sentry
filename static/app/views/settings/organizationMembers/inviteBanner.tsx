@@ -187,7 +187,7 @@ export function InviteBanner({
           </CardTitleContent>
           <ButtonBar gap={1}>
             <Button
-              priority="primary"
+              priority="primary" redesign
               size="xs"
               onClick={openInviteModal}
               analyticsEventName="Github Invite Banner: View All"
@@ -255,7 +255,7 @@ function MemberCards({
               <MemberEmail>{member.email}</MemberEmail>
             </MemberCardContent>
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={() => handleSendInvite(member.email)}
               data-test-id="invite-missing-member"
               icon={<IconMail />}
@@ -287,7 +287,7 @@ function MemberCards({
           </Subtitle>
         </MemberCardContent>
         <Button
-          size="sm"
+          size="sm" redesign
           priority="primary"
           onClick={openInviteModal}
           analyticsEventName="Github Invite Banner: View All"

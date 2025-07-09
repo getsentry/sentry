@@ -272,7 +272,7 @@ function AssignedTo({
         <Access access={['project:read']}>
           <GuideAnchor target="issue_sidebar_owners">
             <Button
-              onClick={() => {
+              onClick={() redesign => {
                 openIssueOwnershipRuleModal({
                   project,
                   organization,

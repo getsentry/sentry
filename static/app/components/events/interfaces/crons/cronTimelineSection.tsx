@@ -75,8 +75,8 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const actions = (
     <ButtonBar gap={1}>
       <LinkButton
-        size="xs"
-        icon={<IconOpen />}
+        size="xs" redesign
+        icon={<IconOpen redesign />}
         to={{
           pathname: makeAlertsPathname({
             path: `/rules/crons/${project.slug}/${monitorSlug}/details/`,

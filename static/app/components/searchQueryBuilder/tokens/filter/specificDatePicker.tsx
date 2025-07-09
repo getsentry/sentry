@@ -180,14 +180,14 @@ function SpecificDatePicker({
             <ButtonsFooter>
               <ButtonBar gap={1}>
                 <Button
-                  size="xs"
-                  icon={<IconArrow direction="left" />}
+                  size="xs" redesign
+                  icon={<IconArrow direction="left" redesign />}
                   onClick={handleBack}
                 >
                   {t('Back')}
                 </Button>
                 <Button
-                  size="xs"
+                  size="xs" redesign
                   priority="primary"
                   disabled={!dateString}
                   onClick={() => {

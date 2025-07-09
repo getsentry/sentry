@@ -57,9 +57,9 @@ export function SavedQueryEditMenu() {
       ]}
       trigger={props => (
         <Button
-          size="sm"
+          size="sm" redesign
           {...props}
-          icon={<IconEllipsis />}
+          icon={<IconEllipsis redesign />}
           aria-label={t('More saved query options')}
         />
       )}

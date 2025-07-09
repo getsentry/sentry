@@ -145,9 +145,9 @@ export default function PlayStationSdkAccessModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={handleSubmit}
             disabled={!isFormValid || isSubmitting}
           >

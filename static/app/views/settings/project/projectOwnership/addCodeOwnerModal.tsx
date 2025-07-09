@@ -150,7 +150,7 @@ export default function AddCodeOwnerModal({
       </Body>
       <Footer>
         <Button
-          disabled={codeownersFile ? false : true}
+          disabled={codeownersFile redesign ? false : true}
           aria-label={t('Add File')}
           priority="primary"
           onClick={addFile}
@@ -232,7 +232,7 @@ function LinkCodeOwners({
         <IntegrationsList>
           {integrations.map(integration => (
             <LinkButton
-              key={integration.id}
+              key={integration.id} redesign
               to={`${baseUrl}${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
             >
               {getIntegrationIcon(integration.provider.key)}
@@ -247,7 +247,7 @@ function LinkCodeOwners({
     <Fragment>
       <div>{t('Install a GitHub or GitLab integration to use this feature.')}</div>
       <Container style={{paddingTop: space(2)}}>
-        <LinkButton priority="primary" size="sm" to={baseUrl}>
+        <LinkButton priority="primary" redesign size="sm" to={baseUrl}>
           Setup Integration
         </LinkButton>
       </Container>
@@ -261,7 +261,7 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
       <SourceFileBody>
         <IconCheckmark size="md" isCircled color="green200" />
         {codeownersFile.filepath}
-        <LinkButton size="sm" href={codeownersFile.html_url} external>
+        <LinkButton size="sm" redesign href={codeownersFile.html_url} external>
           {t('Preview File')}
         </LinkButton>
       </SourceFileBody>

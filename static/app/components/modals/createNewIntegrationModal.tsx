@@ -94,11 +94,11 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
         />
       </Body>
       <Footer>
-        <Button size="sm" onClick={() => closeModal()} style={{marginRight: space(1)}}>
+        <Button size="sm" redesign onClick={() => closeModal()} style={{marginRight: space(1)}}>
           {t('Cancel')}
         </Button>
         <LinkButton
-          priority="primary"
+          priority="primary" redesign
           size="sm"
           to={`/settings/${organization.slug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'

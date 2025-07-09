@@ -29,7 +29,7 @@ export default function Resources({configResources, eventPlatform, group}: Props
       <LinkSection>
         {links.map(({link, text}) => (
           <LinkButton
-            onClick={() =>
+            onClick={() redesign =>
               trackAnalytics('issue_details.resources_link_clicked', {
                 organization,
                 resource: text,

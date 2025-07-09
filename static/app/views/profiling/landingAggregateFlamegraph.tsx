@@ -113,7 +113,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         canvasPoolManager={props.canvasPoolManager}
         flamegraphs={flamegraphs}
       />
-      <Button size="xs" onClick={onResetZoom}>
+      <Button size="xs" redesign onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
       <CompactSelect

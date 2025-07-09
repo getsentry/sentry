@@ -33,7 +33,7 @@ export function FeatureFlagOtherPlatformOnboarding({
             <Alert type="info" showIcon>
               <Flex gap={space(3)}>
                 {t('Read the docs to learn more about setting up evaluation tracking.')}
-                <LinkButton href={docsUrl} external>
+                <LinkButton href={docsUrl} redesign external>
                   {t('Read the docs')}
                 </LinkButton>
               </Flex>

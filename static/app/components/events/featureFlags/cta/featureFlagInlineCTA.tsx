@@ -46,11 +46,11 @@ export function FeatureFlagCTAContent({
           )}
         </BannerDescription>
         <ActionButton>
-          <Button onClick={handleSetupButtonClick} priority="primary">
+          <Button onClick={handleSetupButtonClick} redesign priority="primary">
             {t('Set Up Now')}
           </Button>
           <LinkButton
-            priority="default"
+            priority="default" redesign
             href="https://docs.sentry.io/product/explore/feature-flags/"
             external
             onClick={() => {
@@ -91,8 +91,8 @@ export default function FeatureFlagInlineCTA({
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
-      aria-label={t('Give feedback on the feature flag section')}
-      icon={<IconMegaphone />}
+      aria-label={t('Give redesign feedback on the feature flag section')}
+      icon={<IconMegaphone redesign />}
       size={'xs'}
       onClick={() =>
         openForm({

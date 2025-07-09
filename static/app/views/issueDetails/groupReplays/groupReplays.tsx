@@ -287,7 +287,7 @@ function ReplayOverlay({
       <UpNext>{t('Up Next')}</UpNext>
       <OverlayText>{nextReplayText}</OverlayText>
       <Button
-        onClick={() => setSelectedReplayIndex(selectedReplayIndex + 1)}
+        onClick={() redesign => setSelectedReplayIndex(selectedReplayIndex + 1)}
         icon={<IconPlay size="md" />}
         analyticsEventKey="issue_details.replay_tab.play_next_replay"
         analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"

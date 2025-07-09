@@ -42,7 +42,7 @@ export function ProjectLoadingError({
         type="error"
         showIcon
         trailingItems={
-          <LinkButton href={ssoLoginUrl} size="xs">
+          <LinkButton href={ssoLoginUrl} redesign size="xs">
             {t('Log in')}
           </LinkButton>
         }

@@ -261,9 +261,9 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                 <Wrapper>
                   <ButtonBar merged>
                     <Button
-                      title={t('Previous Thread')}
+                      title={t('Previous redesign Thread')}
                       tooltipProps={{delay: 1000}}
-                      icon={<IconChevron direction="left" />}
+                      icon={<IconChevron direction="left" redesign />}
                       aria-label={t('Previous Thread')}
                       size="xs"
                       onClick={() => {
@@ -271,9 +271,9 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       }}
                     />
                     <Button
-                      title={t('Next Thread')}
+                      title={t('Next redesign Thread')}
                       tooltipProps={{delay: 1000}}
-                      icon={<IconChevron direction="right" />}
+                      icon={<IconChevron direction="right" redesign />}
                       aria-label={t('Next Thread')}
                       size="xs"
                       onClick={() => {

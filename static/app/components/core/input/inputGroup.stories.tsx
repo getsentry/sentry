@@ -113,9 +113,9 @@ export default Storybook.story('InputGroup', (story, APIReference) => {
               null,
               <IconAttachment key="trailing-icon" size="sm" />,
               <Button
-                key="trailing-button"
+                key="trailing-button" redesign
                 borderless
-                icon={<IconSettings />}
+                icon={<IconSettings redesign />}
                 size="zero"
                 aria-label="Toggle story representation"
               />,

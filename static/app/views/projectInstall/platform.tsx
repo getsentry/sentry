@@ -142,7 +142,7 @@ export function ProjectInstallPlatform({
         )}
         <StyledButtonBar gap={1}>
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,

@@ -40,7 +40,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
         </TextBlock>
       </Body>
       <Footer>
-        <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
+        <LinkButton href={BYE_URL} redesign>{t('Goodbye')}</LinkButton>
       </Footer>
     </div>
   );

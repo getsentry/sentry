@@ -580,8 +580,8 @@ function DiffHunkContent({
             </OverlayContent>
             <OverlayFooter>
               <OverlayButtonGroup>
-                <Button onClick={handleCancelEdit}>{t('Cancel')}</Button>
-                <Button priority="primary" onClick={handleSaveEdit}>
+                <Button onClick={handleCancelEdit} redesign>{t('Cancel')}</Button>
+                <Button priority="primary" redesign onClick={handleSaveEdit}>
                   {t('Save')}
                 </Button>
               </OverlayButtonGroup>
@@ -623,7 +623,7 @@ function FileDiff({
           </FileAddedRemoved>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
-            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            icon={<IconChevron redesign size="xs" direction={isExpanded ? 'down' : 'right'} redesign />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"

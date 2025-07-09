@@ -214,7 +214,7 @@ function ReleaseCardProjectRow({
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
             <LinkButton
-              size="xs"
+              size="xs" redesign
               to={{
                 pathname: makeReleasesPathname({
                   organization,

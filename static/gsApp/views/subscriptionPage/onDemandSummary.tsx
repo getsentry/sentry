@@ -108,9 +108,9 @@ class OnDemandSummary extends Component<Props, State> {
         )}
       >
         <LinkButton
-          priority="link"
+          priority="link" redesign
           href="https://docs.sentry.io/pricing/legacy-pricing/#on-demand-volume"
-          icon={<IconQuestion size="xs" />}
+          icon={<IconQuestion size="xs" redesign />}
           size="sm"
           external
           aria-label={t('Visit docs')}
@@ -128,7 +128,7 @@ class OnDemandSummary extends Component<Props, State> {
         help={t('On-Demand is not supported for your account.')}
       >
         <div>
-          <LinkButton to={`/settings/${organization.slug}/support/`}>
+          <LinkButton to={`/settings/${organization.slug}/support/`} redesign>
             {t('Contact Support')}
           </LinkButton>
         </div>
@@ -146,7 +146,7 @@ class OnDemandSummary extends Component<Props, State> {
       >
         <div>
           <Button
-            priority="primary"
+            priority="primary" redesign
             data-test-id="add-cc-card"
             onClick={() =>
               openEditCreditCard({
@@ -238,7 +238,7 @@ class OnDemandSummary extends Component<Props, State> {
         {showSave && (
           <StyledPanelFooter>
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={this.onSave}
               disabled={initialValue === value}
             >

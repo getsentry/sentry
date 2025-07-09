@@ -213,7 +213,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               <IssueDetailsEventNavigation event={event} group={group} />
               {issueTypeConfig.pages.events.enabled && (
                 <LinkButton
-                  to={{
+                  to={{ redesign
                     pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
                     query: location.query,
                   }}
@@ -228,7 +228,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               )}
               {issueTypeConfig.pages.openPeriods.enabled && (
                 <LinkButton
-                  to={{
+                  to={{ redesign
                     pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
                     query: location.query,
                   }}
@@ -241,7 +241,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               )}
               {issueTypeConfig.pages.checkIns.enabled && (
                 <LinkButton
-                  to={{
+                  to={{ redesign
                     pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
                     query: location.query,
                   }}
@@ -254,7 +254,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               )}
               {issueTypeConfig.pages.uptimeChecks.enabled && (
                 <LinkButton
-                  to={{
+                  to={{ redesign
                     pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
                     query: location.query,
                   }}
@@ -271,10 +271,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             <ButtonBar gap={1}>
               {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
                 <LinkButton
-                  to={discoverUrl}
+                  to={discoverUrl} redesign
                   aria-label={t('Open in Discover')}
                   size="xs"
-                  icon={<IconTelescope />}
+                  icon={<IconTelescope redesign />}
                   analyticsEventKey="issue_details.discover_clicked"
                   analyticsEventName="Issue Details: Discover Clicked"
                 >
@@ -282,7 +282,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </LinkButton>
               )}
               <LinkButton
-                to={{
+                to={{ redesign
                   pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
                   query: {...location.query, cursor: undefined},
                 }}

@@ -238,7 +238,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   return isFixedEnvironment ? (
     <Button
-      disabled
+      disabled redesign
       borderless
       title={t('This issue only occurs in a single environment')}
       css={environmentCss}

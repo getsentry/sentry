@@ -206,7 +206,7 @@ function TeamStability({
       emptyMessage={t('No projects with release health enabled')}
       emptyAction={
         <LinkButton
-          size="sm"
+          size="sm" redesign
           external
           href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
         >

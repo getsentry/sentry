@@ -169,7 +169,7 @@ export default function SentryAppDetailsModal(props: Props) {
               <Author>{t('Authored By %s', sentryApp.author)}</Author>
               <div>
                 {disabled && <DisabledNotice reason={disabledReason} />}
-                <Button size="sm" onClick={closeModal}>
+                <Button size="sm" redesign onClick={closeModal}>
                   {t('Cancel')}
                 </Button>
 
@@ -177,7 +177,7 @@ export default function SentryAppDetailsModal(props: Props) {
                   {({hasAccess}) =>
                     hasAccess && (
                       <Button
-                        size="sm"
+                        size="sm" redesign
                         priority="primary"
                         disabled={isInstalled || disabled}
                         onClick={() => installMutation.mutate()}

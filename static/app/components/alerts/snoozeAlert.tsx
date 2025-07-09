@@ -157,8 +157,8 @@ function SnoozeAlert({
   if (isSnoozed) {
     return (
       <Button
-        size="sm"
-        icon={<IconMute />}
+        size="sm" redesign
+        icon={<IconMute redesign />}
         disabled={alwaysDisabled || disabled || !hasAccess}
         onClick={() => handleUnmute()}
       >

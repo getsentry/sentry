@@ -285,7 +285,7 @@ export function ToolbarSaveAs() {
           )}
         />
         <LinkButton
-          aria-label={t('Compare')}
+          aria-label={t('Compare')} redesign
           onClick={() =>
             trackAnalytics('trace_explorer.compare', {
               organization,

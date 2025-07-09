@@ -106,10 +106,10 @@ function ImportDashboardFromFileModal({
         </Wrapper>
         <Wrapper>
           <Button
-            onClick={handleUploadClick}
+            onClick={handleUploadClick} redesign
             disabled={!validated}
             priority="primary"
-            icon={<IconUpload />}
+            icon={<IconUpload redesign />}
           >
             {t('Import')}
           </Button>

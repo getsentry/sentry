@@ -97,9 +97,9 @@ function SaveAsDropdown({
   return (
     <div>
       <Button
-        {...triggerProps}
+        {...triggerProps} redesign
         size="sm"
-        icon={<IconStar />}
+        icon={<IconStar redesign />}
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -336,7 +336,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization} = this.props;
     return (
       <LinkButton
-        onClick={() => {
+        onClick={() redesign => {
           trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
         data-test-id="discover2-savedquery-button-view-saved"
@@ -402,7 +402,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       return (
         <Fragment>
           <Button
-            onClick={this.handleUpdateQuery}
+            onClick={this.handleUpdateQuery} redesign
             data-test-id="discover2-savedquery-button-update"
             disabled={disabled}
             size="sm"
@@ -428,11 +428,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <Button
-        data-test-id="discover2-savedquery-button-delete"
+        data-test-id="discover2-savedquery-button-delete" redesign
         onClick={this.handleDeleteQuery}
         disabled={disabled}
         size="sm"
-        icon={<IconDelete />}
+        icon={<IconDelete redesign />}
         aria-label={t('Delete')}
       />
     );
@@ -494,7 +494,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
     return (
       <Button
-        key="add-dashboard-widget-from-discover"
+        key="add-dashboard-widget-from-discover" redesign
         data-test-id="add-dashboard-widget-from-discover"
         size="sm"
         onClick={() =>
@@ -543,7 +543,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     ) {
       return (
         <Button
-          key="reset-discover-homepage"
+          key="reset-discover-homepage" redesign
           data-test-id="reset-discover-homepage"
           onClick={async () => {
             await handleResetHomepageQuery(api, organization);
@@ -574,7 +574,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <Button
-        key="set-as-default"
+        key="set-as-default" redesign
         data-test-id="set-as-default"
         onClick={async () => {
           const updatedHomepageQuery = await handleUpdateHomepageQuery(
@@ -679,7 +679,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         items={contextMenuItems}
         trigger={triggerProps => (
           <Button
-            {...triggerProps}
+            {...triggerProps} redesign
             aria-label={t('Discover Context Menu')}
             size="sm"
             onClick={e => {

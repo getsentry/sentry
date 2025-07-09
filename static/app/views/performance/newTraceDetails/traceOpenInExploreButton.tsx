@@ -27,7 +27,7 @@ export function TraceOpenInExploreButton({trace_id, traceEventView}: Props) {
 
   return (
     <Button
-      size="xs"
+      size="xs" redesign
       onClick={() => {
         traceAnalytics.trackExploreSearch(
           organization,

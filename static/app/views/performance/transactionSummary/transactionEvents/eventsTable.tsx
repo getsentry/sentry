@@ -314,7 +314,7 @@ function EventsTable({
             >
               <div>
                 <LinkButton
-                  disabled={!target || isEmptyObject(target)}
+                  disabled={!target redesign || isEmptyObject(target)}
                   to={target || {}}
                   size="xs"
                 >

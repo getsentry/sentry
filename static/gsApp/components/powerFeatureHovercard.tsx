@@ -108,11 +108,11 @@ class PowerFeatureHovercard extends Component<Props> {
                     : t('Requires %s Plan', planName)}
                 </div>
                 <Button
-                  priority="primary"
+                  priority="primary" redesign
                   onClick={this.handleClick}
                   data-test-id="power-learn-more"
                   size="xs"
-                  icon={<IconLightning size="xs" />}
+                  icon={<IconLightning size="xs" redesign />}
                 >
                   {t('Learn More')}
                 </Button>

@@ -74,8 +74,8 @@ export default function LearnMoreButton(
             `}
           >
             <Button
-              size="sm"
-              icon={<IconQuestion />}
+              size="sm" redesign
+              icon={<IconQuestion redesign />}
               aria-label={t('learn more about hydration errors')}
             >
               {t('Learn More')}

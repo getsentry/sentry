@@ -49,7 +49,7 @@ function ApiTokenRow({
       </div>
       <Actions gap={1}>
         {canEdit && (
-          <LinkButton size="sm" to={`/settings/account/api/auth-tokens/${token.id}/`}>
+          <LinkButton size="sm" redesign to={`/settings/account/api/auth-tokens/${token.id}/`}>
             {t('Edit')}
           </LinkButton>
         )}
@@ -63,7 +63,7 @@ function ApiTokenRow({
             )
           }
         >
-          <Button size="sm" icon={<IconDelete />}>
+          <Button size="sm" redesign icon={<IconDelete redesign />}>
             {t('Revoke')}
           </Button>
         </Confirm>

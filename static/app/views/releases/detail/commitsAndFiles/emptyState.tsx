@@ -51,7 +51,7 @@ export function NoRepositories({orgSlug}: {orgSlug: string}) {
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
             action={
-              <LinkButton priority="primary" to={`/settings/${orgSlug}/repos/`}>
+              <LinkButton priority="primary" redesign to={`/settings/${orgSlug}/repos/`}>
                 {t('Connect a repository')}
               </LinkButton>
             }

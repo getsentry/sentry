@@ -217,7 +217,7 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
                     "Once you've created Sentry's CloudFormation stack (or if you already have one) press the button below to continue."
                   )}
                 </p>
-                <Button name="showInputs" onClick={this.handleChangeShowInputs}>
+                <Button name="showInputs" redesign onClick={this.handleChangeShowInputs}>
                   {t("I've created the stack")}
                 </Button>
               </Fragment>

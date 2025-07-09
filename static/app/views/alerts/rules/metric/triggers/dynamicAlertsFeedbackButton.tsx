@@ -15,7 +15,7 @@ export default function DynamicAlertsFeedbackButton() {
   return (
     <ButtonContainer>
       <Button
-        onClick={() => {
+        onClick={() redesign => {
           openForm({
             formTitle: 'Anomaly Detection Feedback',
             messagePlaceholder: t(

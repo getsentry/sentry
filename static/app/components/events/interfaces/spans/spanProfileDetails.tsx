@@ -255,7 +255,7 @@ export function SpanProfileDetails({
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" />}
+              icon={<IconChevron redesign direction="left" redesign />}
               aria-label={t('Previous')}
               size="xs"
               disabled={!hasPrevious}
@@ -268,7 +268,7 @@ export function SpanProfileDetails({
               }}
             />
             <Button
-              icon={<IconChevron direction="right" />}
+              icon={<IconChevron redesign direction="right" redesign />}
               aria-label={t('Next')}
               size="xs"
               disabled={!hasNext}
@@ -283,7 +283,7 @@ export function SpanProfileDetails({
           </ButtonBar>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <LinkButton icon={<IconProfiling />} to={profileTarget} size="xs">
+          <LinkButton icon={<IconProfiling redesign redesign />} to={profileTarget} size="xs">
             {t('Profile')}
           </LinkButton>
         </SpanDetailsItem>

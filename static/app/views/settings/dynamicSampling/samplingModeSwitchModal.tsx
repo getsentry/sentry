@@ -127,11 +127,11 @@ function SamplingModeSwitchModal({
         </Body>
         <Footer>
           <ButtonWrapper>
-            <Button disabled={isPending} onClick={closeModal}>
+            <Button disabled={isPending} redesign onClick={closeModal}>
               {t('Cancel')}
             </Button>
             <Button
-              priority="primary"
+              priority="primary" redesign
               disabled={isPending || !formState.isValid}
               onClick={handleSubmit}
             >

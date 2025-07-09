@@ -87,7 +87,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <LinkButton size="xs" to={issueSearchLocation}>
+        <LinkButton size="xs" redesign to={issueSearchLocation}>
           {t('Open In Issues')}
         </LinkButton>
       </ControlsWrapper>

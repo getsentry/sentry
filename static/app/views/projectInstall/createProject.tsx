@@ -523,7 +523,7 @@ export function CreateProject() {
             <div>
               <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
                 <Button
-                  data-test-id="create-project"
+                  data-test-id="create-project" redesign
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
                   busy={createProjectAndRules.isPending}

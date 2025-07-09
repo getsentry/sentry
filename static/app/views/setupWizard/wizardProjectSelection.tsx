@@ -329,7 +329,7 @@ export function WizardProjectSelection({
                 ? ({closeOverlay}) => (
                     <AlignRight>
                       <Button
-                        size="xs"
+                        size="xs" redesign
                         onClick={() => {
                           setSelectedProjectId(CREATE_PROJECT_VALUE);
                           closeOverlay();

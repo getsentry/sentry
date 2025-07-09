@@ -151,10 +151,10 @@ function AutomateSection() {
     <Container>
       <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
         <Button
-          size="md"
+          size="md" redesign
           style={{width: 'min-content'}}
           priority="primary"
-          icon={<IconAdd />}
+          icon={<IconAdd redesign />}
         >
           {t('Connect Automations')}
         </Button>

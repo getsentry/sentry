@@ -13,7 +13,7 @@ import * as Storybook from 'sentry/stories';
 export default Storybook.story('PageBanner', story => {
   const storiesButton = (
     <LinkButton
-      external
+      external redesign
       href="https://sentry.io/orgredirect/organizations/:orgslug/stories"
       priority="primary"
     >
@@ -48,7 +48,7 @@ export default Storybook.story('PageBanner', story => {
           Is Dismissed? <var>{String(isDismissed)}</var>
         </p>
         {isDismissed ? (
-          <Button size="sm" onClick={() => setIsDismissed(false)}>
+          <Button size="sm" redesign onClick={() => setIsDismissed(false)}>
             Show banner
           </Button>
         ) : (
@@ -75,7 +75,7 @@ export default Storybook.story('PageBanner', story => {
           flex parent set <kbd>flex-grow:1</kbd>.
         </p>
         <p>
-          <Button size="sm" onClick={() => setFlexGrow(!flexGrow)}>
+          <Button size="sm" redesign onClick={() => setFlexGrow(!flexGrow)}>
             flexGrow: <var>{flexGrow ? 1 : 0}</var>
           </Button>
         </p>

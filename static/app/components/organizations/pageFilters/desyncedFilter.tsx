@@ -22,12 +22,12 @@ export function DesyncedFilterMessage() {
       )}
       <DesyncedFilterMessageFooter>
         <Button
-          size="xs"
+          size="xs" redesign
           onClick={() => revertToPinnedFilters(organization.slug, router)}
         >
           {t('Restore Previous Values')}
         </Button>
-        <Button size="xs" priority="primary" onClick={saveDesyncedFilters}>
+        <Button size="xs" redesign priority="primary" onClick={saveDesyncedFilters}>
           {t('Got It')}
         </Button>
       </DesyncedFilterMessageFooter>

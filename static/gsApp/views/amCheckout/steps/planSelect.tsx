@@ -283,7 +283,7 @@ function PlanSelect({
           )}
         </div>
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={async () => {
             onCompleteStep(stepNumber);
             if (

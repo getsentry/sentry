@@ -89,8 +89,8 @@ export default function StreamlinedGroupHeader({
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
-      aria-label={t('Give feedback on the query injection issue')}
-      icon={<IconMegaphone />}
+      aria-label={t('Give redesign feedback on the query injection issue')}
+      icon={<IconMegaphone redesign />}
       size={'xs'}
       onClick={() =>
         openForm({
@@ -137,12 +137,12 @@ export default function StreamlinedGroupHeader({
           <ButtonBar gap={0.5}>
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 external
                 title={t('Learn more about the new UI')}
                 href={`https://docs.sentry.io/product/issues/issue-details/`}
                 aria-label={t('Learn more about the new UI')}
-                icon={<IconInfo />}
+                icon={<IconInfo redesign />}
                 analyticsEventKey="issue_details.streamline_ui_learn_more"
                 analyticsEventName="Issue Details: Streamline UI Learn More"
                 analyticsParams={{show_learn_more: showLearnMore}}

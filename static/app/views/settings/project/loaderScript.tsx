@@ -115,7 +115,7 @@ function LoaderItem({
         {tct('Client Key: [name]', {name: projectKey.name})}
 
         <LinkButton
-          size="xs"
+          size="xs" redesign
           to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
         >
           {t('View Key Details')}

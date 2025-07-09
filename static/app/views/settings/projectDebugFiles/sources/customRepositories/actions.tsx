@@ -22,7 +22,7 @@ function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
       isDisabled={actionsDisabled}
       trigger={triggerProps => (
         <Button
-          size="xs"
+          size="xs" redesign
           aria-label={t('Actions')}
           disabled={actionsDisabled}
           title={
@@ -34,7 +34,7 @@ function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
                   )
               : undefined
           }
-          icon={<IconEllipsis />}
+          icon={<IconEllipsis redesign />}
           {...triggerProps}
         />
       )}

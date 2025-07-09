@@ -501,7 +501,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
         <ButtonsWrapper>
           <ActionButton>
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={event => {
                 event.preventDefault();
                 window.location.hash = 'performance-sidequest';
@@ -512,7 +512,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <LinkButton href="https://docs.sentry.io/product/performance/" external>
+            <LinkButton href="https://docs.sentry.io/product/performance/" redesign external>
               {t('Learn More')}
             </LinkButton>
           </ActionButton>

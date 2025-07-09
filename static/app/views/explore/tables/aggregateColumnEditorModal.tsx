@@ -144,9 +144,9 @@ export function AggregateColumnEditorModal({
                 ]}
                 trigger={triggerProps => (
                   <Button
-                    {...triggerProps}
+                    {...triggerProps} redesign
                     aria-label={t('Add a Column')}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd isCircled redesign />}
                   >
                     {t('Add a Column')}
                   </Button>
@@ -156,10 +156,10 @@ export function AggregateColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <ButtonBar gap={1}>
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+              <LinkButton priority="default" redesign href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} redesign priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
             </ButtonBar>

@@ -170,10 +170,10 @@ export default function ScreenshotModal({
               priority="danger"
               onConfirm={onDelete}
             >
-              <Button priority="danger">{t('Delete')}</Button>
+              <Button priority="danger" redesign>{t('Delete')}</Button>
             </Confirm>
           )}
-          <LinkButton onClick={onDownload} href={downloadUrl}>
+          <LinkButton onClick={onDownload} redesign href={downloadUrl}>
             {t('Download')}
           </LinkButton>
         </ButtonBar>

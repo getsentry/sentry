@@ -119,7 +119,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
       <ModalHeader>{body}</ModalHeader>
       <ButtonContainer>
         <LinkButton
-          priority="primary"
+          priority="primary" redesign
           external
           href={'https://sentry.io/signup/'}
           onClick={() => {
@@ -131,8 +131,8 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
           {t('Sign up for Sentry')}
         </LinkButton>
         <ButtonBar>
-          <Button onClick={handleMoreTours}>{t('More Tours')} </Button>
-          <Button onClick={handleRestart}>{t('Restart Tour')}</Button>
+          <Button onClick={handleMoreTours} redesign>{t('More Tours')} </Button>
+          <Button onClick={handleRestart} redesign>{t('Restart Tour')}</Button>
         </ButtonBar>
       </ButtonContainer>
     </EndModal>

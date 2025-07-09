@@ -78,7 +78,7 @@ function PageUpsellOverlay({
                   triggerMemberRequests
                 >
                   {({defaultButtonText, onClick}) => (
-                    <Button priority="primary" size="sm" onClick={onClick}>
+                    <Button priority="primary" redesign size="sm" onClick={onClick}>
                       {defaultButtonText}
                     </Button>
                   )}
@@ -86,7 +86,7 @@ function PageUpsellOverlay({
               )}
               {customSecondaryCTA ?? (
                 <Button
-                  onClick={() =>
+                  onClick={() redesign =>
                     openUpsellModal({
                       organization,
                       source,

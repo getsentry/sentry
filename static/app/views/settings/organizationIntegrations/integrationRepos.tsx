@@ -120,7 +120,7 @@ function IntegrationRepos(props: Props) {
                 'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
               )}
               action={
-                <LinkButton href="https://docs.sentry.io/product/releases/" external>
+                <LinkButton href="https://docs.sentry.io/product/releases/" redesign external>
                   {t('Learn More')}
                 </LinkButton>
               }

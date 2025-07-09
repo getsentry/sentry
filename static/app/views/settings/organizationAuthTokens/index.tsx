@@ -147,7 +147,7 @@ export function OrganizationAuthTokensIndex({
 
   const createNewToken = (
     <LinkButton
-      priority="primary"
+      priority="primary" redesign
       size="sm"
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"

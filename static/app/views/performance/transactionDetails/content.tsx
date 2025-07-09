@@ -158,9 +158,9 @@ function EventDetailsContent(props: Props) {
                       </Tooltip>
                       {originatingUrl && (
                         <LinkButton
-                          aria-label={t('Go to originating URL')}
+                          aria-label={t('Go redesign to originating URL')}
                           size="zero"
-                          icon={<IconOpen />}
+                          icon={<IconOpen redesign />}
                           href={originatingUrl}
                           external
                           translucentBorder
@@ -172,15 +172,15 @@ function EventDetailsContent(props: Props) {
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
                       <Button
-                        size="sm"
+                        size="sm" redesign
                         onClick={() => setIsSidebarVisible(prev => !prev)}
                       >
                         {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                       </Button>
                       {results && (
                         <LinkButton
-                          size="sm"
-                          icon={<IconOpen />}
+                          size="sm" redesign
+                          icon={<IconOpen redesign />}
                           href={eventJsonUrl}
                           external
                         >

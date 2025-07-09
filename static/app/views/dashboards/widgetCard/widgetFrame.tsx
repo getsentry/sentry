@@ -102,7 +102,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
               {actions.length === 1 ? (
                 actions[0]!.to ? (
                   <LinkButton
-                    size="xs"
+                    size="xs" redesign
                     disabled={props.actionsDisabled}
                     onClick={actions[0]!.onAction}
                     to={actions[0]!.to}
@@ -111,7 +111,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   </LinkButton>
                 ) : (
                   <Button
-                    size="xs"
+                    size="xs" redesign
                     disabled={props.actionsDisabled}
                     onClick={actions[0]!.onAction}
                   >
@@ -139,10 +139,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
 
           {shouldShowFullScreenViewButton && (
             <Button
-              size="xs"
+              size="xs" redesign
               aria-label={t('Open Full-Screen View')}
               borderless
-              icon={<IconExpand />}
+              icon={<IconExpand redesign />}
               onClick={() => {
                 props.onFullScreenViewClick?.();
               }}

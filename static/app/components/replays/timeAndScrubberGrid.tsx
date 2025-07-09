@@ -53,9 +53,9 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   return (
     <ButtonBar gap={0.5}>
       <Button
-        size="xs"
+        size="xs" redesign
         title={t('Zoom out')}
-        icon={<IconSubtract />}
+        icon={<IconSubtract redesign />}
         borderless
         onClick={handleZoomOut}
         aria-label={t('Zoom out')}
@@ -66,9 +66,9 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         {'\u00D7'}
       </Numeric>
       <Button
-        size="xs"
+        size="xs" redesign
         title={t('Zoom in')}
-        icon={<IconAdd />}
+        icon={<IconAdd redesign />}
         borderless
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}

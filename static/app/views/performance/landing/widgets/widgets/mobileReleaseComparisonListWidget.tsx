@@ -415,7 +415,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <LinkButton
-          to={normalizeUrl({
+          to={normalizeUrl({ redesign
             pathname: targetModulePath,
             query: {
               ...normalizeDateTimeParams(pageFilter),

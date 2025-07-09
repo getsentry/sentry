@@ -108,7 +108,7 @@ export default class UserEmailLog extends Component<Props, State> {
             {data.email}
             {data.event === 'bounce' && !this.state.hideButton && (
               <Button
-                priority="danger"
+                priority="danger" redesign
                 onClick={this.removeBounce.bind(this, data.email)}
               >
                 remove bounce

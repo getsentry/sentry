@@ -375,7 +375,7 @@ export function TraceEventDataSection({
             )}
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
                 onClick={() => {

@@ -360,7 +360,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         </div>
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/platforms/javascript/user-feedback/"
             external
           >

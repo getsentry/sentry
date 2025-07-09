@@ -54,13 +54,13 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
     <HeaderActionBar gap={2}>
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
-        onClick={trackClickUpgrade}
+        onClick={trackClickUpgrade} redesign
         href={normalizeUrl(
           `/settings/${organization.slug}/billing/checkout/?referrer=upgrade-${source}`
         )}
         external
         size="sm"
-        icon={<IconBusiness />}
+        icon={<IconBusiness redesign />}
         priority="default"
       >
         {t('Upgrade Now')}

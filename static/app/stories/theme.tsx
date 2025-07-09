@@ -80,9 +80,9 @@ export function ThemeSwitcher() {
 
   return (
     <Button
-      size="xs"
+      size="xs" redesign
       onClick={handleClick}
-      icon={<IconMoon />}
+      icon={<IconMoon redesign />}
       aria-label={isDark ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
       title={isDark ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
     />

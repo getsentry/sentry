@@ -362,7 +362,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
             <div>
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
-                  aria-label={t('Manage Subscription')}
+                  aria-label={t('Manage redesign Subscription')}
                   size="sm"
                   style={{marginRight: space(1)}}
                   to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
@@ -371,11 +371,11 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 </LinkButton>
               )}
               <Button
-                aria-label={t('New Allocation')}
+                aria-label={t('New redesign Allocation')}
                 priority="primary"
                 size="sm"
                 data-test-id="new-allocation"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd size="xs" isCircled redesign />}
                 onClick={openForm()}
               >
                 {t('New Allocation')}
@@ -495,7 +495,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           renderMessage={confirmDisableContent}
         >
           <Button
-            aria-label={t('Disable Spend Allocations')}
+            aria-label={t('Disable redesign Spend Allocations')}
             size="sm"
             priority="danger"
             data-test-id="disable"

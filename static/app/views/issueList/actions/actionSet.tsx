@@ -193,7 +193,7 @@ function ActionSet({
     <Fragment>
       {query.includes('is:archived') ? (
         <Button
-          size="xs"
+          size="xs" redesign
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),

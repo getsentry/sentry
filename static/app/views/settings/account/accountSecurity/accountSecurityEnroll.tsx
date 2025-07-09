@@ -95,7 +95,7 @@ const getFields = ({
       ...form,
       () => (
         <Actions key="confirm">
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Confirm')}
           </Button>
         </Actions>
@@ -113,8 +113,8 @@ const getFields = ({
       () => (
         <Actions key="sms-footer">
           <ButtonBar gap={1}>
-            {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
-            <Button priority="primary" type="submit">
+            {hasSentCode && <Button onClick={onSmsReset} redesign>{t('Start Over')}</Button>}
+            <Button priority="primary" redesign type="submit">
               {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
           </ButtonBar>
@@ -131,7 +131,7 @@ const getFields = ({
       deviceNameField,
       () => (
         <Actions key="confirm">
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Confirm')}
           </Button>
         </Actions>
@@ -432,7 +432,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
             authenticator.isEnrolled &&
             authenticator.removeButton && (
               <RemoveConfirm onConfirm={this.handleRemove}>
-                <Button priority="danger">{authenticator.removeButton}</Button>
+                <Button priority="danger" redesign>{authenticator.removeButton}</Button>
               </RemoveConfirm>
             )
           }

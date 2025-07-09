@@ -98,11 +98,11 @@ export default function PluginConfig({
         {plugin.canDisable && isEnabled && (
           <ButtonBar gap={1}>
             {plugin.isTestable && (
-              <Button onClick={handleTestPlugin} size="xs">
+              <Button onClick={handleTestPlugin} redesign size="xs">
                 {t('Test Plugin')}
               </Button>
             )}
-            <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
+            <Button size="xs" redesign onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
               {t('Disable')}
             </Button>
           </ButtonBar>

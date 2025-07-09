@@ -154,9 +154,9 @@ function ActionFilterBlock({
               })}
             </StepLead>
             <Button
-              aria-label={t('Delete If/Then Block')}
+              aria-label={t('Delete redesign If/Then Block')}
               size="sm"
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
               borderless
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
@@ -192,7 +192,7 @@ function ActionFilterBlock({
         />
       </Step>
       <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+        <Button icon={<IconMail redesign redesign />}>{t('Send Test Notification')}</Button>
       </span>
     </IfThenWrapper>
   );

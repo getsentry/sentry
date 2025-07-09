@@ -181,7 +181,7 @@ function BackButton(props: Partial<ButtonProps>) {
   }
 
   return (
-    <Button size="sm" onClick={() => setCurrentStep(currentStep - 1)} {...props}>
+    <Button size="sm" redesign redesign onClick={() => setCurrentStep(currentStep - 1)} {...props}>
       {t('Back')}
     </Button>
   );
@@ -195,7 +195,7 @@ function NextButton(props: Partial<ButtonProps>) {
   }
 
   return (
-    <Button size="sm" onClick={() => setCurrentStep(currentStep + 1)} {...props}>
+    <Button size="sm" redesign redesign onClick={() => setCurrentStep(currentStep + 1)} {...props}>
       {t('Next')}
     </Button>
   );

@@ -151,12 +151,12 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </PathWrapper>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
-            <Button data-test-id="maybe-later" priority={'default'} onClick={closeModal}>
+            <Button data-test-id="maybe-later" redesign priority={'default'} onClick={closeModal}>
               {t('Remind Me Later')}
             </Button>
             {hasBillingAccess ? (
               <LinkButton
-                size="md"
+                size="md" redesign
                 to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
                 priority="primary"
@@ -173,7 +173,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               </LinkButton>
             ) : (
               <Button
-                size="md"
+                size="md" redesign
                 aria-label="Request to Upgrade"
                 priority="primary"
                 onClick={handleRequest}

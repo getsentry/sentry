@@ -213,7 +213,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         </AddBudgetButton>
                       ) : (
                         <Button
-                          priority="primary"
+                          priority="primary" redesign
                           onClick={async () => {
                             await sendAddEventsRequest({
                               api,
@@ -230,7 +230,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         </Button>
                       )}
                       <Button
-                        icon={<IconRefresh size="xs" />}
+                        icon={<IconRefresh redesign size="xs" redesign />}
                         onClick={async () => {
                           await refetch();
                           addSuccessMessage(t('Refreshed Seer quota'));
@@ -244,7 +244,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                   </Flex>
                 ) : (
                   <Button
-                    priority="primary"
+                    priority="primary" redesign
                     onClick={() => {
                       autofixAcknowledgeMutation.mutate();
                       handlePurchaseSeer();
@@ -278,7 +278,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           <Fragment>
             <ButtonWrapper>
               <Button
-                priority="primary"
+                priority="primary" redesign
                 onClick={() => autofixAcknowledgeMutation.mutate()}
                 disabled={autofixAcknowledgeMutation.isPending}
                 analyticsEventKey="gen_ai_consent.in_drawer_clicked"

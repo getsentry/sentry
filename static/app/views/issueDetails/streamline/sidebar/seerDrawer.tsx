@@ -250,17 +250,17 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               <ButtonBar gap={1}>
                 <Feature features={['organizations:autofix-seer-preferences']}>
                   <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`} redesign
                     size="xs"
                     title={t('Project Settings for Seer')}
                     aria-label={t('Project Settings for Seer')}
-                    icon={<IconSettings />}
+                    icon={<IconSettings redesign />}
                   />
                 </Feature>
                 <AutofixFeedback />
                 {aiConfig.hasAutofix && (
                   <Button
-                    size="xs"
+                    size="xs" redesign
                     onClick={() => {
                       reset();
                       aiConfig.refetchAutofixSetup?.();

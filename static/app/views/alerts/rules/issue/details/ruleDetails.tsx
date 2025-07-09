@@ -434,16 +434,16 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
               )}
             </Access>
             <LinkButton
-              size="sm"
-              icon={<IconCopy />}
+              size="sm" redesign
+              icon={<IconCopy redesign />}
               to={duplicateLink}
               disabled={rule.status === 'disabled'}
             >
               {t('Duplicate')}
             </LinkButton>
             <LinkButton
-              size="sm"
-              icon={<IconEdit />}
+              size="sm" redesign
+              icon={<IconEdit redesign />}
               to={makeAlertsPathname({
                 path: `/rules/${projectSlug}/${ruleId}/`,
                 organization,

@@ -86,7 +86,7 @@ function TeamMisery({
             emptyMessage={t('No key transactions starred by this team')}
             emptyAction={
               <LinkButton
-                size="sm"
+                size="sm" redesign
                 external
                 href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
               >

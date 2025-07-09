@@ -171,7 +171,7 @@ function ProjectStabilityScoreCard(props: Props) {
         Title={Title}
         Actions={
           <Widget.WidgetToolbar>
-            <Button size="xs" onClick={refetch}>
+            <Button size="xs" redesign onClick={refetch}>
               {t('Retry')}
             </Button>
           </Widget.WidgetToolbar>

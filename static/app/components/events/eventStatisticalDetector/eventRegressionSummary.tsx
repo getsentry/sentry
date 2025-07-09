@@ -70,7 +70,7 @@ export function getKeyValueListData(
           subject: t('Endpoint Name'),
           value: evidenceData.transaction,
           actionButton: (
-            <LinkButton size="xs" to={target}>
+            <LinkButton size="xs" redesign to={target}>
               {t('View Transaction')}
             </LinkButton>
           ),

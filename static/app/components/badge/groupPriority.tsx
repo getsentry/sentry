@@ -159,7 +159,7 @@ function GroupPriorityLearnMore() {
         )}
       </p>
       <LinkButton
-        href="https://docs.sentry.io/product/issues/issue-priority/"
+        href="https://docs.sentry.io/product/issues/issue-priority/" redesign
         external
         size="xs"
       >

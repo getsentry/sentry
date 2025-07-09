@@ -55,7 +55,7 @@ function TeamKeyTransactionField({
           }
         >
           <Button
-            {...triggerProps}
+            {...triggerProps} redesign
             disabled={disabled}
             borderless
             size="zero"
@@ -96,10 +96,10 @@ export default function TeamKeyTransactionFieldWrapper({
   if (!defined(project) || !defined(transactionName)) {
     return (
       <Button
-        disabled
+        disabled redesign
         borderless
         size="zero"
-        icon={<IconStar color="gray100" />}
+        icon={<IconStar color="gray100" redesign />}
         aria-label={t('Toggle star for team')}
       />
     );

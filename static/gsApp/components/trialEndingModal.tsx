@@ -99,7 +99,7 @@ function TrialEndingModal({organization, subscription, closeModal}: Props) {
             <Bullets>{leftColumnItems.map(WarningItem)}</Bullets>
 
             <Button
-              priority="default"
+              priority="default" redesign
               onClick={() => {
                 trackGetsentryAnalytics('trial_ended_notice.dismissed_understood', {
                   organization,

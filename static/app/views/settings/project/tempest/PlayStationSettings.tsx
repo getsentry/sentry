@@ -174,11 +174,11 @@ export const getPlayStationHeaderAction = (
         disabled={hasWriteAccess}
       >
         <Button
-          priority="primary"
+          priority="primary" redesign
           size="sm"
           data-test-id="create-new-credentials"
           disabled={!hasWriteAccess}
-          icon={<IconAdd isCircled />}
+          icon={<IconAdd isCircled redesign />}
           onClick={() => {
             openAddTempestCredentialsModal({organization, project});
             trackAnalytics('tempest.credentials.add_modal_opened', {

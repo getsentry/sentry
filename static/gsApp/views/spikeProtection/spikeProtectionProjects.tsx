@@ -211,7 +211,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         disabled={!hasOrgWrite}
       >
         <Button
-          disabled={!hasOrgWrite}
+          disabled={!hasOrgWrite} redesign
           priority={isEnabling ? 'primary' : 'default'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
           title={

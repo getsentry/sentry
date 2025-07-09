@@ -24,7 +24,7 @@ function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) 
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
-          size="sm"
+          size="sm" redesign
           priority="primary"
           disabled={!hasAccess}
           title={hasAccess ? undefined : permissionTooltipText}

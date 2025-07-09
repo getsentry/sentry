@@ -112,12 +112,12 @@ function Actions() {
   return (
     <Fragment>
       <LinkButton
-        to={{
+        to={{ redesign
           pathname: `${makeMonitorBasePathname(organization.slug)}new/`,
           query: project ? {project} : undefined,
         }}
         priority="primary"
-        icon={<IconAdd />}
+        icon={<IconAdd redesign />}
         size="sm"
       >
         {t('Create Monitor')}

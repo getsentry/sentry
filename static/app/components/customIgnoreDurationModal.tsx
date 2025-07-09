@@ -106,10 +106,10 @@ export default function CustomIgnoreDurationModal(props: Props) {
       )}
       <Footer>
         <ButtonBar gap={1}>
-          <Button priority="default" onClick={closeModal}>
+          <Button priority="default" redesign onClick={closeModal}>
             {t('Cancel')}
           </Button>
-          <Button priority="primary" onClick={snoozeClicked}>
+          <Button priority="primary" redesign onClick={snoozeClicked}>
             {t('Archive')}
           </Button>
         </ButtonBar>

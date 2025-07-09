@@ -48,7 +48,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
-          type="submit"
+          type="submit" redesign
           name="provider"
           size="sm"
           value={provider.key}

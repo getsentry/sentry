@@ -122,10 +122,10 @@ function SavedSearchItem({
           minMenuWidth={200}
           trigger={props => (
             <Button
-              {...props}
+              {...props} redesign
               aria-label={t('Saved search options')}
               borderless
-              icon={<IconEllipsis size="sm" />}
+              icon={<IconEllipsis size="sm" redesign />}
               size="sm"
             />
           )}
@@ -150,7 +150,7 @@ function CreateNewSavedSearchButton({
   };
 
   return (
-    <Button onClick={onClick} priority="link" size="sm">
+    <Button onClick={onClick} redesign priority="link" size="sm">
       {t('Add saved search')}
     </Button>
   );
@@ -217,7 +217,7 @@ function SavedIssueSearches({
         <HeadingContainer>
           <Heading>{t('Saved Searches')}</Heading>
           <Button
-            aria-label={t('Collapse sidebar')}
+            aria-label={t('Collapse redesign sidebar')}
             borderless
             onClick={() => setIsOpen(false)}
             icon={<IconClose />}

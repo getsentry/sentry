@@ -43,7 +43,7 @@ function AddIntegrationRow({onClick}: Props) {
         {({hasAccess}) => {
           return isSelfHosted ? (
             <LinkButton
-              href={`https://develop.sentry.dev/integrations/${provider.slug}`}
+              href={`https://develop.sentry.dev/integrations/${provider.slug}`} redesign
               priority="primary"
               external
             >

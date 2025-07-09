@@ -458,16 +458,16 @@ export function TimeRangeSelector({
                         <AbsoluteSelectorFooter>
                           {showRelative && (
                             <Button
-                              size="xs"
+                              size="xs" redesign
                               borderless
-                              icon={<IconArrow direction="left" />}
+                              icon={<IconArrow direction="left" redesign />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >
                               {t('Back')}
                             </Button>
                           )}
                           <Button
-                            size="xs"
+                            size="xs" redesign
                             priority="primary"
                             disabled={!hasChanges || hasDateRangeErrors}
                             onClick={() => {

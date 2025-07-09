@@ -472,7 +472,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <RightAlignedContainer>
           <Button
-            size="xs"
+            size="xs" redesign
             disabled={!minidump}
             onClick={
               minidump

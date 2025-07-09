@@ -30,7 +30,7 @@ function UserCustomers({userId}: Props) {
       buttonGroup={
         <div>
           <Button
-            priority="primary"
+            priority="primary" redesign
             size="sm"
             onClick={openAddToOrgModal}
             style={{
@@ -39,7 +39,7 @@ function UserCustomers({userId}: Props) {
           >
             Add to Org
           </Button>
-          <Button priority="default" size="sm" onClick={openRemoveFromOrgModal}>
+          <Button priority="default" redesign size="sm" onClick={openRemoveFromOrgModal}>
             Remove from Org
           </Button>
         </div>

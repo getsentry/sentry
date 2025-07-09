@@ -80,7 +80,7 @@ export default function AdminQueue() {
         <ButtonBar merged>
           {TIME_WINDOWS.map(r => (
             <Button
-              size="sm"
+              size="sm" redesign
               priority={r === state.timeWindow ? 'primary' : 'default'}
               onClick={() => changeWindow(r)}
               key={r}

@@ -157,7 +157,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     return (
       <Fragment>
         <div>
-          <LinkButton to={`${moduleURL}/`} size="sm">
+          <LinkButton to={`${moduleURL}/`} redesign size="sm">
             {t('View All')}
           </LinkButton>
         </div>

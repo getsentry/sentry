@@ -80,7 +80,7 @@ function SetupMessagingIntegrationButton({
       {({disabled, disabledReason}) => (
         <div>
           <Button
-            size="sm"
+            size="sm" redesign
             icon={
               <IconWrapper>
                 {providerKeys.map((value: string) => {

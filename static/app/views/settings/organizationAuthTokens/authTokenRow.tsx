@@ -155,10 +155,10 @@ export function OrganizationAuthTokensAuthTokenRow({
             )}
           >
             <Button
-              size="sm"
+              size="sm" redesign
               disabled={isRevoking || !revokeToken}
               aria-label={t('Revoke %s', token.name)}
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
             >
               {t('Revoke')}
             </Button>

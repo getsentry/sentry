@@ -36,7 +36,7 @@ export function Header({orgSlug, goBackLocation, dashboardTitle}: Props) {
         <ButtonBar gap={1}>
           <FeedbackWidgetButton />
           <LinkButton
-            external
+            external redesign
             size="sm"
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >

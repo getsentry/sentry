@@ -111,8 +111,8 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <StoryTypesTableDefinitionCellContent>
             <Button
-              borderless
-              icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
+              borderless redesign
+              icon={<IconChevron direction={expanded ? 'down' : 'right'} redesign />}
               onClick={() => {
                 props.node.expanded = !expanded;
                 setExpanded(props.node.expanded);

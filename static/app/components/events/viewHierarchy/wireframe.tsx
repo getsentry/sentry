@@ -310,10 +310,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     <Stack>
       <InteractionContainer>
         <Controls>
-          <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
+          <Button size="xs" redesign ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
             <IconAdd size="xs" />
           </Button>
-          <Button size="xs" ref={setZoomOut} aria-label={t('Zoom Out on wireframe')}>
+          <Button size="xs" redesign ref={setZoomOut} aria-label={t('Zoom Out on wireframe')}>
             <IconSubtract size="xs" />
           </Button>
         </Controls>

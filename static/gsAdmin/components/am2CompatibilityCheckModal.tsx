@@ -124,10 +124,10 @@ function AM2CompatibilityCheckModal() {
       <ModalHeader>
         <span>AM2 Compatibility Check</span>
         <Button
-          size="sm"
+          size="sm" redesign
           disabled={!isFetched}
           aria-label="refresh"
-          icon={<IconRefresh />}
+          icon={<IconRefresh redesign />}
           onClick={() => setRefresh(true)}
         />
       </ModalHeader>

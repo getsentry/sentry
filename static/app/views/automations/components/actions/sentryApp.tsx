@@ -39,8 +39,8 @@ function SentryAppActionSettingsButton() {
 
   return (
     <Button
-      size="sm"
-      icon={<IconSettings />}
+      size="sm" redesign
+      icon={<IconSettings redesign />}
       onClick={() => {
         openModal(
           deps => (

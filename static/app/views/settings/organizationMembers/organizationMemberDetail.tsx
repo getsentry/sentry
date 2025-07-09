@@ -276,10 +276,10 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
           {showResendButton && (
             <Button
-              data-test-id="resend-invite"
+              data-test-id="resend-invite" redesign
               size="xs"
               priority="primary"
-              icon={<IconRefresh />}
+              icon={<IconRefresh redesign />}
               title={t('Generate a new invite link and send a new email.')}
               busy={isInviting}
               onClick={() => inviteMember()}
@@ -336,7 +336,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   )}
                   onConfirm={() => reset2fa()}
                 >
-                  <Button priority="danger" busy={isResetting2fa}>
+                  <Button priority="danger" redesign busy={isResetting2fa}>
                     {t('Reset two-factor authentication')}
                   </Button>
                 </Confirm>
@@ -380,7 +380,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <Footer>
         <Button
-          priority="primary"
+          priority="primary" redesign
           busy={isSaving}
           onClick={() => updatedMember()}
           disabled={!canEdit || !hasFormChanged()}

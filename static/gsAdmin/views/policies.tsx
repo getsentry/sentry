@@ -33,7 +33,7 @@ function Policies(props: Props) {
     <div>
       <PageHeader title="Policies">
         <Button
-          onClick={() => openModal(deps => <AddPolicyModal {...deps} />)}
+          onClick={() redesign => openModal(deps => <AddPolicyModal {...deps} />)}
           size="sm"
           disabled={!hasPermission}
           title={

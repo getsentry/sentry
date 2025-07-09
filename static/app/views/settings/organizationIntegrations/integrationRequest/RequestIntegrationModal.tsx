@@ -100,7 +100,7 @@ export default function RequestIntegrationModal(props: Props) {
         </TextBlock>
       </Body>
       <Footer>
-        <Button onClick={() => sendRequestMutation.mutate()}>{buttonText}</Button>
+        <Button onClick={() redesign => sendRequestMutation.mutate()}>{buttonText}</Button>
       </Footer>
     </Fragment>
   );

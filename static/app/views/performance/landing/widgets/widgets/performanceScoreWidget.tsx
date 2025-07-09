@@ -43,7 +43,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <div>
-          <LinkButton to={`${moduleURL}/`} size="sm">
+          <LinkButton to={`${moduleURL}/`} redesign size="sm">
             {t('View All')}
           </LinkButton>
         </div>

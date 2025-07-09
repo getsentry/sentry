@@ -64,7 +64,7 @@ function PartnerPlanEndingBanner({
             )}
           </div>
           <LinkButton
-            priority="primary"
+            priority="primary" redesign
             analyticsEventKey="partner_plan_ending_banner.manage_subscription"
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"

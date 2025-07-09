@@ -220,10 +220,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
-                size="xs"
+                size="xs" redesign
                 aria-label={t('Open Full-Screen View')}
                 borderless
-                icon={<IconExpand />}
+                icon={<IconExpand redesign />}
                 onClick={() => {
                   openInsightChartModal({
                     title: props.title,

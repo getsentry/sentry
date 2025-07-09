@@ -75,7 +75,7 @@ function WaitingIndicator({
 
   return profileId ? (
     <LinkButton
-      priority="primary"
+      priority="primary" redesign
       to={generateProfileFlamechartRoute({
         organization,
         projectSlug: project.slug,
@@ -255,7 +255,7 @@ export function Onboarding() {
               {platform: currentPlatform?.name || project.slug}
             )}
           </p>
-          <LinkButton size="sm" href="https://docs.sentry.io/product/profiling/" external>
+          <LinkButton size="sm" redesign href="https://docs.sentry.io/product/profiling/" external>
             {t('Go to Documentation')}
           </LinkButton>
         </DescriptionWrapper>
@@ -274,7 +274,7 @@ export function Onboarding() {
             )}
           </p>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href={
               // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
               currentPlatform.id === 'go'

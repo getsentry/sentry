@@ -48,7 +48,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 
   const allReplaysButton = (
     <LinkButton
-      size="xs"
+      size="xs" redesign
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
       }}

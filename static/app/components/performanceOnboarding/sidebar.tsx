@@ -294,7 +294,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
+          <LinkButton size="sm" redesign href="https://docs.sentry.io/platforms/" external>
             {t('Go to Sentry Documentation')}
           </LinkButton>
         </div>
@@ -313,7 +313,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         </div>
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/product/performance/getting-started/"
             external
           >

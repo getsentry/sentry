@@ -71,7 +71,7 @@ export default function AutomationNew() {
                 />
               </Card>
               <span>
-                <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
+                <Button icon={<IconAdd redesign redesign />}>{t('Create New Monitor')}</Button>
               </span>
             </Flex>
           </Layout.Main>
@@ -81,13 +81,13 @@ export default function AutomationNew() {
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
           <LinkButton
-            priority="default"
+            priority="default" redesign
             to={makeAutomationBasePathname(organization.slug)}
           >
             {t('Cancel')}
           </LinkButton>
           <LinkButton
-            priority="primary"
+            priority="primary" redesign
             to={{
               pathname: `${makeAutomationBasePathname(organization.slug)}new/settings/`,
               ...(connectedIds.size > 0 && {

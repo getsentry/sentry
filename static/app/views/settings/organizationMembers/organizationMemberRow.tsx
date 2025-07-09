@@ -157,7 +157,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               {isInviteSuccessful && <span>{t('Sent!')}</span>}
               {!isInviting && !isInviteSuccessful && (
                 <Button
-                  disabled={!canAddMembers && !canEditInvite}
+                  disabled={!canAddMembers redesign && !canEditInvite}
                   priority="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
@@ -189,8 +189,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 onConfirm={this.handleRemove}
               >
                 <Button
-                  data-test-id="remove"
-                  icon={<IconSubtract isCircled />}
+                  data-test-id="remove" redesign
+                  icon={<IconSubtract isCircled redesign />}
                   size="sm"
                   busy={this.state.busy}
                 >
@@ -201,7 +201,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
             {showRemoveButton && !canRemoveMember && (
               <Button
-                disabled
+                disabled redesign
                 size="sm"
                 title={
                   isIdpProvisioned
@@ -215,7 +215,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         ? t('You cannot modify this invite.')
                         : t('You do not have access to remove members')
                 }
-                icon={<IconSubtract isCircled />}
+                icon={<IconSubtract isCircled redesign />}
               >
                 {t('Remove')}
               </Button>
@@ -228,7 +228,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="sm" icon={<IconClose />}>
+                <Button priority="danger" redesign size="sm" icon={<IconClose redesign />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -236,8 +236,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
             {showLeaveButton && !memberCanLeave && (
               <Button
-                size="sm"
-                icon={<IconClose />}
+                size="sm" redesign
+                icon={<IconClose redesign />}
                 disabled
                 title={
                   isIdpProvisioned

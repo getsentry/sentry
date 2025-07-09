@@ -153,7 +153,7 @@ function TransactionsTable(props: Props) {
       if (fields[index] === 'profile.id') {
         rendered = (
           <LinkButton
-            data-test-id={`view-${fields[index]}`}
+            data-test-id={`view-${fields[index]}`} redesign
             disabled={!target || isEmptyObject(target)}
             to={target || {}}
             onClick={getProfileAnalyticsHandler(organization, referrer)}

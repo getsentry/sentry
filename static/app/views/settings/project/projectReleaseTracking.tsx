@@ -194,7 +194,7 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
                   'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                 )}
               >
-                <Button priority="danger">{t('Regenerate Token')}</Button>
+                <Button priority="danger" redesign>{t('Regenerate Token')}</Button>
               </Confirm>
             </div>
           </FieldGroup>

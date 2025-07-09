@@ -136,12 +136,12 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
       <Flex direction="column" gap={space(1)}>
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="space-between" gap={0.5} flex={1}>
-          <LinkButton external href="https://sentry.io/support/" size="xs">
+          <LinkButton external redesign href="https://sentry.io/support/" size="xs">
             {t('Contact Support')}
           </LinkButton>
           <ButtonBar gap={0.5}>
             <Button
-              onClick={event => {
+              onClick={event redesign => {
                 event.stopPropagation();
                 onDismiss();
               }}
@@ -150,7 +150,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               {t('Cancel')}
             </Button>
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={event => {
                 event.stopPropagation();
                 onConfirm();
@@ -283,7 +283,7 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot redesign size="sm" color="subText" redesign />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
@@ -475,7 +475,7 @@ function TaskGroup({
         }
         actions={
           <Button
-            icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
+            icon={<IconChevron redesign direction={isExpanded ? 'up' : 'down'} size="sm" redesign />}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"

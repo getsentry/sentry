@@ -63,10 +63,10 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
         title={t('User Feedback')}
         action={
           <ButtonList>
-            <LinkButton href="https://docs.sentry.io/product/user-feedback/" external>
+            <LinkButton href="https://docs.sentry.io/product/user-feedback/" redesign external>
               {t('Read the Docs')}
             </LinkButton>
-            <Button priority="primary" onClick={handleClick}>
+            <Button priority="primary" redesign onClick={handleClick}>
               {t('Open the Crash Report Modal')}
             </Button>
           </ButtonList>

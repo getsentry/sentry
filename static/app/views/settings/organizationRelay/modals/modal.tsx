@@ -30,9 +30,9 @@ function Modal({
       <Body>{content}</Body>
       <Footer>
         <ButtonBar gap={1.5}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
           <Button
-            onClick={event => {
+            onClick={event redesign => {
               event.preventDefault();
               onSave();
             }}

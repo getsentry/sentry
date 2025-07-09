@@ -40,7 +40,7 @@ function PasswordForm() {
         additionalFieldProps={{user}}
         renderFooter={() => (
           <Actions>
-            <Button type="submit" priority="primary">
+            <Button type="submit" redesign priority="primary">
               {t('Change password')}
             </Button>
           </Actions>

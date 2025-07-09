@@ -81,7 +81,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
         </p>
         {props.onResetFilter ? (
           <div>
-            <Button size="sm" onClick={props.onResetFilter}>
+            <Button size="sm" redesign onClick={props.onResetFilter}>
               {t('Reset Filter')}
             </Button>
           </div>

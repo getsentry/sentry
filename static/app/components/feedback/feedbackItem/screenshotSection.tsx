@@ -49,7 +49,7 @@ export function ScreenshotSection({event, organization, projectSlug}: Props) {
             }}
           />
           <Button
-            icon={<IconDelete />}
+            icon={<IconDelete redesign redesign />}
             borderless
             size="xs"
             onClick={() => {

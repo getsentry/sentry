@@ -46,7 +46,7 @@ function Footer({
           {...buttonProps}
         />
       ) : (
-        <Button data-test-id="maybe-later" priority="default" onClick={onCloseModal}>
+        <Button data-test-id="maybe-later" redesign priority="default" onClick={onCloseModal}>
           {t('Maybe Later')}
         </Button>
       )}

@@ -112,9 +112,9 @@ function IssueSyncListElement({
       </ClassNames>
       {(onClose || onOpen) && (
         <Button
-          size="xs"
+          size="xs" redesign
           borderless
-          icon={isLinked ? <IconClose /> : onOpen ? <IconAdd /> : null}
+          icon={isLinked ? <IconClose redesign /> : onOpen ? <IconAdd /> : null}
           aria-label={isLinked ? t('Close') : t('Add')}
           onClick={handleIconClick}
         />

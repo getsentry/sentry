@@ -29,10 +29,10 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props
       </Body>
       <ButtonContainer>
         <ButtonBar>
-          <LinkButton priority="primary" href={linkText} onClick={handleClose} external>
+          <LinkButton priority="primary" redesign href={linkText} onClick={handleClose} external>
             {t('Continue')}
           </LinkButton>
-          <Button priority="default" onClick={handleClose}>
+          <Button priority="default" redesign onClick={handleClose}>
             {t('Cancel')}
           </Button>
         </ButtonBar>

@@ -29,31 +29,31 @@ export function Toolbar({isMobile, onEdit, onDelete, onDuplicate}: ToolbarProps)
         )}
         {onEdit && (
           <Button
-            data-test-id="widget-edit"
+            data-test-id="widget-edit" redesign
             aria-label={t('Edit Widget')}
             size="xs"
             borderless
             onClick={onEdit}
-            icon={<IconEdit />}
+            icon={<IconEdit redesign />}
           />
         )}
         {onDuplicate && (
           <Button
-            aria-label={t('Duplicate Widget')}
+            aria-label={t('Duplicate redesign Widget')}
             size="xs"
             borderless
             onClick={onDuplicate}
-            icon={<IconCopy />}
+            icon={<IconCopy redesign />}
           />
         )}
         {onDelete && (
           <Button
-            data-test-id="widget-delete"
+            data-test-id="widget-delete" redesign
             aria-label={t('Delete Widget')}
             borderless
             size="xs"
             onClick={onDelete}
-            icon={<IconDelete />}
+            icon={<IconDelete redesign />}
           />
         )}
       </IconContainer>

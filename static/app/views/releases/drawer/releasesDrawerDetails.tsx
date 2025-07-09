@@ -96,7 +96,7 @@ function ReleasesDrawerContent({
             </ReleaseWithPlatform>
 
             <LinkButton
-              to={normalizeUrl({
+              to={normalizeUrl({ redesign
                 pathname: makeReleasesPathname({
                   path: `/${encodeURIComponent(release)}/`,
                   organization,

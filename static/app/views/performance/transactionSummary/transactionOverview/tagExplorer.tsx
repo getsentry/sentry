@@ -513,7 +513,7 @@ function TagsHeader(props: HeaderProps) {
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
       </div>
       <LinkButton
-        onClick={handleViewAllTagsClick}
+        onClick={handleViewAllTagsClick} redesign
         to={viewAllTarget}
         size="xs"
         data-test-id="tags-explorer-open-tags"

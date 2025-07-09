@@ -79,14 +79,14 @@ function CustomCommitsResolutionModal({
       </Body>
       <Footer>
         <Button
-          css={css`
+          css={css` redesign
             margin-right: ${space(1.5)};
           `}
           onClick={closeModal}
         >
           {t('Cancel')}
         </Button>
-        <Button type="submit" priority="primary">
+        <Button type="submit" redesign priority="primary">
           {t('Resolve')}
         </Button>
       </Footer>

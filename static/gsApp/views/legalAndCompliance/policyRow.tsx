@@ -99,7 +99,7 @@ export function PolicyRow({
             {curPolicy.slug === policy.slug ? (
               <PolicyHeader>
                 <h5>{curPolicy.name}</h5>
-                <Button size="sm" onClick={showPolicy}>
+                <Button size="sm" redesign onClick={showPolicy}>
                   {t('Download')}
                 </Button>
               </PolicyHeader>
@@ -148,11 +148,11 @@ export function PolicyRow({
                 </small>
 
                 <ButtonBar gap={1}>
-                  <Button size="sm" onClick={closeModal}>
+                  <Button size="sm" redesign onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
                   <Button
-                    size="sm"
+                    size="sm" redesign
                     priority="primary"
                     onClick={() => {
                       onAccept(curPolicy);
@@ -164,7 +164,7 @@ export function PolicyRow({
                 </ButtonBar>
               </PolicyActions>
             ) : (
-              <Button size="sm" onClick={closeModal}>
+              <Button size="sm" redesign onClick={closeModal}>
                 {t('Close')}
               </Button>
             )}
@@ -204,7 +204,7 @@ export function PolicyRow({
         {policy.url &&
           policyUrl &&
           (policy.consent?.acceptedVersion === policy.version ? (
-            <LinkButton size="sm" external href={policyUrl.toString()}>
+            <LinkButton size="sm" redesign external href={policyUrl.toString()}>
               {t('Review')}
             </LinkButton>
           ) : policy.hasSignature &&
@@ -212,7 +212,7 @@ export function PolicyRow({
             policy.slug !== 'terms' &&
             hasBillingAccess ? (
             <Button
-              size="sm"
+              size="sm" redesign
               priority="primary"
               onClick={showModal}
               disabled={activeSuperUser || !hasBillingAccess}
@@ -227,7 +227,7 @@ export function PolicyRow({
               {t('Review and Accept')}
             </Button>
           ) : (
-            <LinkButton size="sm" external href={policy.url}>
+            <LinkButton size="sm" redesign external href={policy.url}>
               {t('Review')}
             </LinkButton>
           ))}

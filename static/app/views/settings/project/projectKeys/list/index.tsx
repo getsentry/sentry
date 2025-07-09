@@ -185,7 +185,7 @@ function ProjectKeys({project}: Props) {
         title={t('Client Keys')}
         action={
           <Button
-            onClick={() => handleCreateKeyMutation.mutate()}
+            onClick={() redesign => handleCreateKeyMutation.mutate()}
             size="sm"
             priority="primary"
             icon={<IconAdd isCircled />}

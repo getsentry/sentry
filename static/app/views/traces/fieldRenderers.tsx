@@ -434,7 +434,7 @@ export function TraceIssuesRenderer({
 
   return (
     <LinkButton
-      to={normalizeUrl({
+      to={normalizeUrl({ redesign
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:"${trace.trace}"`,
@@ -442,7 +442,7 @@ export function TraceIssuesRenderer({
       })}
       onClick={onClick}
       size="xs"
-      icon={<IconIssues size="xs" />}
+      icon={<IconIssues size="xs" redesign />}
       disabled={issueCount === 0}
       style={{minHeight: '24px', height: '24px', minWidth: '44px'}}
     >

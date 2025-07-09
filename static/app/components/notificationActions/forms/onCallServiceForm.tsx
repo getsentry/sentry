@@ -127,10 +127,10 @@ function OnCallServiceForm({
       </NotificationActionCell>
 
       <ButtonBar gap={0.5}>
-        <Button onClick={onCancel} size="xs">
+        <Button onClick={onCancel} redesign size="xs">
           {t('Cancel')}
         </Button>
-        <Button priority="primary" size="xs" onClick={onSave}>
+        <Button priority="primary" redesign size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
       </ButtonBar>

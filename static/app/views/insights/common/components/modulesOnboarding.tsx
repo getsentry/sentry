@@ -114,7 +114,7 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </SplitMainContent>
-        <LinkButton priority="primary" external href={docLink}>
+        <LinkButton priority="primary" redesign external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>

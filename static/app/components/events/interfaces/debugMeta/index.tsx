@@ -256,13 +256,13 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           emptyMessage: t('No images match your search query'),
           emptyAction: hasActiveFilter ? (
             <Button
-              onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
+              onClick={() redesign => setFilterState(fs => ({...fs, filterSelections: []}))}
               priority="primary"
             >
               {t('Reset filter')}
             </Button>
           ) : (
-            <Button onClick={() => setSearchTerm('')} priority="primary">
+            <Button onClick={() redesign => setSearchTerm('')} priority="primary">
               {t('Clear search bar')}
             </Button>
           ),

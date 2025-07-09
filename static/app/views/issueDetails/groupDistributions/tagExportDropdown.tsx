@@ -34,11 +34,11 @@ export default function TagExportDropdown({tagKey, group, organization, project}
       size="xs"
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           borderless
           size="xs"
           aria-label={t('Export options')}
-          icon={<IconDownload />}
+          icon={<IconDownload redesign />}
         />
       )}
       items={[

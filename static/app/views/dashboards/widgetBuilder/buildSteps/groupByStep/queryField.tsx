@@ -63,10 +63,10 @@ export function QueryField({
           {fieldValidationError ? fieldValidationError : null}
           {canDelete && (
             <Button
-              size="zero"
+              size="zero" redesign
               borderless
               onClick={onDelete}
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
               title={t('Remove group')}
               aria-label={t('Remove group')}
             />

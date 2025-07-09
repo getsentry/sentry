@@ -148,7 +148,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
         <ButtonBar gap={1}>
           {!prefersStackedNav && (
             <LinkButton
-              to={`/organizations/${organization.slug}/explore/saved-queries/`}
+              to={`/organizations/${organization.slug}/explore/saved-queries/`} redesign
               size="sm"
             >
               {t('Saved Queries')}

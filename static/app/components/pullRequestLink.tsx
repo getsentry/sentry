@@ -46,7 +46,7 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
     </ExternalPullLink>
   ) : (
     <LinkButton
-      external
+      external redesign
       href={pullRequest.externalUrl}
       size="sm"
       icon={renderIcon(repository)}

@@ -134,7 +134,7 @@ function OurlogsSectionContent({
         {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button
-              icon={<IconChevron direction="right" />}
+              icon={<IconChevron redesign direction="right" redesign />}
               aria-label={t('View more')}
               size="sm"
               onClick={() => onOpenLogsDrawer()}

@@ -103,8 +103,8 @@ function AllocationRow({
       <TableData style={{textAlign: 'right'}}>
         {allocation.targetType !== 'Organization' && (
           <Button
-            aria-label={t('Edit')}
-            icon={<IconEdit />}
+            aria-label={t('Edit')} redesign
+            icon={<IconEdit redesign />}
             size="xs"
             onClick={openForm}
             style={
@@ -119,8 +119,8 @@ function AllocationRow({
         )}
         {allocation.targetType !== 'Organization' && (
           <Button
-            aria-label={t('Delete')}
-            icon={<IconDelete />}
+            aria-label={t('Delete')} redesign
+            icon={<IconDelete redesign />}
             size="xs"
             onClick={deleteAction}
             priority="danger"

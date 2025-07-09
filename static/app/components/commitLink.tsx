@@ -98,10 +98,10 @@ function CommitLink({
     </ExternalLink>
   ) : (
     <LinkButton
-      external
+      external redesign
       href={commitUrl}
       size="sm"
-      icon={showIcon ? <Icon size="sm" /> : null}
+      icon={showIcon ? <Icon size="sm" redesign /> : null}
       onClick={onClick}
       className={className}
     >

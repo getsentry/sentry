@@ -1213,7 +1213,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   rule.name
                 )}
               >
-                <Button priority="danger">{t('Delete Rule')}</Button>
+                <Button priority="danger" redesign>{t('Delete Rule')}</Button>
               </Confirm>
             ) : null
           }
@@ -1456,7 +1456,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                         />
                         <TestButtonWrapper>
                           <Button
-                            onClick={this.testNotifications}
+                            onClick={this.testNotifications} redesign
                             disabled={sendingNotification || rule?.actions?.length === 0}
                           >
                             {t('Send Test Notification')}

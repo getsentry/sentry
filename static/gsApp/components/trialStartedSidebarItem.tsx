@@ -79,7 +79,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
           {t('Additional Integrations')}
         </Bullets>
 
-        <Button onClick={this.dismissNotification} size="xs">
+        <Button onClick={this.dismissNotification} redesign size="xs">
           {t('Awesome, got it!')}
         </Button>
       </HovercardBody>
@@ -96,7 +96,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
           )}
         </p>
 
-        <Button onClick={this.dismissNotification} size="xs">
+        <Button onClick={this.dismissNotification} redesign size="xs">
           {t('Awesome, got it!')}
         </Button>
       </HovercardBody>

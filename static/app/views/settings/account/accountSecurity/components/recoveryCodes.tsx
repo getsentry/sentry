@@ -46,17 +46,17 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         <ButtonBar gap={1}>
           <CopyToClipboardButton text={formattedCodes} size="xs" />
           <Button
-            size="xs"
+            size="xs" redesign
             onClick={printCodes}
             aria-label={t('print')}
-            icon={<IconPrint />}
+            icon={<IconPrint redesign />}
           />
           <LinkButton
-            size="xs"
+            size="xs" redesign
             download="sentry-recovery-codes.txt"
             href={`data:text/plain;charset=utf-8,${formattedCodes}`}
             aria-label={t('download')}
-            icon={<IconDownload />}
+            icon={<IconDownload redesign />}
           />
           <Confirm
             onConfirm={onRegenerateBackupCodes}
@@ -64,7 +64,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
               'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
             )}
           >
-            <Button priority="danger" size="xs">
+            <Button priority="danger" redesign size="xs">
               {t('Regenerate Codes')}
             </Button>
           </Confirm>

@@ -101,7 +101,7 @@ function TraceAiSpans({
       <HeaderCell>{t('Abbreviated Trace')}</HeaderCell>
       <HeaderCell align={'right'}>
         <LinkButton
-          size="xs"
+          size="xs" redesign
           onClick={handleViewFullTraceClick}
           to={{
             ...location,

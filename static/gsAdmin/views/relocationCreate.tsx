@@ -139,7 +139,7 @@ function RelocationForm() {
           {file ? (
             <b>{file.name} ✓</b>
           ) : (
-            <Button size="xs" onClick={onFileUploadButtonClick}>
+            <Button size="xs" redesign onClick={onFileUploadButtonClick}>
               Upload relocation file data
             </Button>
           )}

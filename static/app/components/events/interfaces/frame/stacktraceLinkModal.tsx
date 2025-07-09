@@ -271,8 +271,8 @@ function StacktraceLinkModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleSubmit}>
+          <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
+          <Button priority="primary" redesign onClick={handleSubmit}>
             {t('Save')}
           </Button>
         </ButtonBar>

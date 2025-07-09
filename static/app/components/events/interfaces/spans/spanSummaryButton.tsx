@@ -40,7 +40,7 @@ function SpanSummaryButton(props: Props) {
   ) {
     return (
       <LinkButton
-        size="xs"
+        size="xs" redesign
         to={querySummaryRouteWithQuery({
           base: queryBaseUrl,
           query: location.query,
@@ -66,7 +66,7 @@ function SpanSummaryButton(props: Props) {
   ) {
     return (
       <LinkButton
-        size="xs"
+        size="xs" redesign
         to={resourceSummaryRouteWithQuery({
           baseUrl: resourceBaseUrl,
           query: location.query,

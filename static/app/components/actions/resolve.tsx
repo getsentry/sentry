@@ -38,7 +38,7 @@ function SetupReleasesPrompt() {
         )}
       </div>
       <LinkButton
-        priority="primary"
+        priority="primary" redesign
         external
         size="xs"
         href="https://docs.sentry.io/product/releases/setup/"
@@ -173,7 +173,7 @@ function ResolveActions({
         }
       >
         <Button
-          priority="primary"
+          priority="primary" redesign
           size="xs"
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}

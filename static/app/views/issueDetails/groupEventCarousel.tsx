@@ -351,20 +351,20 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
       />
       {xlargeViewport && (
         <Button
-          title={t('Copy link to this issue event')}
+          title={t('Copy redesign redesign link to this issue event')}
           size={BUTTON_SIZE}
           onClick={copyLink}
           aria-label={t('Copy Link')}
-          icon={<IconLink />}
+          icon={<IconLink redesign redesign />}
         />
       )}
       {xlargeViewport && (
         <Button
-          title={t('View JSON')}
+          title={t('View redesign redesign JSON')}
           size={BUTTON_SIZE}
           onClick={downloadJson}
           aria-label={t('View JSON')}
-          icon={<IconJson />}
+          icon={<IconJson redesign redesign />}
         />
       )}
     </Fragment>
@@ -394,7 +394,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             <EventIdContainer>
               <strong>Event ID:</strong>
               <Button
-                aria-label={t('Copy')}
+                aria-label={t('Copy')} redesign redesign
                 analyticsEventKey="issue_details.copy_event_id_clicked"
                 analyticsEventName="Issue Details: Copy Event ID Clicked"
                 analyticsParams={{

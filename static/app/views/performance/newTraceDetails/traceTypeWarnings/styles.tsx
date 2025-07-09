@@ -44,7 +44,7 @@ function Banner(props: BannerProps) {
         <ButtonsWrapper>
           <ActionButton>
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={event => {
                 event.preventDefault();
                 props.onPrimaryButtonClick();
@@ -55,7 +55,7 @@ function Banner(props: BannerProps) {
           </ActionButton>
           <ActionButton>
             <LinkButton
-              onClick={props.onSecondaryButtonClick}
+              onClick={props.onSecondaryButtonClick} redesign
               href={props.docsRoute}
               external
             >

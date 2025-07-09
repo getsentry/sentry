@@ -139,7 +139,7 @@ function MyDrawer({title}: {title: string}) {
         </p>
 
         <CodeSnippet language="jsx">
-          {`<Button onClick={() => openDrawer(() => null, {
+          {`<Button onClick={() redesign => openDrawer(() => null, {
     ariaLabel: 'My Drawer',
     closeOnOutsideClick: true, // or false
     shouldCloseOnInteractOutside: (element) => element.tagName !== 'A';
@@ -263,7 +263,7 @@ function ModalContent() {
         <CodeSnippet language="jsx">
           {`import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
-<Button onClick={() => openDrawer(
+<Button onClick={() redesign => openDrawer(
   () => (
     <Fragment>
       <DrawerHeader>My Drawer</DrawerHeader>

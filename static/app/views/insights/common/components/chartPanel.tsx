@@ -40,10 +40,10 @@ export default function ChartPanel({
             <MenuContainer>
               {button}
               <Button
-                aria-label={t('Expand Insight Chart')}
+                aria-label={t('Expand redesign Insight Chart')}
                 borderless
                 size="xs"
-                icon={<IconExpand />}
+                icon={<IconExpand redesign />}
                 onClick={() => {
                   openInsightChartModal({title, children});
                 }}

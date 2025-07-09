@@ -176,13 +176,13 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           <TourButtonBar gap={1}>
             {step.actions && step.actions}
             {hasNext && (
-              <Button priority="primary" onClick={this.handleAdvance}>
+              <Button priority="primary" redesign onClick={this.handleAdvance}>
                 {t('Next')}
               </Button>
             )}
             {!hasNext && (
               <LinkButton
-                external
+                external redesign
                 href={doneUrl}
                 onClick={closeModal}
                 priority="primary"

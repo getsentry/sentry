@@ -31,19 +31,19 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   return (
     <ButtonBar gap={1}>
       <Button
-        size="sm"
+        size="sm" redesign
         title={t('Rewind 10s')}
-        icon={<IconRewind10 size="sm" />}
+        icon={<IconRewind10 size="sm" redesign />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
         disabled={isLoading}
       />
       <ReplayPlayPauseButton isLoading={isLoading} />
       <Button
-        disabled={isLoading}
+        disabled={isLoading} redesign
         size="sm"
         title={t('Next breadcrumb')}
-        icon={<IconNext size="sm" />}
+        icon={<IconNext size="sm" redesign />}
         onClick={() => {
           if (!replay) {
             return;

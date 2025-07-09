@@ -64,13 +64,13 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
       <ParticipantWrapper onClick={() => setIsExpanded(!isExpanded)} role="button">
         {children}
         <Button
-          borderless
+          borderless redesign
           size="zero"
           icon={
             <IconChevron
               direction={isExpanded ? 'up' : 'down'}
               size="xs"
-              color="gray300"
+              color="gray300" redesign
             />
           }
           aria-label={t('%s Participants', isExpanded ? t('Collapse') : t('Expand'))}

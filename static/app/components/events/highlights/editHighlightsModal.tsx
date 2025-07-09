@@ -409,7 +409,7 @@ export default function EditHighlightsModal({
         </FooterInfo>
         <ButtonBar gap={1}>
           <Button
-            onClick={() => {
+            onClick={() redesign => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
               closeModal();
             }}
@@ -419,7 +419,7 @@ export default function EditHighlightsModal({
           </Button>
           {highlightPreset && (
             <Button
-              onClick={() => {
+              onClick={() redesign => {
                 trackAnalytics('highlights.edit_modal.use_default_clicked', {
                   organization,
                 });
@@ -432,7 +432,7 @@ export default function EditHighlightsModal({
             </Button>
           )}
           <Button
-            disabled={isPending}
+            disabled={isPending} redesign
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
               saveHighlights({highlightContext, highlightTags});

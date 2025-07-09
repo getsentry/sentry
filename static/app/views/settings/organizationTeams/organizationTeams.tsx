@@ -52,7 +52,7 @@ function OrganizationTeams({
 
   const action = (
     <Button
-      priority="primary"
+      priority="primary" redesign
       size="sm"
       disabled={!canCreateTeams}
       title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
@@ -140,7 +140,7 @@ function OrganizationTeams({
       {hasMore && (
         <LoadMoreWrapper>
           {fetching && <LoadingIndicator mini />}
-          <Button onClick={() => loadMore(teamQuery)}>{t('Show more')}</Button>
+          <Button onClick={() redesign => loadMore(teamQuery)}>{t('Show more')}</Button>
         </LoadMoreWrapper>
       )}
     </div>

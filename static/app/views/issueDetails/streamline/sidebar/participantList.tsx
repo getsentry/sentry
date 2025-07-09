@@ -37,7 +37,7 @@ export default function ParticipantList({
 
   return (
     <div>
-      <Button borderless translucentBorder size="zero" {...triggerProps}>
+      <Button borderless redesign translucentBorder size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
           users={users}

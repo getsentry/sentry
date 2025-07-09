@@ -123,11 +123,11 @@ export function ScreenshotCard({
           position="bottom-end"
           trigger={triggerProps => (
             <Button
-              {...triggerProps}
+              {...triggerProps} redesign
               aria-label={t('Actions')}
               size="xs"
               borderless
-              icon={<IconEllipsis direction="down" size="sm" />}
+              icon={<IconEllipsis direction="down" size="sm" redesign />}
             />
           )}
         />

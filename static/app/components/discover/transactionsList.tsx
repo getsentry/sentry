@@ -313,7 +313,7 @@ class _TransactionsList extends Component<Props> {
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
               <LinkButton
-                onClick={handleOpenAllEventsClick}
+                onClick={handleOpenAllEventsClick} redesign
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                   organization,
                   {

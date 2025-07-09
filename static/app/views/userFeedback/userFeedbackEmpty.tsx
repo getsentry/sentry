@@ -105,7 +105,7 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
       </p>
       <ButtonList gap={1}>
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={activateSidebarIssueDetails}
           analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
           analyticsEventKey="feedback.issue-details-click-onboarding-setup"
@@ -113,7 +113,7 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
           {t('Set up now')}
         </Button>
         <Button
-          onClick={() => {
+          onClick={() redesign => {
             Sentry.showReportDialog({
               // should never make it to the Sentry API, but just in case, use throwaway id
               eventId: '00000000000000000000000000000000',

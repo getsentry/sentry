@@ -134,7 +134,7 @@ function SubscriptionHeader(props: Props) {
           <ActionContainer>
             {subscription.canSelfServe && hasBillingPerms && (
               <LinkButton
-                size="md"
+                size="md" redesign
                 to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
                 aria-label="Manage subscription"
               >
@@ -143,8 +143,8 @@ function SubscriptionHeader(props: Props) {
             )}
             {hasAccessToSubscriptionOverview(subscription, organization) ? (
               <Button
-                size="md"
-                icon={<IconCodecov />}
+                size="md" redesign
+                icon={<IconCodecov redesign />}
                 onClick={() => openCodecovModal({organization})}
               >
                 {t('Try Codecov')}

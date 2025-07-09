@@ -64,8 +64,8 @@ function EditableOption({
       </td>
       <td key="edit">
         <Button
-          borderless
-          icon={<IconEdit size="xs" />}
+          borderless redesign
+          icon={<IconEdit size="xs" redesign />}
           size="zero"
           aria-label="edit"
           onClick={() =>

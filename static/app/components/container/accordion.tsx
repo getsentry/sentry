@@ -32,7 +32,7 @@ export default function Accordion({
           <AccordionItem key={index}>
             <AccordionHeader>
               <Button
-                icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+                icon={<IconChevron redesign size="xs" direction={isExpanded ? 'up' : 'down'} redesign />}
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"

@@ -33,7 +33,7 @@ export default function FeedbackWhatsNewBanner() {
     <PageBanner
       button={
         <LinkButton
-          external
+          external redesign
           href="https://docs.sentry.io/product/user-feedback/setup/"
           priority="primary"
           analyticsEventName="Clicked Feedback What's New Banner"

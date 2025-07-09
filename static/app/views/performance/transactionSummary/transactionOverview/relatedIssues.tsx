@@ -104,7 +104,7 @@ function RelatedIssues({
       <ControlsWrapper>
         <SectionHeading>{t('Related Issues')}</SectionHeading>
         <LinkButton
-          data-test-id="issues-open"
+          data-test-id="issues-open" redesign
           size="xs"
           to={issueSearch}
           onClick={handleOpenClick}

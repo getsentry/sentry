@@ -274,8 +274,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     <Wrapper>
       <Actions>
         <LinkButton
-          size="sm"
-          icon={<IconOpen />}
+          size="sm" redesign
+          icon={<IconOpen redesign />}
           href={eventJsonUrl}
           external
           onClick={() =>

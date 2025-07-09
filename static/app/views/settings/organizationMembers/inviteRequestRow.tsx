@@ -95,7 +95,7 @@ function InviteRequestRow({
 
       <ButtonGroup>
         <Button
-          size="sm"
+          size="sm" redesign
           busy={inviteRequestBusy[inviteRequest.id]}
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
@@ -122,7 +122,7 @@ function InviteRequestRow({
           }
         >
           <Button
-            priority="primary"
+            priority="primary" redesign
             size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
@@ -135,7 +135,7 @@ function InviteRequestRow({
                   : undefined
                 : t('This request needs to be reviewed by a privileged user')
             }
-            icon={<IconCheckmark />}
+            icon={<IconCheckmark redesign />}
           >
             {t('Approve')}
           </Button>

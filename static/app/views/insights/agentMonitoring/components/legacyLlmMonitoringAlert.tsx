@@ -34,9 +34,9 @@ export function LegacyLLMMonitoringInfoAlert() {
       showIcon
       trailingItems={
         <Button
-          priority="link"
+          priority="link" redesign
           size="sm"
-          icon={<IconClose />}
+          icon={<IconClose redesign />}
           onClick={dismiss}
           aria-label={t('Close Alert')}
           borderless
@@ -48,7 +48,7 @@ export function LegacyLLMMonitoringInfoAlert() {
           'Expecting to see data for your AI Agent here? Let us know if something is missing!'
         )}
         {feedback && (
-          <Button ref={buttonRef} size="xs" priority="primary">
+          <Button ref={buttonRef} redesign size="xs" priority="primary">
             {t('Give Feedback')}
           </Button>
         )}

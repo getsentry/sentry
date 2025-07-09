@@ -33,7 +33,7 @@ export function openOnDemandBudgetEditModal({
 export function EditOnDemandButton(props: EditOnDemandButtonProps) {
   return (
     <Button
-      priority="primary"
+      priority="primary" redesign
       onClick={() => {
         openOnDemandBudgetEditModal(props);
       }}

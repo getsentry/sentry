@@ -115,7 +115,7 @@ function IssueViewStarButton() {
 
   return (
     <Button
-      onClick={() => {
+      onClick={() redesign => {
         mutateViewStarred(
           {
             id: groupSearchView.id,
@@ -202,9 +202,9 @@ function IssueViewEditMenu() {
       ]}
       trigger={props => (
         <Button
-          size="sm"
+          size="sm" redesign
           {...props}
-          icon={<IconEllipsis />}
+          icon={<IconEllipsis redesign />}
           aria-label={t('More issue view options')}
         />
       )}
@@ -243,10 +243,10 @@ function IssueViewsHeader({
             {!viewId && (
               <DisableInDemoMode>
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   title={realtimeLabel}
                   aria-label={realtimeLabel}
-                  icon={realtimeActive ? <IconPause /> : <IconPlay />}
+                  icon={realtimeActive ? <IconPause redesign /> : <IconPlay />}
                   onClick={() => onRealtimeChange(!realtimeActive)}
                 />
               </DisableInDemoMode>

@@ -542,7 +542,7 @@ export default function AssigneeSelectorDropdown({
   const footerInviteButton = (
     <FooterWrapper>
       <Button
-        size="xs"
+        size="xs" redesign
         aria-label={t('Invite Member')}
         disabled={loading}
         onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {

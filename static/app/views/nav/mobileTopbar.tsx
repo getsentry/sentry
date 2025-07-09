@@ -55,8 +55,8 @@ function MobileTopbar() {
         )}
       </Left>
       <Button
-        onClick={handleClick}
-        icon={view === 'closed' ? <IconMenu /> : <IconClose />}
+        onClick={handleClick} redesign
+        icon={view === 'closed' ? <IconMenu redesign /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
         size="sm"
         borderless

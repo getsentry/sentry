@@ -102,7 +102,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
         <ButtonWrapper gap={1}>
           {!isPaidPlan && (
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={() =>
                 openUpsellModal({organization, source: `${referrer}.banner`})
               }

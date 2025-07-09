@@ -75,8 +75,8 @@ export function StaticReplayPreview({
 
             <CTAOverlay>
               <LinkButton
-                {...fullReplayButtonProps}
-                icon={<IconPlay />}
+                {...fullReplayButtonProps} redesign
+                icon={<IconPlay redesign />}
                 priority="primary"
                 to={fullReplayUrl}
               >

@@ -190,15 +190,15 @@ function ReleaseActions({
     <ButtonBar gap={1}>
       <ButtonBar merged>
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={replaceReleaseUrl(release.currentProjectMeta.firstReleaseVersion)}
           disabled={!hasPrevious}
           aria-label={t('Oldest')}
-          icon={<IconPrevious />}
+          icon={<IconPrevious redesign />}
           onClick={() => handleNavigationClick('oldest')}
         />
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={replaceReleaseUrl(release.currentProjectMeta.prevReleaseVersion)}
           disabled={!hasPrevious}
           onClick={() => handleNavigationClick('older')}
@@ -206,7 +206,7 @@ function ReleaseActions({
           {t('Older')}
         </LinkButton>
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={replaceReleaseUrl(release.currentProjectMeta.nextReleaseVersion)}
           disabled={!hasNext}
           onClick={() => handleNavigationClick('newer')}
@@ -214,11 +214,11 @@ function ReleaseActions({
           {t('Newer')}
         </LinkButton>
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={replaceReleaseUrl(release.currentProjectMeta.lastReleaseVersion)}
           disabled={!hasNext}
           aria-label={t('Newest')}
-          icon={<IconNext />}
+          icon={<IconNext redesign />}
           onClick={() => handleNavigationClick('newest')}
         />
       </ButtonBar>

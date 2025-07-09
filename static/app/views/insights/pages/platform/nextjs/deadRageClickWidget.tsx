@@ -61,7 +61,7 @@ export function DeadRageClicksWidget() {
       Visualization={visualization}
       Actions={
         <LinkButton
-          size="xs"
+          size="xs" redesign
           to={{
             pathname: allSelectorsPath,
             query: {

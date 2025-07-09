@@ -66,7 +66,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
   return (
     <FlexContainer>
       <Button
-        onClick={toggleStarredTransaction}
+        onClick={toggleStarredTransaction} redesign
         disabled={disabled}
         borderless
         size="zero"
@@ -74,7 +74,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
           <IconStar
             color={isStarred ? 'yellow300' : 'gray200'}
             isSolid={isStarred}
-            data-test-id="starred-transaction-column"
+            data-test-id="starred-transaction-column" redesign
           />
         }
         aria-label={t('Toggle star for transaction')}

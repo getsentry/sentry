@@ -1006,7 +1006,7 @@ function ProjectPerformance() {
               disabled={!hasAccess}
               renderFooter={() => (
                 <Actions>
-                  <Button onClick={() => resetThresholdSettings()}>
+                  <Button onClick={() redesign => resetThresholdSettings()}>
                     {t('Reset All')}
                   </Button>
                 </Actions>
@@ -1053,7 +1053,7 @@ function ProjectPerformance() {
                 renderFooter={() => (
                   <Actions>
                     <LinkButton
-                      external
+                      external redesign
                       href="https://docs.sentry.io/product/performance/performance-at-scale/"
                     >
                       {t('Read docs')}

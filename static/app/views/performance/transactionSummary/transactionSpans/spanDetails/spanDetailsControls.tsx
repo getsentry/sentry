@@ -71,7 +71,7 @@ export default function SpanDetailsControls({
         fields={eventView.fields}
         onSearch={handleSearchQuery}
       />
-      <Button onClick={handleResetView} disabled={!isZoomed()}>
+      <Button onClick={handleResetView} redesign disabled={!isZoomed()}>
         {t('Reset View')}
       </Button>
     </FilterActions>

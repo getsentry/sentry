@@ -377,7 +377,7 @@ export default function IssueViewsList() {
             <ButtonBar gap={1}>
               {openFeedbackForm ? (
                 <Button
-                  icon={<IconMegaphone />}
+                  icon={<IconMegaphone redesign redesign />}
                   size="sm"
                   onClick={() => {
                     openFeedbackForm({
@@ -417,8 +417,8 @@ export default function IssueViewsList() {
               >
                 {({hasFeature}) => (
                   <Button
-                    priority="primary"
-                    icon={<IconAdd />}
+                    priority="primary" redesign
+                    icon={<IconAdd redesign />}
                     size="sm"
                     disabled={!hasFeature || isCreatingView}
                     busy={isCreatingView}

@@ -50,7 +50,7 @@ function CustomStepButtons({
       {showBack && <GuidedSteps.BackButton />}
       {showNext && <GuidedSteps.NextButton />}
       {showSkip && (
-        <Button onClick={onSkip} size="sm">
+        <Button onClick={onSkip} redesign size="sm">
           {t('Skip for Now')}
         </Button>
       )}
@@ -197,7 +197,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   showSkip={false}
                 >
                   <LinkButton
-                    href={`/settings/${organization.slug}/integrations/github/`}
+                    href={`/settings/${organization.slug}/integrations/github/`} redesign
                     size="sm"
                     priority="primary"
                   >
@@ -237,7 +237,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   onSkip={() => setStepsCollapsed(true)}
                 >
                   <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`} redesign
                     size="sm"
                     priority="primary"
                   >
@@ -278,7 +278,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                     onSkip={() => setStepsCollapsed(true)}
                   >
                     <LinkButton
-                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`} redesign
                       size="sm"
                       priority="primary"
                     >

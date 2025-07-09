@@ -36,10 +36,10 @@ export default function FeatureFlagSort({
     <CompositeSelect
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           aria-label={t('Sort Flags')}
           size="xs"
-          icon={<IconSort />}
+          icon={<IconSort redesign />}
           title={t('Sort Flags')}
         />
       )}

@@ -75,10 +75,10 @@ function AlertHeader({activeTab}: Props) {
           </CreateAlertButton>
           <FeedbackWidgetButton />
           <LinkButton
-            size="sm"
+            size="sm" redesign
             onClick={handleNavigateToSettings}
             href="#"
-            icon={<IconSettings size="sm" />}
+            icon={<IconSettings size="sm" redesign />}
             aria-label={t('Settings')}
           />
         </ButtonBar>

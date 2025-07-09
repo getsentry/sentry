@@ -37,7 +37,7 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
         flamegraphs={props.flamegraph}
         canvasPoolManager={props.canvasPoolManager}
       />
-      <Button size="xs" onClick={onResetZoom}>
+      <Button size="xs" redesign onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
       <DifferentialFlamegraphSettingsButton

@@ -103,7 +103,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
         title={t('Alerts Settings')}
         action={
           <LinkButton
-            to={{
+            to={{ redesign
               pathname: makeAlertsPathname({
                 path: `/rules/`,
                 organization,

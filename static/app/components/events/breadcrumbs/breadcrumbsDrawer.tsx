@@ -173,11 +173,11 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <Button
-            size="xs"
+            size="xs" redesign
             borderless
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
-                <IconClock size="xs" />
+                <IconClock size="xs" redesign />
               ) : (
                 <IconTimer size="xs" />
               )
@@ -228,7 +228,7 @@ export function BreadcrumbsDrawer({
             <EmptyMessage>
               {t('No breadcrumbs found.')}
               <Button
-                priority="link"
+                priority="link" redesign
                 onClick={() => {
                   setFilters([]);
                   setSearch('');

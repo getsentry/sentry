@@ -19,10 +19,10 @@ const getRow = (row: any) => [
     <UserName>
       <UserAvatar user={row} size={18} />
       <LinkButton
-        external
+        external redesign
         priority="link"
         href={`mailto:${row.email}`}
-        icon={<IconMail size="xs" />}
+        icon={<IconMail size="xs" redesign />}
         title="Send email"
         aria-label={'Send email'}
       />

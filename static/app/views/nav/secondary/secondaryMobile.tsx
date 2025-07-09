@@ -19,8 +19,8 @@ export function SecondaryMobile({handleClickBack}: Props) {
     <SecondaryMobileWrapper>
       <GroupHeader>
         <Button
-          onClick={handleClickBack}
-          icon={<IconChevron direction="left" />}
+          onClick={handleClickBack} redesign
+          icon={<IconChevron direction="left" redesign />}
           aria-label={t('Back to primary navigation')}
           size="xs"
           borderless

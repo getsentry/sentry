@@ -1035,7 +1035,7 @@ function WidgetViewerModal(props: Props) {
                     <ButtonBar gap={1}>
                       {onEdit && widget.id && (
                         <Button
-                          onClick={() => {
+                          onClick={() redesign => {
                             closeModal();
                             onEdit();
                             trackAnalytics('dashboards_views.widget_viewer.edit', {
@@ -1144,7 +1144,7 @@ function OpenButton({
       disabled={defined(disabled) ? !disabled : !buttonDisabled}
     >
       <LinkButton
-        to={path}
+        to={path} redesign
         priority="primary"
         disabled={disabled || buttonDisabled}
         onClick={() => {

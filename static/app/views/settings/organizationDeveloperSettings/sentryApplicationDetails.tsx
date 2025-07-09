@@ -440,8 +440,8 @@ export default function SentryApplicationDetails(props: Props) {
                 t('Scopes'),
                 <AddTokenHeader key="token-add">
                   <Button
-                    size="xs"
-                    icon={<IconAdd isCircled />}
+                    size="xs" redesign
+                    icon={<IconAdd isCircled redesign />}
                     onClick={evt => onAddToken(evt)}
                     data-test-id="token-add"
                   >
@@ -500,7 +500,7 @@ export default function SentryApplicationDetails(props: Props) {
                             )}
                             errorMessage={t('Error rotating secret')}
                           >
-                            <Button priority="danger">Rotate client secret</Button>
+                            <Button priority="danger" redesign>Rotate client secret</Button>
                           </Confirm>
                         ) : undefined}
                       </ClientSecret>

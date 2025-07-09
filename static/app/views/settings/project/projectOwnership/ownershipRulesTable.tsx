@@ -204,7 +204,7 @@ export function OwnershipRulesTable({
       <PaginationWrapper>
         <ButtonBar merged>
           <Button
-            icon={<IconChevron direction="left" size="sm" />}
+            icon={<IconChevron redesign direction="left" size="sm" redesign />}
             onClick={() => {
               setPage(page - 1);
             }}
@@ -213,7 +213,7 @@ export function OwnershipRulesTable({
             aria-label={t('Previous page')}
           />
           <Button
-            icon={<IconChevron direction="right" size="sm" />}
+            icon={<IconChevron redesign direction="right" size="sm" redesign />}
             onClick={() => {
               setPage(page + 1);
             }}

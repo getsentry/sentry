@@ -70,7 +70,7 @@ export default Storybook.story('Tag', (story, APIReference) => {
         <br />
         <br />
         {stateDismissed ? (
-          <Button onClick={() => setStateDismissed(false)}>Bring the tag back</Button>
+          <Button onClick={() redesign => setStateDismissed(false)}>Bring the tag back</Button>
         ) : (
           <Tag type="info" onDismiss={() => setStateDismissed(true)}>
             Try dismissing this one

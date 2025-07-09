@@ -136,7 +136,7 @@ function TeamSettings({team}: TeamSettingsProps) {
               })}
             >
               <Button
-                icon={<IconDelete />}
+                icon={<IconDelete redesign redesign />}
                 priority="danger"
                 data-test-id="button-remove-team"
               >

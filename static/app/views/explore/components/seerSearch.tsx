@@ -241,8 +241,8 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
           />
           <PositionedCloseButtonContainer>
             <Button
-              size="xs"
-              icon={<IconClose />}
+              size="xs" redesign
+              icon={<IconClose redesign />}
               onClick={() => {
                 trackAnalytics('trace.explorer.ai_query_interface', {
                   organization,
@@ -288,8 +288,8 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
           <SeerFooter>
             {openForm && (
               <Button
-                size="xs"
-                icon={<IconMegaphone />}
+                size="xs" redesign
+                icon={<IconMegaphone redesign />}
                 onClick={() =>
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),

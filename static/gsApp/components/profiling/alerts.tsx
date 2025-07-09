@@ -96,7 +96,7 @@ interface GraceAlertProps {
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
   const trailingItems = (
     <Fragment>
-      <Button size="xs" onClick={action.onClick} disabled={disableAction}>
+      <Button size="xs" redesign onClick={action.onClick} disabled={disableAction}>
         {action.label}
       </Button>
       {dismiss ? (

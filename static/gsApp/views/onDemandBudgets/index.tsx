@@ -77,7 +77,7 @@ class OnDemandBudgets extends Component<Props> {
         })}
       >
         <div>
-          <LinkButton to={`/settings/${organization.slug}/support/`}>
+          <LinkButton to={`/settings/${organization.slug}/support/`} redesign>
             {t('Contact Support')}
           </LinkButton>
         </div>
@@ -98,7 +98,7 @@ class OnDemandBudgets extends Component<Props> {
     const action = (
       <div>
         <Button
-          priority="primary"
+          priority="primary" redesign
           data-test-id="add-cc-card"
           onClick={() =>
             openEditCreditCard({
@@ -167,7 +167,7 @@ class OnDemandBudgets extends Component<Props> {
       return (
         <InlineButtonGroup>
           <LinkButton
-            href={
+            href={ redesign
               subscription.planTier === PlanTier.AM3
                 ? `https://docs.sentry.io/pricing/#pricing-how-it-works`
                 : `https://docs.sentry.io/pricing/legacy-pricing/#on-demand-volume`
@@ -177,7 +177,7 @@ class OnDemandBudgets extends Component<Props> {
             {t('Learn More')}
           </LinkButton>
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={() => {
               openOnDemandBudgetEditModal(this.props);
             }}

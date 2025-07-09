@@ -175,7 +175,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
   };
 
   const retry = (
-    <Button size="xs" onClick={triggerWebAuthn}>
+    <Button size="xs" redesign onClick={triggerWebAuthn}>
       {t('Try Again')}
     </Button>
   );

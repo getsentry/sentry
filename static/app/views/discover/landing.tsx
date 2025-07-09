@@ -199,7 +199,7 @@ function DiscoverLanding() {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <LinkButton
-                data-test-id="build-new-query"
+                data-test-id="build-new-query" redesign
                 to={to}
                 size="sm"
                 priority="primary"

@@ -191,7 +191,7 @@ function CustomersByVolume(props: Props) {
           Customers by Volume <small>(last 24h)</small>
         </span>
         <Button
-          size="xs"
+          size="xs" redesign
           onClick={() => setLastRefresh(new Date())}
           icon={<IconSync size="xs" />}
         >
@@ -243,7 +243,7 @@ function Overview(props: Props) {
       <div>
         <SectionHeading>
           Integration Platform Apps{' '}
-          <LinkButton size="xs" to="/_admin/sentry-apps/">
+          <LinkButton size="xs" redesign to="/_admin/sentry-apps/">
             More
           </LinkButton>
         </SectionHeading>
@@ -252,7 +252,7 @@ function Overview(props: Props) {
       <div>
         <SectionHeading>
           Document Integrations{' '}
-          <LinkButton size="xs" to="/_admin/doc-integrations/">
+          <LinkButton size="xs" redesign to="/_admin/doc-integrations/">
             More
           </LinkButton>
         </SectionHeading>

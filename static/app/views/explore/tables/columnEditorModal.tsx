@@ -157,7 +157,7 @@ export function ColumnEditorModal({
             <RowContainer>
               <ButtonBar gap={1}>
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   aria-label={t('Add a Column')}
                   onClick={() => insertColumn()}
                   icon={<IconAdd isCircled />}
@@ -170,13 +170,13 @@ export function ColumnEditorModal({
           <Footer data-test-id="editor-footer">
             <ButtonBar gap={1}>
               {!isDocsButtonHidden && (
-                <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+                <LinkButton priority="default" redesign href={SPAN_PROPS_DOCS_URL} external>
                   {t('Read the Docs')}
                 </LinkButton>
               )}
               {handleReset ? (
                 <Button
-                  aria-label={t('Reset')}
+                  aria-label={t('Reset')} redesign
                   onClick={() => {
                     handleReset();
                     closeModal();
@@ -185,7 +185,7 @@ export function ColumnEditorModal({
                   {t('Reset')}
                 </Button>
               ) : null}
-              <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
+              <Button aria-label={t('Apply')} redesign priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
             </ButtonBar>

@@ -35,10 +35,10 @@ function EventAttachmentActions({
     <ButtonBar gap={1}>
       {withPreviewButton && (
         <Button
-          size="xs"
+          size="xs" redesign
           disabled={!hasAttachmentRole || !hasPreview}
           priority={previewIsOpen ? 'primary' : 'default'}
-          icon={<IconShow />}
+          icon={<IconShow redesign />}
           onClick={onPreviewClick}
           title={
             hasAttachmentRole
@@ -52,8 +52,8 @@ function EventAttachmentActions({
         </Button>
       )}
       <LinkButton
-        size="xs"
-        icon={<IconDownload />}
+        size="xs" redesign
+        icon={<IconDownload redesign />}
         href={hasAttachmentRole ? `${url}?download=1` : ''}
         disabled={!hasAttachmentRole}
         title={
@@ -71,8 +71,8 @@ function EventAttachmentActions({
         disabled={!hasAttachmentRole}
       >
         <Button
-          size="xs"
-          icon={<IconDelete />}
+          size="xs" redesign
+          icon={<IconDelete redesign />}
           aria-label={t('Delete')}
           disabled={!hasAttachmentRole}
           title={

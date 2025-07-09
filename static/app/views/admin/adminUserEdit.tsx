@@ -108,10 +108,10 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
         ]}
       />
       <ModalFooter>
-        <Button priority="danger" onClick={handleRemove}>
+        <Button priority="danger" redesign onClick={handleRemove}>
           {REMOVE_BUTTON_LABEL[deleteType]}
         </Button>
-        <Button onClick={closeModal}>{t('Cancel')}</Button>
+        <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
       </ModalFooter>
     </Fragment>
   );
@@ -198,7 +198,7 @@ function AdminUserEdit() {
         }}
         extraButton={
           <Button
-            onClick={openDeleteModal}
+            onClick={openDeleteModal} redesign
             style={{marginLeft: space(1)}}
             priority="danger"
           >

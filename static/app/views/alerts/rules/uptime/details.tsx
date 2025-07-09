@@ -148,8 +148,8 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               {...(canEdit ? {} : {title: permissionTooltipText})}
             />
             <LinkButton
-              size="sm"
-              icon={<IconEdit />}
+              size="sm" redesign
+              icon={<IconEdit redesign />}
               disabled={!canEdit}
               title={canEdit ? undefined : permissionTooltipText}
               to={makeAlertsPathname({

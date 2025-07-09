@@ -69,7 +69,7 @@ export function MetricIssuesSection({
     };
 
     const actions = (
-      <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
+      <LinkButton data-test-id="issues-open" redesign size="xs" to={issueSearch}>
         {t('Open in Issues')}
       </LinkButton>
     );

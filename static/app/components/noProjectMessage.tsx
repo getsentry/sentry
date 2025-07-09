@@ -46,7 +46,7 @@ function NoProjectMessage({
 
   const joinTeamAction = (
     <LinkButton
-      title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
+      title={canJoinTeam redesign ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${organization.slug}/teams/`}
@@ -57,7 +57,7 @@ function NoProjectMessage({
 
   const createProjectAction = (
     <LinkButton
-      title={
+      title={ redesign
         canUserCreateProject
           ? undefined
           : t('You do not have permission to create a project.')

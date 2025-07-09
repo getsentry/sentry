@@ -442,7 +442,7 @@ function BackToTopButton({
   }
   return (
     <Button
-      onClick={() => {
+      onClick={() redesign => {
         setIsFunctionScrolling(true);
         virtualizer.scrollToOffset(0, {
           behavior: 'smooth',

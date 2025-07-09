@@ -26,18 +26,18 @@ export function Footer({
   return (
     <Wrapper>
       <Actions gap={1}>
-        <LinkButton to={goBackLocation}>{t('Cancel')}</LinkButton>
+        <LinkButton to={goBackLocation} redesign>{t('Cancel')}</LinkButton>
         {isEditing && onDelete && (
           <Confirm
             priority="danger"
             message={t('Are you sure you want to delete this widget?')}
             onConfirm={onDelete}
           >
-            <Button priority="danger">{t('Delete')}</Button>
+            <Button priority="danger" redesign>{t('Delete')}</Button>
           </Confirm>
         )}
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={onSave}
           disabled={invalidForm}
           title={

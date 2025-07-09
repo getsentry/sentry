@@ -156,7 +156,7 @@ export function IssuesWidget() {
       <HeaderContainer>
         <SuperHeader disablePadding>
           <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
-          <LinkButton to={issuesUrl} size="xs">
+          <LinkButton to={issuesUrl} redesign size="xs">
             {t('View All')}
           </LinkButton>
         </SuperHeader>

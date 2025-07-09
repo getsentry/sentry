@@ -33,12 +33,12 @@ export function EditConnectedMonitorsDrawer({initialIds, onSave}: Props) {
       <StickyFooter>
         <Flex justify="space-between" flex={1}>
           <LinkButton
-            icon={<IconAdd />}
+            icon={<IconAdd redesign redesign />}
             to={`${makeMonitorBasePathname(organization.slug)}new/`}
           >
             {t('Create New Monitor')}
           </LinkButton>
-          <Button priority="primary" onClick={() => onSave(connectedIds)}>
+          <Button priority="primary" redesign onClick={() => onSave(connectedIds)}>
             {t('Save')}
           </Button>
         </Flex>

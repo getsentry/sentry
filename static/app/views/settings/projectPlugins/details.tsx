@@ -150,7 +150,7 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     return (
       <div className="pull-right">
         {pluginDetails.canDisable && toggleEnable}
-        <Button size="sm" onClick={() => resetMutation.mutate()}>
+        <Button size="sm" redesign onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
       </div>

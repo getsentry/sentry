@@ -244,11 +244,11 @@ class Candidates extends Component<Props, State> {
       return {
         emptyMessage: t('Sorry, no debug files match your search query'),
         emptyAction: hasActiveFilter ? (
-          <Button onClick={this.handleResetFilter} priority="primary">
+          <Button onClick={this.handleResetFilter} redesign priority="primary">
             {t('Reset filter')}
           </Button>
         ) : (
-          <Button onClick={this.handleResetSearchBar} priority="primary">
+          <Button onClick={this.handleResetSearchBar} redesign priority="primary">
             {t('Clear search bar')}
           </Button>
         ),

@@ -21,7 +21,7 @@ function HelpSearchFooter({organization, closeModal}: Props) {
         organization={organization}
         Component={({href, onClick}) => (
           <LinkButton
-            href={href ?? ''}
+            href={href redesign ?? ''}
             size="sm"
             onClick={e => {
               onClick?.(e);

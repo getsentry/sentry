@@ -398,10 +398,10 @@ function FormField(props: FormFieldProps) {
                     type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={handleCancelField} size="xs">
+                        <Button onClick={handleCancelField} redesign size="xs">
                           {t('Cancel')}
                         </Button>
-                        <Button priority="primary" size="xs" onClick={handleSaveField}>
+                        <Button priority="primary" redesign size="xs" onClick={handleSaveField}>
                           {t('Save')}
                         </Button>
                       </Fragment>

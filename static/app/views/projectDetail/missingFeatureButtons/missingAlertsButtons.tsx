@@ -25,7 +25,7 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       >
         {t('Create Alert')}
       </CreateAlertButton>
-      <LinkButton size="sm" external href={DOCS_URL}>
+      <LinkButton size="sm" redesign external href={DOCS_URL}>
         {t('Learn More')}
       </LinkButton>
     </ButtonBar>

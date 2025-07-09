@@ -45,11 +45,11 @@ export default function ReplayPreferenceDropdown({
       disabled={isLoading}
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
-          icon={<IconSettings />}
+          icon={<IconSettings redesign />}
         />
       )}
     >

@@ -43,7 +43,7 @@ function DocIntegrations(props: Props) {
     <div>
       <PageHeader title="Document Integrations">
         <Button
-          onClick={() => openModal(deps => <DocIntegrationModal {...deps} />)}
+          onClick={() redesign => openModal(deps => <DocIntegrationModal {...deps} />)}
           priority="primary"
           size="sm"
         >

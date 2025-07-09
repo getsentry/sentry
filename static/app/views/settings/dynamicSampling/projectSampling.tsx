@@ -134,11 +134,11 @@ export function ProjectSampling() {
           sampleCounts={sampleCountsQuery.data}
           actions={
             <Fragment>
-              <Button disabled={isFormActionDisabled} onClick={handleReset}>
+              <Button disabled={isFormActionDisabled} redesign onClick={handleReset}>
                 {t('Reset')}
               </Button>
               <Button
-                priority="primary"
+                priority="primary" redesign
                 disabled={isFormActionDisabled || !formState.isValid}
                 onClick={handleSubmit}
               >

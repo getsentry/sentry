@@ -105,7 +105,7 @@ function AccountAuthorizations() {
                     )}
                   </ApplicationDetails>
                   <Button
-                    size="sm"
+                    size="sm" redesign
                     onClick={() => handleRevoke(authorization)}
                     icon={<IconDelete />}
                     aria-label={t('Delete')}

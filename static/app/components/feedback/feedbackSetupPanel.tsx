@@ -36,7 +36,7 @@ export default function FeedbackSetupPanel() {
               )}
             </p>
             <Button
-              onClick={activateSidebar}
+              onClick={activateSidebar} redesign
               priority="primary"
               analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
               analyticsEventKey="feedback.index-click-onboarding-setup"

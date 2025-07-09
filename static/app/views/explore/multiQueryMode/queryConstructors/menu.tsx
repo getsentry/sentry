@@ -33,9 +33,9 @@ export function MenuSection({index, totalQueryRows}: Props) {
       ]}
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           aria-label={t('More options')}
-          icon={<IconEllipsis size="xs" />}
+          icon={<IconEllipsis size="xs" redesign />}
         />
       )}
     />

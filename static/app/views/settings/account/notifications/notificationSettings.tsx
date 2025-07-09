@@ -64,7 +64,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         </div>
         <IconWrapper>
           <LinkButton
-            icon={<IconSettings size="sm" />}
+            icon={<IconSettings redesign size="sm" redesign />}
             size="sm"
             borderless
             aria-label={t('Notification Settings')}

@@ -49,10 +49,10 @@ function ProjectPageFilterMenuFooter({
         }}
       </Feature>
       <LinkButton
-        size="xs"
+        size="xs" redesign
         aria-label={t('Add Project')}
         to={makeProjectsPathname({path: '/new/', organization})}
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd isCircled redesign />}
       >
         {t('Project')}
       </LinkButton>

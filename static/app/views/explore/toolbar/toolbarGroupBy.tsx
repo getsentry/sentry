@@ -139,11 +139,11 @@ function ColumnEditorRow({
     >
       {canDelete ? (
         <Button
-          aria-label={t('Drag to reorder')}
+          aria-label={t('Drag redesign to reorder')}
           borderless
           size="zero"
           disabled={disabled}
-          icon={<IconGrabbable size="sm" />}
+          icon={<IconGrabbable size="sm" redesign />}
           {...listeners}
         />
       ) : null}
@@ -159,10 +159,10 @@ function ColumnEditorRow({
       />
       {canDelete ? (
         <Button
-          aria-label={t('Remove Column')}
+          aria-label={t('Remove redesign Column')}
           borderless
           size="zero"
-          icon={<IconDelete size="sm" />}
+          icon={<IconDelete size="sm" redesign />}
           onClick={() => onColumnDelete()}
         />
       ) : null}

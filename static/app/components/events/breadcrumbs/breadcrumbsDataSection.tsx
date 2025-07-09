@@ -127,20 +127,20 @@ export default function BreadcrumbsDataSection({
   const actions = (
     <ButtonBar gap={1}>
       <Button
-        aria-label={t('Open Breadcrumb Search')}
-        icon={<IconSearch size="xs" />}
+        aria-label={t('Open redesign Breadcrumb Search')}
+        icon={<IconSearch size="xs" redesign />}
         size="xs"
         title={t('Open Search')}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
-        aria-label={t('Change Time Format for Breadcrumbs')}
+        aria-label={t('Change redesign Time Format for Breadcrumbs')}
         title={tct('Use [format] Timestamps', {
           format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
         })}
         icon={
           timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
-            <IconClock size="xs" />
+            <IconClock size="xs" redesign />
           ) : (
             <IconTimer size="xs" />
           )

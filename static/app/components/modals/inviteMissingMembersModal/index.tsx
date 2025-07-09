@@ -292,7 +292,7 @@ export function InviteMissingMembersModal({
         <div>{renderStatusMessage()}</div>
         <ButtonBar gap={1}>
           <Button
-            size="sm"
+            size="sm" redesign
             onClick={() => {
               closeModal();
             }}
@@ -300,7 +300,7 @@ export function InviteMissingMembersModal({
             {t('Cancel')}
           </Button>
           <Button
-            size="sm"
+            size="sm" redesign
             priority="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}

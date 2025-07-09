@@ -131,7 +131,7 @@ export function UptimeDataSection({group, event, project}: Props) {
     <ButtonBar gap={1}>
       {defined(alertRuleId) && (
         <LinkButton
-          icon={<IconSettings />}
+          icon={<IconSettings redesign redesign />}
           size="xs"
           to={makeAlertsPathname({
             path: `/rules/uptime/${project.slug}/${alertRuleId}/details/`,

@@ -78,10 +78,10 @@ function ApiApplications({router}: Props) {
         title="API Applications"
         action={
           <Button
-            priority="primary"
+            priority="primary" redesign
             size="sm"
             onClick={handleCreateApplication}
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd isCircled redesign />}
           >
             {t('Create New Application')}
           </Button>

@@ -263,7 +263,7 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
     <Fragment>
       {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
       <ButtonDivider>
-        <Button onClick={() => setIsExpanded(true)} size="xs">
+        <Button onClick={() redesign => setIsExpanded(true)} size="xs">
           {t('+%s more messages', messages.length - MAX_MESSAGES_TO_SHOW)}
         </Button>
       </ButtonDivider>

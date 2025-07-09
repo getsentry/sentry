@@ -55,7 +55,7 @@ function FlamegraphOptionsMenu({
 
   return (
     <Fragment>
-      <Button size="xs" onClick={onResetZoom}>
+      <Button size="xs" redesign onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
@@ -69,7 +69,7 @@ function FlamegraphOptionsMenu({
       />
       {continuousLocationDescriptor ? (
         <LinkButton
-          to={{
+          to={{ redesign
             ...location,
             query: {
               ...location.query,
@@ -79,14 +79,14 @@ function FlamegraphOptionsMenu({
             },
           }}
           size="xs"
-          icon={<IconChevron direction="left" />}
+          icon={<IconChevron direction="left" redesign />}
           aria-label={t('View Previous 30 Minutes')}
           title={t('View Previous 30 Minutes')}
         />
       ) : null}
       {continuousLocationDescriptor ? (
         <LinkButton
-          to={{
+          to={{ redesign
             ...location,
             query: {
               ...location.query,
@@ -96,7 +96,7 @@ function FlamegraphOptionsMenu({
             },
           }}
           size="xs"
-          icon={<IconChevron direction="right" />}
+          icon={<IconChevron direction="right" redesign />}
           aria-label={t('View Next 30 Minutes')}
           title={t('View Next 30 Minutes')}
         />

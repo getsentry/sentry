@@ -167,11 +167,11 @@ function ProjectServiceHooks() {
         action={
           organization.access.includes('project:write') ? (
             <LinkButton
-              data-test-id="new-service-hook"
+              data-test-id="new-service-hook" redesign
               to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
               size="sm"
               priority="primary"
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd isCircled redesign />}
             >
               {t('Create New Hook')}
             </LinkButton>

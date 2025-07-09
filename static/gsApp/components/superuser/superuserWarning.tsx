@@ -41,7 +41,7 @@ function ExitSuperuserButton() {
   const api = useApi({persistInFlight: true});
   return (
     <Button
-      style={{
+      style={{ redesign
         top: space(0.5),
         bottom: space(0.75),
       }}

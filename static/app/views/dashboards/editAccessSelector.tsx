@@ -286,7 +286,7 @@ function EditAccessSelector({
   const dropdownFooterButtons = (
     <FilterButtons>
       <Button
-        size="sm"
+        size="sm" redesign
         onClick={() => {
           setMenuOpen(false);
         }}
@@ -295,7 +295,7 @@ function EditAccessSelector({
         {t('Cancel')}
       </Button>
       <Button
-        size="sm"
+        size="sm" redesign
         onClick={() => {
           const isDefaultState =
             !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');

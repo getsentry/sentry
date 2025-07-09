@@ -105,9 +105,9 @@ function Actions() {
   return (
     <Fragment>
       <LinkButton
-        to={`${makeAutomationBasePathname(organization.slug)}new/`}
+        to={`${makeAutomationBasePathname(organization.slug)}new/`} redesign
         priority="primary"
-        icon={<IconAdd />}
+        icon={<IconAdd redesign />}
         size="sm"
       >
         {t('Create Automation')}

@@ -82,10 +82,10 @@ export default Storybook.story('CompositeSelect', story => {
         <CompositeSelect
           trigger={triggerProps => (
             <Button
-              {...triggerProps}
+              {...triggerProps} redesign
               aria-label={'Select an Option'}
               size="sm"
-              icon={<IconSentry />}
+              icon={<IconSentry redesign />}
             >
               Select an Option
             </Button>
@@ -133,10 +133,10 @@ export default Storybook.story('CompositeSelect', story => {
           <CompositeSelect
             trigger={triggerProps => (
               <Button
-                {...triggerProps}
+                {...triggerProps} redesign
                 aria-label={'Composite Select'}
                 size="sm"
-                icon={<IconSentry />}
+                icon={<IconSentry redesign />}
               >
                 Composite Select Single Select
               </Button>
@@ -159,10 +159,10 @@ export default Storybook.story('CompositeSelect', story => {
           <CompactSelect
             trigger={triggerProps => (
               <Button
-                {...triggerProps}
+                {...triggerProps} redesign
                 aria-label={'Compact Select'}
                 size="sm"
-                icon={<IconStar />}
+                icon={<IconStar redesign />}
               >
                 Compact Select Single Select
               </Button>
@@ -179,10 +179,10 @@ export default Storybook.story('CompositeSelect', story => {
             multiple
             trigger={triggerProps => (
               <Button
-                {...triggerProps}
+                {...triggerProps} redesign
                 aria-label={'Compact Select'}
                 size="sm"
-                icon={<IconStar />}
+                icon={<IconStar redesign />}
               >
                 Compact Select Multiple Select
               </Button>

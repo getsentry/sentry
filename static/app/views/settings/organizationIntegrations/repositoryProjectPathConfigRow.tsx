@@ -45,8 +45,8 @@ export default function RepositoryProjectPathConfigRow({
       <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
       <ButtonWrapper>
         <Button
-          size="sm"
-          icon={<IconEdit size="sm" />}
+          size="sm" redesign
+          icon={<IconEdit size="sm" redesign />}
           aria-label={t('edit')}
           onClick={() => onEdit(pathConfig)}
         />
@@ -64,8 +64,8 @@ export default function RepositoryProjectPathConfigRow({
                 disabled={!hasAccess}
               >
                 <Button
-                  size="sm"
-                  icon={<IconDelete size="sm" />}
+                  size="sm" redesign
+                  icon={<IconDelete size="sm" redesign />}
                   aria-label={t('delete')}
                   disabled={!hasAccess}
                 />

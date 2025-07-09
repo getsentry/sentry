@@ -34,7 +34,7 @@ import useApi from 'sentry/utils/useApi';
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
 const docsLink = (
-  <LinkButton external href={releasesSetupUrl}>
+  <LinkButton external redesign href={releasesSetupUrl}>
     {t('Setup')}
   </LinkButton>
 );
@@ -206,7 +206,7 @@ sentry-cli releases finalize "$VERSION"`,
         <ContainerHeader>
           <h3>{t('Set up Releases')}</h3>
 
-          <LinkButton priority="default" size="sm" href={releasesSetupUrl} external>
+          <LinkButton priority="default" redesign size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
           </LinkButton>
         </ContainerHeader>

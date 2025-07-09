@@ -106,7 +106,7 @@ function UserOverview({
                 <ButtonWrapper>
                   <div>{identityLabel(identity)}</div>
                   <Button
-                    icon={<IconNot />}
+                    icon={<IconNot redesign redesign />}
                     priority="danger"
                     size="xs"
                     title="Disconnect Identity"
@@ -146,7 +146,7 @@ function UserOverview({
                 <ButtonWrapper>
                   <div>{auth.name}</div>
                   <Button
-                    icon={<IconNot />}
+                    icon={<IconNot redesign redesign />}
                     priority="danger"
                     size="xs"
                     title="Remove Authenticator"

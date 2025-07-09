@@ -44,14 +44,14 @@ function SpanEvidenceInteriumSection({
         issueType &&
         hasSetting && (
           <LinkButton
-            data-test-id="span-evidence-settings-btn"
+            data-test-id="span-evidence-settings-btn" redesign
             to={{
               pathname: `/settings/${organization.slug}/projects/${projectSlug}/performance/`,
               query: {issueType},
               hash: sanitizedIssueTitle,
             }}
             size="xs"
-            icon={<IconSettings />}
+            icon={<IconSettings redesign />}
           >
             {t('Threshold Settings')}
           </LinkButton>

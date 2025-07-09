@@ -100,7 +100,7 @@ export default Storybook.story('Layout Components', story => {
           <List
             title="Automations"
             action={
-              <Button icon={<IconAdd isCircled />} priority="primary">
+              <Button icon={<IconAdd redesign isCircled redesign />} priority="primary">
                 Create Automation
               </Button>
             }
@@ -132,7 +132,7 @@ export default Storybook.story('Layout Components', story => {
             title="Notify Slack team"
             breadcrumb="Automations"
             action={
-              <Button icon={<IconEdit />} priority="primary">
+              <Button icon={<IconEdit redesign redesign />} priority="primary">
                 Edit
               </Button>
             }

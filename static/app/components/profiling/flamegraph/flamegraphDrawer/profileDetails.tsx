@@ -123,7 +123,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           className={detailsTab === 'transaction' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Trace')}
+            data-title={t('Trace')} redesign
             priority="link"
             size="zero"
             onClick={onTransactionTabClick}
@@ -136,7 +136,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           className={detailsTab === 'environment' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Environment')}
+            data-title={t('Environment')} redesign
             priority="link"
             size="zero"
             onClick={onEnvironmentTabClick}

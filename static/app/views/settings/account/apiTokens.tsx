@@ -98,7 +98,7 @@ function ApiTokens() {
 
   const action = (
     <LinkButton
-      priority="primary"
+      priority="primary" redesign
       size="sm"
       to="/settings/account/api/auth-tokens/new-token/"
     >

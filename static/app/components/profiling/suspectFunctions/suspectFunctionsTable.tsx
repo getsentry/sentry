@@ -129,13 +129,13 @@ export function SuspectFunctionsTable({
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
         <ButtonBar merged>
           <Button
-            icon={<IconChevron direction="left" />}
+            icon={<IconChevron redesign direction="left" redesign />}
             aria-label={t('Previous')}
             size="xs"
             {...pagination.previousButtonProps}
           />
           <Button
-            icon={<IconChevron direction="right" />}
+            icon={<IconChevron redesign direction="right" redesign />}
             aria-label={t('Next')}
             size="xs"
             {...pagination.nextButtonProps}

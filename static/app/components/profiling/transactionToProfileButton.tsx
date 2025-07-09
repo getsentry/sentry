@@ -45,7 +45,7 @@ function TransactionToProfileButton({
   });
 
   return (
-    <LinkButton size={size} onClick={handleGoToProfile} to={target}>
+    <LinkButton size={size} redesign onClick={handleGoToProfile} to={target}>
       {children}
     </LinkButton>
   );

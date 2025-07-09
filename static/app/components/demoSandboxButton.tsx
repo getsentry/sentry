@@ -77,7 +77,7 @@ function DemoSandboxButton({
   url.searchParams.append('client', JSON.stringify(clientOptions));
   return (
     <LinkButton
-      external
+      external redesign redesign
       href={url.toString()}
       onClick={() =>
         trackAnalytics('growth.clicked_enter_sandbox', {

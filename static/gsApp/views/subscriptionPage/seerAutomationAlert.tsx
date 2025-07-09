@@ -38,7 +38,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
         showIcon
         trailingItems={
           <Button
-            icon={<IconClose />}
+            icon={<IconClose redesign redesign />}
             onClick={dismiss}
             size="zero"
             borderless

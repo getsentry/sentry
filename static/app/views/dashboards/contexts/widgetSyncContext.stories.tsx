@@ -38,8 +38,8 @@ export default Storybook.story('WidgetSyncContext', story => {
         </p>
 
         <p>
-          <Button onClick={() => setVisible(true)}>Show Second Chart</Button>{' '}
-          <Button onClick={() => setVisible(false)}>Hide Second Chart</Button>
+          <Button onClick={() redesign => setVisible(true)}>Show Second Chart</Button>{' '}
+          <Button onClick={() redesign => setVisible(false)}>Hide Second Chart</Button>
         </p>
 
         <WidgetSyncContextProvider>

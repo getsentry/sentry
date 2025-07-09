@@ -51,7 +51,7 @@ function ViewAllGroupAttachmentsButton() {
 
   return (
     <LinkButton
-      size="xs"
+      size="xs" redesign
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
         query: location.query,

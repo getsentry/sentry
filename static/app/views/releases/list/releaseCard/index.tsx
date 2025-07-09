@@ -198,7 +198,7 @@ function ReleaseCard({
                   )}
                 >
                   <Button
-                    size="xs"
+                    size="xs" redesign
                     onClick={() =>
                       finalizeRelease.mutate([release], {
                         onSettled() {
@@ -238,14 +238,14 @@ function ReleaseCard({
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <ExpandButtonWrapper>
-                <Button priority="primary" size="xs" onClick={onExpand}>
+                <Button priority="primary" redesign size="xs" onClick={onExpand}>
                   {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                 </Button>
               </ExpandButtonWrapper>
             )}
             collapseButton={({onCollapse}) => (
               <CollapseButtonWrapper>
-                <Button priority="primary" size="xs" onClick={onCollapse}>
+                <Button priority="primary" redesign size="xs" onClick={onCollapse}>
                   {t('Collapse')}
                 </Button>
               </CollapseButtonWrapper>

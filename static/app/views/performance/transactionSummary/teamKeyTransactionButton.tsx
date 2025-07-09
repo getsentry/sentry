@@ -55,13 +55,13 @@ function TeamKeyTransactionButton({
           }
         >
           <Button
-            {...triggerProps}
+            {...triggerProps} redesign
             disabled={disabled}
             size="sm"
             icon={
               <IconStar
                 isSolid={!!keyedTeamsCount}
-                color={keyedTeamsCount ? 'yellow300' : 'subText'}
+                color={keyedTeamsCount ? 'yellow300' : 'subText'} redesign
               />
             }
           >
@@ -91,7 +91,7 @@ function TeamKeyTransactionButtonWrapper({
 
   if (eventView.project.length !== 1) {
     return (
-      <Button disabled size="sm" icon={<IconStar />}>
+      <Button disabled redesign size="sm" icon={<IconStar redesign />}>
         {t('Star for Team')}
       </Button>
     );
@@ -101,7 +101,7 @@ function TeamKeyTransactionButtonWrapper({
   const project = projects.find(proj => proj.id === projectId);
   if (!defined(project)) {
     return (
-      <Button disabled size="sm" icon={<IconStar />}>
+      <Button disabled redesign size="sm" icon={<IconStar redesign />}>
         {t('Star for Team')}
       </Button>
     );

@@ -68,7 +68,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
     <ViewTitleWrapper>
       <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
       <Button
-        icon={<IconEdit />}
+        icon={<IconEdit redesign redesign />}
         onClick={handleBeginEditing}
         aria-label={t('Edit view name')}
         size="sm"

@@ -192,9 +192,9 @@ SavedEntityTable.CellStar = function CellStar({
 }) {
   return (
     <Button
-      aria-label={isStarred ? t('Unstar') : t('Star')}
+      aria-label={isStarred redesign ? t('Unstar') : t('Star')}
       borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} redesign />}
       size="sm"
       onClick={onClick}
     />
@@ -263,11 +263,11 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
     <DropdownMenu
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           aria-label={t('More options')}
           size="sm"
           borderless
-          icon={<IconEllipsis compact />}
+          icon={<IconEllipsis compact redesign />}
           data-test-id="menu-trigger"
         />
       )}

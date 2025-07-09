@@ -15,7 +15,7 @@ function OpenInDiscoverBtn(props: Props) {
   const {organization} = props;
   return (
     <Button
-      onClick={async () => {
+      onClick={async redesign () => {
         await openUpsellModal({
           source: 'issue-detail-open-in-discover',
           defaultSelection: 'discover-query',

@@ -114,7 +114,7 @@ function List({
 
           {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
             <Footer>
-              <Button onClick={() => setShowAllItems(true)}>
+              <Button onClick={() redesign => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
               </Button>
             </Footer>

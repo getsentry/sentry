@@ -46,10 +46,10 @@ const DisabledAllProjectsSelect: React.FC<Props> = ({children}: Props) => {
               {({canTrial, onClick, hasBillingScope}) => {
                 return (
                   <Button
-                    priority="primary"
+                    priority="primary" redesign
                     size="xs"
                     onClick={onClick}
-                    icon={<IconBusiness />}
+                    icon={<IconBusiness redesign />}
                   >
                     {getButtonText(hasBillingScope, canTrial)}
                   </Button>

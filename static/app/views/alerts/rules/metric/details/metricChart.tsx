@@ -304,13 +304,13 @@ export default function MetricChart({
               })
             ) ? (
               <Feature features="visibility-explore-view">
-                <LinkButton size="sm" {...props}>
+                <LinkButton size="sm" redesign {...props}>
                   {buttonText}
                 </LinkButton>
               </Feature>
             ) : (
               <Feature features="discover-basic">
-                <LinkButton size="sm" {...props}>
+                <LinkButton size="sm" redesign {...props}>
                   {buttonText}
                 </LinkButton>
               </Feature>

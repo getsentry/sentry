@@ -112,8 +112,8 @@ function UptimHeadersControl(props: any) {
                 }
               />
               <Button
-                disabled={disabled}
-                icon={<IconDelete />}
+                disabled={disabled} redesign
+                icon={<IconDelete redesign />}
                 size="sm"
                 borderless
                 aria-label={
@@ -128,7 +128,7 @@ function UptimHeadersControl(props: any) {
         </HeaderItems>
       )}
       <HeaderActions>
-        <Button disabled={disabled} icon={<IconAdd />} size="sm" onClick={addItem}>
+        <Button disabled={disabled} redesign icon={<IconAdd redesign />} size="sm" onClick={addItem}>
           {t('Add Header')}
         </Button>
         <FormFieldControlState model={model} name={name} />

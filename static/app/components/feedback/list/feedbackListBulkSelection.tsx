@@ -56,7 +56,7 @@ export default function FeedbackListBulkSelection({
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
           <Button
-            size="xs"
+            size="xs" redesign
             onClick={() => onToggleResolved({newMailbox: newMailboxResolve})}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
@@ -64,7 +64,7 @@ export default function FeedbackListBulkSelection({
         </ErrorBoundary>
         <ErrorBoundary mini>
           <Button
-            size="xs"
+            size="xs" redesign
             onClick={() =>
               onToggleResolved({
                 newMailbox: newMailboxSpam,

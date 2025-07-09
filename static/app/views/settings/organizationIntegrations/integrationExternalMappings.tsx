@@ -159,9 +159,9 @@ function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          borderless
+          borderless redesign
           size="sm"
-          icon={<IconDelete size="sm" />}
+          icon={<IconDelete size="sm" redesign />}
           aria-label={t('Remove user mapping')}
           title={
             canDelete

@@ -100,7 +100,7 @@ export default function ReplayPreviewPlayer({
           showDropdownFilters={false}
         />
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={{
             pathname: makeReplaysPathname({
               path: `/${replayId}/`,
@@ -141,9 +141,9 @@ export default function ReplayPreviewPlayer({
           <ButtonGrid>
             {showNextAndPrevious && (
               <Button
-                size="sm"
+                size="sm" redesign
                 title={t('Previous Clip')}
-                icon={<IconPrevious />}
+                icon={<IconPrevious redesign />}
                 onClick={() => handleBackClick?.()}
                 aria-label={t('Previous Clip')}
                 disabled={!handleBackClick}
@@ -160,9 +160,9 @@ export default function ReplayPreviewPlayer({
             />
             {showNextAndPrevious && (
               <Button
-                size="sm"
+                size="sm" redesign
                 title={t('Next Clip')}
-                icon={<IconNext />}
+                icon={<IconNext redesign />}
                 onClick={() => handleForwardClick?.()}
                 aria-label={t('Next Clip')}
                 disabled={!handleForwardClick}

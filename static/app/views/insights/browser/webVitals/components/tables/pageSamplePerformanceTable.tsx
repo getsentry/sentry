@@ -441,7 +441,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           <AlignCenter>
             {profileTarget && profileExists(profileId) ? (
               <Tooltip title={t('View Profile')}>
-                <LinkButton to={profileTarget} size="xs">
+                <LinkButton to={profileTarget} redesign size="xs">
                   <IconProfiling size="xs" />
                 </LinkButton>
               </Tooltip>
@@ -481,7 +481,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             Object.keys(replayTarget).length > 0 &&
             replayExists(row[key]) ? (
               <Tooltip title={t('View Replay')}>
-                <LinkButton to={replayTarget} size="xs">
+                <LinkButton to={replayTarget} redesign size="xs">
                   <IconPlay size="xs" />
                 </LinkButton>
               </Tooltip>
@@ -673,12 +673,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         <Wrapper>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" />}
+              icon={<IconChevron redesign direction="left" redesign />}
               disabled
               aria-label={t('Previous')}
             />
             <Button
-              icon={<IconChevron direction="right" />}
+              icon={<IconChevron redesign direction="right" redesign />}
               disabled
               aria-label={t('Next')}
             />

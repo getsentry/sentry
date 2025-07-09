@@ -324,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
         >
           {t('Go to Feature Flag Settings')}

@@ -61,7 +61,7 @@ function RootAllocationCard({
             </NoRootInfo>
             <EnableRoot>
               <Button
-                icon={<IconAdd />}
+                icon={<IconAdd redesign redesign />}
                 onClick={createRootAllocation}
                 disabled={rootAllocation}
               >

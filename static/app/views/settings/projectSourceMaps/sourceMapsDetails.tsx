@@ -87,8 +87,8 @@ function ArtifactsTableRow({
           isHoverable
         >
           <LinkButton
-            size="sm"
-            icon={<IconDownload size="sm" />}
+            size="sm" redesign
+            icon={<IconDownload size="sm" redesign />}
             disabled={!hasRole}
             href={downloadUrl}
             title={hasRole ? t('Download Artifact') : undefined}

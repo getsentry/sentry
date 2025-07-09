@@ -88,12 +88,12 @@ export default Storybook.story('Collapsible', story => {
       <Collapsible
         maxVisibleItems={2}
         collapseButton={({onCollapse}) => (
-          <Button size="xs" onClick={onCollapse}>
+          <Button size="xs" redesign onClick={onCollapse}>
             Collapse
           </Button>
         )}
         expandButton={({numberOfHiddenItems, onExpand}) => (
-          <Button size="xs" onClick={onExpand}>
+          <Button size="xs" redesign onClick={onExpand}>
             Expand ({numberOfHiddenItems} hidden)
           </Button>
         )}

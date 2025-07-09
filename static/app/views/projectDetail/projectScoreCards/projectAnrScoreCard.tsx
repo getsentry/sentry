@@ -166,7 +166,7 @@ export function ProjectAnrScoreCard({
       Actions={
         <Widget.WidgetToolbar>
           <LinkButton
-            size="xs"
+            size="xs" redesign
             to={issueSearch}
             onClick={() => {
               trackAnalytics('project_detail.open_anr_issues', {

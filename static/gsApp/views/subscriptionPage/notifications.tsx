@@ -194,7 +194,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         </PanelBody>
         <NotificationsFooter>
           <Button
-            disabled={isThresholdsEqual(backendThresholds, notificationThresholds)}
+            disabled={isThresholdsEqual(backendThresholds, redesign notificationThresholds)}
             onClick={() => {
               setNotificationThresholds(backendThresholds);
             }}
@@ -202,7 +202,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
             {t('Reset')}
           </Button>
           <Button
-            priority="primary"
+            priority="primary" redesign
             disabled={isThresholdsEqual(backendThresholds, notificationThresholds)}
             onClick={() => {
               addLoadingMessage(t('Saving threshold notifications\u2026'));
@@ -285,7 +285,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
                 }}
               />
               <Button
-                priority="default"
+                priority="default" redesign
                 onClick={() => {
                   removeThreshold(index);
                 }}
@@ -312,7 +312,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
               }}
             />
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={() => {
                 if (newThresholdValue !== undefined) {
                   setNewThresholdValue(undefined);

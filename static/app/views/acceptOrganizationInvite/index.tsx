@@ -57,7 +57,7 @@ function AcceptActions({
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
             <LinkButton
-              data-test-id="sso-login"
+              data-test-id="sso-login" redesign
               priority="primary"
               href={`/auth/login/${inviteDetails.orgSlug}/`}
             >
@@ -66,7 +66,7 @@ function AcceptActions({
           )}
 
           <Button
-            data-test-id="join-organization"
+            data-test-id="join-organization" redesign
             priority="primary"
             busy={isAccepting}
             disabled={isAccepting}
@@ -120,7 +120,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
       </p>
       <Actions>
         <LinkButton
-          external
+          external redesign
           priority="primary"
           href={`${sentryUrl}/settings/account/security/`}
         >
@@ -171,7 +171,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && (
             <LinkButton
-              data-test-id="sso-login"
+              data-test-id="sso-login" redesign
               priority="primary"
               href={`/auth/login/${inviteDetails.orgSlug}/`}
             >
@@ -180,7 +180,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
           )}
           {!inviteDetails.requireSso && (
             <LinkButton
-              data-test-id="create-account"
+              data-test-id="create-account" redesign
               priority="primary"
               href="/auth/register/"
             >

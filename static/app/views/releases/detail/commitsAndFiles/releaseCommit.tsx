@@ -108,7 +108,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
       </CommitContent>
 
       {commit.pullRequest?.externalUrl && (
-        <LinkButton external href={commit.pullRequest.externalUrl}>
+        <LinkButton external redesign href={commit.pullRequest.externalUrl}>
           {t('View Pull Request')}
         </LinkButton>
       )}

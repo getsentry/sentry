@@ -157,7 +157,7 @@ export default Storybook.story('Timeline', story => {
         title={'Data'}
         icon={<IconDashboard size="xs" />}
         timestamp={
-          <Button size="xs" style={{marginBottom: 4}}>
+          <Button size="xs" redesign style={{marginBottom: 4}}>
             Button Timestamp!
           </Button>
         }

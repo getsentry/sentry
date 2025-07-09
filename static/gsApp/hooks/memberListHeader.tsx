@@ -51,10 +51,10 @@ function MemberListHeader({members, organization, subscription}: Props) {
         <UpsellProvider source="member-settings-table-header">
           {({canTrial, onClick}) => (
             <Button
-              priority="default"
+              priority="default" redesign
               size="xs"
               onClick={onClick}
-              icon={<IconBusiness />}
+              icon={<IconBusiness redesign />}
               data-test-id="member-settings-table-header-upsell-button"
             >
               {canTrial ? t('Start Trial') : t('Upgrade')}

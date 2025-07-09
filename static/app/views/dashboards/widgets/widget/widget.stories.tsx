@@ -31,8 +31,8 @@ export default Storybook.story('Widget', (story, APIReference) => {
             TitleBadges={[<Tag key="frontend">frontend</Tag>]}
             Actions={
               <Widget.WidgetToolbar>
-                <Button size="xs">Say More</Button>
-                <Button size="xs">Say Less</Button>
+                <Button size="xs" redesign>Say More</Button>
+                <Button size="xs" redesign>Say Less</Button>
                 <Widget.WidgetDescription
                   title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
@@ -110,8 +110,8 @@ import {Widget} from './widget';
   TitleBadges={[<Tag key="frontend">frontend</Tag>]}
   Actions={
     <Widget.WidgetToolbar>
-      <Button size="xs">Say More</Button>
-      <Button size="xs">Say Less</Button>
+      <Button size="xs" redesign>Say More</Button>
+      <Button size="xs" redesign>Say Less</Button>
       <Widget.WidgetDescription
         title="epm() : /insights/frontend/assets"
         description="Events received, tracked per minute"
@@ -213,7 +213,7 @@ function InsightsLineChart() {
         Visualization={
           <div>
             <p>Sorry, this feature is not available!</p>
-            <Button onClick={contactSupport}>Contact Support</Button>
+            <Button onClick={contactSupport} redesign>Contact Support</Button>
           </div>
         }
       />
@@ -243,7 +243,7 @@ function InsightsLineChart() {
         Title={Title}
         Actions={
           <Widget.WidgetToolbar>
-            <Button size="xs" onClick={retry}>
+            <Button size="xs" redesign onClick={retry}>
               Retry
             </Button>
           </Widget.WidgetToolbar>
@@ -279,7 +279,7 @@ function InsightsLineChart() {
       Title={Title}
       Actions={
         <Widget.WidgetToolbar>
-          <Button size="xs" onClick={addToDashboard}>
+          <Button size="xs" redesign onClick={addToDashboard}>
             Add to Dashboard
           </Button>
           <Widget.WidgetDescription description="This shows how often the event is happening" />

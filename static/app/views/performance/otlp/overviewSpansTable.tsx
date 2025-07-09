@@ -164,8 +164,8 @@ function renderBodyCell(
     return (
       <div>
         <LinkButton
-          size="xs"
-          icon={<IconProfiling size="xs" />}
+          size="xs" redesign
+          icon={<IconProfiling size="xs" redesign />}
           to={{
             pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
             query: {
@@ -183,8 +183,8 @@ function renderBodyCell(
     return (
       <div>
         <LinkButton
-          size="xs"
-          icon={<IconPlay size="xs" />}
+          size="xs" redesign
+          icon={<IconPlay size="xs" redesign />}
           to={{
             pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
             query: {

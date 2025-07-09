@@ -33,10 +33,10 @@ export function StorySourceLinks() {
   return (
     <Flex align="center" justify="space-between" gap={space(1)}>
       <LinkButton
-        priority="transparent"
+        priority="transparent" redesign
         href={`https://github.com/getsentry/sentry/edit/master/static/${story.filename}`}
         external
-        icon={<IconEdit />}
+        icon={<IconEdit redesign />}
         size="xs"
       >
         {t('Edit on GitHub')}

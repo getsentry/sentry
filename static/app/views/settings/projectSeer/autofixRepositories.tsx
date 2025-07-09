@@ -229,8 +229,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </Flex>
         <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
           <LinkButton
-            size="sm"
-            icon={<IconGithub />}
+            size="sm" redesign
+            icon={<IconGithub redesign />}
             to={`/settings/${organization.slug}/integrations/github/`}
             style={{textTransform: 'none'}}
           >
@@ -254,8 +254,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             }
           >
             <Button
-              size="sm"
-              icon={<IconAdd />}
+              size="sm" redesign
+              icon={<IconAdd redesign />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
             >

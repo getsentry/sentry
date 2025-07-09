@@ -253,12 +253,12 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
               href={`${regionHost}${api.baseUrl}/internal/project-config/?projectId=${projectId}`}
               data-test-id="raw-project-config"
             >
-              <Button icon={<IconOpen />} size="xs">
+              <Button icon={<IconOpen redesign redesign />} size="xs">
                 Raw Project Config
               </Button>
             </ExternalLink>
             <Button
-              size="xs"
+              size="xs" redesign
               onClick={() => {
                 invalidateProjectConfig();
               }}

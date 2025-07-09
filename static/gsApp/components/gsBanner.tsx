@@ -135,7 +135,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Footer>
         <ZendeskLink
           subject="Account Suspension"
-          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
+          Component={props => <LinkButton {...props} redesign href={props.href ?? ''} redesign />}
           source="account-suspension"
         >
           {t('Contact Support')}
@@ -284,9 +284,9 @@ function NoticeModal({
         {subText && <p>{subText}</p>}
       </Body>
       <Footer>
-        <Button onClick={() => closeModalDoNotContinue()}>{t('Remind Me Later')}</Button>
+        <Button onClick={() redesign => closeModalDoNotContinue()}>{t('Remind Me Later')}</Button>
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={() => closeModalAndContinue(link)}
           style={{marginLeft: space(2)}}
           data-test-id="modal-continue-button"
@@ -947,7 +947,7 @@ class GSBanner extends Component<Props, State> {
           <ButtonBar gap={1}>
             {!strictlySeatOverage && (
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes[0]}s&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
                 onClick={() => {
                   trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
@@ -963,7 +963,7 @@ class GSBanner extends Component<Props, State> {
             )}
             {this.renderOverageAlertPrimaryCTA(eventTypes, isWarning)}
             <Button
-              icon={<IconClose size="sm" />}
+              icon={<IconClose redesign size="sm" redesign />}
               data-test-id="btn-overage-notification-snooze"
               onClick={() => {
                 trackGetsentryAnalytics('quota_alert.clicked_snooze', {
@@ -1140,11 +1140,11 @@ class GSBanner extends Component<Props, State> {
                   {
                     updateUrl: (
                       <LinkButton
-                        to={billingUrl}
+                        to={billingUrl} redesign
                         size="xs"
                         priority="default"
                         aria-label={t('Update payment information')}
-                        onClick={addButtonAnalytics}
+                        onClick={addButtonAnalytics} redesign
                       />
                     ),
                   }
@@ -1154,11 +1154,11 @@ class GSBanner extends Component<Props, State> {
                   {
                     updateUrl: (
                       <LinkButton
-                        to={membersPageUrl}
+                        to={membersPageUrl} redesign
                         size="xs"
                         priority="default"
                         aria-label={t('Org Owner or Billing Member')}
-                        onClick={addButtonAnalytics}
+                        onClick={addButtonAnalytics} redesign
                       />
                     ),
                   }
@@ -1199,7 +1199,7 @@ class GSBanner extends Component<Props, State> {
               trailingItems={
                 <ButtonBar gap={1}>
                   <LinkButton
-                    to={checkoutUrl}
+                    to={checkoutUrl} redesign
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
                     priority="primary"
@@ -1207,7 +1207,7 @@ class GSBanner extends Component<Props, State> {
                     {t('Upgrade')}
                   </LinkButton>
                   <Button
-                    onClick={this.handleSnoozeMemberDeactivatedAlert}
+                    onClick={this.handleSnoozeMemberDeactivatedAlert} redesign
                     size="xs"
                     priority="default"
                     title={t(

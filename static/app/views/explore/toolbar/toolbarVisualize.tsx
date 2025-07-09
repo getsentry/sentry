@@ -216,8 +216,8 @@ function VisualizeEquation({
         setExpression={handleExpressionChange}
       />
       <Button
-        borderless
-        icon={<IconDelete />}
+        borderless redesign
+        icon={<IconDelete redesign />}
         size="zero"
         onClick={() => deleteOverlay(group)}
         aria-label={t('Remove Overlay')}
@@ -310,8 +310,8 @@ function VisualizeDropdown({
       />
       {canDelete ? (
         <Button
-          borderless
-          icon={<IconDelete />}
+          borderless redesign
+          icon={<IconDelete redesign />}
           size="zero"
           onClick={() => deleteOverlay(group)}
           aria-label={t('Remove Overlay')}

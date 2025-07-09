@@ -224,10 +224,10 @@ function DeviceClassBreakdownBarChart({
               referrer={referrer}
             />
             <Button
-              size="xs"
+              size="xs" redesign
               aria-label={t('Open Full-Screen View')}
               borderless
-              icon={<IconExpand />}
+              icon={<IconExpand redesign />}
               onClick={() => {
                 openInsightChartModal({
                   title: Title,

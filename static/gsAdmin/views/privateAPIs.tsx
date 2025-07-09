@@ -65,7 +65,7 @@ function ForceAutoAssignment() {
             minLength={1}
             placeholder="1, 2, 3"
           />
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             Submit
           </Button>
         </SearchContainer>

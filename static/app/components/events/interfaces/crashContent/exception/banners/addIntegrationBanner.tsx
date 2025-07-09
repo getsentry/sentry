@@ -27,7 +27,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
           )}
         </IntegationBannerDescription>
         <LinkButton
-          to={{
+          to={{ redesign
             pathname: `/settings/${orgSlug}/integrations/`,
             // This should filter to only source code management integrations
             query: {category: 'source code management'},

@@ -354,7 +354,7 @@ export default function StreamlinedActivitySection({
             <ActivityTimelineItem
               title={
                 <LinkButton
-                  aria-label={t('View all activity')}
+                  aria-label={t('View redesign all activity')}
                   to={activityLink}
                   size="xs"
                   analyticsEventKey="issue_details.activity_expanded"

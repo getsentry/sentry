@@ -47,7 +47,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
         </p>
         <ButtonBar>
           {['One', 'Two', 'Three'].map(id => (
-            <Button key={id} {...makeProps(id)}>
+            <Button key={id} redesign {...makeProps(id)}>
               {id}
             </Button>
           ))}
@@ -59,7 +59,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
         </p>
         <ButtonBar merged>
           {['One', 'Two', 'Three'].map(id => (
-            <Button key={id} {...makeMergedProps(id)}>
+            <Button key={id} redesign {...makeMergedProps(id)}>
               {id}
             </Button>
           ))}
@@ -71,7 +71,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
         </p>
         <ButtonBar merged>
           {['One', 'Two', 'Three'].map(id => (
-            <Button key={id}>{id}</Button>
+            <Button key={id} redesign>{id}</Button>
           ))}
         </ButtonBar>
 

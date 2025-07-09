@@ -80,7 +80,7 @@ class Settings extends DefaultSettings<Props, State> {
         {this.renderFields(requiredFields)}
         {onPremisesFields.length > 0 ? (
           <div className="control-group">
-            <Button type="button" onClick={this.toggleOnPremisesConfiguration}>
+            <Button type="button" redesign onClick={this.toggleOnPremisesConfiguration}>
               {t('Configure on-premises')}
             </Button>
           </div>

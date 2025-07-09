@@ -47,7 +47,7 @@ export default Storybook.story('GuidedSteps', story => {
       const {setCurrentStep, totalSteps} = useGuidedStepsContext();
       return (
         <GuidedSteps.ButtonWrapper>
-          <Button size="sm" onClick={() => setCurrentStep(totalSteps)}>
+          <Button size="sm" redesign onClick={() => setCurrentStep(totalSteps)}>
             Skip to Last Step
           </Button>
         </GuidedSteps.ButtonWrapper>

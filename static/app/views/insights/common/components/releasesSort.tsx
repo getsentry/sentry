@@ -27,9 +27,9 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
     <CompositeSelect
       trigger={triggerProps => (
         <Button
-          {...triggerProps}
+          {...triggerProps} redesign
           size="xs"
-          icon={<IconSort />}
+          icon={<IconSort redesign />}
           title={t('Sort Releases')}
           aria-label={t('Sort Releases')}
         />

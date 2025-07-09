@@ -47,7 +47,7 @@ function OrganizationFeatureFlagsIndex() {
             )}
           >
             <Button
-              aria-label={t('Set Up Evaluation Tracking')}
+              aria-label={t('Set redesign Up Evaluation Tracking')}
               onClick={mouseEvent => {
                 activateSidebar(mouseEvent);
               }}
@@ -64,7 +64,7 @@ function OrganizationFeatureFlagsIndex() {
             )}
           >
             <LinkButton
-              to={`/settings/${organization.slug}/feature-flags/change-tracking/`}
+              to={`/settings/${organization.slug}/feature-flags/change-tracking/`} redesign
             >
               {t('Manage Providers')}
             </LinkButton>

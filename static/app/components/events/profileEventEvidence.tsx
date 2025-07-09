@@ -28,7 +28,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             value: evidenceData.transactionName,
             actionButton: traceSlug ? (
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 to={generateLinkToEventInTraceView({
                   traceSlug,
                   timestamp: evidenceData.timestamp,
@@ -51,7 +51,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             value: evidenceData.profileId,
             actionButton: (
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 to={generateProfileFlamechartRouteWithHighlightFrame({
                   organization,
                   profileId: evidenceData.profileId,
@@ -62,7 +62,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                     referrer: 'issue',
                   },
                 })}
-                icon={<IconProfiling />}
+                icon={<IconProfiling redesign />}
               >
                 {t('View Profile')}
               </LinkButton>

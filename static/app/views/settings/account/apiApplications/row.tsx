@@ -66,7 +66,7 @@ function Row({app, onRemove}: Props) {
         confirmInput={app.name}
         onConfirm={handleRemove}
       >
-        <Button disabled={isLoading} size="sm" icon={<IconDelete />}>
+        <Button disabled={isLoading} redesign size="sm" icon={<IconDelete redesign />}>
           {t('Remove')}
         </Button>
       </ConfirmDelete>

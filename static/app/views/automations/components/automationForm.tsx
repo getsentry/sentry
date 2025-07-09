@@ -82,12 +82,12 @@ export default function AutomationForm({model}: {model: FormModel}) {
         <ConnectedMonitorsList monitors={connectedMonitors} />
         <ButtonWrapper justify="space-between">
           <LinkButton
-            icon={<IconAdd />}
+            icon={<IconAdd redesign redesign />}
             to={`${makeMonitorBasePathname(organization.slug)}new/`}
           >
             {t('Create New Monitor')}
           </LinkButton>
-          <Button icon={<IconEdit />} onClick={showEditMonitorsDrawer}>
+          <Button icon={<IconEdit redesign redesign />} onClick={showEditMonitorsDrawer}>
             {t('Edit Monitors')}
           </Button>
         </ButtonWrapper>

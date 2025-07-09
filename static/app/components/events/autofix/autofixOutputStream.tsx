@@ -158,7 +158,7 @@ function ActiveLogDisplay({
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
-          size="xs"
+          size="xs" redesign
           borderless
           aria-label={t('Retry step')}
           title={t('Retry step')}

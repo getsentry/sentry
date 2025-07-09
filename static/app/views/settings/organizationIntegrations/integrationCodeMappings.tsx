@@ -271,7 +271,7 @@ export default function IntegrationCodeMappings({
             <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
             <ButtonWrapper>
               <Button
-                data-test-id="add-mapping-button"
+                data-test-id="add-mapping-button" redesign
                 onClick={() => openCodeMappingModal()}
                 size="xs"
                 icon={<IconAdd />}
@@ -287,7 +287,7 @@ export default function IntegrationCodeMappings({
               icon={getIntegrationIcon(integration.provider.key, 'lg')}
               action={
                 <LinkButton
-                  href={docsLink}
+                  href={docsLink} redesign
                   size="sm"
                   external
                   onClick={() => {

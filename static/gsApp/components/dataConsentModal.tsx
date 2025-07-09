@@ -117,7 +117,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
       </div>
       <Footer>
         <Button
-          analyticsEventKey="data_consent_modal.maybe_later"
+          analyticsEventKey="data_consent_modal.maybe_later" redesign
           analyticsEventName="Data Consent Modal: Maybe Later"
           busy={isPending}
           onClick={() => {
@@ -127,7 +127,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           {t('Maybe later')}
         </Button>
         <LinkButton
-          analyticsEventKey="data_consent_modal.settings"
+          analyticsEventKey="data_consent_modal.settings" redesign
           analyticsEventName="Data Consent Modal: Settings"
           href="/settings/legal/#aggregatedDataConsent"
           busy={isPending}
@@ -135,7 +135,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           {t('View Settings')}
         </LinkButton>
         <Button
-          analyticsEventKey="data_consent_modal.accepted"
+          analyticsEventKey="data_consent_modal.accepted" redesign
           analyticsEventName="Data Consent Modal: Accepted"
           onClick={() => {
             updateOrganizationOption();

@@ -85,13 +85,13 @@ function Actions({detector}: {detector: Detector}) {
   };
   return (
     <Fragment>
-      <Button onClick={disable} size="sm">
+      <Button onClick={disable} redesign size="sm">
         {t('Disable')}
       </Button>
       <LinkButton
-        to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
+        to={`${makeMonitorDetailsPathname(organization.slug, redesign detector.id)}edit/`}
         priority="primary"
-        icon={<IconEdit />}
+        icon={<IconEdit redesign />}
         size="sm"
       >
         {t('Edit')}

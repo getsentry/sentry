@@ -23,7 +23,7 @@ export default function FeedbackWidgetBanner() {
     <PageBanner
       button={
         <Button
-          priority="primary"
+          priority="primary" redesign
           analyticsEventName="Clicked Feedback Onboarding CTA Button in Widget Callout Banner"
           analyticsEventKey="feedback.widget-banner-cta-button-clicked"
           onClick={activateSidebar}

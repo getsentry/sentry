@@ -20,7 +20,7 @@ export default function FeedbackWidgetButton({
   }
 
   return (
-    <Button ref={buttonRef} size="sm" icon={<IconMegaphone />}>
+    <Button ref={buttonRef} redesign size="sm" icon={<IconMegaphone redesign />}>
       {t('Give Feedback')}
     </Button>
   );

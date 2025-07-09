@@ -27,7 +27,7 @@ export function DebugIdBundleDeleteButton({
             message={t('Are you sure you want to delete these source maps?')}
             disabled={!hasAccess}
           >
-            <Button icon={<IconDelete size="xs" />} size={size} disabled={!hasAccess}>
+            <Button icon={<IconDelete redesign redesign size="xs" redesign redesign />} size={size} disabled={!hasAccess}>
               {t('Delete Source Maps')}
             </Button>
           </Confirm>

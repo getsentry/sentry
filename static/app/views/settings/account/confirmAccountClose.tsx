@@ -17,7 +17,7 @@ export function ConfirmAccountClose({
         handleRemoveAccount();
       }}
     >
-      <Button priority="danger">{t('Close Account')}</Button>
+      <Button priority="danger" redesign>{t('Close Account')}</Button>
     </Confirm>
   );
 }

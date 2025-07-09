@@ -174,13 +174,13 @@ function ReplayOnboardingCTAUpsell({
         </p>
         <ButtonList gap={1}>
           <LinkButton
-            to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
+            to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`} redesign
             onClick={onClickManageSubscription}
             priority="primary"
           >
             {t('Manage Subscription')}
           </LinkButton>
-          <LinkButton href="https://docs.sentry.io/product/session-replay/" external>
+          <LinkButton href="https://docs.sentry.io/product/session-replay/" redesign external>
             {t('Read Docs')}
           </LinkButton>
         </ButtonList>
@@ -202,18 +202,18 @@ function ReplayOnboardingCTAUpsell({
         <ButtonList gap={1}>
           {hasBillingAccess ? (
             <LinkButton
-              to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
+              to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`} redesign
               onClick={onClickManageSubscription}
               priority="primary"
             >
               {t('Manage Subscription')}
             </LinkButton>
           ) : (
-            <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+            <Button disabled={isDismissed} redesign onClick={onEmailOwner} priority="primary">
               {t('Request to Update Plan')}
             </Button>
           )}
-          <LinkButton href="https://docs.sentry.io/product/session-replay/" external>
+          <LinkButton href="https://docs.sentry.io/product/session-replay/" redesign external>
             {t('Read Docs')}
           </LinkButton>
         </ButtonList>
@@ -236,19 +236,19 @@ function ReplayOnboardingCTAUpsell({
       <ButtonList gap={1}>
         {hasBillingAccess ? (
           <Button
-            onClick={handleOpenModal}
+            onClick={handleOpenModal} redesign
             priority="primary"
             disabled={didClickOpenModal && previewData.loading}
           >
             {t('Set Up Replays')}
           </Button>
         ) : (
-          <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+          <Button disabled={isDismissed} redesign onClick={onEmailOwner} priority="primary">
             {t('Notify Owner')}
           </Button>
         )}
 
-        <LinkButton href="https://docs.sentry.io/product/session-replay/" external>
+        <LinkButton href="https://docs.sentry.io/product/session-replay/" redesign external>
           {t('Read Docs')}
         </LinkButton>
       </ButtonList>

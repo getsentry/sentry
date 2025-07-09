@@ -332,7 +332,7 @@ export function FrameworkSuggestionModal({
       </Body>
       <Footer>
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={debounceHandleClick}
           busy={isCreatingProjectAndRules}
         >

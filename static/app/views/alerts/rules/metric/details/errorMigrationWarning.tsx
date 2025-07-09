@@ -105,14 +105,14 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
         trailingItems={
           <ButtonBar gap={1}>
             <LinkButton
-              to={{
+              to={{ redesign
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
                   project?.slug ?? rule?.projects?.[0]
                 }/${rule.id}/`,
                 query: {migration: '1'},
               }}
               size="xs"
-              icon={<IconEdit />}
+              icon={<IconEdit redesign />}
             >
               {t('Exclude archived issues')}
             </LinkButton>

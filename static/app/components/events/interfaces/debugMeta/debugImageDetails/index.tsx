@@ -317,14 +317,14 @@ export function DebugImageDetails({
       <Footer>
         <StyledButtonBar gap={1}>
           <LinkButton
-            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+            href="https://docs.sentry.io/platforms/native/data-management/debug-files/" redesign
             external
           >
             {t('Read the docs')}
           </LinkButton>
           {debugFilesSettingsLink && (
             <LinkButton
-              title={t(
+              title={t( redesign
                 'Search for this debug file in all images for the %s project',
                 projSlug
               )}

@@ -800,7 +800,7 @@ class AMCheckout extends Component<Props, State> {
             {subscription.canCancel && (
               <CancelSubscription>
                 <LinkButton
-                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  to={`/settings/${organization.slug}/billing/cancel/`} redesign
                   disabled={subscription.cancelAtPeriodEnd}
                 >
                   {subscription.cancelAtPeriodEnd

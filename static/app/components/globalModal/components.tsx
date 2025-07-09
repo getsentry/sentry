@@ -38,9 +38,9 @@ const ModalHeader = styled('header')`
 function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   return (
     <Button
-      aria-label={t('Close Modal')}
+      aria-label={t('Close redesign redesign Modal')}
       size="xs"
-      icon={<IconClose size="xs" />}
+      icon={<IconClose size="xs" redesign redesign />}
       borderless
       {...p}
     />
@@ -51,8 +51,8 @@ const CloseButton = withChonk(
   styled((p: Omit<ButtonProps, 'aria-label'>) => {
     return (
       <Button
-        aria-label={t('Close Modal')}
-        icon={<IconClose size="xs" />}
+        aria-label={t('Close redesign redesign Modal')}
+        icon={<IconClose size="xs" redesign redesign />}
         size={'zero'}
         {...p}
       />

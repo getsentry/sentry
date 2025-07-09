@@ -124,7 +124,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
                   <Button
-                    onClick={handleAddCodeOwner}
+                    onClick={handleAddCodeOwner} redesign
                     size="sm"
                     data-test-id="add-codeowner-button"
                     disabled={!hasAccess}
@@ -135,9 +135,9 @@ export default function ProjectOwnership({project}: {project: Project}) {
               </Access>
             )}
             <Button
-              type="button"
+              type="button" redesign
               size="sm"
-              icon={<IconEdit />}
+              icon={<IconEdit redesign />}
               priority="primary"
               onClick={() =>
                 openEditOwnershipRules({

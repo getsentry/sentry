@@ -150,7 +150,7 @@ export default function ShareIssueModal({
           )}
           <StyledButtonBar gap={0.5}>
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={handleCopyMarkdownLink}
               analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
               analyticsEventName="Issue Details: Copy Issue Markdown Link"
@@ -162,7 +162,7 @@ export default function ShareIssueModal({
               {t('Copy as Markdown')}
             </Button>
             <Button
-              priority="primary"
+              priority="primary" redesign
               size="sm"
               onClick={handleCopyIssueLink}
               analyticsEventKey={
@@ -228,7 +228,7 @@ export default function ShareIssueModal({
                   </UrlContainer>
                   <ButtonContainer>
                     <Button
-                      size="sm"
+                      size="sm" redesign
                       priority="primary"
                       onClick={handleCopy}
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"

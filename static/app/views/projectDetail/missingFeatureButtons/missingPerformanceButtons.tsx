@@ -57,7 +57,7 @@ function MissingPerformanceButtons({organization}: Props) {
     >
       <ButtonBar gap={1}>
         <Button
-          size="sm"
+          size="sm" redesign
           priority="primary"
           onClick={event => {
             event.preventDefault();
@@ -79,7 +79,7 @@ function MissingPerformanceButtons({organization}: Props) {
           doneUrl={DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button size="sm" redesign onClick={showModal}>
               {t('Get Tour')}
             </Button>
           )}

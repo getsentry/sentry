@@ -79,7 +79,7 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
                   <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                   <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
                 </Flex>
-                <Button priority="primary" onClick={handleDoneClick}>
+                <Button priority="primary" redesign onClick={handleDoneClick}>
                   {t('Done')}
                 </Button>
               </Flex>
@@ -90,13 +90,13 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
                 <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
                 <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
               </Flex>
-              <Button priority="default" onClick={handleGenerateClick}>
+              <Button priority="default" redesign onClick={handleGenerateClick}>
                 {t('Regenerate')}
               </Button>
             </Flex>
           )
         ) : (
-          <Button priority="primary" onClick={handleGenerateClick}>
+          <Button priority="primary" redesign onClick={handleGenerateClick}>
             {t('Generate Repository Token')}
           </Button>
         )}

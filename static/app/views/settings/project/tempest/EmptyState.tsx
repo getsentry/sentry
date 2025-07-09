@@ -121,7 +121,7 @@ export default function EmptyState() {
               </DescriptionWrapper>
               <GuidedSteps.StepButtons>
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   priority="primary"
                   onClick={() => {
                     navigate({

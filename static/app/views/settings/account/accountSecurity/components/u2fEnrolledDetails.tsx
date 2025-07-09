@@ -48,7 +48,7 @@ function U2fEnrolledDetails(props: any) {
           ))}
       </PanelBody>
       <AddAnotherFooter>
-        <LinkButton to="/settings/account/security/mfa/u2f/enroll/" size="sm">
+        <LinkButton to="/settings/account/security/mfa/u2f/enroll/" redesign size="sm">
           {t('Add Another Device')}
         </LinkButton>
       </AddAnotherFooter>
@@ -69,7 +69,7 @@ function Device(props: any) {
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
         <ButtonBar gap={1}>
-          <Button size="sm" onClick={() => setEditting(true)}>
+          <Button size="sm" redesign onClick={() => setEditting(true)}>
             {t('Rename device')}
           </Button>
           <Confirm
@@ -78,10 +78,10 @@ function Device(props: any) {
             message={t('Are you sure you want to remove the device "%s"?', device.name)}
           >
             <Button
-              aria-label={t('Remove device')}
+              aria-label={t('Remove redesign device')}
               size="sm"
               priority="danger"
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
               title={isLastDevice ? t('Can not remove last U2F device') : undefined}
             />
           </Confirm>
@@ -105,7 +105,7 @@ function Device(props: any) {
       </DeviceInformation>
       <ButtonBar gap={1}>
         <Button
-          priority="primary"
+          priority="primary" redesign
           size="sm"
           onClick={() => {
             onRenameU2fDevice(device, deviceName);
@@ -115,10 +115,10 @@ function Device(props: any) {
           {t('Rename device')}
         </Button>
         <Button
-          size="sm"
+          size="sm" redesign
           title={t('Cancel Rename')}
           aria-label={t('Cancel Rename')}
-          icon={<IconClose />}
+          icon={<IconClose redesign />}
           onClick={() => {
             setDeviceName(device.name);
             setEditting(false);

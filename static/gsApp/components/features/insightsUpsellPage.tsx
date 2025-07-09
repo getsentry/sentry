@@ -186,10 +186,10 @@ function Content({
           source={source}
           aria-label="Start Trial"
         />
-        {canTrial && <LinkButton to={checkoutUrl}>Upgrade Now</LinkButton>}
+        {canTrial && <LinkButton to={checkoutUrl} redesign>Upgrade Now</LinkButton>}
         {!canTrial && (
           <Button
-            onClick={() =>
+            onClick={() redesign =>
               openUpsellModal({
                 organization,
                 source,

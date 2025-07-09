@@ -242,7 +242,7 @@ function WidgetBuilderQueryFilterBuilder({
       ))}
       {canAddSearchConditions && (
         <Button
-          size="sm"
+          size="sm" redesign
           priority="link"
           onClick={onAddSearchConditions}
           aria-label={t('Add Filter')}
@@ -259,11 +259,11 @@ export default WidgetBuilderQueryFilterBuilder;
 function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (
     <Button
-      size="zero"
+      size="zero" redesign
       style={{height: 'fit-content'}}
       borderless
       onClick={onDelete}
-      icon={<IconDelete />}
+      icon={<IconDelete redesign />}
       title={t('Remove this filter')}
       aria-label={t('Remove this filter')}
       name="filter-delete-button"

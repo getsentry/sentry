@@ -136,7 +136,7 @@ function RequestUpdateAlert({
       type="info"
       trailingItems={
         <Button
-          size="xs"
+          size="xs" redesign
           onClick={handleClick}
           busy={loading}
           disabled={requestSent}
@@ -215,14 +215,14 @@ function UpdatePlanAlert({
       trailingItems={
         isAncientPlan || !canSelfServe ? (
           <LinkButton
-            size="xs"
+            size="xs" redesign
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
             onClick={handleClick}
           >
             {t('Manage Subscription')}
           </LinkButton>
         ) : (
-          <Button size="xs" onClick={handleClick}>
+          <Button size="xs" redesign onClick={handleClick}>
             {t('Update Plan')}
           </Button>
         )

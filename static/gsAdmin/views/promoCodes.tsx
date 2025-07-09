@@ -50,7 +50,7 @@ function PromoCodes(props: Props) {
     <div>
       <PageHeader title="Promo Codes">
         <Button
-          onClick={() => openModal(deps => <PromoCodeModal {...deps} />)}
+          onClick={() redesign => openModal(deps => <PromoCodeModal {...deps} />)}
           priority="primary"
           size="sm"
         >

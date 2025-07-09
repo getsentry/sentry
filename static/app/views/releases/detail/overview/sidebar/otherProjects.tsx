@@ -33,7 +33,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
       <SidebarSection.Content>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
+            <Button priority="link" redesign onClick={onExpand}>
               {tn(
                 'Show %s collapsed project',
                 'Show %s collapsed projects',
@@ -46,7 +46,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
             <Row key={project.id}>
               <IdBadge project={project} avatarSize={16} />
               <LinkButton
-                size="xs"
+                size="xs" redesign
                 to={{
                   pathname: makeReleasesPathname({
                     organization,

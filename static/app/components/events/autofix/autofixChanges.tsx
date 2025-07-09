@@ -328,9 +328,9 @@ export function AutofixChanges({
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
-                    size="xs"
+                    size="xs" redesign
                     priority="primary"
-                    icon={<IconOpen size="xs" />}
+                    icon={<IconOpen size="xs" redesign />}
                     href={step.changes[0].pull_request.pr_url}
                     external
                   >
@@ -342,10 +342,10 @@ export function AutofixChanges({
                       change =>
                         change.pull_request?.pr_url && (
                           <LinkButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
+                            key={`${change.repo_external_id}-${Math.random()}`} redesign
                             size="xs"
                             priority="primary"
-                            icon={<IconOpen size="xs" />}
+                            icon={<IconOpen size="xs" redesign />}
                             href={change.pull_request.pr_url}
                             external
                           >
@@ -551,9 +551,9 @@ function CreatePRsButton({
 
   return (
     <Button
-      priority="primary"
+      priority="primary" redesign
       onClick={createPRs}
-      icon={hasClicked && <LoadingIndicator size={14} />}
+      icon={hasClicked && <LoadingIndicator size={14} redesign />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}
@@ -633,8 +633,8 @@ function CreateBranchButton({
 
   return (
     <Button
-      onClick={pushToBranch}
-      icon={hasClicked && <LoadingIndicator size={14} />}
+      onClick={pushToBranch} redesign
+      icon={hasClicked && <LoadingIndicator size={14} redesign />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}
@@ -670,7 +670,7 @@ function SetupAndCreateBranchButton({
   ) {
     return (
       <Button
-        onClick={() => {
+        onClick={() redesign => {
           openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
         }}
         size="sm"
@@ -717,7 +717,7 @@ function SetupAndCreatePRsButton({
   ) {
     return (
       <Button
-        priority="primary"
+        priority="primary" redesign
         onClick={() => {
           openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
         }}

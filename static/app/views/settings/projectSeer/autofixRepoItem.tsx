@@ -164,16 +164,16 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   repo: <strong>{repo.name}</strong>,
                 })}
               >
-                <Button size="sm" icon={<IconDelete />}>
+                <Button size="sm" redesign icon={<IconDelete redesign />}>
                   {t('Remove Repository')}
                 </Button>
               </Confirm>
               {isDirty && (
                 <ButtonBar gap={0.5}>
-                  <Button size="sm" onClick={cancelChanges}>
+                  <Button size="sm" redesign onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
-                  <Button size="sm" priority="primary" onClick={saveChanges}>
+                  <Button size="sm" redesign priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
                 </ButtonBar>

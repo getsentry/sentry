@@ -266,14 +266,14 @@ class TransactionThresholdModal extends Component<Props, State> {
         <Footer>
           <ButtonBar gap={1}>
             <Button
-              priority="default"
+              priority="default" redesign
               onClick={this.handleReset}
               data-test-id="reset-all"
             >
               {t('Reset All')}
             </Button>
             <Button
-              aria-label={t('Apply')}
+              aria-label={t('Apply')} redesign
               priority="primary"
               onClick={this.handleApply}
               data-test-id="apply-threshold"

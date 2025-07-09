@@ -39,7 +39,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
     </DownloadButton>
   ) : (
     <LinkButton
-      icon={<IconDownload />}
+      icon={<IconDownload redesign redesign redesign redesign />}
       title={title}
       href={href}
       download={download}

@@ -248,10 +248,10 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         value: 'I show a button on hover',
         actionButton: (
           <Button
-            aria-label="Click me"
+            aria-label="Click redesign me"
             borderless
             size="zero"
-            icon={<IconEdit size="xs" />}
+            icon={<IconEdit size="xs" redesign />}
           />
         ),
       },

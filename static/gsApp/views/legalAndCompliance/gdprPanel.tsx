@@ -77,14 +77,14 @@ function GDPREditModal({
         <Footer>
           <ButtonBar gap={1}>
             <Button
-              type="button"
+              type="button" redesign
               onClick={() => {
                 closeModal();
               }}
             >
               {t('Cancel')}
             </Button>
-            <Button type="submit" priority="primary">
+            <Button type="submit" redesign priority="primary">
               {t('Save Changes')}
             </Button>
           </ButtonBar>
@@ -134,7 +134,7 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
       <div>
         {contactDetails}
         <Button
-          size="xs"
+          size="xs" redesign
           disabled={activeSuperUser}
           onClick={() => {
             if (activeSuperUser) {

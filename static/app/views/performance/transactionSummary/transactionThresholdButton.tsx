@@ -143,7 +143,7 @@ class TransactionThresholdButton extends Component<Props, State> {
     const {loadingThreshold} = this.state;
     return (
       <Button
-        size="sm"
+        size="sm" redesign
         onClick={() => this.openModal()}
         icon={<IconSettings />}
         disabled={loadingThreshold}

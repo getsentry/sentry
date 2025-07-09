@@ -45,8 +45,8 @@ export default function AdminEnvironment() {
             {t('Server Version')}
             {version.upgradeAvailable && (
               <LinkButton
-                href="https://github.com/getsentry/sentry/releases"
-                icon={<IconUpgrade />}
+                href="https://github.com/getsentry/sentry/releases" redesign
+                icon={<IconUpgrade redesign />}
                 size="xs"
                 external
               >

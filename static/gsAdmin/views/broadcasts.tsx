@@ -52,7 +52,7 @@ function Broadcasts(props: Props) {
     <div>
       <PageHeader title="Broadcasts">
         <Button
-          disabled={!hasPermission}
+          disabled={!hasPermission} redesign
           title={
             hasPermission ? undefined : "You don't have the broadcasts.admin permission"
           }

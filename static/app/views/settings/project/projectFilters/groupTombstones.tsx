@@ -89,7 +89,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
             disabled={disabled}
           >
             <Button
-              type="button"
+              type="button" redesign
               aria-label={t('Undiscard')}
               title={
                 disabled
@@ -97,7 +97,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
                   : t('Undiscard')
               }
               size="sm"
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
               disabled={disabled}
             />
           </Confirm>
@@ -133,7 +133,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           disabled={disabled}
         >
           <Button
-            type="button"
+            type="button" redesign
             aria-label={t('Undiscard')}
             title={
               disabled
@@ -141,7 +141,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
                 : t('Undiscard')
             }
             size="xs"
-            icon={<IconDelete />}
+            icon={<IconDelete redesign />}
             disabled={disabled}
           />
         </Confirm>

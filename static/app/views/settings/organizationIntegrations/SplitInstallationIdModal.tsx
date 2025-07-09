@@ -51,10 +51,10 @@ export function SplitInstallationIdModal(props: Props) {
         <TextCopyInput onCopy={onCopy}>{props.installationId}</TextCopyInput>
       </ItemHolder>
       <ButtonHolder>
-        <Button size="sm" onClick={props.closeModal}>
+        <Button size="sm" redesign onClick={props.closeModal}>
           Close
         </Button>
-        <Button size="sm" priority="primary" onClick={handleContinue}>
+        <Button size="sm" redesign priority="primary" onClick={handleContinue}>
           Copy and Open Link
         </Button>
       </ButtonHolder>

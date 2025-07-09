@@ -28,7 +28,7 @@ function UpsellButton({
       subscription={subscription}
     >
       {({onClick, defaultButtonText}) => (
-        <Button onClick={onClick} icon={<IconBusiness />} {...rest}>
+        <Button onClick={onClick} redesign icon={<IconBusiness redesign />} {...rest}>
           {defaultButtonText}
         </Button>
       )}

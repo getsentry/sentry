@@ -288,7 +288,7 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
             </OverlayContent>
             <OverlayFooter>
               <OverlayButtonGroup>
-                <Button onClick={() => setShowThoughtsPopup(false)}>{t('Close')}</Button>
+                <Button onClick={() redesign => setShowThoughtsPopup(false)}>{t('Close')}</Button>
               </OverlayButtonGroup>
             </OverlayFooter>
           </ThoughtsOverlay>,

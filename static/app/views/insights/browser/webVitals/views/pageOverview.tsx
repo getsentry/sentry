@@ -134,7 +134,7 @@ function PageOverview() {
         headerActions={
           transactionSummaryTarget && (
             <LinkButton
-              to={transactionSummaryTarget}
+              to={transactionSummaryTarget} redesign
               onClick={() => {
                 trackAnalytics('insight.vital.overview.open_transaction_summary', {
                   organization,

@@ -317,9 +317,9 @@ function TreeNodeRenderer({
                   <OneLineCodeBlock>
                     <code>{`${itemPath.join('/')}`}</code>
                     <Button
-                      size="zero"
+                      size="zero" redesign
                       borderless
-                      icon={<IconCopy size="xs" />}
+                      icon={<IconCopy size="xs" redesign />}
                       aria-label={t('Copy')}
                       onClick={() => {
                         navigator.clipboard.writeText(itemPath.join('/'));

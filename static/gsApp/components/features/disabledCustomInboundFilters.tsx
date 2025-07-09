@@ -41,9 +41,9 @@ function DisabledAlert({organization, features}: Props) {
               </span>
             )}
             <Button
-              size="sm"
+              size="sm" redesign
               priority="primary"
-              icon={<IconBusiness />}
+              icon={<IconBusiness redesign />}
               onClick={() =>
                 openUpsellModal({
                   organization,

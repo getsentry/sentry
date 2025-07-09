@@ -361,7 +361,7 @@ function OnboardingContent({
         </div>
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/platforms/javascript/session-replay/"
             external
           >
@@ -391,7 +391,7 @@ function OnboardingContent({
         </div>
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/platforms/javascript/session-replay/"
             external
           >

@@ -159,7 +159,7 @@ function Content() {
             ]}
             trigger={triggerProps => (
               <Button
-                {...triggerProps}
+                {...triggerProps} redesign
                 priority={shouldHighlightSaveButton ? 'primary' : 'default'}
                 aria-label={t('Save')}
                 onClick={e => {
@@ -185,7 +185,7 @@ function Content() {
           ))}
         </WidgetSyncContextProvider>
         <Button
-          aria-label={t('Add Query')}
+          aria-label={t('Add redesign Query')}
           onClick={() => {
             trackAnalytics('compare_queries.add_query', {
               num_queries: totalQueryRows + 1,

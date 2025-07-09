@@ -141,7 +141,7 @@ class Item extends Component<Props, State> {
           </EventDetails>
 
           <Diff>
-            <Button onClick={this.handleShowDiff} size="sm">
+            <Button onClick={this.handleShowDiff} redesign size="sm">
               {t('Diff')}
             </Button>
           </Diff>

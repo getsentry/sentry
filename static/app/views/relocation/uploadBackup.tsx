@@ -129,17 +129,17 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
             <FileInfo>
               <div>{file.name}</div>
               <Button
-                aria-label={t('Remove file')}
-                icon={<IconDelete />}
+                aria-label={t('Remove redesign file')}
+                icon={<IconDelete redesign />}
                 borderless
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
             </FileInfo>
             <Button
-              priority="primary"
+              priority="primary" redesign
               onClick={handleStartRelocation}
-              icon={<IconUpload className="upload-icon" size="xs" />}
+              icon={<IconUpload className="upload-icon" size="xs" redesign />}
             >
               {t('Start Relocation')}
             </Button>

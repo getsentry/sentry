@@ -32,9 +32,9 @@ export default function DetailsSplitDivider({
       />
       <CloseButtonWrapper>
         <Button
-          aria-label={t('Hide details')}
+          aria-label={t('Hide redesign details')}
           borderless
-          icon={<IconClose isCircled size="sm" color="subText" />}
+          icon={<IconClose isCircled size="sm" color="subText" redesign />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
             onClose();

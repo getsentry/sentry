@@ -83,10 +83,10 @@ export default function DetectorNew() {
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
+          <LinkButton priority="default" redesign to={makeMonitorBasePathname(organization.slug)}>
             {t('Cancel')}
           </LinkButton>
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Next')}
           </Button>
         </Flex>

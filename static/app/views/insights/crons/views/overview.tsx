@@ -118,7 +118,7 @@ function CronsOverview() {
           <ButtonBar gap={1}>
             <FeedbackWidgetButton />
             <Button
-              icon={<IconList />}
+              icon={<IconList redesign redesign />}
               size="sm"
               onClick={() =>
                 openBulkEditMonitorsModal({

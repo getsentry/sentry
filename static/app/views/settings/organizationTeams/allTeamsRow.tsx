@@ -214,12 +214,12 @@ class AllTeamsRow extends Component<Props, State> {
         <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
-            <Button size="sm" disabled>
+            <Button size="sm" redesign disabled>
               ...
             </Button>
           ) : team.isMember ? (
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={this.handleLeaveTeam}
               disabled={isDisabled}
               title={buttonHelpText}
@@ -228,7 +228,7 @@ class AllTeamsRow extends Component<Props, State> {
             </Button>
           ) : team.isPending ? (
             <Button
-              size="sm"
+              size="sm" redesign
               disabled
               title={t(
                 'Your request to join this team is being reviewed by organization owners'
@@ -238,7 +238,7 @@ class AllTeamsRow extends Component<Props, State> {
             </Button>
           ) : openMembership ? (
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={this.handleJoinTeam}
               disabled={isDisabled}
               title={buttonHelpText}
@@ -247,7 +247,7 @@ class AllTeamsRow extends Component<Props, State> {
             </Button>
           ) : (
             <Button
-              size="sm"
+              size="sm" redesign
               onClick={this.handleRequestAccess}
               disabled={isDisabled}
               title={buttonHelpText}

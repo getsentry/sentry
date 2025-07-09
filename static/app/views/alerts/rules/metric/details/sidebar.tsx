@@ -173,7 +173,7 @@ export function MetricDetailsSidebar({
 
   const feedbackButton = openForm ? (
     <Button
-      onClick={() => {
+      onClick={() redesign => {
         openForm({
           formTitle: 'Anomaly Detection Feedback',
           messagePlaceholder: t(

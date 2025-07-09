@@ -15,7 +15,7 @@ function SaveButtonGroup({isEditing, onSave, setError, onClose}: SaveButtonGroup
   return (
     <SaveButtonGroupContainer>
       <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
-      <Button onClick={onClose} priority="default">
+      <Button onClick={onClose} redesign priority="default">
         {t('Cancel')}
       </Button>
     </SaveButtonGroupContainer>

@@ -48,7 +48,7 @@ function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
           onConfirm={() => onRemoveEmail(row.hash)}
           showAuditFields
         >
-          <Button size="xs" priority="danger">
+          <Button size="xs" redesign priority="danger">
             Delete Email
           </Button>
         </AdminConfirmationModal>

@@ -332,7 +332,7 @@ function ConfirmModal({
             })
           ) : (
             <Button
-              onClick={handleClose}
+              onClick={handleClose} redesign redesign
               autoFocus={!!isDangerous}
               aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
             >
@@ -346,7 +346,7 @@ function ConfirmModal({
             })
           ) : (
             <Button
-              data-test-id="confirm-button"
+              data-test-id="confirm-button" redesign redesign
               disabled={shouldDisableConfirmButton}
               priority={priority}
               onClick={handleConfirm}

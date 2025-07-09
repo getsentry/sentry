@@ -72,7 +72,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
               'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
             )}
             action={
-              <LinkButton external href="https://docs.sentry.io/learn/releases/">
+              <LinkButton external redesign href="https://docs.sentry.io/learn/releases/">
                 {t('Learn more')}
               </LinkButton>
             }

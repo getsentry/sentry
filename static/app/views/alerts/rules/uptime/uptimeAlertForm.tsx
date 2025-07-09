@@ -148,7 +148,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             confirmText={t('Delete Rule')}
             onConfirm={handleDelete}
           >
-            <Button priority="danger">{t('Delete Rule')}</Button>
+            <Button priority="danger" redesign>{t('Delete Rule')}</Button>
           </Confirm>
         ) : undefined
       }

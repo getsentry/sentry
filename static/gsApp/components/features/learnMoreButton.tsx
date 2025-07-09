@@ -24,7 +24,7 @@ type Props = React.PropsWithChildren<{
 
 function LearnMoreButton({organization, source, children, ...props}: Props) {
   return (
-    <LinkButton onClick={() => learnMoreClicked({source, organization})} {...props}>
+    <LinkButton onClick={() redesign => learnMoreClicked({source, organization})} {...props}>
       {children || t('Learn More')}
     </LinkButton>
   );

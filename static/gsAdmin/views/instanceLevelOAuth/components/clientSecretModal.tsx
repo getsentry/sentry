@@ -22,7 +22,7 @@ function ClientSecretModal({
           Your client secret is <b>{clientSecret}</b>
         </p>
         <p>Make sure you save this now! You will not be able to see it again later.</p>
-        <LinkButton priority="danger" to={`/_admin/instance-level-oauth/${clientID}/`}>
+        <LinkButton priority="danger" redesign to={`/_admin/instance-level-oauth/${clientID}/`}>
           I understand, take me to the rest of my client details.
         </LinkButton>
       </Body>

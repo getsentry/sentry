@@ -40,10 +40,10 @@ function CustomerProjects({orgId}: Props) {
           <ProjectName>
             <PlatformIcon size={16} platform={row.platform ?? 'other'} />
             <LinkButton
-              external
+              external redesign
               priority="link"
               href={`/${orgId}/${row.slug}/`}
-              icon={<IconProject size="xs" />}
+              icon={<IconProject size="xs" redesign />}
               title="View in Sentry"
               aria-label={'View in Sentry'}
             />

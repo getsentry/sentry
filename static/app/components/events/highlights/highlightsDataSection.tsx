@@ -98,8 +98,8 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
   });
   return (
     <Button
-      size="xs"
-      icon={<IconEdit />}
+      size="xs" redesign
+      icon={<IconEdit redesign />}
       onClick={openEditHighlightsModal}
       title={editProps.title}
       disabled={isPending || editProps.disabled}
@@ -261,7 +261,7 @@ export default function HighlightsDataSection({
   const viewAllButton =
     !hasStreamlinedUI && viewAllRef ? (
       <Button
-        onClick={() => {
+        onClick={() redesign => {
           trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
           viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
         }}

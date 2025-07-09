@@ -131,12 +131,12 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
         </FingerprintLabel>
 
         <Button
-          aria-label={
+          aria-label={ redesign
             collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
           }
           size="zero"
           borderless
-          icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
+          icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" redesign />}
           onClick={handleToggleEvents}
         />
       </Controls>
@@ -146,8 +146,8 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
           {issueLink ? (
             <Flex align="center" gap={space(0.5)}>
               <LinkButton
-                to={issueLink}
-                icon={<IconLink color={'linkColor'} />}
+                to={issueLink} redesign
+                icon={<IconLink color={'linkColor'} redesign />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
                 borderless

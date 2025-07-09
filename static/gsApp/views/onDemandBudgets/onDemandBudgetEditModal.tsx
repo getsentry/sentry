@@ -342,13 +342,13 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
         <Footer>
           <ButtonBar gap={1}>
             <Button
-              onClick={() => {
+              onClick={() redesign => {
                 this.props.closeModal();
               }}
             >
               {t('Cancel')}
             </Button>
-            <Button priority="primary" onClick={this.handleSave}>
+            <Button priority="primary" redesign onClick={this.handleSave}>
               {t('Save')}
             </Button>
           </ButtonBar>

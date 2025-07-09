@@ -192,7 +192,7 @@ function BillingPlans() {
   return (
     <BillingPlansContainer>
       <h1>Billing Plans</h1>
-      <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
+      <Button icon={<IconDownload redesign redesign />} onClick={handleDownloadCsv}>
         Download CSV
       </Button>
       <TableOfContents plans={plans} />

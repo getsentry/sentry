@@ -284,7 +284,7 @@ export function HybridFilter<Value extends SelectKey>({
               {hasStagedChanges && (
                 <FooterInnerWrap>
                   <Button
-                    borderless
+                    borderless redesign
                     size="xs"
                     onClick={() => {
                       closeOverlay();
@@ -294,7 +294,7 @@ export function HybridFilter<Value extends SelectKey>({
                     {t('Cancel')}
                   </Button>
                   <Button
-                    size="xs"
+                    size="xs" redesign
                     priority="primary"
                     disabled={disableCommit}
                     onClick={() => {

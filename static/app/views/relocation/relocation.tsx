@@ -276,7 +276,7 @@ function RelocationOnboarding(props: Props) {
         }}
       >
         <Button
-          onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
+          onClick={() redesign => goToStep(onboardingSteps[stepIndex - 1]!)}
           icon={<IconArrow direction="left" />}
           priority="link"
         >

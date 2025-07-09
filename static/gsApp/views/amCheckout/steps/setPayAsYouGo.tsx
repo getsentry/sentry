@@ -225,7 +225,7 @@ function SetPayAsYouGo({
           <Column>
             <PayAsYouGoInputContainer>
               <Button
-                icon={<IconSubtract />}
+                icon={<IconSubtract redesign redesign />}
                 aria-label={t('Decrease')}
                 onClick={() => incrementBudget(-INCREMENT_STEP)}
               />
@@ -248,7 +248,7 @@ function SetPayAsYouGo({
                 />
               </Currency>
               <Button
-                icon={<IconAdd />}
+                icon={<IconAdd redesign redesign />}
                 aria-label={t('Increase')}
                 onClick={() => incrementBudget(INCREMENT_STEP)}
               />
@@ -312,7 +312,7 @@ function SetPayAsYouGo({
   const renderFooter = () => {
     return (
       <StepFooter data-test-id={'footer-set-payg'}>
-        <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
+        <Button priority="primary" redesign onClick={() => onCompleteStep(stepNumber)}>
           {t('Continue')}
         </Button>
       </StepFooter>

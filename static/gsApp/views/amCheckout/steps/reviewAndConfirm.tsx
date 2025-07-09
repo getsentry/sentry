@@ -378,7 +378,7 @@ function ReviewAndConfirmFooter({
   return (
     <StepFooter data-test-id={title}>
       <Button
-        priority="primary"
+        priority="primary" redesign
         onClick={() => handleComplete()}
         disabled={submitting || cardActionError !== null || !previewData}
         title={

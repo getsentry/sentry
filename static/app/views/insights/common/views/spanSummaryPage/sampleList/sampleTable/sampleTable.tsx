@@ -208,7 +208,7 @@ function SampleTable({
         />
       </VisuallyCompleteWithData>
       <Button
-        onClick={() => {
+        onClick={() redesign => {
           trackAnalytics('performance_views.sample_spans.try_different_samples_clicked', {
             organization,
             source: moduleName,

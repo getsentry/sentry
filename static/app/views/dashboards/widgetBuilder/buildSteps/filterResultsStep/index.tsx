@@ -204,10 +204,10 @@ export function FilterResultsStep({
                 )}
                 {queries.length > 1 && (
                   <Button
-                    size="zero"
+                    size="zero" redesign
                     borderless
                     onClick={handleRemove(queryIndex)}
-                    icon={<IconDelete />}
+                    icon={<IconDelete redesign />}
                     title={t('Remove query')}
                     aria-label={t('Remove query')}
                   />
@@ -217,7 +217,7 @@ export function FilterResultsStep({
           );
         })}
         {canAddSearchConditions && (
-          <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
+          <Button size="sm" redesign icon={<IconAdd isCircled redesign />} onClick={onAddSearchConditions}>
             {t('Add Query')}
           </Button>
         )}

@@ -23,8 +23,8 @@ export default function SavedQueriesView() {
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
               <LinkButton
-                priority="primary"
-                icon={<IconAdd />}
+                priority="primary" redesign
+                icon={<IconAdd redesign />}
                 size="sm"
                 to={getExploreUrl({organization, visualize: []})}
               >

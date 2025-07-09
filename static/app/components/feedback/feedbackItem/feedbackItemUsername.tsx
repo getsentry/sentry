@@ -81,9 +81,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       {email ? (
         <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
-            href={mailToHref}
+            href={mailToHref} redesign
             external
-            icon={<IconMail color="gray300" />}
+            icon={<IconMail color="gray300" redesign />}
             aria-label={t(`Email %s`, user)}
             borderless
             size="zero"

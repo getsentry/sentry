@@ -67,23 +67,23 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           </Tooltip>
           {isHovered && (
             <Button
-              title={t('Copy Issue Short-ID')}
+              title={t('Copy redesign Issue Short-ID')}
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" color="subText" redesign />}
             />
           )}
         </ShortIdCopyable>
       </Wrapper>
       {!isHovered && group.isPublic && shareUrl && (
         <Button
-          size="zero"
+          size="zero" redesign
           borderless
           aria-label={t('View issue share settings')}
           title={tct('This issue has been shared [link:with a public link].', {
-            link: <ExternalLink href={shareUrl} />,
+            link: <ExternalLink href={shareUrl} redesign />,
           })}
           tooltipProps={{isHoverable: true}}
           icon={

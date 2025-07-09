@@ -76,9 +76,9 @@ function StepHeader({
           <EditStep>
             {canEdit && (
               <Button
-                size="sm"
+                size="sm" redesign
                 aria-label={t('Expand section')}
-                icon={<IconChevron direction="down" />}
+                icon={<IconChevron direction="down" redesign />}
                 onClick={onEditClick}
               >
                 {t('Edit')}

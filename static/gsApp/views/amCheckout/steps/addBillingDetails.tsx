@@ -94,7 +94,7 @@ function AddBillingDetails({
             <LoadingIndicator />
           )}
           <StepFooter>
-            <Button disabled priority="primary">
+            <Button disabled redesign priority="primary">
               {t('Continue')}
             </Button>
           </StepFooter>
@@ -121,7 +121,7 @@ function AddBillingDetails({
         >
           <AddressItems billingDetails={state.billingDetails} />
           <StepFooter>
-            <Button priority="primary" onClick={() => onCompleteStep(stepNumber)}>
+            <Button priority="primary" redesign onClick={() => onCompleteStep(stepNumber)}>
               {t('Continue')}
             </Button>
           </StepFooter>
@@ -197,7 +197,7 @@ function FormWrapper({
           </SubText>
         </DetailsText>
         {hasBillingAddress && (
-          <Button size="xs" icon={icon} onClick={onClick}>
+          <Button size="xs" redesign icon={icon} onClick={onClick}>
             {editButtonLabel}
           </Button>
         )}

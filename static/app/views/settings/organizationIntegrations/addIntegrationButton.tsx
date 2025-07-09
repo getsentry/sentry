@@ -51,7 +51,7 @@ export function AddIntegrationButton({
       >
         {onClick => (
           <Button
-            disabled={!provider.canAdd}
+            disabled={!provider.canAdd} redesign redesign
             {...buttonProps}
             onClick={() => {
               if (label === t('Reinstall')) {

@@ -98,11 +98,11 @@ function RecoveryOptionsModal({
       {displaySmsPrompt ? (
         // set up backup phone number
         <Footer>
-          <Button onClick={handleSkipSms} name="skipStep" autoFocus>
+          <Button onClick={handleSkipSms} redesign name="skipStep" autoFocus>
             {t('Skip this step')}
           </Button>
           <LinkButton
-            priority="primary"
+            priority="primary" redesign
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             css={css`
@@ -117,7 +117,7 @@ function RecoveryOptionsModal({
         // get recovery codes
         <Footer>
           <LinkButton
-            priority="primary"
+            priority="primary" redesign
             onClick={closeModal}
             to={
               recoveryEnrolled

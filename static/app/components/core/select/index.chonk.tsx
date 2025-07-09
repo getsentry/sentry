@@ -240,8 +240,8 @@ export function ChonkClearIndicator(
   return (
     <selectComponents.ClearIndicator {...props}>
       <Button
-        borderless
-        icon={<IconClose legacySize="10px" />}
+        borderless redesign
+        icon={<IconClose legacySize="10px" redesign />}
         size="zero"
         aria-label={t('Clear choices')}
         onClick={props.clearValue}

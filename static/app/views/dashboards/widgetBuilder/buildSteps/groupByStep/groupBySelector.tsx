@@ -224,7 +224,7 @@ export function GroupBySelector({
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <Button size="sm" priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
+        <Button size="sm" redesign priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
           {t('+ Add Group')}
         </Button>
       )}

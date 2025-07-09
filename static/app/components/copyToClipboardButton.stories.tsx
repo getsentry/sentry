@@ -38,7 +38,7 @@ export default Storybook.story('CopyToClipboardButton', story => {
           other component.
         </p>
         <p>Here's an example where I've chosen a different icon:</p>
-        <Button icon={<IconLink />} aria-label={label} onClick={onClick} />
+        <Button icon={<IconLink redesign redesign />} aria-label={label} onClick={onClick} />
       </Fragment>
     );
   });

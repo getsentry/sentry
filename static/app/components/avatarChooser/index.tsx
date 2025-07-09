@@ -215,11 +215,11 @@ function AvatarChooser({
   const uploadActions = (
     <AvatarActions>
       <Button
-        aria-label={t('Replace image')}
+        aria-label={t('Replace redesign image')}
         title={t('Replace image')}
         size="zero"
         borderless
-        icon={<IconUpload />}
+        icon={<IconUpload redesign />}
         onClick={openUpload}
       />
     </AvatarActions>
@@ -228,11 +228,11 @@ function AvatarChooser({
   const gravatarActions = (
     <AvatarActions>
       <LinkButton
-        external
+        external redesign
         href="https://gravatar.com"
         size="zero"
         borderless
-        icon={<IconOpen />}
+        icon={<IconOpen redesign />}
         aria-label={t('Go to gravatar.com')}
         title={t('Visit gravatar.com to upload your Gravatar to be used on Sentry.')}
       />
@@ -247,7 +247,7 @@ function AvatarChooser({
 
   const emptyUploader = (
     <BlankUploader>
-      <Button size="xs" icon={<IconUpload />} onClick={openUpload}>
+      <Button size="xs" redesign icon={<IconUpload redesign />} onClick={openUpload}>
         {t('Upload')}
       </Button>
     </BlankUploader>
@@ -295,7 +295,7 @@ function AvatarChooser({
       />
       <CropperActions>
         <Button
-          size="xs"
+          size="xs" redesign
           priority="danger"
           onClick={() => {
             resetToType('upload');
@@ -306,7 +306,7 @@ function AvatarChooser({
           {t('Cancel')}
         </Button>
         <Button
-          size="xs"
+          size="xs" redesign
           priority="primary"
           onClick={() => {
             setCropperOpen(false);
@@ -349,7 +349,7 @@ function AvatarChooser({
       </AvatarChooserBody>
       <AvatarChooserFooter>
         {help && <AvatarHelp>{help}</AvatarHelp>}
-        <Button priority="primary" onClick={handleSaveAvatar} disabled={disabled}>
+        <Button priority="primary" redesign onClick={handleSaveAvatar} disabled={disabled}>
           {t('Save Avatar')}
         </Button>
       </AvatarChooserFooter>

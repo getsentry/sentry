@@ -97,7 +97,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     );
 
     alertButton = (
-      <LinkButton size="sm" external href={getProductDocsUrl(product ?? trial.category)}>
+      <LinkButton size="sm" redesign external href={getProductDocsUrl(product ?? trial.category)}>
         {t('Learn More')}
       </LinkButton>
     );
@@ -112,7 +112,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     alertButton =
       isPaid && !hasBillingRole ? (
         <Button
-          size="sm"
+          size="sm" redesign
           disabled={isUpgradeSent}
           onClick={() => {
             sendUpgradeRequest({
@@ -126,7 +126,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       ) : (
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={() => {
             browserHistory.push(
               normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
@@ -146,7 +146,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     alertButton =
       isPaid && !hasBillingRole ? (
         <Button
-          size="sm"
+          size="sm" redesign
           disabled={isUpgradeSent}
           onClick={() => {
             sendUpgradeRequest({
@@ -160,7 +160,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       ) : (
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={() => {
             browserHistory.push(
               normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
@@ -176,7 +176,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     <ButtonBar gap={1.5}>
       {alertButton}
       <Button
-        icon={<IconClose size="sm" />}
+        icon={<IconClose redesign size="sm" redesign />}
         data-test-id="btn-overage-notification-snooze"
         onClick={() => {
           trackGetsentryAnalytics('product_trial.clicked_snooze', {

@@ -71,10 +71,10 @@ export function Toolbar({
 
       {loaderSource !== 'releases-drawer' && (
         <Button
-          size="xs"
+          size="xs" redesign
           aria-label={t('Open Full-Screen View')}
           borderless
-          icon={<IconExpand />}
+          icon={<IconExpand redesign />}
           onClick={onOpenFullScreen}
         />
       )}

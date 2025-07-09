@@ -295,7 +295,7 @@ export function GroupTagValues() {
           <Title>{t('Tag Details')}</Title>
           <ButtonBar gap={1}>
             <LinkButton
-              size="sm"
+              size="sm" redesign
               priority="default"
               href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >

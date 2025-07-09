@@ -10,7 +10,7 @@ type Props = {
 export function ReplaySidebarToggleButton({isOpen, setIsOpen}: Props) {
   return (
     <Button
-      size="sm"
+      size="sm" redesign
       onClick={() => setIsOpen(!isOpen)}
       icon={<IconChevron direction={isOpen ? 'right' : 'left'} />}
     >

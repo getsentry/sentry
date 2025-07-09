@@ -184,7 +184,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     const actions = (
       <Fragment>
-        <LinkButton size="sm" external href={DOCS_URL}>
+        <LinkButton size="sm" redesign external href={DOCS_URL}>
           {t('View Features')}
         </LinkButton>
         <CreateAlertButton

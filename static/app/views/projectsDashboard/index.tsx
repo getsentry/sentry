@@ -219,8 +219,8 @@ function Dashboard() {
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <LinkButton
-              size="sm"
-              icon={<IconUser />}
+              size="sm" redesign
+              icon={<IconUser redesign />}
               title={
                 canJoinTeam ? undefined : t('You do not have permission to join a team.')
               }
@@ -231,7 +231,7 @@ function Dashboard() {
               {t('Join a Team')}
             </LinkButton>
             <LinkButton
-              size="sm"
+              size="sm" redesign
               priority="primary"
               disabled={!canUserCreateProject}
               title={
@@ -243,7 +243,7 @@ function Dashboard() {
                 path: '/new/',
                 organization,
               })}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd isCircled redesign />}
               data-test-id="create-project"
             >
               {t('Create Project')}

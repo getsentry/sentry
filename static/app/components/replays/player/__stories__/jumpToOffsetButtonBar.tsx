@@ -17,7 +17,7 @@ export default function JumpToOffsetButtonBar({intervals}: Props) {
         const intervalMs = intervalToMilliseconds(interval);
         return (
           <Button
-            key={interval}
+            key={interval} redesign
             onClick={() => userAction({type: 'jumpToOffset', offsetMs: intervalMs})}
             size="sm"
           >

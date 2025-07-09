@@ -1294,13 +1294,13 @@ function DebugIdMismatchMessage({
     {
       debugId: projectSlug ? (
         <LinkButton
-          to={{
+          to={{ redesign
             pathname: `/settings/projects/${projectSlug}/source-maps/`,
             query: {
               query: debugId,
             },
           }}
-          icon={<IconOpen />}
+          icon={<IconOpen redesign />}
           aria-label={t('View source map Debug ID %(debugId)s in project settings', {
             debugId,
           })}

@@ -127,7 +127,7 @@ function DataExport({
     <Feature features="organizations:discover-query">
       {inProgress ? (
         <Button
-          size="sm"
+          size="sm" redesign
           priority="default"
           title={t(
             "You can get on with your life. We'll email you when your data's ready."
@@ -139,7 +139,7 @@ function DataExport({
         </Button>
       ) : (
         <Button
-          onClick={debounce(handleDataExport, 500)}
+          onClick={debounce(handleDataExport, redesign 500)}
           disabled={disabled || false}
           size="sm"
           priority="default"

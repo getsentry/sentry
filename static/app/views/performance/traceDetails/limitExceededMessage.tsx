@@ -80,7 +80,7 @@ function LimitExceededMessage({
     {
       loadMore: (
         <Button
-          priority="link"
+          priority="link" redesign
           onClick={() => {
             const newLimit = displayedRowsCount + increment;
             if (handleLimitChange) {

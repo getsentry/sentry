@@ -153,7 +153,7 @@ function TeamAlertsTriggered({
         emptyAction={
           <ButtonsContainer>
             <LinkButton
-              priority="primary"
+              priority="primary" redesign
               size="sm"
               to={makeAlertsPathname({
                 path: `/rules/`,
@@ -163,7 +163,7 @@ function TeamAlertsTriggered({
               {t('Create Alert')}
             </LinkButton>
             <LinkButton
-              size="sm"
+              size="sm" redesign
               external
               href="https://docs.sentry.io/product/alerts/create-alerts/"
             >

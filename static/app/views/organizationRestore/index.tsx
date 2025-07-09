@@ -103,7 +103,7 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
           )}
         </p>
         <ButtonWrapper>
-          <Button data-test-id="form-submit" priority="primary" type="submit">
+          <Button data-test-id="form-submit" redesign priority="primary" type="submit">
             {t('Restore Organization')}
           </Button>
         </ButtonWrapper>

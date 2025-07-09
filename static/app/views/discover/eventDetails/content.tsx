@@ -147,12 +147,12 @@ function EventDetailsContent(props: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
-                <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
+                <Button size="sm" redesign onClick={() => setIsSidebarVisible(prev => !prev)}>
                   {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                 </Button>
                 <LinkButton
-                  size="sm"
-                  icon={<IconOpen />}
+                  size="sm" redesign
+                  icon={<IconOpen redesign />}
                   href={eventJsonUrl}
                   external
                   onClick={() =>
@@ -170,7 +170,7 @@ function EventDetailsContent(props: Props) {
                   <Feature organization={organization} features="performance-view">
                     {({hasFeature}) => (
                       <LinkButton
-                        size="sm"
+                        size="sm" redesign
                         disabled={!hasFeature}
                         priority="primary"
                         to={transactionSummaryTarget}

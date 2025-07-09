@@ -27,7 +27,7 @@ function DashboardBanner({organization}: Props) {
       dismissKey="dashboards"
     >
       <UpsellButton source="custom-dashboards" priority="primary" />
-      <LinkButton href="https://docs.sentry.io/product/dashboards/" external>
+      <LinkButton href="https://docs.sentry.io/product/dashboards/" redesign external>
         {t('Read the docs')}
       </LinkButton>
     </StyledBanner>

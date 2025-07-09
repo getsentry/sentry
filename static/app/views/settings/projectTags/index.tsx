@@ -127,7 +127,7 @@ function ProjectTags(props: Props) {
                           disabled={!enabled}
                         >
                           <Button
-                            size="xs"
+                            size="xs" redesign
                             title={
                               enabled
                                 ? t('Remove tag')
@@ -136,7 +136,7 @@ function ProjectTags(props: Props) {
                                   : t('You do not have permission to remove tags.')
                             }
                             aria-label={t('Remove tag')}
-                            icon={<IconDelete />}
+                            icon={<IconDelete redesign />}
                             data-test-id="delete"
                           />
                         </Confirm>

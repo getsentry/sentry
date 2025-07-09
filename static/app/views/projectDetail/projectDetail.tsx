@@ -183,7 +183,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <ButtonBar gap={1}>
                   <FeedbackWidgetButton />
                   <LinkButton
-                    size="sm"
+                    size="sm" redesign
                     to={
                       // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
                       project?.id
@@ -200,8 +200,8 @@ export default function ProjectDetail({router, location, organization}: Props) {
                     aria-label={t('Create Alert')}
                   />
                   <LinkButton
-                    size="sm"
-                    icon={<IconSettings />}
+                    size="sm" redesign
+                    icon={<IconSettings redesign />}
                     aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />

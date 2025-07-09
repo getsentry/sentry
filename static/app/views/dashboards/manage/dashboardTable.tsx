@@ -83,7 +83,7 @@ function FavoriteButton({
   const [favorited, setFavorited] = useState(isFavorited);
   return (
     <Button
-      aria-label={t('Favorite Button')}
+      aria-label={t('Favorite redesign Button')}
       size="zero"
       borderless
       icon={
@@ -91,7 +91,7 @@ function FavoriteButton({
           color={favorited ? 'yellow300' : 'gray300'}
           isSolid={favorited}
           aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-          size="sm"
+          size="sm" redesign
         />
       }
       onClick={async () => {

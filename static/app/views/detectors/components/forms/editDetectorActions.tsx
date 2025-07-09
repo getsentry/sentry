@@ -37,11 +37,11 @@ export function EditDetectorActions({detectorId}: EditDetectorActionsProps) {
   return (
     <div>
       <ButtonBar gap={1}>
-        <Button type="button" priority="default" size="sm" onClick={() => {}}>
+        <Button type="button" redesign priority="default" size="sm" onClick={() => {}}>
           {t('Disable')}
         </Button>
         <Button
-          priority="danger"
+          priority="danger" redesign
           onClick={handleDelete}
           disabled={isDeleting}
           busy={isDeleting}
@@ -49,7 +49,7 @@ export function EditDetectorActions({detectorId}: EditDetectorActionsProps) {
         >
           {t('Delete')}
         </Button>
-        <Button type="submit" priority="primary" size="sm">
+        <Button type="submit" redesign priority="primary" size="sm">
           {t('Save')}
         </Button>
       </ButtonBar>

@@ -279,11 +279,11 @@ function BreadcrumbsContainer({
       return {
         emptyMessage: t('Sorry, no breadcrumbs match your search query'),
         emptyAction: hasActiveFilter ? (
-          <Button onClick={() => setFilterSelections([])} priority="primary">
+          <Button onClick={() redesign => setFilterSelections([])} priority="primary">
             {t('Reset filter')}
           </Button>
         ) : (
-          <Button onClick={() => setSearchTerm('')} priority="primary">
+          <Button onClick={() redesign => setSearchTerm('')} priority="primary">
             {t('Clear search bar')}
           </Button>
         ),

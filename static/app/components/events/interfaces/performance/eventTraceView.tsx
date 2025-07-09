@@ -172,7 +172,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       actions={
         <ButtonBar gap={1}>
           <LinkButton
-            size="xs"
+            size="xs" redesign
             to={getTraceLinkForIssue(traceTarget)}
             analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
             analyticsEventKey="issue_details.view_full_trace_action_button_clicked"

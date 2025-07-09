@@ -73,7 +73,7 @@ export default function ListContent() {
         <SearchWrapper>
           <ReplaysSearch />
           {showDeadRageClickCards && (
-            <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
+            <Button onClick={() redesign => setWidgetIsOpen(!widgetIsOpen)}>
               {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
             </Button>
           )}

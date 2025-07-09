@@ -131,7 +131,7 @@ export function GapSpanDetails({event, span}: GapSpanDetailsProps) {
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <LinkButton size="sm" priority="primary" href={docsLink} external>
+        <LinkButton size="sm" redesign priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
         </LinkButton>
         <ManualInstrumentationInstruction />
@@ -203,7 +203,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" redesign onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
       </LinkButton>
     </HeaderContainer>

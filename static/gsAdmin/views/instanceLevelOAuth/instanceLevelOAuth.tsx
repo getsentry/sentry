@@ -26,7 +26,7 @@ function InstanceLevelOAuth() {
     <div>
       <PageHeader title="Instance Level OAuth Clients">
         <Button
-          onClick={() => openModal(deps => <NewInstanceLevelOAuthClient {...deps} />)}
+          onClick={() redesign => openModal(deps => <NewInstanceLevelOAuthClient {...deps} />)}
         >
           New Instance Level OAuth Client
         </Button>

@@ -75,22 +75,22 @@ class MissingProjectMembership extends Component<Props, State> {
     }
     if (this.state.loading) {
       if (features.includes('open-membership')) {
-        return <Button busy>{t('Join Team')}</Button>;
+        return <Button busy redesign>{t('Join Team')}</Button>;
       }
-      return <Button busy>{t('Request Access')}</Button>;
+      return <Button busy redesign>{t('Request Access')}</Button>;
     }
     if (team?.isPending) {
-      return <Button disabled>{t('Request Pending')}</Button>;
+      return <Button disabled redesign>{t('Request Pending')}</Button>;
     }
     if (features.includes('open-membership')) {
       return (
-        <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
+        <Button priority="primary" redesign onClick={this.joinTeam.bind(this, teamSlug)}>
           {t('Join Team')}
         </Button>
       );
     }
     return (
-      <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
+      <Button priority="primary" redesign onClick={this.joinTeam.bind(this, teamSlug)}>
         {t('Request Access')}
       </Button>
     );
@@ -166,7 +166,7 @@ class MissingProjectMembership extends Component<Props, State> {
                 {teamSlug ? (
                   this.renderJoinTeam(teamSlug, organization.features)
                 ) : (
-                  <Button disabled>{t('Select a Team')}</Button>
+                  <Button disabled redesign>{t('Select a Team')}</Button>
                 )}
               </Field>
             }

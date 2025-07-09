@@ -82,7 +82,7 @@ function SentryEmployees(props: Props) {
       userRow.push(
         <td key="assignPermissions" style={{textAlign: 'center'}}>
           <Button
-            aria-label="Edit Permissions"
+            aria-label="Edit redesign Permissions"
             onClick={() => {
               openModal(deps => (
                 <UserPermissionsModal

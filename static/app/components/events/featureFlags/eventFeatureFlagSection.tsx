@@ -64,8 +64,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
-      aria-label={t('Give feedback on the feature flag section')}
-      icon={<IconMegaphone />}
+      aria-label={t('Give redesign feedback on the feature flag section')}
+      icon={<IconMegaphone redesign />}
       size={'xs'}
       onClick={() =>
         openForm({
@@ -267,8 +267,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       {hasFlags && (
         <Fragment>
           <Button
-            aria-label={t('Open Feature Flag Search')}
-            icon={<IconSearch size="xs" />}
+            aria-label={t('Open redesign Feature Flag Search')}
+            icon={<IconSearch size="xs" redesign />}
             size="xs"
             title={t('Open Search')}
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
@@ -336,7 +336,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       )}
       {extraFlags > 0 && (
         <Button
-          size="sm"
+          size="sm" redesign
           // Since we've disabled the button as an 'outside click' for the drawer we can change
           // the operation based on the drawer state.
           onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}

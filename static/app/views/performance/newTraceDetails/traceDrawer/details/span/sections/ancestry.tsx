@@ -75,7 +75,7 @@ function SpanChild({
             <Link data-test-id="view-child-transaction" to={to}>
               {`${transactionResult.transaction} (${transactionResult['project.name']})`}
             </Link>
-            <LinkButton size="xs" to={target}>
+            <LinkButton size="xs" redesign to={target}>
               {t('View Summary')}
             </LinkButton>
           </SpanChildValueWrapper>

@@ -153,7 +153,7 @@ function AutofixInsightCard({
                     />
                     <ButtonBar merged>
                       <Button
-                        type="button"
+                        type="button" redesign
                         size="sm"
                         onClick={handleCancel}
                         title={t('Cancel')}
@@ -162,7 +162,7 @@ function AutofixInsightCard({
                         <IconClose size="sm" />
                       </Button>
                       <Button
-                        type="submit"
+                        type="submit" redesign
                         priority="primary"
                         size="sm"
                         title={t('Redo work from here')}
@@ -203,13 +203,13 @@ function AutofixInsightCard({
                 <RightSection>
                   {isExpandable && (
                     <Button
-                      size="zero"
+                      size="zero" redesign
                       borderless
                       title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                       icon={
                         <StyledIconChevron
                           direction={isExpanded ? 'up' : 'down'}
-                          size="xs"
+                          size="xs" redesign
                         />
                       }
                       aria-label={isExpanded ? t('Hide evidence') : t('Show evidence')}
@@ -405,7 +405,7 @@ function CollapsibleChainLink({
                   />
                   <ButtonBar merged>
                     <Button
-                      type="button"
+                      type="button" redesign
                       size="sm"
                       onClick={handleCancel}
                       title={t('Cancel')}
@@ -413,7 +413,7 @@ function CollapsibleChainLink({
                       <IconClose size="sm" />
                     </Button>
                     <Button
-                      type="submit"
+                      type="submit" redesign
                       priority="primary"
                       size="sm"
                       title={t('Redo work from here')}

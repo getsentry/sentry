@@ -47,8 +47,8 @@ export function CanvasSupportNotice() {
       showIcon
       trailingItems={
         <Button
-          aria-label={t('Dismiss banner')}
-          icon={<IconClose />}
+          aria-label={t('Dismiss redesign banner')}
+          icon={<IconClose redesign />}
           onClick={dismiss}
           size="zero"
           borderless

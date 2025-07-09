@@ -5,12 +5,12 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 
 describe('Button', function () {
   it('renders', function () {
-    render(<Button priority="primary">Button</Button>);
+    render(<Button priority="primary" redesign>Button</Button>);
   });
 
   it('calls `onClick` callback', async function () {
     const spy = jest.fn();
-    render(<Button onClick={spy}>Click me</Button>);
+    render(<Button onClick={spy} redesign>Click me</Button>);
     await userEvent.click(screen.getByText('Click me'));
 
     expect(spy).toHaveBeenCalled();
@@ -19,7 +19,7 @@ describe('Button', function () {
   it('does not call `onClick` on disabled buttons', async function () {
     const spy = jest.fn();
     render(
-      <Button onClick={spy} disabled>
+      <Button onClick={spy} redesign disabled>
         Click me
       </Button>
     );
@@ -31,11 +31,11 @@ describe('Button', function () {
 
 describe('LinkButton', function () {
   it('renders react-router link', function () {
-    render(<LinkButton to="/some/route">Router Link</LinkButton>);
+    render(<LinkButton to="/some/route" redesign>Router Link</LinkButton>);
   });
 
   it('renders normal link', function () {
-    render(<LinkButton href="/some/relative/url">Normal Link</LinkButton>);
+    render(<LinkButton href="/some/relative/url" redesign>Normal Link</LinkButton>);
     expect(screen.getByRole('button', {name: 'Normal Link'})).toHaveAttribute(
       'href',
       '/some/relative/url'
@@ -44,7 +44,7 @@ describe('LinkButton', function () {
 
   it('renders disabled link', function () {
     render(
-      <LinkButton disabled href="/some/relative/url">
+      <LinkButton disabled redesign href="/some/relative/url">
         Disabled Link
       </LinkButton>
     );

@@ -67,7 +67,7 @@ export function GroupHeaderAssigneeSelector({
       showLabel
       additionalMenuFooterItems={
         <Button
-          type="button"
+          type="button" redesign
           onClick={() => {
             openIssueOwnershipRuleModal({
               project,

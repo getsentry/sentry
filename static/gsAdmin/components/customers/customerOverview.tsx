@@ -505,7 +505,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           </StyledTag>
           <TrialActions>
             <Button
-              size="xs"
+              size="xs" redesign
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
               disabled={!hasUsedProductTrial || hasActiveProductTrial}
               title={
@@ -519,7 +519,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               Allow Trial
             </Button>
             <Button
-              size="xs"
+              size="xs" redesign
               onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
               disabled={hasActiveProductTrial || hasUsedProductTrial}
               title={
@@ -533,7 +533,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               Start Trial
             </Button>
             <Button
-              size="xs"
+              size="xs" redesign
               onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
               title={
@@ -668,7 +668,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                     (active)
                     <br />
                     <Button
-                      priority="link"
+                      priority="link" redesign
                       onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                     >
                       Deactivate Partner

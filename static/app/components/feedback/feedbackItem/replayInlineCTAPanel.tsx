@@ -17,7 +17,7 @@ export default function ReplayInlineCTAPanel() {
       button={
         <ButtonBar gap={1}>
           <Button
-            type="button"
+            type="button" redesign
             priority="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
             analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"

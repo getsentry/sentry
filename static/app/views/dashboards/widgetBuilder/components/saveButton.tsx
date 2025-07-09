@@ -54,7 +54,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
   return (
-    <Button priority="primary" onClick={handleSave} busy={isSaving}>
+    <Button priority="primary" redesign onClick={handleSave} busy={isSaving}>
       {isEditing ? t('Update Widget') : t('Add Widget')}
     </Button>
   );

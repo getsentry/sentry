@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 function WrappedButton({...props}) {
-  return <Button {...props}>{t('Continue')}</Button>;
+  return <Button {...props} redesign>{t('Continue')}</Button>;
 }
 
 const ContinueButton = styled(WrappedButton)`

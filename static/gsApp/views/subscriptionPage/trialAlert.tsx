@@ -58,7 +58,7 @@ function TrialAlert({organization, subscription}: Props) {
         {subscription.canSelfServe && (
           <ButtonWrapper>
             <Button
-              size="sm"
+              size="sm" redesign
               data-test-id="trial-details-button"
               onClick={() => openUpsellModal({organization, source: 'active_trial'})}
             >

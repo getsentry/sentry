@@ -117,12 +117,12 @@ export function EditDetectorLayout({
       <StickyFooter>
         <Flex gap={space(1)} flex={1} justify="flex-end">
           <LinkButton
-            priority="default"
+            priority="default" redesign
             to={makeMonitorDetailsPathname(organization.slug, detector.id)}
           >
             {t('Cancel')}
           </LinkButton>
-          <Button priority="primary" type="submit">
+          <Button priority="primary" redesign type="submit">
             {t('Save Changes')}
           </Button>
         </Flex>

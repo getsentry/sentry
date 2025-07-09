@@ -63,8 +63,8 @@ export function TracesSearchBar({
 
       {canAddMoreQueries ? (
         <Button
-          aria-label={t('Add Query')}
-          icon={<IconAdd size="xs" isCircled />}
+          aria-label={t('Add redesign Query')}
+          icon={<IconAdd size="xs" isCircled redesign />}
           size="sm"
           onClick={() => {
             trackAnalytics('trace_explorer.add_span_condition', {

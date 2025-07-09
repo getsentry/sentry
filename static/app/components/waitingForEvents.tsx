@@ -94,7 +94,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
         <p>
           {project && (
             <LinkButton
-              data-test-id="install-instructions"
+              data-test-id="install-instructions" redesign
               priority="primary"
               to={`/${org.slug}/${project.slug}/getting-started/${
                 project.platform || ''

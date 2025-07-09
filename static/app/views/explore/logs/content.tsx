@@ -28,9 +28,9 @@ function FeedbackButton() {
   }
   return (
     <Button
-      size="xs"
+      size="xs" redesign
       aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
+      icon={<IconMegaphone size="xs" redesign />}
       onClick={() =>
         openForm?.({
           messagePlaceholder: t('How can we make logs work better for you?'),
@@ -86,7 +86,7 @@ export default function LogsContent() {
               <ButtonBar gap={1}>
                 <FeedbackButton />
                 <LinkButton
-                  icon={<IconOpen />}
+                  icon={<IconOpen redesign redesign />}
                   priority="primary"
                   href={LOGS_INSTRUCTIONS_URL}
                   external

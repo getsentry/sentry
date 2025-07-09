@@ -210,7 +210,7 @@ export class RenderField extends Component<RenderProps, State> {
           </MappedProjectWrapper>
           <DeleteButtonWrapper>
             <Button
-              onClick={() => handleDelete(index)}
+              onClick={() redesign => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
               size="sm"
               aria-label={t('Delete')}
@@ -262,11 +262,11 @@ export class RenderField extends Component<RenderProps, State> {
           />
           <AddProjectWrapper>
             <Button
-              disabled={!selectedSentryProjectId || !selectedMappedValue}
+              disabled={!selectedSentryProjectId redesign || !selectedMappedValue}
               size="sm"
               priority="primary"
               onClick={handleAdd}
-              icon={<IconAdd />}
+              icon={<IconAdd redesign />}
               aria-label={t('Add project')}
             />
           </AddProjectWrapper>
@@ -281,9 +281,9 @@ export class RenderField extends Component<RenderProps, State> {
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <LinkButton
-                size="sm"
+                size="sm" redesign
                 priority="primary"
-                icon={<IconOpen />}
+                icon={<IconOpen redesign />}
                 disabled={!existingValues.length}
                 href={nextUrl}
                 title={DISABLED_TOOLTIP_TEXT}

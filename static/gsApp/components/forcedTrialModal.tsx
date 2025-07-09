@@ -132,7 +132,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
           >
             {hasBillingScope ? t('Upgrade') : t('Request Upgrade')}
           </UpgradeOrTrialButton>
-          <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
+          <Button data-test-id="maybe-later" redesign priority="default" onClick={closeModal}>
             {t('Continue with Trial')}
           </Button>
         </StyledButtonBar>

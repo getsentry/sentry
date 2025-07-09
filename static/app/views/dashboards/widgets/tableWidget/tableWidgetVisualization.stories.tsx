@@ -187,7 +187,7 @@ columns={[{
           parameter in the URL. Use the button to reset the parameter.
         </p>
         <ButtonContainer>
-          <LinkButton to={{...location, query: {...location.query, sort: undefined}}}>
+          <LinkButton to={{...location, redesign query: {...location.query, sort: undefined}}}>
             Clear sort parameter
           </LinkButton>
         </ButtonContainer>
@@ -307,7 +307,7 @@ function onChangeSort(newSort: Sort) {
           button to clear the width parameters.
         </p>
         <ButtonContainer>
-          <LinkButton to={{...location, query: {...location.query, width: undefined}}}>
+          <LinkButton to={{...location, redesign query: {...location.query, width: undefined}}}>
             Clear width parameters
           </LinkButton>
         </ButtonContainer>

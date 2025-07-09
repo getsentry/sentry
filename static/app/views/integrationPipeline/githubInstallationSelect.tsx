@@ -47,7 +47,7 @@ function InstallationButton({
 
   return (
     <Button
-      priority="primary"
+      priority="primary" redesign
       onClick={handleSubmit}
       disabled={isSaving || !installationID}
     >
@@ -141,7 +141,7 @@ export function GithubInstallationSelect({
     if (doesntRequireUpgrade(installationID)) {
       return (
         <Button
-          priority="primary"
+          priority="primary" redesign
           onClick={handleSubmit}
           disabled={isSaving || !installationID}
         >
@@ -152,7 +152,7 @@ export function GithubInstallationSelect({
 
     return (
       <LinkButton
-        icon={<IconLightning />}
+        icon={<IconLightning redesign redesign />}
         priority="primary"
         analyticsEventKey="github.multi_org.upsell"
         analyticsEventName="Github Multi-Org Upsell Clicked"

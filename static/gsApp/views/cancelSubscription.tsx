@@ -175,7 +175,7 @@ function CancelSubscriptionForm() {
           </Alert>
         </Alert.Container>
         <Button
-          priority="danger"
+          priority="danger" redesign
           onClick={() =>
             setState(currentState => ({...currentState, understandsMembers: true}))
           }
@@ -268,11 +268,11 @@ function CancelSubscriptionForm() {
             )}
 
             <ButtonList>
-              <Button type="submit" priority="danger" disabled={!state.canSubmit}>
+              <Button type="submit" redesign priority="danger" disabled={!state.canSubmit}>
                 {t('Cancel Subscription')}
               </Button>
               <Button
-                onClick={() => {
+                onClick={() redesign => {
                   browserHistory.push(
                     normalizeUrl(`/settings/${organization.slug}/billing/`)
                   );

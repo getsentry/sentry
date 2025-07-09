@@ -323,7 +323,7 @@ function GroupSummaryFull({
         {data?.eventId && !isPending && event && event.id !== data?.eventId && (
           <ResummarizeWrapper>
             <Button
-              onClick={() => setForceEvent(true)}
+              onClick={() redesign => setForceEvent(true)}
               disabled={isPending}
               size="xs"
               icon={<IconRefresh />}

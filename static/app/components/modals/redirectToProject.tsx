@@ -79,7 +79,7 @@ class RedirectToProjectModal extends Component<Props, State> {
                 )}
               </p>
               <ButtonWrapper>
-                <LinkButton priority="primary" href={this.newPath}>
+                <LinkButton priority="primary" redesign href={this.newPath}>
                   {t('Continue to %s', slug)}
                 </LinkButton>
               </ButtonWrapper>

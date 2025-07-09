@@ -202,12 +202,12 @@ function EmailRow({
       </EmailTags>
       <ButtonBar gap={1}>
         {!isPrimary && isVerified && (
-          <Button size="sm" onClick={() => onSetPrimary?.(email)}>
+          <Button size="sm" redesign onClick={() => onSetPrimary?.(email)}>
             {t('Set as primary')}
           </Button>
         )}
         {!isVerified && (
-          <Button size="sm" onClick={() => onVerify(email)}>
+          <Button size="sm" redesign onClick={() => onVerify(email)}>
             {t('Resend verification')}
           </Button>
         )}
@@ -220,11 +220,11 @@ function EmailRow({
             })}
           >
             <Button
-              aria-label={t('Remove email')}
+              aria-label={t('Remove redesign email')}
               data-test-id="remove"
               priority="danger"
               size="sm"
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
             />
           </Confirm>
         )}

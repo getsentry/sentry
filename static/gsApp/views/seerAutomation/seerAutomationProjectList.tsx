@@ -301,7 +301,7 @@ export function SeerAutomationProjectList() {
             <div>{t('Automation for Current Projects')}</div>
           )}
           <div style={{marginLeft: 'auto'}}>
-            <Button size="sm" onClick={toggleSelectAll}>
+            <Button size="sm" redesign onClick={toggleSelectAll}>
               {allFilteredSelected ? t('Unselect All') : t('Select All')}
             </Button>
           </div>
@@ -344,14 +344,14 @@ export function SeerAutomationProjectList() {
         <Flex justify="flex-end">
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" />}
+              icon={<IconChevron redesign direction="left" redesign />}
               aria-label={t('Previous')}
               size="sm"
               disabled={previousDisabled}
               onClick={goToPrevPage}
             />
             <Button
-              icon={<IconChevron direction="right" />}
+              icon={<IconChevron redesign direction="right" redesign />}
               aria-label={t('Next')}
               size="sm"
               disabled={nextDisabled}

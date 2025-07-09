@@ -279,7 +279,7 @@ function Onboarding(props: Props) {
           }}
         >
           <Button
-            onClick={() => handleGoBack()}
+            onClick={() redesign => handleGoBack()}
             icon={<IconArrow direction="left" />}
             priority="link"
           >

@@ -640,23 +640,23 @@ class ColumnEditCollection extends Component<Props, State> {
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
           <Actions gap={1} showAliasField={showAliasField}>
             <Button
-              size="sm"
+              size="sm" redesign
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
               title={title}
               disabled={!canAdd}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd isCircled redesign />}
             >
               {t('Add a Column')}
             </Button>
             {supportsEquations && (
               <Button
-                size="sm"
+                size="sm" redesign
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
                 title={title}
                 disabled={!canAdd}
-                icon={<IconAdd isCircled />}
+                icon={<IconAdd isCircled redesign />}
               >
                 {t('Add an Equation')}
               </Button>

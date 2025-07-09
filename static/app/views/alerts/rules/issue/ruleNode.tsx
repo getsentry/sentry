@@ -416,8 +416,8 @@ function RuleNode({
     if (node.actionType === 'ticket') {
       return (
         <Button
-          size="sm"
-          icon={<IconSettings />}
+          size="sm" redesign
+          icon={<IconSettings redesign />}
           onClick={() =>
             openModal(deps => (
               <TicketRuleModal
@@ -438,8 +438,8 @@ function RuleNode({
     if (node.actionType === 'sentryapp' && node.sentryAppInstallationUuid) {
       return (
         <Button
-          size="sm"
-          icon={<IconSettings />}
+          size="sm" redesign
+          icon={<IconSettings redesign />}
           disabled={Boolean(data.disabled) || disabled}
           onClick={() => {
             openModal(

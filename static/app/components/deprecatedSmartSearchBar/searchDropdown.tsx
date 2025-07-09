@@ -138,7 +138,7 @@ function SearchDropdown({
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                borderless
+                borderless redesign
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -154,7 +154,7 @@ function SearchDropdown({
             ))}
         </ButtonBar>
         <LinkButton
-          size="xs"
+          size="xs" redesign
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
           onClick={() => onDocsOpen?.()}

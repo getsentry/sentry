@@ -11,7 +11,7 @@ export default function CreateProjectButton() {
 
   return (
     <LinkButton
-      priority="primary"
+      priority="primary" redesign
       size="sm"
       disabled={!canUserCreateProject}
       title={
@@ -23,7 +23,7 @@ export default function CreateProjectButton() {
         path: '/new/',
         organization,
       })}
-      icon={<IconAdd isCircled />}
+      icon={<IconAdd isCircled redesign />}
     >
       {t('Create Project')}
     </LinkButton>

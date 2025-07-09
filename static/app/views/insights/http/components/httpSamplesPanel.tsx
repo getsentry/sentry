@@ -482,7 +482,7 @@ export function HTTPSamplesPanel() {
 
                 <ModuleLayout.Full>
                   <Button
-                    onClick={() => {
+                    onClick={() redesign => {
                       trackAnalytics(
                         'performance_views.sample_spans.try_different_samples_clicked',
                         {organization, source: ModuleName.HTTP}
@@ -515,7 +515,7 @@ export function HTTPSamplesPanel() {
 
                 <ModuleLayout.Full>
                   <Button
-                    onClick={() => {
+                    onClick={() redesign => {
                       trackAnalytics(
                         'performance_views.sample_spans.try_different_samples_clicked',
                         {organization, source: ModuleName.HTTP}

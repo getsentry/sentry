@@ -180,7 +180,7 @@ class EventMetas extends Component<Props, State> {
                 ))}
               {hasReplay && (
                 <ReplayButtonContainer>
-                  <LinkButton href="#replay" size="sm" icon={<IconPlay />}>
+                  <LinkButton href="#replay" redesign size="sm" icon={<IconPlay redesign />}>
                     {t('Replay')}
                   </LinkButton>
                 </ReplayButtonContainer>

@@ -12,9 +12,9 @@ function FeedbackButton() {
 
   return openForm ? (
     <Button
-      size="xs"
+      size="xs" redesign
       aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
+      icon={<IconMegaphone size="xs" redesign />}
       onClick={() =>
         openForm({
           messagePlaceholder: t('How can we make the trace view better for you?'),

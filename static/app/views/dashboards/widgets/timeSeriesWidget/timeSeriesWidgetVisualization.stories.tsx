@@ -770,7 +770,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         </p>
 
         <Button
-          size="sm"
+          size="sm" redesign
           onClick={() => {
             const sample = shuffle(shiftedSpanSamples.data).find(
               shuffledSample => shuffledSample.id !== sampleId

@@ -144,7 +144,7 @@ function ApiApplicationsDetails() {
                         'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                       )}
                     >
-                      <Button size="xs" priority="danger">
+                      <Button size="xs" redesign priority="danger">
                         {t('Rotate client secret')}
                       </Button>
                     </Confirm>

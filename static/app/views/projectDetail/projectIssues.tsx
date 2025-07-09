@@ -266,7 +266,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         </SegmentedControl>
         <OpenInButtonBar gap={1}>
           <LinkButton
-            data-test-id="issues-open"
+            data-test-id="issues-open" redesign
             size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}

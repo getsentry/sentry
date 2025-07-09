@@ -57,8 +57,8 @@ export function StarSavedQueryButton() {
   }
   return (
     <Button
-      aria-label={isStarred ? t('Unstar') : t('Star')}
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      aria-label={isStarred redesign ? t('Unstar') : t('Star')}
+      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} redesign />}
       size="sm"
       onClick={() => debouncedOnClick(locationId, !isStarred)}
     />

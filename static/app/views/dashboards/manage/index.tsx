@@ -455,7 +455,7 @@ function ManageDashboards() {
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
                       <Button
-                        data-test-id="dashboard-create"
+                        data-test-id="dashboard-create" redesign
                         onClick={event => {
                           event.preventDefault();
                           onCreate();
@@ -468,7 +468,7 @@ function ManageDashboards() {
                       </Button>
                       <Feature features="dashboards-import">
                         <Button
-                          onClick={() => {
+                          onClick={() redesign => {
                             openImportDashboardFromFileModal({
                               organization,
                               api,

@@ -37,7 +37,7 @@ export function OpenReplayComparisonButton({
 
   return (
     <Button
-      role="button"
+      role="button" redesign
       size={size}
       analyticsEventKey="replay.hydration-modal.opened"
       analyticsEventName="Hydration Modal Opened"

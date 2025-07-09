@@ -55,7 +55,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
 
   return (
     <Button
-      priority="link"
+      priority="link" redesign
       onClick={() => {
         onExceptionClick(exceptionId);
 

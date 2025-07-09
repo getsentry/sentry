@@ -76,7 +76,7 @@ const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
 
 const docsLink = (
-  <LinkButton external href={performanceSetupUrl}>
+  <LinkButton external redesign href={performanceSetupUrl}>
     {t('Setup')}
   </LinkButton>
 );
@@ -151,7 +151,7 @@ function SampleButton({
   const location = useLocation();
   return (
     <Button
-      data-test-id="create-sample-transaction-btn"
+      data-test-id="create-sample-transaction-btn" redesign
       onClick={async () => {
         trackAnalytics('performance_views.create_sample_transaction', {
           platform: project.platform,
@@ -243,7 +243,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
 
   let setupButton = (
     <LinkButton
-      priority="primary"
+      priority="primary" redesign
       href="https://docs.sentry.io/performance-monitoring/getting-started/"
       external
     >
@@ -254,7 +254,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   if (hasPerformanceOnboarding && showOnboardingChecklist) {
     setupButton = (
       <Button
-        priority="primary"
+        priority="primary" redesign
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
@@ -298,7 +298,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
         >
           {({showModal}) => (
             <Button
-              priority="link"
+              priority="link" redesign
               onClick={() => {
                 trackAnalytics('performance_views.tour.start', {organization});
                 showModal();
@@ -563,7 +563,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         <br />
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/platforms/"
             external
             onClick={() => {
@@ -592,7 +592,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         <br />
         <div>
           <LinkButton
-            size="sm"
+            size="sm" redesign
             href="https://docs.sentry.io/product/performance/getting-started/"
             external
             onClick={() => {
@@ -751,7 +751,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
               <GuidedSteps.BackButton size="md" />
               {received ? (
                 <Button
-                  priority="primary"
+                  priority="primary" redesign
                   busy={!traceId}
                   title={traceId ? undefined : t('Processing trace\u2026')}
                   onClick={() => {

@@ -44,13 +44,13 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
 
       {showFooter && (
         <ErrorFooter>
-          <div>{onRetry && <Button onClick={onRetry}>{t('Retry')}</Button>}</div>
+          <div>{onRetry && <Button onClick={onRetry} redesign>{t('Retry')}</Button>}</div>
 
           {!hideSupportLinks && (
             <ButtonBar gap={1.5}>
               {lastEventId && (
                 <Button
-                  priority="link"
+                  priority="link" redesign
                   onClick={e => {
                     e.preventDefault();
                     Sentry.showReportDialog({eventId: lastEventId});
@@ -59,10 +59,10 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
                   {t('Fill out a report')}
                 </Button>
               )}
-              <LinkButton priority="link" external href="https://status.sentry.io/">
+              <LinkButton priority="link" redesign external href="https://status.sentry.io/">
                 {t('Service status')}
               </LinkButton>
-              <LinkButton priority="link" external href="https://sentry.io/support/">
+              <LinkButton priority="link" redesign external href="https://sentry.io/support/">
                 {t('Contact support')}
               </LinkButton>
             </ButtonBar>

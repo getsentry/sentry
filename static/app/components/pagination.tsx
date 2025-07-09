@@ -71,7 +71,7 @@ function Pagination({
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
       <ButtonBar merged>
         <Button
-          icon={<IconChevron direction="left" />}
+          icon={<IconChevron redesign direction="left" redesign />}
           aria-label={t('Previous')}
           size={size}
           disabled={previousDisabled}
@@ -81,7 +81,7 @@ function Pagination({
           }}
         />
         <Button
-          icon={<IconChevron direction="right" />}
+          icon={<IconChevron redesign direction="right" redesign />}
           aria-label={t('Next')}
           size={size}
           disabled={nextDisabled}

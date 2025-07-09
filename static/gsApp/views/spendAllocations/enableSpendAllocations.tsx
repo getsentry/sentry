@@ -45,7 +45,7 @@ function EnableSpendAllocations({
       <p>{t('Enable the Spend Allocation feature for your organization')}</p>
       {hasScope && (
         <Button
-          aria-label="Get started"
+          aria-label="Get redesign started"
           priority="primary"
           size="sm"
           disabled={!hasScope}

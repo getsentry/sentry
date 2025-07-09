@@ -327,7 +327,7 @@ function FunctionTrendsEntry({
     <Fragment>
       <AccordionItem>
         <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          icon={<IconChevron redesign size="xs" direction={isExpanded ? 'up' : 'down'} redesign />}
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"

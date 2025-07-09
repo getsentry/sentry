@@ -94,7 +94,7 @@ function EnableSpikeProtectionButton({
 
   return (
     <Button
-      size="sm"
+      size="sm" redesign
       onClick={() => {
         enableSpikeProtection();
       }}
@@ -253,8 +253,8 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             />
           </Title>
           <LinkButton
-            size="sm"
-            icon={<IconSettings />}
+            size="sm" redesign
+            icon={<IconSettings redesign />}
             aria-label={t('Settings')}
             title={t('Go to spike protection settings')}
             to={`/settings/${organization.slug}/spike-protection/`}

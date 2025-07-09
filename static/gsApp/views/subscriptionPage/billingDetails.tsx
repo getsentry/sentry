@@ -130,7 +130,7 @@ class BillingDetails extends Component<Props, State> {
           <PanelHeader hasButtons>
             {t('Credit Card On File')}
             <Button
-              data-test-id="update-card"
+              data-test-id="update-card" redesign
               priority="primary"
               size="sm"
               onClick={() =>

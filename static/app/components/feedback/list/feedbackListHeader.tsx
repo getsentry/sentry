@@ -72,9 +72,9 @@ export default function FeedbackListHeader({
       {hasNewItems ? (
         <RefreshContainer>
           <Button
-            priority="primary"
+            priority="primary" redesign
             size="xs"
-            icon={<IconRefresh />}
+            icon={<IconRefresh redesign />}
             onClick={() => {
               // Get a new date for polling:
               resetListHeadTime();

@@ -19,10 +19,10 @@ export function RequestSdkAccessButton({
 }: RequestSdkAccessButtonProps) {
   return (
     <Button
-      priority="default"
+      priority="default" redesign
       size="sm"
       data-test-id="request-sdk-access"
-      icon={<IconCode />}
+      icon={<IconCode redesign />}
       onClick={() => {
         openModal(deps => (
           <PlayStationSdkAccessModal

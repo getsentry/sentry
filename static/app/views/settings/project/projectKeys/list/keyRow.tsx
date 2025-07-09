@@ -58,7 +58,7 @@ function KeyRow({
           )}
         </Title>
         <Controls>
-          <LinkButton to={editUrl} size="xs">
+          <LinkButton to={editUrl} redesign size="xs">
             {t('Configure')}
           </LinkButton>
           <Confirm
@@ -71,7 +71,7 @@ function KeyRow({
                 : t('Are you sure you want to enable this key?')
             }
           >
-            <Button size="xs">{data.isActive ? t('Disable') : t('Enable')}</Button>
+            <Button size="xs" redesign>{data.isActive ? t('Disable') : t('Enable')}</Button>
           </Confirm>
           <Confirm
             disabled={!hasWriteAccess}
@@ -82,7 +82,7 @@ function KeyRow({
               'Are you sure you want to remove this key? This action is irreversible.'
             )}
           >
-            <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
+            <Button size="xs" redesign icon={<IconDelete redesign />} aria-label={t('Delete')} />
           </Confirm>
         </Controls>
       </PanelHeader>

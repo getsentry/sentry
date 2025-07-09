@@ -67,9 +67,9 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
       <div>{children}</div>
       <div>
         <Button
-          borderless
+          borderless redesign
           size="xs"
-          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble redesign />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
         />

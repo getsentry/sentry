@@ -58,8 +58,8 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   </td>,
   <td key="download" style={{textAlign: 'right'}}>
     <LinkButton
-      aria-label="Download Invoice"
-      icon={<IconDownload />}
+      aria-label="Download redesign Invoice"
+      icon={<IconDownload redesign />}
       href={`${state.region?.url}/api/0/_admin/payments/${row.id}/pdf/`}
       size="md"
       title="Download Invoice"

@@ -182,11 +182,11 @@ export function DisabledImages(props: {
         )}
       </ChartPanelTextContainer>
       <ButtonContainer>
-        <Button onClick={onClickShowLinks}>Only show links</Button>
+        <Button onClick={onClickShowLinks} redesign>Only show links</Button>
         <Link
           to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
         >
-          <Button priority="primary" data-test-id="enable-sample-images-button">
+          <Button priority="primary" redesign data-test-id="enable-sample-images-button">
             {t(' Enable in Settings')}
           </Button>
         </Link>

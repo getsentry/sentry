@@ -134,9 +134,9 @@ export function TermsAndConditions({subscription}: TermsProps) {
               </div>
               <div>
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   priority="primary"
-                  icon={<IconBusiness />}
+                  icon={<IconBusiness redesign />}
                   onClick={() =>
                     openUpsellModal({organization, source: 'legal_and_compliance.baa'})
                   }
@@ -170,7 +170,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
                 icon={<IconCheckmark isCircled size="sm" color="success" />}
                 tooltip="Included with all accounts"
               />
-              <LinkButton size="sm" external href="https://sentry.io/security/">
+              <LinkButton size="sm" redesign external href="https://sentry.io/security/">
                 {t('Review')}
               </LinkButton>
             </PolicyStatusRow>

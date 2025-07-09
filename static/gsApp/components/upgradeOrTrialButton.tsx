@@ -140,7 +140,7 @@ function UpgradeOrTrialButton({
     // non-admin who wants to trial
     return (
       <Button
-        onClick={handleRequest}
+        onClick={handleRequest} redesign redesign
         busy={busy}
         priority={buttonPriority}
         {...(props as ButtonProps)}
@@ -158,7 +158,7 @@ function UpgradeOrTrialButton({
 
     return (
       <LinkButton
-        onClick={handleSuccess}
+        onClick={handleSuccess} redesign redesign
         href={`${baseUrl}?referrer=upgrade-${source}`}
         priority={buttonPriority}
         {...(props as LinkButtonProps)}
@@ -169,7 +169,7 @@ function UpgradeOrTrialButton({
   }
   return (
     <Button
-      onClick={handleRequest}
+      onClick={handleRequest} redesign redesign
       busy={busy}
       priority={buttonPriority}
       {...(props as ButtonProps)}

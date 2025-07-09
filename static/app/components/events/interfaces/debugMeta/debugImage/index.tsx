@@ -55,7 +55,7 @@ function DebugImage({ref, image, onOpenImageDetailsModal, style}: Props) {
         )}
       </Column>
       <DebugFilesColumn>
-        <Button size="xs" onClick={() => onOpenImageDetailsModal(image)}>
+        <Button size="xs" redesign onClick={() => onOpenImageDetailsModal(image)}>
           {t('View')}
         </Button>
       </DebugFilesColumn>

@@ -37,9 +37,9 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
               ),
               renderInstallButton: p => (
                 <Button
-                  size="sm"
+                  size="sm" redesign
                   priority="primary"
-                  icon={<IconBusiness />}
+                  icon={<IconBusiness redesign />}
                   onClick={() =>
                     openUpsellModal({
                       organization,

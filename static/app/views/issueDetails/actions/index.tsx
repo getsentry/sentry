@@ -322,9 +322,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               )}
             </Body>
             <Footer>
-              <Button onClick={closeModal}>{t('Cancel')}</Button>
+              <Button onClick={closeModal} redesign>{t('Cancel')}</Button>
               <Button
-                style={{marginLeft: space(1)}}
+                style={{marginLeft: redesign space(1)}}
                 priority="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
@@ -413,7 +413,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             <Divider />
             {resolveCap.enabled && (
               <Button
-                size="sm"
+                size="sm" redesign
                 disabled={disabled || isAutoResolved}
                 onClick={() =>
                   onUpdate({
@@ -477,9 +477,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             size="sm"
           />
           <Button
-            size="sm"
+            size="sm" redesign
             onClick={openShareModal}
-            icon={<IconUpload />}
+            icon={<IconUpload redesign />}
             aria-label={t('Share')}
             title={t('Share Issue')}
             disabled={disabled}
@@ -597,7 +597,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               organization={organization}
             >
               <LinkButton
-                className="hidden-xs"
+                className="hidden-xs" redesign
                 disabled={disabled}
                 to={disabled ? '' : getDiscoverUrl()}
                 onClick={() => trackIssueAction('open_in_discover')}
@@ -609,7 +609,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           )}
           {isResolved || isIgnored ? (
             <Button
-              priority="primary"
+              priority="primary" redesign
               title={
                 isAutoResolved
                   ? t(

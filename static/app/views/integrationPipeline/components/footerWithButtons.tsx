@@ -32,9 +32,9 @@ export default function FooterWithButtons({
 
   const button =
     href === undefined ? (
-      <Button type="submit" {...(buttonProps as ButtonProps)} />
+      <Button type="submit" redesign redesign {...(buttonProps as ButtonProps)} redesign redesign />
     ) : (
-      <LinkButton href={href} {...(buttonProps as LinkButtonProps)} />
+      <LinkButton href={href} redesign redesign {...(buttonProps as LinkButtonProps)} redesign redesign />
     );
 
   // We use a form post here to replicate what we do with standard HTML views

@@ -142,7 +142,7 @@ export function SubscriptionUpsellBanner({
         <IntegationBannerDescription>
           {description}{' '}
           <Button
-            size="zero"
+            size="zero" redesign
             priority="link"
             onClick={() =>
               openUpsellModal({organization, source: 'subscription_overview'})

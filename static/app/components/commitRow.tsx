@@ -236,7 +236,7 @@ function CommitRow({
 
       {commit.pullRequest?.externalUrl && (
         <LinkButton
-          external
+          external redesign
           href={commit.pullRequest.externalUrl}
           onClick={onPullRequestClick}
         >

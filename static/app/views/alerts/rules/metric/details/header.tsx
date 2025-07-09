@@ -117,10 +117,10 @@ function DetailsHeader({
               )}
             </Access>
           )}
-          <LinkButton size="sm" icon={<IconCopy />} to={duplicateLink}>
+          <LinkButton size="sm" redesign icon={<IconCopy redesign />} to={duplicateLink}>
             {t('Duplicate')}
           </LinkButton>
-          <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
+          <LinkButton size="sm" redesign icon={<IconEdit redesign />} to={settingsLink}>
             {t('Edit Rule')}
           </LinkButton>
         </ButtonBar>

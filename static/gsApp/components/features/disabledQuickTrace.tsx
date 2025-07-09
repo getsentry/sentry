@@ -15,7 +15,7 @@ export default function DisabledQuickTrace({organization}: Props) {
       body={t('Missing Trace')}
       footer={
         <Button
-          priority="link"
+          priority="link" redesign
           onClick={() =>
             openUpsellModal({
               organization,

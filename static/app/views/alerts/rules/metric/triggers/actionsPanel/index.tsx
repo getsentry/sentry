@@ -409,7 +409,7 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction.type === 'sentry_app' &&
                       availableAction.settings ? (
                       <Button
-                        icon={<IconSettings />}
+                        icon={<IconSettings redesign redesign />}
                         disabled={actionDisabled}
                         onClick={() => {
                           openModal(
@@ -499,8 +499,8 @@ class ActionsPanel extends PureComponent<Props> {
         })}
         <ActionSection>
           <Button
-            disabled={disabled || loading}
-            icon={<IconAdd isCircled color="gray300" />}
+            disabled={disabled redesign || loading}
+            icon={<IconAdd isCircled color="gray300" redesign />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}

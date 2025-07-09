@@ -72,9 +72,9 @@ function RemoveButton(props: {
   if (!canRemoveMember) {
     return (
       <Button
-        size="xs"
+        size="xs" redesign
         disabled
-        icon={<IconSubtract isCircled />}
+        icon={<IconSubtract isCircled redesign />}
         aria-label={t('Remove')}
         title={t('You do not have permission to remove a member from this team.')}
       >
@@ -89,10 +89,10 @@ function RemoveButton(props: {
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
-      data-test-id={`button-remove-${member.id}`}
+      data-test-id={`button-remove-${member.id}`} redesign
       size="xs"
       disabled={!canRemoveMember || isIdpProvisioned}
-      icon={<IconSubtract isCircled />}
+      icon={<IconSubtract isCircled redesign />}
       onClick={onClick}
       aria-label={buttonRemoveText}
       title={buttonHelpText}

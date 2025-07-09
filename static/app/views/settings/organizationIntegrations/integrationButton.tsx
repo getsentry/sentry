@@ -59,7 +59,7 @@ function IntegrationButton({
   if (metadata.aspects.externalInstall) {
     return (
       <LinkButton
-        icon={externalInstallText ? null : <IconOpen />}
+        icon={externalInstallText redesign ? null : <IconOpen redesign />}
         href={metadata.aspects.externalInstall.url}
         onClick={onExternalClick}
         external

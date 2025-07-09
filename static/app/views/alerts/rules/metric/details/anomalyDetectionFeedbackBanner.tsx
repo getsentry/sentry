@@ -82,10 +82,10 @@ export default function AnomalyDetectionFeedbackBanner({
       type="info"
       trailingItems={
         <Fragment>
-          <Button size="xs" onClick={() => handleClick(true)}>
+          <Button size="xs" redesign onClick={() => handleClick(true)}>
             {t('Yes')}
           </Button>
-          <Button size="xs" onClick={() => handleClick(false)}>
+          <Button size="xs" redesign onClick={() => handleClick(false)}>
             {t('No')}
           </Button>
         </Fragment>

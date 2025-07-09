@@ -218,10 +218,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
           return (
             <ButtonGroup>
-              <LinkButton data-test-id="view-child-transaction" size="xs" to={to}>
+              <LinkButton data-test-id="view-child-transaction" redesign size="xs" to={to}>
                 {t('View Transaction')}
               </LinkButton>
-              <LinkButton size="xs" to={target}>
+              <LinkButton size="xs" redesign to={target}>
                 {t('View Summary')}
               </LinkButton>
             </ButtonGroup>
@@ -267,7 +267,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           span={props.node.value}
         />
         <LinkButton
-          size="xs"
+          size="xs" redesign
           to={spanDetailsRouteWithQuery({
             organization,
             transaction: transactionName,

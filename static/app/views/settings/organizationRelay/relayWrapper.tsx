@@ -56,12 +56,12 @@ export function RelayWrapper() {
         title={t('Relay')}
         action={
           <Button
-            title={
+            title={ redesign
               disabled ? t('You do not have permission to register keys') : undefined
             }
             priority="primary"
             size="sm"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd isCircled redesign />}
             onClick={handleOpenAddDialog}
             disabled={disabled}
           >

@@ -18,7 +18,7 @@ function DisabledAlertWizard({organization}: Props) {
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
       <ButtonBar gap={1}>
         <Button
-          onClick={() =>
+          onClick={() redesign =>
             openUpsellModal({
               organization,
               source: 'alert-wizard',
@@ -28,7 +28,7 @@ function DisabledAlertWizard({organization}: Props) {
         >
           {t('Learn More')}
         </Button>
-        <Button priority="primary" disabled>
+        <Button priority="primary" redesign disabled>
           {t('Set Conditions')}
         </Button>
       </ButtonBar>

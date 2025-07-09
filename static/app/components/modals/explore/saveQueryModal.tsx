@@ -127,10 +127,10 @@ function SaveQueryModal({
 
       <Footer>
         <StyledButtonBar gap={1.5}>
-          <Button onClick={closeModal} disabled={isSaving}>
+          <Button onClick={closeModal} redesign disabled={isSaving}>
             {t('Cancel')}
           </Button>
-          <Button onClick={onSave} disabled={!name || isSaving} priority="primary">
+          <Button onClick={onSave} redesign disabled={!name || isSaving} priority="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
         </StyledButtonBar>

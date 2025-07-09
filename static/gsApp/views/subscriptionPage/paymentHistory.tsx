@@ -118,8 +118,8 @@ function PaymentHistory({organization, subscription}: Props) {
                 <CenterAlign>
                   <div>
                     <LinkButton
-                      size="sm"
-                      icon={<IconDownload size="sm" />}
+                      size="sm" redesign
+                      icon={<IconDownload size="sm" redesign />}
                       href={payment.receipt.url}
                       aria-label={t('Download')}
                     />

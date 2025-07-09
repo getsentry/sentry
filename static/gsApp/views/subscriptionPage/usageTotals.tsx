@@ -582,7 +582,7 @@ export function UsageTotals({
               )}
               {!disableTable && (
                 <Button
-                  data-test-id={`expand-usage-totals-${category}`}
+                  data-test-id={`expand-usage-totals-${category}`} redesign
                   size="sm"
                   onClick={() => setState({...state, expanded: !state.expanded})}
                   icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}
@@ -1081,10 +1081,10 @@ export function CombinedUsageTotals({
                 </MarginSpan>
               ) : (
                 <LinkButton
-                  data-test-id={`enable-${apiName}`}
+                  data-test-id={`enable-${apiName}`} redesign
                   size="sm"
                   to={`/settings/${organization.slug}/billing/checkout/?referrer=${apiName}-usage-card#step1`}
-                  icon={<IconLock />}
+                  icon={<IconLock redesign />}
                 >
                   {tct('Enable [productName]', {
                     productName: toTitleCase(productGroup.productName),
@@ -1095,7 +1095,7 @@ export function CombinedUsageTotals({
               !doesNotHaveProduct && (
                 <AcceptedSummary>
                   <Button
-                    data-test-id={`expand-usage-totals-${apiName}`}
+                    data-test-id={`expand-usage-totals-${apiName}`} redesign
                     size="sm"
                     onClick={() => setState({...state, expanded: !state.expanded})}
                     icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}

@@ -212,7 +212,7 @@ export function OverviewRow({
           );
         })}
         {!isExpanded && (
-          <Button size="xs" onClick={() => setExpanded(true)}>
+          <Button size="xs" redesign onClick={() => setExpanded(true)}>
             {tct('Show [num] More', {
               num: monitor.environments.length - MAX_SHOWN_ENVIRONMENTS,
             })}

@@ -284,7 +284,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       }
     >
       <Button
-        {...props.buttonProps}
+        {...props.buttonProps} redesign redesign
         priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         disabled={isTransactionQueryMissing || isBreakingRequestError}
         onClick={() => createInvestigationRule({organization, projects, query})}

@@ -102,9 +102,9 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
 
   return (
     <Button
-      onClick={onTogglePinnedSearch}
+      onClick={onTogglePinnedSearch} redesign
       size="sm"
-      icon={<IconBookmark isSolid={pinnedSearchActive} />}
+      icon={<IconBookmark isSolid={pinnedSearchActive} redesign />}
       disabled={isPinning || isUnpinning}
     >
       {pinnedSearchActive ? t('Remove Default') : t('Set as Default')}

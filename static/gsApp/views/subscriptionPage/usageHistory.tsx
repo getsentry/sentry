@@ -277,7 +277,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
             />
           </StyledDropdown>
           <Button
-            data-test-id="history-expand"
+            data-test-id="history-expand" redesign
             size="sm"
             onClick={() => setExpanded(!expanded)}
             icon={<IconChevron direction={expanded ? 'up' : 'down'} />}

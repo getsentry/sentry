@@ -51,13 +51,13 @@ function DateRangeQueryLimitFooter({
           {canTrial ? t('Start Trial') : t('Upgrade Now')}
         </UpgradeOrTrialButton>
         {canTrial && (
-          <LinkButton size={BUTTON_SIZE} to={checkoutUrl}>
+          <LinkButton size={BUTTON_SIZE} redesign to={checkoutUrl}>
             {t('Upgrade Now')}
           </LinkButton>
         )}
         {!canTrial && (
           <Button
-            size={BUTTON_SIZE}
+            size={BUTTON_SIZE} redesign
             onClick={() =>
               openUpsellModal({
                 organization,

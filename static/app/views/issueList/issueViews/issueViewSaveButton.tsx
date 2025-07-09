@@ -198,7 +198,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
       >
         {({hasFeature}) => (
           <Button
-            priority="primary"
+            priority="primary" redesign
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >

@@ -32,7 +32,7 @@ export function Deploys({project}: Props) {
 
   if (!deploys.length) {
     return (
-      <LinkButton size="sm" href="https://docs.sentry.io/product/releases/" external>
+      <LinkButton size="sm" redesign href="https://docs.sentry.io/product/releases/" external>
         {t('Track Deploys')}
       </LinkButton>
     );

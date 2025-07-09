@@ -84,7 +84,7 @@ export function MergedToolbar({
             'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
           )}
         >
-          <Button size="xs" title={unmergeDisabledReason}>
+          <Button size="xs" redesign title={unmergeDisabledReason}>
             {mergedItems.length <= 1
               ? t('Unmerge')
               : tct('Unmerge ([itemsSelectedQuantity])', {
@@ -94,7 +94,7 @@ export function MergedToolbar({
         </Confirm>
 
         <Button
-          size="xs"
+          size="xs" redesign
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
           title={
@@ -106,7 +106,7 @@ export function MergedToolbar({
           {t('Compare')}
         </Button>
       </ButtonBar>
-      <Button size="xs" onClick={onToggleCollapse}>
+      <Button size="xs" redesign onClick={onToggleCollapse}>
         {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
       </Button>
     </PanelHeader>

@@ -49,7 +49,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
   return (
     <ButtonBar gap={1}>
       <LinkButton
-        size="sm"
+        size="sm" redesign
         priority="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
@@ -67,7 +67,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
           doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button size="sm" redesign onClick={showModal}>
               {t('Get Tour')}
             </Button>
           )}

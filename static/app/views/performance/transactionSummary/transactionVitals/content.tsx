@@ -120,7 +120,7 @@ function VitalsContent(props: Props) {
                       triggerLabel={activeFilter.label}
                     />
                     <Button
-                      onClick={() => {
+                      onClick={() redesign => {
                         trackAnalytics('performance_views.vitals.reset_view', {
                           organization,
                         });

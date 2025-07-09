@@ -335,12 +335,12 @@ export function PagePerformanceTable() {
           <Wrapper>
             <ButtonBar merged>
               <Button
-                icon={<IconChevron direction="left" />}
+                icon={<IconChevron redesign direction="left" redesign />}
                 disabled
                 aria-label={t('Previous')}
               />
               <Button
-                icon={<IconChevron direction="right" />}
+                icon={<IconChevron redesign direction="right" redesign />}
                 disabled
                 aria-label={t('Next')}
               />

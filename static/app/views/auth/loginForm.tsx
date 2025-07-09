@@ -29,17 +29,17 @@ function LoginProviders({
     <ProviderWrapper>
       <ProviderHeading>{t('External Account Login')}</ProviderHeading>
       {googleLoginLink && (
-        <LinkButton size="sm" icon={<IconGoogle />} href={googleLoginLink}>
+        <LinkButton size="sm" redesign icon={<IconGoogle redesign />} href={googleLoginLink}>
           {t('Sign in with Google')}
         </LinkButton>
       )}
       {githubLoginLink && (
-        <LinkButton size="sm" icon={<IconGithub />} href={githubLoginLink}>
+        <LinkButton size="sm" redesign icon={<IconGithub redesign />} href={githubLoginLink}>
           {t('Sign in with GitHub')}
         </LinkButton>
       )}
       {vstsLoginLink && (
-        <LinkButton size="sm" icon={<IconVsts />} href={vstsLoginLink}>
+        <LinkButton size="sm" redesign icon={<IconVsts redesign />} href={vstsLoginLink}>
           {t('Sign in with Azure DevOps')}
         </LinkButton>
       )}

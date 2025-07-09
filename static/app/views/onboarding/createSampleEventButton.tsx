@@ -195,9 +195,9 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     return (
       <Button
-        {...props}
+        {...props} redesign redesign
         disabled={props.disabled || creating}
-        onClick={this.createSampleGroup}
+        onClick={this.createSampleGroup} redesign redesign
       />
     );
   }

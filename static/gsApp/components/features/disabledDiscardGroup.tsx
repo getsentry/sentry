@@ -44,9 +44,9 @@ function DisabledDiscardGroup({organization, features}: Props) {
           action={
             <ButtonGroup>
               <Button
-                size="sm"
+                size="sm" redesign
                 priority="primary"
-                icon={<IconBusiness />}
+                icon={<IconBusiness redesign />}
                 onClick={() =>
                   openUpsellModal({
                     organization,

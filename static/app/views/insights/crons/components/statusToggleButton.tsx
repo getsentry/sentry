@@ -30,7 +30,7 @@ export function StatusToggleButton({
 
   return (
     <Button
-      icon={<Icon />}
+      icon={<Icon redesign redesign redesign redesign />}
       aria-label={label}
       title={label}
       onClick={async () => {

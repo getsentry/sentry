@@ -270,7 +270,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             </FieldLabel>
             <ButtonBar gap={1}>
               <Button
-                priority="link"
+                priority="link" redesign
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, true)}
                 disabled={disabled}
@@ -278,7 +278,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 {t('All')}
               </Button>
               <Button
-                priority="link"
+                priority="link" redesign
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, false)}
                 disabled={disabled}

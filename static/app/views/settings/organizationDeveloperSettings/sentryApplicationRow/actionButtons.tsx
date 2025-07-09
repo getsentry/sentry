@@ -32,8 +32,8 @@ function ActionButtons({
 }: Props) {
   const appDashboardButton = (
     <LinkButton
-      size="sm"
-      icon={<IconStats />}
+      size="sm" redesign
+      icon={<IconStats redesign />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
       {t('Dashboard')}
@@ -42,9 +42,9 @@ function ActionButtons({
 
   const publishRequestButton = showPublish ? (
     <Button
-      disabled={!!disablePublishReason}
+      disabled={!!disablePublishReason} redesign
       title={disablePublishReason}
-      icon={<IconUpgrade />}
+      icon={<IconUpgrade redesign />}
       size="sm"
       onClick={onPublish}
     >
@@ -59,10 +59,10 @@ function ActionButtons({
   const deleteButton = showDelete ? (
     disableDeleteReason ? (
       <Button
-        disabled
+        disabled redesign
         title={disableDeleteReason}
         size="sm"
-        icon={<IconDelete />}
+        icon={<IconDelete redesign />}
         aria-label={t('Delete')}
       />
     ) : (
@@ -73,7 +73,7 @@ function ActionButtons({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <Button size="sm" icon={<IconDelete />} aria-label={t('Delete')} />
+          <Button size="sm" redesign icon={<IconDelete redesign />} aria-label={t('Delete')} />
         </ConfirmDelete>
       )
     )

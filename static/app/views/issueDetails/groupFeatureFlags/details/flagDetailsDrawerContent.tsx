@@ -83,7 +83,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
           {t('No audit logs were found for this feature flag.')}
         </StyledEmptyStateWarning>
         <LinkButton
-          size="sm"
+          size="sm" redesign
           to={{
             pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
             query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},

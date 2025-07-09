@@ -159,10 +159,10 @@ function NotificationSettingsByEntity({
           />
           <RemoveButtonWrapper>
             <Button
-              aria-label={t('Delete')}
+              aria-label={t('Delete')} redesign
               size="sm"
               priority="default"
-              icon={<IconDelete />}
+              icon={<IconDelete redesign />}
               onClick={() => handleRemoveNotificationOption(option.id)}
             />
           </RemoveButtonWrapper>
@@ -270,10 +270,10 @@ function NotificationSettingsByEntity({
                 }}
               />
               <Button
-                disabled={!selectedEntityId || !selectedValue}
+                disabled={!selectedEntityId redesign || !selectedValue}
                 priority="primary"
                 onClick={handleAdd}
-                icon={<IconAdd />}
+                icon={<IconAdd redesign />}
                 aria-label={t('Add override')}
               />
             </ControlItem>

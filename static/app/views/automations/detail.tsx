@@ -141,10 +141,10 @@ function Actions() {
   };
   return (
     <Fragment>
-      <Button onClick={disable} size="sm">
+      <Button onClick={disable} redesign size="sm">
         {t('Disable')}
       </Button>
-      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton to="edit" redesign priority="primary" icon={<IconEdit redesign />} size="sm">
         {t('Edit')}
       </LinkButton>
     </Fragment>

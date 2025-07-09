@@ -75,7 +75,7 @@ describe('GuidedSteps', function () {
 
       return (
         <div>
-          <Button onClick={() => setIsCompleted(true)}>Complete Step</Button>
+          <Button onClick={() redesign => setIsCompleted(true)}>Complete Step</Button>
           <GuidedSteps>
             <GuidedSteps.Step
               stepKey="step-1"
