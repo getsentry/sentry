@@ -60,6 +60,26 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
+def _split_events_by_occurrence(
+    event_list: list[GroupEvent],
+) -> tuple[list[GroupEvent], list[GroupEvent], list[GroupEvent]]:
+    events_with_occurrences: list[tuple[GroupEvent, int]] = []
+    events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
+    events_missing_detectors: list[GroupEvent] = []
+
+    for event in event_list:
+        issue_occurrence = event.occurrence
+
+        if issue_occurrence is None:
+            events_without_occurrences.append(event)
+        elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
+            events_with_occurrences.append((event, detector_id))
+        else:
+            events_missing_detectors.append(event)
+
+    return events_with_occurrences, events_without_occurrences, events_missing_detectors
+
+
 def _update_event_detector_map(
     map: dict[str, Detector],
     detectors: BaseQuerySet[Detector],
@@ -87,19 +107,9 @@ def get_detectors_by_groupevents_bulk(
     result: dict[str, Detector] = {}
 
     # Separate events by whether they have occurrences or not
-    events_with_occurrences: list[tuple[GroupEvent, int]] = []
-    events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
-    events_missing_detectors: list[GroupEvent] = []
-
-    for event in event_list:
-        issue_occurrence = event.occurrence
-
-        if issue_occurrence is None:
-            events_without_occurrences.append(event)
-        elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
-            events_with_occurrences.append((event, detector_id))
-        else:
-            events_missing_detectors.append(event)
+    events_with_occurrences, events_without_occurrences, events_missing_detectors = (
+        _split_events_by_occurrence(event_list)
+    )
 
     # Fetch detectors for events with occurrences (by detector_id)
     missing_detector_ids = set()
