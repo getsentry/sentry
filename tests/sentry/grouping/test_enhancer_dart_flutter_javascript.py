@@ -1,7 +1,6 @@
 """
 Tests for Dart/Flutter enhancement rules on the *javascript* platform (a.k.a. the "browser"/"dart2js" output
-executed in a JavaScript runtime).  These tests are separated from the native-platform suite so that platform-
-specific behaviour is easier to reason about.
+executed in a JavaScript runtime).
 """
 
 from __future__ import annotations

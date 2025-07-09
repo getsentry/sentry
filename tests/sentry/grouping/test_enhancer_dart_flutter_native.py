@@ -1,7 +1,5 @@
 """
-Tests for Dart/Flutter enhancement rules on the *native* platform. These tests are a subset of the original
-`test_enhancer_dart_flutter.py` suite but grouped so that they only exercise the enhancement rules that apply
-when the platform is set to ``native``.
+Tests for Dart/Flutter enhancement rules on the *native* platform.
 """
 
 from __future__ import annotations
