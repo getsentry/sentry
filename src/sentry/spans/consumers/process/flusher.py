@@ -10,7 +10,7 @@ import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
 from django.conf import settings
@@ -54,7 +54,7 @@ class MultiProducer:
 
     def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
         """Default factory that creates real KafkaProducers."""
-        return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        return KafkaProducer(build_kafka_producer_configuration(default_config=producer_config))
 
     def _setup_producers(self):
         """Setup producers based on SLICED_KAFKA_TOPICS configuration."""
