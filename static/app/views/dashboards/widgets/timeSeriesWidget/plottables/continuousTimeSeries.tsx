@@ -59,7 +59,17 @@ export abstract class ContinuousTimeSeries<
   }
 
   get name(): string {
-    return this.timeSeries.yAxis;
+    let name = `${this.timeSeries.yAxis}`;
+
+    if (this.timeSeries.groupBy?.length && this.timeSeries.groupBy.length > 0) {
+      name += ` : ${this.timeSeries.groupBy
+        ?.map(groupBy => {
+          return `${groupBy.key}:${groupBy.value}`;
+        })
+        .join(',')}`;
+    }
+
+    return name;
   }
 
   get label(): string {
