@@ -1,7 +1,7 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
-import {computeChonk} from 'sentry/components/core/chonk';
+import {chonkFor} from 'sentry/components/core/chonk';
 // eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject} from 'sentry/utils/theme';
 // eslint-disable-next-line boundaries/element-types
@@ -260,19 +260,19 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
     case 'accent':
       return {
         surface: theme.colors.chonk.blue400,
-        background: computeChonk(theme, theme.colors.chonk.blue400),
+        background: chonkFor(theme, theme.colors.chonk.blue400),
         color: theme.colors.white,
       };
     case 'warning':
       return {
         surface: theme.colors.chonk.yellow400,
-        background: computeChonk(theme, theme.colors.chonk.yellow400),
+        background: chonkFor(theme, theme.colors.chonk.yellow400),
         color: theme.colors.black,
       };
     case 'danger':
       return {
         surface: theme.colors.chonk.red400,
-        background: computeChonk(theme, theme.colors.chonk.red400),
+        background: chonkFor(theme, theme.colors.chonk.red400),
         color: theme.colors.white,
       };
     case 'transparent':
