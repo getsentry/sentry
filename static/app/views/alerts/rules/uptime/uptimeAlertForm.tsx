@@ -1,6 +1,5 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
@@ -135,7 +134,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project.slug, method: 'GET', headers: [], name: '', url: ''};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -173,38 +172,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       }),
     [formModel, navigate, organization, projects, rule]
   );
-
-  // When mutating the name field manually, we'll disable automatic name
-  // generation from the URL
-  const [hasCustomName, setHasCustomName] = useState(false);
-  const disposeNameSetter = useRef<IReactionDisposer>(null);
-  const hasRule = !!rule;
-
-  // Suggest rule name from URL
-  // useEffect(() => {
-  //   if (hasRule || hasCustomName) {
-  //     return () => {};
-  //   }
-  //   disposeNameSetter.current = autorun(() => {
-  //     const url = formModel.getValue('url');
-
-  //     if (typeof url !== 'string') {
-  //       return;
-  //     }
-
-  //     try {
-  //       const parsedUrl = new URL(url);
-  //       const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
-  //       const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
-
-  //       formModel.setValue('name', t('Uptime check for %s', urlName));
-  //     } catch {
-  //       // Nothing to do if we failed to parse the URL
-  //     }
-  //   });
-
-  //   return disposeNameSetter.current;
-  // }, [formModel, hasRule, hasCustomName]);
 
   return (
     <Form
@@ -400,14 +367,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="name"
             label={t('Uptime rule name')}
             placeholder={t('Uptime rule name')}
-            onChange={() => {
-              // Immediately dispose of the autorun name setter, since it won't
-              // receive the hasCustomName state before the autorun is ran
-              // again after this change (overriding whatever change the user
-              // just made)
-              disposeNameSetter.current?.();
-              setHasCustomName(true);
-            }}
             inline={false}
             flexibleControlStateSize
             stacked

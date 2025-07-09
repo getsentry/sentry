@@ -19,6 +19,7 @@ export function useFormField<Value extends FieldValue = FieldValue>(
 
       // Check if the field exists
       if (!form?.fields.has(field)) {
+        console.log('field not found', field);
         // Allow field to be created later by subscribing to all fields
         return observe(form.fields, () => {
           // Only call callback if our specific field now exists
