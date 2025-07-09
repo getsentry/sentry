@@ -1181,7 +1181,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
  */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...formTheme,
@@ -1259,7 +1259,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
  */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...formTheme,
