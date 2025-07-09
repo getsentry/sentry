@@ -86,6 +86,13 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+
+  // There was a bug where the layout was saved as 'list' instead of 'table'
+  // this coerces it back to TABLE in case we still rely on it anywhere
+  if (dashboardsLayout === 'list') {
+    return TABLE;
+  }
+
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
     : GRID;
