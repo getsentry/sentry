@@ -300,6 +300,9 @@ def get_attribute_values_with_substring(
     """
     values: dict[str, set[str]] = {}
 
+    if not fields_with_substrings:
+        return {"values": values}
+
     period = parse_stats_period(stats_period)
     if period is None:
         period = datetime.timedelta(days=7)
@@ -357,6 +360,7 @@ def get_attribute_values_with_substring(
         return None
 
     timeout_seconds = 1.0
+
     with ThreadPoolExecutor(max_workers=min(len(fields_with_substrings), 10)) as executor:
         future_to_field = {
             executor.submit(
@@ -370,7 +374,7 @@ def get_attribute_values_with_substring(
                 field_with_substring = future_to_field[future]
 
                 try:
-                    result = future.result(timeout=timeout_seconds)
+                    result = future.result()
                     if result is not None:
                         field, field_values = result
                         if field in values:
