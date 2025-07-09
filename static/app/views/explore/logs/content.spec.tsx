@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import LogsPage from './index';
+import LogsPage from './content';
 
 function ProviderWrapper({
   children,
