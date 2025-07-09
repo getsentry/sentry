@@ -67,7 +67,7 @@ function TeamDetails({children}: Props) {
   if (!team || isError) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           <div>{t('This team does not exist, or you do not have access to it.')}</div>
         </Alert>
       </Alert.Container>
@@ -114,7 +114,7 @@ function TeamDetails({children}: Props) {
         </div>
       ) : (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             <RequestAccessWrapper>
               <div>
                 {tct('You do not have access to the [teamSlug] team.', {

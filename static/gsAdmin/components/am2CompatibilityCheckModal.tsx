@@ -138,7 +138,7 @@ function AM2CompatibilityCheckModal() {
         )}
         {error && (
           <Alert.Container>
-            <Alert type="error">Something went wrong!</Alert>
+            <Alert type="error" showIcon={false}>Something went wrong!</Alert>
           </Alert.Container>
         )}
         {data?.errors && <ErrorBox errors={data.errors} />}
