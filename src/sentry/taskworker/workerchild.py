@@ -79,9 +79,11 @@ def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
-def is_zstd_compressed(data: bytes) -> bool:
-    ZSTD_SIGNATURE = b"\x28\xb5\x2f\xfd"
-    return len(data) >= 4 and data[:4] == ZSTD_SIGNATURE
+def is_zstd_compressed(data: bytes, headers: dict[str, str]) -> bool:
+    if headers.get("compressed-parameters", None):
+        ZSTD_SIGNATURE = b"\x28\xb5\x2f\xfd"
+        return len(data) >= 4 and data[:4] == ZSTD_SIGNATURE
+    return False
 
 
 def status_name(status: TaskActivationStatus.ValueType) -> str:
@@ -331,8 +333,9 @@ def child_process(
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
         """Invoke a task function with the activation parameters."""
         decoded_parameters = base64.b64decode(activation.parameters)
+        headers = {k: v for k, v in activation.headers.items()}
 
-        if is_zstd_compressed(decoded_parameters):
+        if is_zstd_compressed(decoded_parameters, headers):
             try:
                 start_time = time.perf_counter()
                 parameters_data = zstd.decompress(decoded_parameters)
@@ -354,7 +357,6 @@ def child_process(
 
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
-        headers = {k: v for k, v in activation.headers.items()}
 
         transaction = sentry_sdk.continue_trace(
             environ_or_headers=headers,

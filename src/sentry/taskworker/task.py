@@ -179,23 +179,19 @@ class Task(Generic[P, R]):
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
         if self.compress_parameters:
-            rollout_rate = 0
-            option_flag = f"taskworker.{self._namespace.name}.rollout"
-            rollout_map = options.get(option_flag)
-            # TODO(taskworker): This option is for added safety and requires a rollout percentage to be set to actually use compression.
+            option_flag = f"taskworker.{self._namespace.name}.compression.rollout"
+            compression_rollout = options.get(option_flag)
+            # TODO(taskworker): This option is for added safety and requires a rollout
+            # percentage to be set to actually use compression.
             # We can remove this later.
-            if rollout_map:
-                if self.name in rollout_map:
-                    rollout_rate = rollout_map.get(self.name, 0)
-                elif "*" in rollout_map:
-                    rollout_rate = rollout_map.get("*", 0)
-
+            if compression_rollout:
+                rollout_rate = float(compression_rollout)
                 if rollout_rate > random.random():
                     start_time = time.perf_counter()
                     parameters_data = zstd.compress(parameters_json)
                     parameters_str = base64.b64encode(parameters_data).decode("utf8")
                     end_time = time.perf_counter()
-                    headers["compressed-parameters"] = "zstd"
+                    headers["compressed-parameters"] = True
                     metrics.distribution(
                         "taskworker.producer.compressed_parameters_size",
                         len(parameters_str),
@@ -206,7 +202,8 @@ class Task(Generic[P, R]):
                         end_time - start_time,
                         tags={"namespace": self._namespace.name, "taskname": self.name},
                     )
-            parameters_str = parameters_json.decode("utf8")
+                else:
+                    parameters_str = parameters_json.decode("utf8")
         else:
             parameters_str = parameters_json.decode("utf8")
 
