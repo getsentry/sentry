@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
@@ -17,19 +17,23 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
+import FormContext from 'sentry/components/forms/formContext';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -77,6 +81,51 @@ function getFormDataFromRule(rule: UptimeRule) {
     traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
   };
+}
+
+function UrlField() {
+  const formContext = useContext(FormContext);
+  const currentName = useFormField('name');
+  const currentUrl = useFormField('url');
+  const previousUrl = usePrevious(currentUrl);
+
+  return (
+    <TextField
+      name="url"
+      label={t('URL')}
+      placeholder={t('The URL to monitor')}
+      flexibleControlStateSize
+      monospace
+      required
+      onChange={value => {
+        // Sugguest name from url
+        const parsedUrl = safeURL(value);
+        if (!parsedUrl) {
+          return;
+        }
+
+        // check that we are not overriding user input name
+        if (currentName) {
+          const previousParsedUrl = safeURL(previousUrl);
+          if (!previousParsedUrl) {
+            return;
+          }
+          const previousUrlName =
+            `${previousParsedUrl.hostname}${previousParsedUrl.pathname}`.replace(
+              /\/$/,
+              ''
+            );
+          if (currentName !== t('Uptime check for %s', previousUrlName)) {
+            return;
+          }
+        }
+
+        const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
+        const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
+        formContext.form?.setValue('name', t('Uptime check for %s', urlName));
+      }}
+    />
+  );
 }
 
 export function UptimeAlertForm({project, handleDelete, rule}: Props) {
@@ -132,30 +181,30 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   const hasRule = !!rule;
 
   // Suggest rule name from URL
-  useEffect(() => {
-    if (hasRule || hasCustomName) {
-      return () => {};
-    }
-    disposeNameSetter.current = autorun(() => {
-      const url = formModel.getValue('url');
+  // useEffect(() => {
+  //   if (hasRule || hasCustomName) {
+  //     return () => {};
+  //   }
+  //   disposeNameSetter.current = autorun(() => {
+  //     const url = formModel.getValue('url');
 
-      if (typeof url !== 'string') {
-        return;
-      }
+  //     if (typeof url !== 'string') {
+  //       return;
+  //     }
 
-      try {
-        const parsedUrl = new URL(url);
-        const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
-        const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
+  //     try {
+  //       const parsedUrl = new URL(url);
+  //       const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
+  //       const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
 
-        formModel.setValue('name', t('Uptime check for %s', urlName));
-      } catch {
-        // Nothing to do if we failed to parse the URL
-      }
-    });
+  //       formModel.setValue('name', t('Uptime check for %s', urlName));
+  //     } catch {
+  //       // Nothing to do if we failed to parse the URL
+  //     }
+  //   });
 
-    return disposeNameSetter.current;
-  }, [formModel, hasRule, hasCustomName]);
+  //   return disposeNameSetter.current;
+  // }, [formModel, hasRule, hasCustomName]);
 
   return (
     <Form
@@ -273,14 +322,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
-            <TextField
-              name="url"
-              label={t('URL')}
-              placeholder={t('The URL to monitor')}
-              flexibleControlStateSize
-              monospace
-              required
-            />
+            <UrlField />
             <SelectField
               name="method"
               label={t('Method')}
