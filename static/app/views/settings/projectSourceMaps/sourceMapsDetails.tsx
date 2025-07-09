@@ -168,14 +168,15 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       {
         query: {
           project: [project.id],
-          query: releaseVersions ? `release:[${releaseVersions.join(',')}]` : undefined,
+          query: `release:[${releaseVersions?.join(',')}]`,
         },
       },
     ],
     {
       staleTime: Infinity,
       retry: false,
-      enabled: isDebugIdBundle && !debugIdBundlesArtifactsLoading,
+      enabled:
+        isDebugIdBundle && !debugIdBundlesArtifactsLoading && !!releaseVersions?.length,
     }
   );
 
