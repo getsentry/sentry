@@ -128,16 +128,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
     )
 
 
-def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
-    sampling = rule["samplingValue"]
-    if sampling["type"] == "reservoir":
-        return sampling["type"], float(sampling["limit"])
-    elif sampling["type"] in ("sampleRate", "factor"):
-        return sampling["type"], float(sampling["value"])
-    else:
-        return None
-
-
 def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
