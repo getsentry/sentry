@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import type {Artifact} from 'sentry/types/release';
+import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -141,7 +141,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
   );
 
   const {
-    data: debugIdBundlesArtifactsData,
+    data: debugIdBundlesArtifacts,
     getResponseHeader: debugIdBundlesArtifactsHeaders,
     isPending: debugIdBundlesArtifactsLoading,
   } = useApiQuery<DebugIdBundleArtifact>(
@@ -157,6 +157,47 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       enabled: isDebugIdBundle,
     }
   );
+
+  const releaseVersions = debugIdBundlesArtifacts?.associations.map(
+    association => `"${association.release}"`
+  );
+
+  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/`,
+      {
+        query: {
+          project: [project.id],
+          query: releaseVersions ? `release:[${releaseVersions.join(',')}]` : undefined,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: isDebugIdBundle && !debugIdBundlesArtifactsLoading,
+    }
+  );
+
+  const debugIdBundlesArtifactsData = useMemo(() => {
+    if (releasesLoading) {
+      return debugIdBundlesArtifacts;
+    }
+
+    if (!debugIdBundlesArtifacts) {
+      return undefined;
+    }
+
+    const existingReleaseNames = new Set((releasesData ?? []).map(r => r.version));
+
+    return {
+      ...debugIdBundlesArtifacts,
+      associations: debugIdBundlesArtifacts.associations.map(association => ({
+        ...association,
+        exists: existingReleaseNames.has(association.release),
+      })),
+    };
+  }, [releasesLoading, releasesData, debugIdBundlesArtifacts]);
 
   const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
     onSuccess: () =>
