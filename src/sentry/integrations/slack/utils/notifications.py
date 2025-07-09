@@ -51,6 +51,7 @@ from sentry.integrations.slack.utils.threads import NotificationActionThreadUtil
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.models.action import Action
 
@@ -435,7 +436,7 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
     )
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    if should_fire_workflow_actions(organization):
         return _handle_workflow_engine_notification(
             organization=organization,
             notification_context=notification_context,
