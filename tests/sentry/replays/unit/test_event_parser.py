@@ -10,6 +10,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     _parse_classes,
     as_trace_item,
     as_trace_item_context,
+    parse_events,
     which,
 )
 from sentry.utils import json
@@ -1147,3 +1148,58 @@ def test_as_trace_item_returns_none_for_unsupported_event():
 
     event: dict[str, Any] = {"data": {"payload": {}}}
     assert as_trace_item(context, EventType.CONSOLE, event) is None
+
+
+def test_parse_events():
+    """Test "parse_events" function."""
+    parsed, trace_items = parse_events(
+        {
+            "organization_id": 1,
+            "project_id": 1,
+            "received": 1,
+            "replay_id": "1",
+            "retention_days": 1,
+            "segment_id": 1,
+            "trace_id": None,
+        },
+        [
+            {
+                "type": 5,
+                "timestamp": 1674291701348,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": 1.1,
+                        "type": "default",
+                        "category": "ui.slowClickDetected",
+                        "message": "div.container > div#root > div > ul > div",
+                        "data": {
+                            "clickcount": 5,
+                            "endReason": "timeout",
+                            "timeafterclickms": 0,
+                            "nodeId": 59,
+                            "url": "https://www.sentry.io",
+                            "node": {
+                                "id": 59,
+                                "tagName": "a",
+                                "attributes": {
+                                    "id": "id",
+                                    "class": "class1 class2",
+                                    "role": "button",
+                                    "aria-label": "test",
+                                    "alt": "1",
+                                    "data-testid": "2",
+                                    "title": "3",
+                                    "data-sentry-component": "SignUpForm",
+                                },
+                                "textContent": "text",
+                            },
+                        },
+                    },
+                },
+            }
+        ],
+    )
+
+    assert len(trace_items) == 1
+    assert len(parsed.click_events) == 1

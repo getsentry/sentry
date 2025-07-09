@@ -104,6 +104,7 @@ class EventType(Enum):
     OPTIONS = 15
     FEEDBACK = 16
     MEMORY = 17
+    SLOW_CLICK = 18
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -150,7 +151,7 @@ def which(event: dict[str, Any]) -> EventType:
                         else:
                             return EventType.DEAD_CLICK
                     else:
-                        return EventType.UNKNOWN
+                        return EventType.SLOW_CLICK
                 elif category == "navigation":
                     return EventType.NAVIGATION
                 elif category == "console":
@@ -289,7 +290,7 @@ class TraceItemContext(TypedDict):
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
     """Returns a trace-item row or null for each event."""
     match event_type:
-        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK:
+        case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
             payload = event["data"]["payload"]
 
             node = payload["data"]["node"]
@@ -513,7 +514,7 @@ def as_highlighted_event(
         return {"hydration_errors": [HydrationError(timestamp=timestamp, url=url)]}
     elif event_type == EventType.MUTATIONS and sampled:
         return {"mutations": [MutationEvent(event["data"]["payload"])]}
-    elif event_type == EventType.CLICK:
+    elif event_type == EventType.CLICK or event_type == EventType.SLOW_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=False, is_rage=False)
         return {"clicks": [click]}
     elif event_type == EventType.DEAD_CLICK:
