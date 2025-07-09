@@ -12,7 +12,7 @@ from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import buffer, features, nodestore
+from sentry import buffer, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -747,7 +747,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if should_trigger_actions:
+                if should_fire_workflow_actions(organization):
                     for action in filtered_actions:
                         if should_trigger_actions_async:
                             task_params = build_trigger_action_task_params(
