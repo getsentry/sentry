@@ -59,6 +59,41 @@ function useStoryIndex(): Entry[] {
   return entries;
 }
 
+function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
+  const [activeId, setActiveId] = useState<string>('');
+
+  useLayoutEffect(() => {
+    if (entries.length === 0) return void 0;
+
+    const observer = new IntersectionObserver(
+      intersectionEntries => {
+        intersectionEntries
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+          .find(entry => {
+            if (entry.isIntersecting) {
+              setActiveId(entry.target.id);
+              return true;
+            }
+            return false;
+          });
+      },
+      {
+        rootMargin: '0px 0px -35% 0px',
+      }
+    );
+
+    entries.forEach(entry => {
+      observer.observe(entry.ref);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [entries]);
+
+  return [activeId, setActiveId];
+}
+
 type NestedEntry = {
   children: NestedEntry[];
   entry: Entry;
@@ -116,6 +151,7 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
 export function StoryTableOfContents() {
   const entries = useStoryIndex();
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
+  const [activeId, setActiveId] = useActiveSection(entries);
 
   return (
     <StoryIndexContainer>
@@ -123,7 +159,12 @@ export function StoryTableOfContents() {
       <StoryIndexListContainer>
         <StoryIndexList>
           {nestedEntries.map(entry => (
-            <StoryContentsList key={entry.entry.ref.id} entry={entry} />
+            <StoryContentsList
+              key={entry.entry.ref.id}
+              entry={entry}
+              activeId={activeId}
+              setActiveId={setActiveId}
+            />
           ))}
         </StoryIndexList>
       </StoryIndexListContainer>
@@ -131,16 +172,50 @@ export function StoryTableOfContents() {
   );
 }
 
-function StoryContentsList({entry}: {entry: NestedEntry}) {
+function StoryContentsList({
+  entry,
+  activeId,
+  setActiveId,
+  isChild = false,
+}: {
+  activeId: string;
+  entry: NestedEntry;
+  setActiveId: (id: string) => void;
+  isChild?: boolean;
+}) {
+  const isActive = entry.entry.ref.id === activeId;
+
+  // Check if any children are active
+  const hasActiveChild = entry.children.some(
+    child =>
+      child.entry.ref.id === activeId ||
+      child.children.some(grandChild => grandChild.entry.ref.id === activeId)
+  );
+
+  // Apply active styling if this entry is active OR if any child is active
+  const shouldShowActive = isActive || hasActiveChild;
+
+  const LinkComponent = isChild ? StyledChildLink : StyledLink;
+
   return (
     <li>
-      <a href={`#${entry.entry.ref.id}`}>
+      <LinkComponent
+        href={`#${entry.entry.ref.id}`}
+        isActive={shouldShowActive}
+        onClick={() => setActiveId(entry.entry.ref.id)}
+      >
         <TextOverflow>{entry.entry.title}</TextOverflow>
-      </a>
+      </LinkComponent>
       {entry.children.length > 0 && (
         <StoryIndexList>
           {entry.children.map(child => (
-            <StoryContentsList key={child.entry.ref.id} entry={child} />
+            <StoryContentsList
+              key={child.entry.ref.id}
+              entry={child}
+              activeId={activeId}
+              setActiveId={setActiveId}
+              isChild
+            />
           ))}
         </StoryIndexList>
       )}
@@ -153,6 +228,8 @@ const StoryIndexContainer = styled('div')`
   position: sticky;
   top: 52px;
   margin-inline: 0 ${space(2)};
+  height: fit-content;
+  padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
@@ -167,10 +244,10 @@ const StoryIndexListContainer = styled('div')`
 
   > ul > li {
     padding-left: 0;
-    margin-top: ${space(1)};
+    margin-top: ${space(0.5)};
 
     > a {
-      margin-bottom: ${space(0.5)};
+      margin-bottom: ${space(0.25)};
     }
   }
 `;
@@ -179,27 +256,75 @@ const StoryIndexTitle = styled('div')`
   line-height: 1.25;
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0 ${space(1)} 0;
-  margin: ${space(4)} 0 ${space(1)} 0;
+  color: ${p => p.theme.headingColor};
+  border-bottom: 2px solid ${p => p.theme.border};
+  padding: 0 0 ${space(1)} 0;
+  margin: 0 0 ${space(1)} 0;
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${space(1)};
   margin: 0;
-  width: 160px;
+  width: 200px;
 
   li {
-    &:hover {
-      background: ${p => p.theme.backgroundSecondary};
-    }
+    margin-bottom: ${space(0.5)};
 
-    a {
-      padding: ${space(0.25)} 0;
-      display: block;
-      color: ${p => p.theme.textColor};
-      text-decoration: none;
+    ul {
+      margin-top: ${space(0.5)};
+      margin-bottom: ${space(0.5)};
+
+      li {
+        margin-bottom: ${space(0.25)};
+      }
     }
   }
+`;
+
+const StyledLink = styled('a')<{isActive: boolean}>`
+  padding: ${space(0.5)} ${space(0.75)};
+  display: block;
+  color: ${p => p.theme.textColor};
+  text-decoration: none;
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: 1.4;
+  transition: all 0.15s ease;
+  position: relative;
+
+  &:hover {
+    background: ${p => p.theme.hover};
+    color: ${p => p.theme.textColor};
+  }
+
+  ${p =>
+    p.isActive &&
+    `
+      color: ${p.theme.textColor};
+      font-weight: ${p.theme.fontWeight.bold};
+    `}
+`;
+
+const StyledChildLink = styled('a')<{isActive: boolean}>`
+  font-size: ${p => p.theme.fontSize.sm};
+  padding: ${space(0.25)} ${space(0.5)};
+  margin-left: ${space(0.5)};
+  border-left: 2px solid transparent;
+  display: block;
+  color: ${p => p.theme.textColor};
+  text-decoration: none;
+  line-height: 1.4;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${p => p.theme.hover};
+    color: ${p => p.theme.textColor};
+    border-left-color: ${p => p.theme.activeText};
+  }
+
+  ${p =>
+    p.isActive &&
+    `
+      border-left-color: ${p.theme.activeText};
+    `}
 `;
