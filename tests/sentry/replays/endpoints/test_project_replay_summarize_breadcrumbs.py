@@ -1,9 +1,9 @@
-import pytest
 import uuid
 import zlib
 from datetime import UTC, datetime, timezone
 from unittest.mock import patch
 
+import pytest
 import requests
 from django.conf import settings
 from django.urls import reverse
