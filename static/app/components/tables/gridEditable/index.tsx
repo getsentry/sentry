@@ -171,23 +171,11 @@ class GridEditable<
   }
 
   componentWillUnmount() {
-    this.clearWindowLifecycleEvents();
     window.removeEventListener('resize', this.redrawGridColumn);
   }
 
   private refGrid = createRef<HTMLTableElement>();
   private resizeMetadata?: ColResizeMetadata;
-  private resizeWindowLifecycleEvents: Record<string, any[]> = {
-    mousemove: [],
-    mouseup: [],
-  };
-
-  clearWindowLifecycleEvents() {
-    Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
-      this.resizeWindowLifecycleEvents[e]!.forEach(c => window.removeEventListener(e, c));
-      this.resizeWindowLifecycleEvents[e] = [];
-    });
-  }
 
   onResetColumnSize = (e: React.MouseEvent, i: number) => {
     e.stopPropagation();
@@ -208,11 +196,11 @@ class GridEditable<
     }
   };
 
-  onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
+  onResizeMouseDown = (e: React.PointerEvent, i = -1) => {
     e.stopPropagation();
 
     // Block right-click and other funky stuff
-    if (i === -1 || e.type === 'contextmenu') {
+    if (i === -1 || e.button !== 0) {
       return;
     }
 
@@ -222,21 +210,17 @@ class GridEditable<
       return;
     }
 
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     // HACK: Do not put into state to prevent re-rendering of component
     this.resizeMetadata = {
       columnIndex: i,
       columnWidth: cell.offsetWidth,
       cursorX: e.clientX,
     };
-
-    window.addEventListener('mousemove', this.onResizeMouseMove);
-    this.resizeWindowLifecycleEvents.mousemove!.push(this.onResizeMouseMove);
-
-    window.addEventListener('mouseup', this.onResizeMouseUp);
-    this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
   };
 
-  onResizeMouseUp = (e: MouseEvent) => {
+  onResizeMouseUp = (e: React.PointerEvent) => {
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
 
@@ -250,17 +234,22 @@ class GridEditable<
       });
     }
 
+    if (e.currentTarget?.hasPointerCapture(e.pointerId)) {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    }
+
     this.resizeMetadata = undefined;
-    this.clearWindowLifecycleEvents();
   };
 
-  onResizeMouseMove = (e: MouseEvent) => {
+  onResizeMouseMove = (e: React.PointerEvent) => {
     const {resizeMetadata} = this;
-    if (!resizeMetadata) {
+    if (!resizeMetadata || !e.currentTarget.hasPointerCapture(e.pointerId)) {
       return;
     }
 
-    window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
+    window.requestAnimationFrame(() =>
+      this.resizeGridColumn(e.nativeEvent, resizeMetadata)
+    );
   };
 
   resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
@@ -352,9 +341,13 @@ class GridEditable<
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
-                  onMouseDown={e => this.onResizeMouseDown(e, i)}
+                  onPointerDown={e => this.onResizeMouseDown(e, i)}
+                  onPointerMove={this.onResizeMouseMove}
+                  onPointerUp={this.onResizeMouseUp}
                   onDoubleClick={e => this.onResetColumnSize(e, i)}
-                  onContextMenu={this.onResizeMouseDown}
+                  // TODO: Does this handle right click?
+                  // onContextMenu={this.onResizeMouseDown}
+                  style={{touchAction: 'none'}}
                 />
               )}
             </GridHeadCell>
