@@ -53,7 +53,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields,
+    visibleFields.length,
     tableRef,
     {minimumColumnWidth: 50}
   );
@@ -142,7 +142,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

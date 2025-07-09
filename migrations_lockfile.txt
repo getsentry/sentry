@@ -25,7 +25,7 @@ preprod: 0010_actual_drop_preprod_artifact_analysis_file_id_col
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0941_create_temporary_verification_code_table
+sentry: 0944_flags_not_null
 
 social_auth: 0003_social_auth_json_field
 

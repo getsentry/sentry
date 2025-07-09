@@ -475,6 +475,7 @@ def get_stream_processor(
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
     shutdown_strategy_before_consumer: bool = False,
+    add_global_tags: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -587,6 +588,9 @@ def get_stream_processor(
             stale_threshold_sec, strategy_factory
         )
 
+    if add_global_tags:
+        strategy_factory = MinPartitionMetricTagWrapper(strategy_factory)
+
     if healthcheck_file_path is not None:
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
@@ -641,6 +645,27 @@ class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
         rv = self.inner.create_with_partitions(commit, partitions)
 
         return ValidateSchema(self.topic, self.enforce_schema, rv)
+
+
+class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
+    """
+    A wrapper that tracks the minimum partition index being processed by the consumer
+    and adds it as a global metric tag. This helps with monitoring partition distribution
+    and debugging partition-specific issues.
+    """
+
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        from sentry.metrics.middleware import add_global_tags
+
+        # Update the min_partition global tag based on current partition assignment
+        if partitions:
+            min_partition = min(p.index for p in partitions)
+            add_global_tags(min_partition=str(min_partition))
+
+        return self.inner.create_with_partitions(commit, partitions)
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
