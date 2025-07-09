@@ -1,0 +1,286 @@
+---
+title: Alert
+description: Alerts provide contextual feedback messages to users with different severity levels and optional interactive elements.
+source: 'sentry/components/core/alert'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3040-309&p=f&t=waV9nlkQ95W3UZtu-0
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Alert Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
+---
+
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/alert/index';
+
+export {types};
+
+To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
+
+```jsx
+<Alert type="info" showIcon>
+  This is an informational message
+</Alert>
+```
+
+### Types
+
+Alerts come in five different types to convey different levels of importance and meaning: `muted`, `info`, `warning`, `success`, and `error`.
+
+<Storybook.Demo>
+  <Alert type="muted" showIcon>
+    This is a muted alert for neutral information
+  </Alert>
+  <Alert type="info" showIcon>
+    This is an info alert for general information
+  </Alert>
+  <Alert type="warning" showIcon>
+    This is a warning alert for important notices
+  </Alert>
+  <Alert type="success" showIcon>
+    This is a success alert for positive feedback
+  </Alert>
+  <Alert type="error" showIcon>
+    This is an error alert for critical issues
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert type="muted" showIcon>
+  This is a muted alert for neutral information
+</Alert>
+<Alert type="info" showIcon>
+  This is an info alert for general information
+</Alert>
+<Alert type="warning" showIcon>
+  This is a warning alert for important notices
+</Alert>
+<Alert type="success" showIcon>
+  This is a success alert for positive feedback
+</Alert>
+<Alert type="error" showIcon>
+  This is an error alert for critical issues
+</Alert>
+```
+
+### Icons
+
+By default, alerts display appropriate icons based on their type. You can hide icons by setting `showIcon={false}` or provide custom icons.
+
+<Storybook.Demo>
+  <Alert type="info" showIcon>
+    Default info icon
+  </Alert>
+  <Alert type="warning" showIcon={false}>
+    No icon
+  </Alert>
+  <Alert type="success" showIcon icon={<IconAdd />}>
+    Custom add icon
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert type="info" showIcon>
+  Default info icon
+</Alert>
+<Alert type="warning" showIcon={false}>
+  No icon
+</Alert>
+<Alert type="success" showIcon icon={<IconAdd />}>
+  Custom add icon
+</Alert>
+```
+
+### Expandable Content
+
+Alerts can contain expandable content to provide additional details without overwhelming the initial view.
+
+<Storybook.Demo>
+  <Alert
+    type="warning"
+    showIcon
+    expand={
+      <div>
+        <p>This is additional content that was hidden by default.</p>
+        <p>
+          You can include any React elements here, including lists, links, or other
+          components.
+        </p>
+      </div>
+    }
+  >
+    Click to expand this alert for more details
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert
+  type="warning"
+  showIcon
+  expand={
+    <div>
+      <p>This is additional content that was hidden by default.</p>
+      <p>
+        You can include any React elements here, including lists, links, or other
+        components.
+      </p>
+    </div>
+  }
+>
+  Click to expand this alert for more details
+</Alert>
+```
+
+### Trailing Items
+
+Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
+
+<Storybook.Demo>
+  <Alert
+    type="info"
+    showIcon
+    trailingItems={
+      <Button size="xs" priority="primary">
+        Take Action
+      </Button>
+    }
+  >
+    This alert has a trailing action button
+  </Alert>
+  <Alert
+    type="error"
+    showIcon
+    trailingItems={
+      <div>
+        <Button size="xs" priority="danger" icon={<IconDelete />}>
+          Delete
+        </Button>
+        <Button size="xs" priority="muted" icon={<IconEdit />}>
+          Edit
+        </Button>
+      </div>
+    }
+  >
+    This alert has multiple trailing actions
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert
+  type="info"
+  showIcon
+  trailingItems={
+    <Button size="xs" priority="primary">
+      Take Action
+    </Button>
+  }
+>
+  This alert has a trailing action button
+</Alert>
+
+<Alert
+  type="error"
+  showIcon
+  trailingItems={
+    <div>
+      <Button size="xs" priority="danger" icon={<IconDelete />}>
+        Delete
+      </Button>
+      <Button size="xs" priority="muted" icon={<IconEdit />}>
+        Edit
+      </Button>
+    </div>
+  }
+>
+  This alert has multiple trailing actions
+</Alert>
+```
+
+### System Alerts
+
+System alerts are full-width variants typically used for application-level notifications or banners.
+
+<Storybook.Demo>
+  <Alert type="warning" showIcon system>
+    This is a system-wide alert that spans the full width of its container
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert type="warning" showIcon system>
+  This is a system-wide alert that spans the full width of its container
+</Alert>
+```
+
+### Expanded by Default
+
+You can control the initial expansion state of alerts with expandable content.
+
+<Storybook.Demo>
+  <Alert
+    type="info"
+    showIcon
+    defaultExpanded
+    expand={
+      <div>
+        <p>This alert starts in an expanded state.</p>
+        <p>Users can still collapse it by clicking the chevron.</p>
+      </div>
+    }
+  >
+    This alert is expanded by default
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert
+  type="info"
+  showIcon
+  defaultExpanded
+  expand={
+    <div>
+      <p>This alert starts in an expanded state.</p>
+      <p>Users can still collapse it by clicking the chevron.</p>
+    </div>
+  }
+>
+  This alert is expanded by default
+</Alert>
+```
+
+### Container
+
+Use `Alert.Container` to properly manage spacing between multiple alerts.
+
+<Storybook.Demo>
+  <Alert.Container>
+    <Alert type="info" showIcon>
+      First alert in a container
+    </Alert>
+    <Alert type="warning" showIcon>
+      Second alert in a container
+    </Alert>
+    <Alert type="success" showIcon>
+      Third alert in a container
+    </Alert>
+  </Alert.Container>
+</Storybook.Demo>
+```jsx
+<Alert.Container>
+  <Alert type="info" showIcon>
+    First alert in a container
+  </Alert>
+  <Alert type="warning" showIcon>
+    Second alert in a container
+  </Alert>
+  <Alert type="success" showIcon>
+    Third alert in a container
+  </Alert>
+</Alert.Container>
+```
+
+### Accessibility
+
+To meet WCAG 2.2 AA compliance, `<Alert>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), and [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible) success criteria.
+
+Developers should take care to ensure that their implementations additionally follow the [WAI-ARIA Alert Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) and consider using appropriate ARIA attributes for dynamic content updates.
