@@ -181,8 +181,10 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             sqs_send_message(message)
         except ClientError as e:
-            if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
-                "An error occurred (AccessDenied)"
+            if (
+                str(e).startswith("An error occurred (InvalidClientTokenId)")
+                or str(e).startswith("An error occurred (AccessDenied)")
+                or str(e).startswith("An error occurred (InvalidAccessKeyId)")
             ):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just continue.
