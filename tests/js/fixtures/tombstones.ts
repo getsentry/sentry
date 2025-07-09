@@ -25,6 +25,7 @@ export function TombstonesFixture(params = []): GroupTombstone[] {
         type: 'TypeError',
         value: "Object [object Object] has no method 'updateFrom'",
       },
+      dateAdded: '2025-06-25T00:00:00Z',
     },
     ...params,
   ];

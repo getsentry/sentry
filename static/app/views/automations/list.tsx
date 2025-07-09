@@ -12,6 +12,8 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,19 +31,29 @@ export default function AutomationsList() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
 
-  const query =
-    typeof location.query.query === 'string' ? location.query.query : undefined;
-  const cursor =
-    typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
+  const {
+    sort: sorts,
+    query,
+    cursor,
+  } = useLocationQuery({
+    fields: {
+      sort: decodeSorts,
+      query: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
+  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedDetectors'};
 
   const {
     data: automations,
     isPending,
     isError,
+    isSuccess,
     getResponseHeader,
   } = useAutomationsQuery({
     cursor,
     query,
+    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
     projects: selection.projects,
     limit: AUTOMATION_LIST_PAGE_LIMIT,
   });
@@ -52,20 +64,24 @@ export default function AutomationsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <AutomationListTable
-              automations={automations ?? []}
-              isPending={isPending}
-              isError={isError}
-            />
-            <Pagination
-              pageLinks={getResponseHeader?.('Link')}
-              onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
-              }}
-            />
+            <div>
+              <AutomationListTable
+                automations={automations ?? []}
+                isPending={isPending}
+                isError={isError}
+                isSuccess={isSuccess}
+                sort={sort}
+              />
+              <Pagination
+                pageLinks={getResponseHeader?.('Link')}
+                onCursor={newCursor => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, cursor: newCursor},
+                  });
+                }}
+              />
+            </div>
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>

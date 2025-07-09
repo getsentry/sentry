@@ -34,6 +34,10 @@ deletion_control_tasks = taskregistry.create_namespace(
 
 demomode_tasks = taskregistry.create_namespace("demomode", app_feature="shared")
 
+ai_agent_monitoring_tasks = taskregistry.create_namespace(
+    "ai_agent_monitoring", app_feature="ai_agent_monitoring"
+)
+
 digests_tasks = taskregistry.create_namespace("digests", app_feature="shared")
 
 export_tasks = taskregistry.create_namespace(

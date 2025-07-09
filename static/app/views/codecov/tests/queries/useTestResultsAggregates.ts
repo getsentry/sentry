@@ -43,7 +43,8 @@ export function useTestResultsAggregates() {
       const result = await api.requestPromise(url, {
         method: 'GET',
         query: {
-          interval: DATE_TO_QUERY_INTERVAL[codecovPeriod],
+          interval:
+            DATE_TO_QUERY_INTERVAL[codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL],
         },
       });
 

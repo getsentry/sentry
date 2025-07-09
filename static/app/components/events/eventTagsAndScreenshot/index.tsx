@@ -63,7 +63,7 @@ const Wrapper = styled(DataSection)<{
 }>`
   padding: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>

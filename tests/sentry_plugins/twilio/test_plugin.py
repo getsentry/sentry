@@ -6,7 +6,6 @@ import responses
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase, TestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin, split_sms_to
 
 
@@ -104,10 +103,6 @@ class TwilioConfigurationFormTest(TestCase):
 
 def test_conf_key() -> None:
     assert TwilioPlugin().conf_key == "twilio"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("twilio", TwilioPlugin())
 
 
 class TwilioPluginTest(PluginTestCase):

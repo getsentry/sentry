@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
@@ -13,6 +14,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.utils.query import RangeQuerySetWrapper
+
+BATCH_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ logger = logging.getLogger(__name__)
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
-    hashes: list[str],
+    hashes: Sequence[str],
     last_deleted_index: int = 0,
     *args: Any,
     **kwargs: Any,
@@ -54,7 +58,7 @@ def delete_seer_grouping_records_by_hash(
 
 
 def call_delete_seer_grouping_records_by_hash(
-    group_ids: list[int],
+    group_ids: Sequence[int],
 ) -> None:
     project = None
     if group_ids:
@@ -66,15 +70,20 @@ def call_delete_seer_grouping_records_by_hash(
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
-        # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
-        group_hash_objects = GroupHash.objects.filter(
-            project_id=project.id, group__id__in=group_ids
-        )
-        group_hashes = [group_hash.hash for group_hash in group_hash_objects]
-        logger.info(
-            "calling seer record deletion by hash",
-            extra={"project_id": project.id, "hashes": group_hashes},
-        )
+        group_hashes = []
+
+        for group_hash in RangeQuerySetWrapper(
+            GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
+            step=BATCH_SIZE,
+        ):
+            group_hashes.append(group_hash.hash)
+
+            # Schedule task when we reach BATCH_SIZE
+            if len(group_hashes) >= BATCH_SIZE:
+                delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+                group_hashes = []
+
+        # Handle any remaining hashes
         if group_hashes:
             delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
 

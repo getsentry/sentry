@@ -18,6 +18,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
     SourceCodeSearchEndpointHaltReason,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcOrganization
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
@@ -63,7 +64,11 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     def record_event(self, event: SCMIntegrationInteractionType):
         # XXX (mifu67): self.integration_provider is None for the GithubSharedSearchEndpoint,
         # which is used by both GitHub and GitHub Enterprise.
-        provider_name = "github" if self.integration_provider is None else self.integration_provider
+        provider_name = (
+            IntegrationProviderSlug.GITHUB.value
+            if self.integration_provider is None
+            else self.integration_provider
+        )
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=provider_name,

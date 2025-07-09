@@ -279,7 +279,7 @@ const MainContent = styled('div')`
 `;
 
 const Title = styled('h2')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(1)};
 `;
 
@@ -326,7 +326,7 @@ const FeatureListItem = styled('li')<{isSelected: boolean}>`
   align-items: center;
   gap: ${space(2)};
   color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.subText)};
-  ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
+  ${p => p.isSelected && `font-weight: ${p.theme.fontWeight.bold};`}
   cursor: pointer;
   :hover {
     color: ${p => p.theme.gray500};

@@ -192,7 +192,7 @@ const Header = styled('div')`
   display: flex;
   color: ${p => p.theme.gray400};
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)};
 `;
 const Body = styled('div')`

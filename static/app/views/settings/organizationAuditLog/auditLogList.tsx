@@ -6,11 +6,11 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import DropdownButton from 'sentry/components/dropdownButton';
-import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -365,10 +365,10 @@ function AuditLogList({
                   <AuditNote entry={entry} orgSlug={organization.slug} />
                 </NameContainer>
               </UserInfo>
-              <FlexCenter>
+              <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
-              </FlexCenter>
-              <FlexCenter>
+              </Flex>
+              <Flex align="center">
                 {entry.ipAddress && (
                   <IpAddressOverflow>
                     <Tooltip
@@ -379,7 +379,7 @@ function AuditLogList({
                     </Tooltip>
                   </IpAddressOverflow>
                 )}
-              </FlexCenter>
+              </Flex>
               <TimestampInfo>
                 <DateTime dateOnly date={entry.dateCreated} />
                 <DateTime
@@ -402,7 +402,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Name = styled('strong')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const EventSelector = styled(Select)`
@@ -413,7 +413,7 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
 `;
 
@@ -424,14 +424,9 @@ const NameContainer = styled('div')`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   margin-top: ${space(0.5)};
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IpAddressOverflow = styled('div')`
@@ -440,7 +435,7 @@ const IpAddressOverflow = styled('div')`
 `;
 
 const MonoDetail = styled('code')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: no-wrap;
 `;
 
@@ -448,7 +443,7 @@ const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default AuditLogList;

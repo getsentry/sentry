@@ -38,6 +38,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-trace-explorer',
   'profiling',
   'enforce-stacked-navigation',
+  'visibility-explore-view',
 ];
 
 const mockUsingCustomerDomain = jest.fn();

@@ -178,7 +178,7 @@ const Heading = styled('h1')`
 `;
 
 const Version = styled('small')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: inherit;
 `;
 
@@ -186,8 +186,8 @@ const SetupWizard = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  margin-top: 40px;
   padding: 40px 40px 20px;
-  width: 600px;
+  max-width: 1000px;
+  margin: ${space(3)};
   z-index: ${p => p.theme.zIndex.initial};
 `;

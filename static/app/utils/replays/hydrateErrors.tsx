@@ -9,10 +9,10 @@ import type {
   ErrorFrame,
   RawReplayError,
 } from 'sentry/utils/replays/types';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 export default function hydrateErrors(
-  replayRecord: ReplayRecord,
+  replayRecord: HydratedReplayRecord,
   errors: RawReplayError[]
 ): {errorFrames: ErrorFrame[]; feedbackFrames: BreadcrumbFrame[]} {
   const startTimestampMs = replayRecord.started_at.getTime();
@@ -23,7 +23,7 @@ export default function hydrateErrors(
   errors.forEach((e: RawReplayError) => {
     try {
       // Feedback frame
-      if (e.title === 'User Feedback') {
+      if (e.title.includes('User Feedback')) {
         const time = new Date(e.timestamp);
         invariant(isValidDate(time), 'feedbackFrame.timestamp is invalid');
 

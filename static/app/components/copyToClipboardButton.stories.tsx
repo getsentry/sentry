@@ -45,7 +45,7 @@ export default Storybook.story('CopyToClipboardButton', story => {
 
   const propMatrix: Storybook.PropMatrix<ComponentProps<typeof CopyToClipboardButton>> = {
     size: [undefined, 'md', 'sm', 'xs', 'zero'],
-    iconSize: [undefined, 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'],
+    iconSize: [undefined, 'xs', 'sm', 'md', 'lg', 'xl', '2xl'],
   };
   story('Size Props', () => (
     <Fragment>

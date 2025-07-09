@@ -54,7 +54,7 @@ class TestSyncAssigneeOutbound(TestCase):
         assert isinstance(user_arg, RpcUser)
         assert user_arg.id == self.user.id
 
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")

@@ -2,8 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -131,7 +131,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
       router.push(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
-          projectSlug: span.project,
           spanId: span.span_id,
           location,
           organization,

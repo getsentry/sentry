@@ -29,6 +29,7 @@ from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
 from sentry.models.commit import Commit
@@ -484,7 +485,7 @@ def create_repository(organization: Organization) -> Repository:
         # upgrade to the new integration
         repo = Repository.objects.get(
             organization_id=organization.id,
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             external_id="example/example",
             name="Example Repo",
         )

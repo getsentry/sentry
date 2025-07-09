@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
@@ -222,11 +222,7 @@ export function SavedQueriesTable({
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : query.createdBy ? (
-                <ActorAvatar
-                  actor={query.createdBy}
-                  tooltip={query.createdBy.name}
-                  hasTooltip
-                />
+                <UserAvatar user={query.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="last-visited">
@@ -314,7 +310,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
     auto auto 48px;
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-areas: 'star name project query created-by actions';
     grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
 
@@ -326,7 +322,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-areas: 'star name query actions';
     grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
 
@@ -360,7 +356,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

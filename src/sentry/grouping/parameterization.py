@@ -2,18 +2,11 @@ import dataclasses
 import re
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from functools import lru_cache
-
-import tiktoken
 
 __all__ = [
     "ParameterizationCallable",
-    "ParameterizationCallableExperiment",
-    "ParameterizationExperiment",
     "ParameterizationRegex",
-    "ParameterizationRegexExperiment",
     "Parameterizer",
-    "UniqueIdExperiment",
 ]
 
 
@@ -95,7 +88,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
-        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+        name="traceparent",
+        raw_pattern=r"""
+            # https://www.w3.org/TR/trace-context/#traceparent-header
+            (\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b) |
+
+            # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html#request-tracing-syntax
+            (\b1-[0-9a-f]{8}-[0-9a-f]{24}\b)
+        """,
     ),
     ParameterizationRegex(
         name="uuid",
@@ -114,7 +114,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s[0-3]\d,\s\d{2,4})
             |
             # RFC850
-            ((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
+            ((?:Sun|Sunday|Mon|Monday|Tue|Tuesday|Wed|Wednesday|Thu|Thursday|Fri|Friday|Sat|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
             |
             # RFC3339, RFC3339Nano
             (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
@@ -157,7 +157,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
-    ParameterizationRegex(name="hex", raw_pattern=r"""\b0[xX][0-9a-fA-F]+\b"""),
+    ParameterizationRegex(
+        name="hex",
+        raw_pattern=r"""
+            # Hex value with 0x or 0X prefix
+            (\b0[xX][0-9a-fA-F]+\b) |
+
+            # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+            #
+            # We don't need to lookahead for a-f since we if it contains at
+            # least one number it must contain at least one a-f otherwise it
+            # would have matched "int".
+            #
+            # (?=.*[0-9]):    At least one 0-9 is in the match.
+            # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
+            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+        """,
+    ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
@@ -197,100 +214,15 @@ class ParameterizationCallable:
     counter: int = 0
 
 
-@dataclasses.dataclass
-class ParameterizationCallableExperiment(ParameterizationCallable):
-    def run(self, content: str, callback: Callable[[str, int], None]) -> str:
-        content, count = self.apply(content)
-        if count:
-            callback(self.name, count)
-        return content
-
-
-class ParameterizationRegexExperiment(ParameterizationRegex):
-    def run(
-        self,
-        content: str,
-        callback: Callable[[re.Match[str]], str],
-    ) -> str:
-        return self.compiled_pattern.sub(callback, content)
-
-
-class _UniqueId:
-    # just a namespace for the uniq_id logic, no need to instantiate
-
-    NAME = "uniq_id"
-
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def tiktoken_encoding() -> tiktoken.Encoding:
-        return tiktoken.get_encoding("cl100k_base")
-
-    @staticmethod
-    def num_tokens_from_string(token_str: str) -> int:
-        """Returns the number of tokens in a text string."""
-        num_tokens = len(_UniqueId.tiktoken_encoding().encode(token_str))
-        return num_tokens
-
-    # These are all somewhat arbitrary based on examples.
-    TOKEN_LENGTH_MINIMUM = (
-        4  # Tokens smaller than this are unlikely to be unique ids regardless of other attributes
-    )
-    TOKEN_LENGTH_RATIO_DEFAULT = 0.5
-    TOKEN_LENGTH_LONG = 10
-    TOKEN_LENGTH_RATIO_LONG = 0.4
-
-    @staticmethod
-    def is_probably_uniq_id(token_str: str) -> bool:
-        token_str = token_str.strip("\"'[]{}():;")
-        if len(token_str) < _UniqueId.TOKEN_LENGTH_MINIMUM:
-            return False
-        if (
-            token_str[0] == "<" and token_str[-1] == ">"
-        ):  # Don't replace already-parameterized tokens
-            return False
-        token_length_ratio = _UniqueId.num_tokens_from_string(token_str) / len(token_str)
-        if (
-            len(token_str) > _UniqueId.TOKEN_LENGTH_LONG
-            and token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_LONG
-        ):
-            return True
-        return token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_DEFAULT
-
-    @staticmethod
-    def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
-        """
-        Return result and count of replacements
-        """
-        strings = string.split(" ")
-        count = 0
-        for i, s in enumerate(strings):
-            if _UniqueId.is_probably_uniq_id(s):
-                strings[i] = "<uniq_id>"
-                count += 1
-        return (" ".join(strings), count)
-
-
-UniqueIdExperiment = ParameterizationCallableExperiment(
-    name=_UniqueId.NAME, apply=_UniqueId.replace_uniq_ids_in_str
-)
-
-
-ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
-
-
 class Parameterizer:
     def __init__(
         self,
         regex_pattern_keys: Sequence[str],
-        experiments: Sequence[ParameterizationExperiment] = (),
     ):
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
-        self._experiments = experiments
-
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    @staticmethod
-    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 
@@ -329,43 +261,5 @@ class Parameterizer:
 
         return self._parameterization_regex.sub(_handle_regex_match, content)
 
-    def parametrize_w_experiments(
-        self, content: str, should_run: Callable[[str], bool] = lambda _: True
-    ) -> str:
-        """
-        Apply all experiments to the content.
-
-        @param content: The string to apply experiments to.
-        @returns: The content with all experiments applied.
-        """
-
-        def _incr_counter(key: str, count: int) -> None:
-            self.matches_counter[key] += count
-
-        def _handle_regex_match(match: re.Match[str]) -> str:
-            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
-            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
-            # replacement for the original value in the string.
-            for key, value in match.groupdict().items():
-                if value is not None:
-                    self.matches_counter[key] += 1
-                    return f"<{key}>"
-            return ""
-
-        for experiment in self._experiments:
-            if not should_run(experiment.name):
-                continue
-            if isinstance(experiment, ParameterizationCallableExperiment):
-                content = experiment.run(content, _incr_counter)
-            else:
-                content = experiment.run(content, _handle_regex_match)
-
-        return content
-
-    def get_successful_experiments(self) -> Sequence[ParameterizationExperiment]:
-        return [e for e in self._experiments if self.matches_counter[e.name] > 0]
-
-    def parameterize_all(
-        self, content: str, should_run: Callable[[str], bool] = lambda _: True
-    ) -> str:
-        return self.parametrize_w_experiments(self.parametrize_w_regex(content), should_run)
+    def parameterize_all(self, content: str) -> str:
+        return self.parametrize_w_regex(content)

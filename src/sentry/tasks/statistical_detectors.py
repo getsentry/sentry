@@ -114,6 +114,7 @@ def all_projects_with_flags() -> Generator[tuple[int, int]]:
     max_retries=0,
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def run_detection() -> None:

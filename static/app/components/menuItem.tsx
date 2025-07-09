@@ -2,8 +2,8 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 
 type MenuItemProps = {
@@ -260,7 +260,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
     p.header &&
     css`
       padding: ${space(0.25)} ${space(0.5)};
-      font-size: ${p.theme.fontSizeSmall};
+      font-size: ${p.theme.fontSize.sm};
       line-height: 1.4;
       color: ${p.theme.subText};
     `}

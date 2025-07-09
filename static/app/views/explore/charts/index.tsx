@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,10 +8,9 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -26,10 +25,13 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
 import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   SAMPLING_MODE,
@@ -37,6 +39,10 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {
+  combineConfidenceForSeries,
+  prettifyAggregation,
+} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -75,7 +81,7 @@ type NamedTimeSeries = TimeSeries & {
   seriesName?: string;
 };
 
-interface ChartInfo {
+export interface ChartInfo {
   chartIcon: ReactNode;
   chartType: ChartType;
   data: NamedTimeSeries[];
@@ -86,8 +92,7 @@ interface ChartInfo {
   yAxes: readonly string[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
-  formattedYAxes?: Array<string | undefined>;
-  label?: string;
+  formattedYAxes?: Array<string | null>;
   stack?: string;
 }
 
@@ -104,11 +109,10 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
-
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | null>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -148,17 +152,33 @@ export function ExploreCharts({
     [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
 
-  const chartInfos: ChartInfo[] = useMemo(() => {
-    const shouldRenderLabel = visualizes.length > 1;
+  const getChartInfo = useCallback(
+    (yAxis: string) => {
+      const dedupedYAxes = [yAxis];
 
+      const formattedYAxes = dedupedYAxes.map(prettifyAggregation);
+
+      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
+
+      return {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      };
+    },
+    [getSeries, isTopN]
+  );
+
+  const chartInfos = useMemo(() => {
     return visualizes.map((visualize, index) => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
-
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
-
       const chartIcon =
         visualize.chartType === ChartType.LINE
           ? 'line'
@@ -166,30 +186,55 @@ export function ExploreCharts({
             ? 'area'
             : 'bar';
 
-      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+      const {
+        dedupedYAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        sampleCount,
+        isSampled,
+        dataScanned,
+      } = getChartInfo(visualize.yAxis);
 
-      const {sampleCount, isSampled, dataScanned} =
-        determineSeriesSampleCountAndIsSampled(data, isTopN);
+      let overrideSampleCount = undefined;
+      let overrideIsSampled = undefined;
+      let overrideDataScanned = undefined;
+      let overrideConfidence = undefined;
+
+      // This implies that the sampling meta data is not available.
+      // When this happens, we override it with the sampling meta
+      // data from the DEFAULT_VISUALIZATION.
+      if (sampleCount === 0 && !defined(isSampled)) {
+        const chartInfo = getChartInfo(DEFAULT_VISUALIZATION);
+        overrideSampleCount = chartInfo.sampleCount;
+        overrideIsSampled = chartInfo.isSampled;
+        overrideDataScanned = chartInfo.dataScanned;
+
+        const series = dedupedYAxes
+          .flatMap(yAxis => timeseriesResult.data[yAxis])
+          .filter(defined);
+        overrideConfidence = combineConfidenceForSeries(series);
+      }
 
       const chartInfo: ChartInfo = {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
         stack: visualize.stack,
-        label: shouldRenderLabel ? visualize.label : undefined,
-        yAxes: visualize.yAxes,
+        yAxes: [visualize.yAxis],
         formattedYAxes,
         data,
         error,
         loading,
-        confidence: confidences[index],
-        sampleCount,
-        isSampled,
-        dataScanned,
+        confidence: overrideConfidence ?? confidences[index],
+        sampleCount: overrideSampleCount ?? sampleCount,
+        isSampled: overrideIsSampled ?? isSampled,
+        dataScanned: overrideDataScanned ?? dataScanned,
       };
 
       return chartInfo;
     });
-  }, [confidences, getSeries, visualizes, isTopN]);
+  }, [confidences, getChartInfo, visualizes, timeseriesResult]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
@@ -212,7 +257,7 @@ export function ExploreCharts({
 
   return (
     <ChartList>
-      <WidgetSyncContextProvider>
+      <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {chartInfos.map((chartInfo, index) => {
           return (
             <Chart
@@ -268,9 +313,24 @@ function Chart({
 
   const chartHeight = visible ? CHART_HEIGHT : 50;
 
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const boxSelectOptions = useChartBoxSelect({
+    chartRef,
+    chartWrapperRef,
+    triggerWrapperRef,
+  });
+
+  // Re-activate box selection when the series data changes
+  useEffect(() => {
+    boxSelectOptions.reActivateSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeseriesResult]);
+
   const Title = (
     <ChartTitle>
-      {defined(chartInfo.label) ? <ChartLabel>{chartInfo.label}</ChartLabel> : null}
       <Widget.WidgetTitle title={chartInfo.formattedYAxes?.filter(Boolean).join(', ')} />
     </ChartTitle>
   );
@@ -410,55 +470,60 @@ function Chart({
         : Bars;
 
   return (
-    <Widget
-      key={index}
-      height={chartHeight}
-      Title={Title}
-      Actions={actions}
-      revealActions="always"
-      Visualization={
-        <TimeSeriesWidgetVisualization
-          plottables={chartInfo.data.map(timeSeries => {
-            return new DataPlottableConstructor(
-              markDelayedData(timeSeries, INGESTION_DELAY),
-              {
-                alias: timeSeries.seriesName,
-                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                stack: chartInfo.stack,
-              }
-            );
-          })}
-        />
-      }
-      Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
-      }
-    />
+    <ChartWrapper ref={chartWrapperRef}>
+      <Widget
+        key={index}
+        height={chartHeight}
+        Title={Title}
+        Actions={actions}
+        revealActions="always"
+        Visualization={
+          <TimeSeriesWidgetVisualization
+            ref={chartRef}
+            brush={boxSelectOptions.brush}
+            onBrushEnd={boxSelectOptions.onBrushEnd}
+            onBrushStart={boxSelectOptions.onBrushStart}
+            toolBox={boxSelectOptions.toolBox}
+            plottables={chartInfo.data.map(timeSeries => {
+              return new DataPlottableConstructor(
+                markDelayedData(timeSeries, INGESTION_DELAY),
+                {
+                  alias: timeSeries.seriesName,
+                  color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                  stack: chartInfo.stack,
+                }
+              );
+            })}
+          />
+        }
+        Footer={
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        }
+      />
+      <FloatingTrigger
+        chartInfo={chartInfo}
+        boxSelectOptions={boxSelectOptions}
+        triggerWrapperRef={triggerWrapperRef}
+      />
+    </ChartWrapper>
   );
 }
 
+const ChartWrapper = styled('div')`
+  position: relative;
+`;
+
 const ChartList = styled('div')`
+  position: relative;
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartLabel = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  min-width: 24px;
-  color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
-  align-content: center;
-  margin-right: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`

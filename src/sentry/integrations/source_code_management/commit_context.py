@@ -56,6 +56,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -139,6 +140,10 @@ class PullRequestFile:
     patch: str
 
 
+ISSUE_TITLE_MAX_LENGTH = 50
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "* ‼️ [**{title}**]({url}){environment}\n"
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -191,8 +196,9 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
-            except ApiRetryError as e:
+            except (ApiRetryError, ApiHostError) as e:
                 # Ignore retry errors for GitLab
+                # Ignore host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
@@ -569,6 +575,37 @@ class PRCommentWorkflow(ABC):
             ),
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
+
+    @staticmethod
+    def _truncate_title(title: str, max_length: int = ISSUE_TITLE_MAX_LENGTH) -> str:
+        """Truncate title if it's too long and add ellipsis."""
+        if len(title) <= max_length:
+            return title
+        return title[:max_length].rstrip() + "..."
+
+    def get_environment_info(self, issue: Group) -> str:
+        try:
+            recommended_event = issue.get_recommended_event()
+            if recommended_event:
+                environment = recommended_event.get_environment()
+                if environment and environment.name:
+                    return f" in `{environment.name}`"
+        except Exception as e:
+            # If anything goes wrong, just continue without environment info
+            logger.info(
+                "get_environment_info.no-environment",
+                extra={"issue_id": issue.id, "error": e},
+            )
+        return ""
+
+    @staticmethod
+    def get_merged_pr_single_issue_template(title: str, url: str, environment: str) -> str:
+        truncated_title = PRCommentWorkflow._truncate_title(title)
+        return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+            title=truncated_title,
+            url=url,
+            environment=environment,
+        )
 
 
 class OpenPRCommentWorkflow(ABC):

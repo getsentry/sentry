@@ -7,9 +7,9 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Link} from 'sentry/components/core/link';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -59,7 +59,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
+  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
@@ -81,9 +81,11 @@ function StacktraceLinkModal({
   );
 
   const suggestions = uniq(
-    suggestedCodeMappings?.map(suggestion => {
-      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
-    })
+    Array.isArray(suggestedCodeMappings)
+      ? suggestedCodeMappings.map(suggestion => {
+          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+        })
+      : []
   ).slice(0, 2);
 
   const onHandleChange = (input: string) => {

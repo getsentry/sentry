@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 
 from django.conf import settings
-from django.db import IntegrityError, migrations, router, transaction
+from django.db import DataError, IntegrityError, migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
@@ -18,7 +18,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 100
+CHUNK_SIZE = 20
 
 
 # copied constants and enums
@@ -70,7 +70,10 @@ def get_open_periods_for_group(
     # Since activities can apparently exist from before the start date, we want to ensure the
     # first open period starts at the first_seen date and ends at the first resolution activity after it.
     start_index = 0
-    while activities and activities[start_index].type not in RESOLVED_ACTIVITY_TYPES:
+    activities_len = len(activities)
+    while (
+        start_index < activities_len and activities[start_index].type not in RESOLVED_ACTIVITY_TYPES
+    ):
         start_index += 1
 
     open_periods = []
@@ -136,15 +139,23 @@ def _backfill_group_open_periods(
     # but we don't create an entry for that.
 
     activities = defaultdict(list)
-    for activity in Activity.objects.filter(
-        group_id__in=group_ids,
-        type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
-    ).order_by("datetime"):
-        # Skip activities before the group's first_seen date
-        if activity.datetime < activity.group.first_seen:
-            continue
 
-        activities[activity.group_id].append(activity)
+    try:
+        for activity in Activity.objects.filter(
+            group_id__in=group_ids,
+            type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
+        ).order_by("datetime"):
+            # Skip activities before the group's first_seen date
+            if activity.datetime < activity.group.first_seen:
+                continue
+
+            activities[activity.group_id].append(activity)
+    except Exception as e:
+        logger.exception(
+            "Error getting activities",
+            extra={"group_ids": group_ids, "error": e},
+        )
+        return
 
     open_periods = []
     for group_id, first_seen, status, project_id in group_data:
@@ -167,7 +178,7 @@ def _backfill_group_open_periods(
     with transaction.atomic(router.db_for_write(GroupOpenPeriod)):
         try:
             GroupOpenPeriod.objects.bulk_create(open_periods)
-        except IntegrityError as e:
+        except (IntegrityError, DataError) as e:
             logger.exception(
                 "Error creating open period",
                 extra={"group_ids": group_ids, "error": e},
@@ -177,7 +188,7 @@ def _backfill_group_open_periods(
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
-    backfill_key = "backfill_group_open_periods_from_activity_2"
+    backfill_key = "backfill_group_open_periods_from_activity_0702_1"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
