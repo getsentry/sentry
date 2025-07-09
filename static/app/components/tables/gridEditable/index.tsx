@@ -196,15 +196,9 @@ class GridEditable<
     }
   };
 
-  onResizeMouseDown = (e: React.PointerEvent, i = -1) => {
+  onResizeMouseDown = (columnIndex: number) => (e: React.PointerEvent) => {
     e.stopPropagation();
 
-    // Block right-click and other funky stuff
-    if (i === -1 || e.button !== 0) {
-      return;
-    }
-
-    // <GridResizer> is nested 1 level down from <GridHeadCell>
     const cell = e.currentTarget.parentElement;
     if (!cell) {
       return;
@@ -212,9 +206,8 @@ class GridEditable<
 
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    // HACK: Do not put into state to prevent re-rendering of component
     this.resizeMetadata = {
-      columnIndex: i,
+      columnIndex,
       columnWidth: cell.offsetWidth,
       cursorX: e.clientX,
     };
@@ -243,7 +236,7 @@ class GridEditable<
 
   onResizeMouseMove = (e: React.PointerEvent) => {
     const {resizeMetadata} = this;
-    if (!resizeMetadata || !e.currentTarget.hasPointerCapture(e.pointerId)) {
+    if (!resizeMetadata) {
       return;
     }
 
@@ -341,9 +334,9 @@ class GridEditable<
               {i !== numColumn - 1 && resizable && (
                 <GridResizer
                   dataRows={!error && !isLoading && data ? data.length : 0}
-                  onPointerDown={e => this.onResizeMouseDown(e, i)}
-                  onPointerMove={this.onResizeMouseMove}
-                  onPointerUp={this.onResizeMouseUp}
+                  onPointerDown={this.onResizeMouseDown(i)}
+                  onPointerMove={e => this.onResizeMouseMove(e)}
+                  onPointerUp={e => this.onResizeMouseUp(e)}
                   onDoubleClick={e => this.onResetColumnSize(e, i)}
                   // TODO: Does this handle right click?
                   // onContextMenu={this.onResizeMouseDown}
