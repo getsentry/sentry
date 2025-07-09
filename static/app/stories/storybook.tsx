@@ -1,8 +1,5 @@
 import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
-import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 
 import * as Storybook from './';
 
@@ -35,7 +32,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   return function RenderStory() {
     return (
       <Fragment>
-        <StoryTitle>{title}</StoryTitle>
+        <Storybook.Title>{title}</Storybook.Title>
         {stories.map(({name, render}, i) => (
           <Story key={i} name={name} render={render} />
         ))}
@@ -52,22 +49,9 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   const isOneChild = Children.count(children) === 1;
 
   return (
-    <StorySection>
-      <StoryTitle>{props.name}</StoryTitle>
+    <Storybook.Section>
+      <Storybook.Title>{props.name}</Storybook.Title>
       {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
-    </StorySection>
+    </Storybook.Section>
   );
 }
-
-const StorySection = styled('section')`
-  margin-top: ${space(4)};
-
-  & > p {
-    margin: ${space(3)} 0;
-  }
-`;
-
-const StoryTitle = styled('h3')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  scroll-margin-top: ${space(2)};
-`;

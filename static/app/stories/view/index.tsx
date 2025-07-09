@@ -1,37 +1,19 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSettings} from 'sentry/icons';
-import {IconSearch} from 'sentry/icons/iconSearch';
+import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {space} from 'sentry/styles/space';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {StoryTableOfContents} from './storyTableOfContents';
-import {StoryTree, useStoryTree} from './storyTree';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
-function isCoreFile(file: string) {
-  return (
-    file.includes('components/core') ||
-    file.includes('app/styles') ||
-    file.includes('app/icons')
-  );
-}
-
 export default function Stories() {
-  const searchInput = useRef<HTMLInputElement>(null);
   const location = useLocation<{name: string; query?: string}>();
   const files = useStoryBookFiles();
 
@@ -48,52 +30,6 @@ export default function Stories() {
   }, [files, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
-  const [storyRepresentation, setStoryRepresentation] = useLocalStorageState<
-    'category' | 'filesystem'
-  >('story-representation', 'category');
-
-  const query = location.query.query ?? '';
-  const filesByOwner = useMemo(() => {
-    const map: Record<'core' | 'shared', string[]> = {
-      core: [],
-      shared: [],
-    };
-    for (const file of files) {
-      if (isCoreFile(file)) {
-        map.core.push(file);
-      } else {
-        map.shared.push(file);
-      }
-    }
-    return map;
-  }, [files]);
-
-  const coreTree = useStoryTree(filesByOwner.core, {
-    query,
-    representation: storyRepresentation,
-  });
-  const sharedTree = useStoryTree(filesByOwner.shared, {
-    query,
-    representation: storyRepresentation,
-  });
-
-  const navigate = useNavigate();
-  const onSearchInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate(
-        {
-          query: {...location.query, query: e.target.value, name: location.query.name},
-        },
-        {replace: true}
-      );
-    },
-    [location.query, navigate]
-  );
-
-  const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
-  }, []);
-  useHotkeys(storiesSearchHotkeys);
 
   return (
     <RouteAnalyticsContextProvider>
@@ -103,32 +39,7 @@ export default function Stories() {
             <StoryHeader />
           </HeaderContainer>
 
-          <SidebarContainer>
-            <InputGroup>
-              <InputGroup.LeadingItems disablePointerEvents>
-                <IconSearch />
-              </InputGroup.LeadingItems>
-              <InputGroup.Input
-                ref={searchInput}
-                placeholder="Search stories"
-                defaultValue={location.query.query ?? ''}
-                onChange={onSearchInputChange}
-              />
-              <InputGroup.TrailingItems>
-                <StoryRepresentationToggle
-                  storyRepresentation={storyRepresentation}
-                  setStoryRepresentation={setStoryRepresentation}
-                />
-              </InputGroup.TrailingItems>
-              {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
-            </InputGroup>
-            <StoryTreeContainer>
-              <StoryTreeTitle>Design System</StoryTreeTitle>
-              <StoryTree nodes={coreTree} />
-              <StoryTreeTitle>Shared</StoryTreeTitle>
-              <StoryTree nodes={sharedTree} />
-            </StoryTreeContainer>
-          </SidebarContainer>
+          <StorySidebar />
 
           {story.isLoading ? (
             <VerticalScroll style={{gridArea: 'body'}}>
@@ -153,103 +64,49 @@ export default function Stories() {
               <strong>The file you selected does not export a story.</strong>
             </VerticalScroll>
           )}
-          <StoryIndexContainer>
-            <StoryTableOfContents />
-          </StoryIndexContainer>
         </Layout>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>
   );
 }
 
-function StoryRepresentationToggle(props: {
-  setStoryRepresentation: (value: 'category' | 'filesystem') => void;
-  storyRepresentation: 'category' | 'filesystem';
-}) {
-  return (
-    <CompactSelect
-      trigger={triggerProps => (
-        <Button
-          borderless
-          icon={<IconSettings />}
-          size="xs"
-          aria-label="Toggle story representation"
-          {...triggerProps}
-          tabIndex={-1}
-        />
-      )}
-      defaultValue={props.storyRepresentation}
-      options={[
-        {label: 'Category', value: 'category'},
-        {label: 'Filesystem', value: 'filesystem'},
-      ]}
-      onChange={option => props.setStoryRepresentation(option.value)}
-    />
-  );
-}
-
 const Layout = styled('div')`
-  --stories-grid-space: ${space(2)};
+  background: ${p => p.theme.tokens.background.primary};
+  --stories-grid-space: 0;
 
   display: grid;
-  grid-template:
-    'head head head' max-content
-    'aside body index' auto / 200px 1fr;
-  gap: var(--stories-grid-space);
+  grid-template-rows: 1fr;
+  grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
-
-  height: 100vh;
-  padding: var(--stories-grid-space);
+  min-height: calc(100dvh - 52px);
+  padding-bottom: ${space(4)};
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
 `;
 
-const HeaderContainer = styled('div')`
-  grid-area: head;
-`;
-
-const SidebarContainer = styled('div')`
-  grid-area: aside;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  min-height: 0;
-  position: relative;
-  z-index: 10;
-`;
-
-const StoryTreeContainer = styled('div')`
-  overflow-y: scroll;
-  flex-grow: 1;
-`;
-
-const StoryTreeTitle = styled('p')`
-  margin-bottom: ${space(1)};
-`;
-
-const StoryIndexContainer = styled('div')`
-  grid-area: index;
+const HeaderContainer = styled('header')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: ${p => p.theme.zIndex.header};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const VerticalScroll = styled('main')`
-  overflow-x: hidden;
-  overflow-y: scroll;
-  grid-area: body;
+  overflow-x: visible;
+  overflow-y: auto;
 `;
 
-/**
- * Avoid <Panel> here because nested panels will have a modified theme.
- * Therefore stories will look different in prod.
- */
-const StoryMainContainer = styled(VerticalScroll)`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-
-  grid-area: body;
-
-  padding: var(--stories-grid-space);
-  padding-top: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+const StoryMainContainer = styled('div')`
+  grid-row: 1;
+  grid-column: 2;
+  color: ${p => p.theme.tokens.content.primary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 
   h1,
   h2,
@@ -258,5 +115,90 @@ const StoryMainContainer = styled(VerticalScroll)`
   h5,
   h6 {
     scroll-margin-top: ${space(3)};
+    margin: 0;
+  }
+
+  p,
+  pre {
+    margin: 0;
+  }
+
+  code:not(pre > code) {
+    background: ${p => p.theme.tokens.background.secondary};
+    color: ${p => p.theme.tokens.content.primary};
+  }
+
+  table:not([class]) {
+    margin: 1px;
+    padding: 0;
+    width: calc(100% - 2px);
+    table-layout: auto;
+    border: 0;
+    border-collapse: collapse;
+    border-radius: ${p => p.theme.borderRadius};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
+    margin-bottom: 32px;
+
+    & thead {
+      height: 36px;
+      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+      background: ${p => p.theme.tokens.background.tertiary};
+      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
+    }
+
+    & th {
+      padding-inline: ${space(2)};
+      padding-block: ${space(0.75)};
+
+      &:first-of-type {
+        border-radius: ${p => p.theme.borderRadius} 0 0 0;
+      }
+      &:last-of-type {
+        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
+      }
+    }
+
+    tr:last-child td:first-of-type {
+      border-radius: 0 0 0 ${p => p.theme.borderRadius};
+    }
+    tr:last-child td:last-of-type {
+      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+    }
+
+    tbody {
+      background: ${p => p.theme.tokens.background.primary};
+      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    }
+
+    tr {
+      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
+      vertical-align: baseline;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    td {
+      padding-inline: ${space(2)};
+      padding-block: ${space(1.5)};
+    }
+  }
+
+  div + .expressive-code .frame {
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    pre {
+      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    }
+  }
+
+  .expressive-code .frame {
+    margin-bottom: 32px;
+    box-shadow: none;
+    border: 1px solid #000000;
+    pre {
+      background: hsla(254, 18%, 15%, 1);
+      border: 0;
+    }
   }
 `;
