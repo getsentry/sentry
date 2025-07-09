@@ -956,7 +956,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
     from sentry.workflow_engine.processors.workflow import process_workflows
-    from sentry.workflow_engine.tasks.workflows import process_workflows_event
+    from sentry.workflow_engine.tasks import process_workflows_event
 
     # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
