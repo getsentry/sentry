@@ -1,25 +1,13 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import useOrganization from 'sentry/utils/useOrganization';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-const formatDist = (dist: string | string[] | null) => {
-  if (Array.isArray(dist)) {
-    return dist.join(', ');
-  }
-  if (dist === null) {
-    return 'none';
-  }
-  return dist;
-};
+import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 
 export function DebugIdBundleDetails({
   debugIdBundle,
@@ -27,7 +15,6 @@ export function DebugIdBundleDetails({
   debugIdBundle: DebugIdBundle | DebugIdBundleArtifact;
 }) {
   const [showAll, setShowAll] = useState(false);
-  const organization = useOrganization();
   const detailsData = useMemo<KeyValueListData>(() => {
     const associations = debugIdBundle.associations;
     const visibleAssociations = showAll ? associations : associations.slice(0, 3);
@@ -45,27 +32,12 @@ export function DebugIdBundleDetails({
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
-        value:
-          associations.length > 0 ? (
-            <ReleasesWrapper className="val-string-multiline">
-              {visibleAssociations.map(association => (
-                <Fragment key={association.release}>
-                  <Link
-                    to={makeReleasesPathname({
-                      organization,
-                      path: `/${association.release}/`,
-                    })}
-                  >
-                    {association.release}
-                  </Link>
-                  {` (Dist: ${formatDist(association.dist)})`}
-                  <br />
-                </Fragment>
-              ))}
-            </ReleasesWrapper>
-          ) : (
-            t('No releases associated with this upload.')
-          ),
+        value: (
+          <AssociatedReleases
+            associations={visibleAssociations}
+            shouldFormatVersion={false}
+          />
+        ),
       },
       {
         key: 'date',
@@ -77,21 +49,10 @@ export function DebugIdBundleDetails({
         ),
       },
     ];
-  }, [
-    debugIdBundle.associations,
-    debugIdBundle.date,
-    debugIdBundle.fileCount,
-    organization,
-    showAll,
-  ]);
+  }, [debugIdBundle.associations, debugIdBundle.date, debugIdBundle.fileCount, showAll]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }
-
-const ReleasesWrapper = styled('pre')`
-  max-height: 200px;
-  overflow-y: auto !important;
-`;
 
 const StyledKeyValueList = styled(KeyValueList)`
   && {
