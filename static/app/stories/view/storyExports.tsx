@@ -181,8 +181,6 @@ const StoryContainer = styled('div')`
   flex-direction: column;
   gap: ${space(4)};
   padding-inline: ${space(2)};
-  overflow-y: auto;
-  height: 100%;
 `;
 
 const StoryContent = styled('main')`
