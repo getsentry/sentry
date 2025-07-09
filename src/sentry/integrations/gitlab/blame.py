@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote
 
 import orjson
-import sentry_sdk
 
 from sentry.integrations.gitlab.utils import (
     GitLabApiClientPath,
@@ -102,24 +101,11 @@ def _fetch_file_blame(
             extra=extra,
         )
     else:
-        try:
-            response = client.get(
-                request_path,
-                params=params,
-            )
-            client.set_cache(cache_key, response, 60)
-        except ApiError as e:
-            sentry_sdk.set_context(
-                "fetch_file_blame_ApiError",
-                {
-                    "file_path": file.path,
-                    "request_path": request_path,
-                    "repo_org_id": file.repo.organization_id,
-                    "repo_integration_id": file.repo.integration_id,
-                },
-            )
-            sentry_sdk.capture_exception(error=e, level="warning")
-            raise
+        response = client.get(
+            request_path,
+            params=params,
+        )
+        client.set_cache(cache_key, response, 60)
 
     if not isinstance(response, SequenceApiResponse):
         raise ApiError("Response is not in expected format", code=500)
