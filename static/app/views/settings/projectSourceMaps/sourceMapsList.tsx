@@ -20,7 +20,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
-import Version from 'sentry/components/version';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -36,6 +35,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 type Props = RouteComponentProps<{
@@ -422,46 +422,13 @@ function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUp
             {showAll ? t('Show Less') : t('Show All')}
           </Button>
         ),
-        value:
-          rows.length > 0 ? (
-            <ReleasesWrapper>
-              {visibleAssociations.map(release => (
-                <AssociatedReleaseWrapper key={release.release}>
-                  <Tooltip
-                    showUnderline={release.exists === false}
-                    title={
-                      release.exists === false ? t('Release does not exist') : undefined
-                    }
-                  >
-                    <StyledVersion
-                      isPending={!defined(release.exists)}
-                      version={release.release}
-                      anchor={release.exists}
-                    />
-                  </Tooltip>
-                  {release.dist && `(Dist: ${formatDist(release.dist)})`}
-                </AssociatedReleaseWrapper>
-              ))}
-            </ReleasesWrapper>
-          ) : (
-            t('No releases associated with this upload.')
-          ),
+        value: <AssociatedReleases associations={visibleAssociations} />,
       },
     ];
   }, [sourceMapUpload, showAll]);
 
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }
-
-const formatDist = (dist: string | string[] | null) => {
-  if (Array.isArray(dist)) {
-    return dist.join(', ');
-  }
-  if (dist === null) {
-    return t('none');
-  }
-  return dist;
-};
 
 interface SourceMapUploadDeleteButtonProps {
   onDelete?: () => void;
@@ -501,19 +468,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const ReleasesWrapper = styled('pre')`
-  max-height: 200px;
-`;
-
-const AssociatedReleaseWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  :not(:last-child) {
-    margin-bottom: ${space(0.5)};
-  }
-`;
-
 const StyledKeyValueList = styled(KeyValueList)`
   && {
     margin-bottom: 0;
@@ -552,16 +506,4 @@ const ItemContent = styled('div')`
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
-`;
-
-const StyledVersion = styled(Version)<{isPending: boolean}>`
-  ${p =>
-    p.isPending &&
-    css`
-      background-color: ${p.theme.backgroundTertiary};
-      border-radius: ${p.theme.borderRadius};
-      color: transparent;
-      pointer-events: none;
-      user-select: none;
-    `}
 `;
