@@ -5,7 +5,7 @@
 tokens = token*
 
 token
-  = spaces token:(paren / op / func / free_text) spaces {
+  = spaces token:(paren / literal / op / func / free_text) spaces {
     return token;
   }
 
@@ -68,6 +68,11 @@ name
 type_name
   = [a-z]+ {
     return text();
+  }
+
+literal
+  = [+-]?[0-9]+ ("." [0-9]*)? {
+    return tc.tokenLiteral(text(), location());
   }
 
 op = plus / minus / multiply / divide

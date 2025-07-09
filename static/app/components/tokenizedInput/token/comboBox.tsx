@@ -1,4 +1,10 @@
-import type {ChangeEventHandler, FocusEventHandler, MouseEventHandler} from 'react';
+import type {
+  ChangeEventHandler,
+  ClipboardEvent,
+  FocusEventHandler,
+  MouseEventHandler,
+  Ref,
+} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
@@ -31,10 +37,6 @@ interface ComboBoxProps {
   inputLabel: string;
   inputValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
-  /**
-   * Function to determine whether the menu should close when interacting with
-   * other elements.
-   */
   ['data-test-id']?: string;
   onClick?: MouseEventHandler<HTMLInputElement>;
   onInputBlur?: () => void;
@@ -47,9 +49,13 @@ interface ComboBoxProps {
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
-  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
-  ref?: React.Ref<HTMLInputElement>;
+  ref?: Ref<HTMLInputElement>;
+  /**
+   * Function to determine whether the menu should close when interacting with
+   * other elements.
+   */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
 }

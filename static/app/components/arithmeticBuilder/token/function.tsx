@@ -52,7 +52,6 @@ export function ArithmeticTokenFunction({
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
-
   const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
 
   return (
@@ -79,7 +78,7 @@ export function ArithmeticTokenFunction({
           {showUnfocusedState && (
             // Inject a floating span with the attribute name so when it's
             // not focused, it doesn't look like the placeholder text
-            <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
+            <UnfocusedOverlay>{attribute.attribute}</UnfocusedOverlay>
           )}
         </BaseGridCell>
       )}
@@ -91,13 +90,10 @@ export function ArithmeticTokenFunction({
   );
 }
 
-interface InternalInputProps {
+interface InternalInputProps extends ArithmeticTokenFunctionProps {
   argumentIndex: number;
   attribute: TokenAttribute;
-  item: Node<Token>;
   rowRef: RefObject<HTMLDivElement | null>;
-  state: ListState<Token>;
-  token: TokenFunction;
 }
 
 function InternalInput({
@@ -428,7 +424,7 @@ const FunctionGridCell = styled(BaseGridCell)`
   padding-left: ${space(0.5)};
 `;
 
-const FunctionArgumentOverlay = styled('div')`
+const UnfocusedOverlay = styled('div')`
   position: absolute;
   pointer-events: none;
 `;
