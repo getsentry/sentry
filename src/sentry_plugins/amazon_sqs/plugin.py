@@ -195,5 +195,8 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just continue.
                 return False
+            elif "AWS.SimpleQueueService.NonExistentQueue" in str(e):
+                # If the specified queue doesn't exist, we can't do anything to recover
+                return False
             raise
         return True
