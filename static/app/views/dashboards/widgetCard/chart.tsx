@@ -230,6 +230,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
+              key={widget.id || result.title}
+              id={widget.id || result.title}
             />
           ) : (
             <StyledSimpleTableChart

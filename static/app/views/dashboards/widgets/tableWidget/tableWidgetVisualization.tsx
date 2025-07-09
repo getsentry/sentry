@@ -70,6 +70,7 @@ interface TableWidgetVisualizationProps {
    * @returns `FieldRenderer`
    */
   getRenderer?: FieldRendererGetter;
+  id?: string;
   /**
    * A function that returns a baggage object that will be passed to all the field renderers during table rendering.
    * @param fieldName The name of the field to render
@@ -77,12 +78,12 @@ interface TableWidgetVisualizationProps {
    * @param meta The full table metadata
    */
   makeBaggage?: BaggageMaker;
+
   /**
    * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
    * @param sort `Sort` object contain the `field` and `kind` ('asc' or 'desc')
    */
   onChangeSort?: (sort: Sort) => void;
-
   /**
    * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL. This function always guarantees width field is supplied, meaning it will fallback to -1
    * @param columns an array of columns with the updated widths
@@ -126,6 +127,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     sort,
     onResizeColumn,
     resizable = true,
+    id,
   } = props;
 
   const theme = useTheme();
@@ -275,6 +277,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
       fit={fit}
       resizable={resizable}
+      key={id}
     />
   );
 }
