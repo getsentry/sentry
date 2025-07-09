@@ -28,7 +28,6 @@ export function AssociatedReleases({
                 title={
                   association.exists === false ? t('Release does not exist') : undefined
                 }
-                containerDisplayMode="inline-flex"
               >
                 <StyledVersion
                   isPending={!defined(association.exists)}
