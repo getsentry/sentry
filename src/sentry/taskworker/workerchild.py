@@ -27,6 +27,7 @@ from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.constants import CompressionType
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
@@ -79,11 +80,17 @@ def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
-def is_zstd_compressed(data: bytes, headers: dict[str, str]) -> bool:
-    if headers.get("compressed-parameters", None):
-        ZSTD_SIGNATURE = b"\x28\xb5\x2f\xfd"
-        return len(data) >= 4 and data[:4] == ZSTD_SIGNATURE
-    return False
+def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:
+    compression_type = headers.get("compression-type", None)
+    if not compression_type or compression_type == CompressionType.PLAINTEXT.value:
+        return orjson.loads(data)
+    elif compression_type == CompressionType.ZSTD.value:
+        return orjson.loads(zstd.decompress(base64.b64decode(data)))
+    else:
+        logger.error(
+            "Unsupported compression type: %s. Continuing with plaintext.", compression_type
+        )
+        return orjson.loads(data)
 
 
 def status_name(status: TaskActivationStatus.ValueType) -> str:
@@ -332,28 +339,8 @@ def child_process(
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
         """Invoke a task function with the activation parameters."""
-        decoded_parameters = base64.b64decode(activation.parameters)
         headers = {k: v for k, v in activation.headers.items()}
-
-        if is_zstd_compressed(decoded_parameters, headers):
-            try:
-                start_time = time.perf_counter()
-                parameters_data = zstd.decompress(decoded_parameters)
-                parameters = orjson.loads(parameters_data)
-                end_time = time.perf_counter()
-                metrics.distribution(
-                    "taskworker.worker.decompression_time",
-                    end_time - start_time,
-                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
-                )
-            except Exception as e:
-                logger.exception(
-                    "taskworker.worker.zstd_decompression_failed",
-                    extra={"error": str(e), "activation": activation.id},
-                )
-                parameters = orjson.loads(decoded_parameters)
-        else:
-            parameters = orjson.loads(decoded_parameters)
+        parameters = load_parameters(activation.parameters, headers)
 
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})

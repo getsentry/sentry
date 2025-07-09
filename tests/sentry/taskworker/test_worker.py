@@ -21,6 +21,7 @@ from usageaccountant import UsageUnit
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.retry import NoRetriesRemainingError
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
@@ -140,6 +141,9 @@ COMPRESSED_TASK = InflightTaskActivation(
                 )
             )
         ).decode("utf8"),
+        headers={
+            "compression-type": CompressionType.ZSTD.value,
+        },
         processing_deadline_duration=2,
     ),
 )
