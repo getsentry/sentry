@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ChartInfo} from 'sentry/views/explore/charts';
+import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttributes';
 
@@ -32,14 +33,7 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
         ) : isError ? (
           <LoadingError message={t('Failed to load suspect attributes')} />
         ) : (
-          <AttributeNames>
-            {/* TODO Abdullah Khan: Add suspect attributes distribution charts, just listing the names for now */}
-            {data?.rankedAttributes.map(a => (
-              <div key={a.attributeName}>
-                {a.attributeName} <br />
-              </div>
-            ))}
-          </AttributeNames>
+          <Charts rankedAttributes={data!.rankedAttributes} />
         )}
       </StyledDrawerBody>
     </DrawerContainer>
@@ -69,11 +63,4 @@ const DrawerContainer = styled('div')`
   > header {
     flex-shrink: 0;
   }
-`;
-
-const AttributeNames = styled('div')`
-  flex: 1;
-  overflow: hidden;
-  overflow-y: scroll;
-  overscroll-behavior: none;
 `;
