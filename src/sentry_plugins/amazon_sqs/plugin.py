@@ -181,8 +181,10 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             sqs_send_message(message)
         except ClientError as e:
-            if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
-                "An error occurred (AccessDenied)"
+            if (
+                str(e).startswith("An error occurred (InvalidClientTokenId)")
+                or str(e).startswith("An error occurred (AccessDenied)")
+                or str(e).startswith("An error occurred (InvalidAccessKeyId)")
             ):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just continue.
@@ -192,6 +194,9 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             elif str(e).startswith("An error occurred (NoSuchBucket)"):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just continue.
+                return False
+            elif "AWS.SimpleQueueService.NonExistentQueue" in str(e):
+                # If the specified queue doesn't exist, we can't do anything to recover
                 return False
             raise
         return True

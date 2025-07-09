@@ -63,7 +63,6 @@ export function ReleaseSearchBar({
 
   return (
     <SearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={initialQuery}
       filterKeySections={filterKeySections}
       filterKeys={supportedTags}
