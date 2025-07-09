@@ -262,7 +262,7 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
     case 'default':
       return {
         surface: theme.colors.surface500,
-        background: computeBackground(theme, theme.colors.surface500),
+        background: theme.colors.surface100,
         color: theme.colors.gray800,
       };
     case 'accent':
