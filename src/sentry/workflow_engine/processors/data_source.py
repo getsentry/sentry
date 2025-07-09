@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from django.db.models import Prefetch
 
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, DataSource, Detector
@@ -12,23 +13,27 @@ def bulk_fetch_enabled_detectors(
     source_ids: set[str], query_type: str
 ) -> dict[str, list[Detector]]:
     """
-    Get a list of detectors for each source id, filter out any disabled detectors.
-
-    TODO - Investigate if this should use a cache value to fetch the detectors by a single source_id instead
-    of querying for it directly. First, ensure this addresses the query cascade.
+    Get all of the enabled detectors for a list of detector source ids and types.
+    This will also prefetch all the subsequent data models for evaluating the detector.
     """
-    data_sources = DataSource.objects.filter(
-        source_id__in=source_ids,
-        type=query_type,
-        detectors__enabled=True,
-    ).prefetch_related(
-        "detectors",
-        "detectors__workflow_condition_group",
-        "detectors__workflow_condition_group__conditions",
+    data_sources = (
+        DataSource.objects.filter(
+            source_id__in=source_ids,
+            type=query_type,
+            detectors__enabled=True,
+        )
+        .prefetch_related(
+            Prefetch(
+                "detectors",
+                queryset=Detector.objects.filter(enabled=True)
+                .select_related("workflow_condition_group")
+                .prefetch_related("workflow_condition_group__conditions"),
+            )
+        )
+        .distinct()
     )
 
     result: dict[str, list[Detector]] = {}
-
     for data_source in data_sources:
         result[data_source.source_id] = list(data_source.detectors.all())
 
