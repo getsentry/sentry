@@ -8,6 +8,7 @@ import {
   MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function EventAttributeDetails({condition}: {condition: DataCondition}) {
@@ -64,6 +65,8 @@ function MatchField() {
 
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderInput
       name={`${condition_id}.comparison.value`}
@@ -72,7 +75,21 @@ function ValueField() {
       value={condition.comparison.value}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({comparison: {...condition.comparison, value: e.target.value}});
+        removeError(condition.id);
       }}
     />
   );
+}
+
+export function validateEventAttributeCondition(
+  condition: DataCondition
+): string | undefined {
+  if (
+    !condition.comparison.attribute ||
+    !condition.comparison.match ||
+    !condition.comparison.value
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

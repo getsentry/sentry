@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useState} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
@@ -45,7 +45,7 @@ export function SubfiltersList() {
       ...subfilters,
       {
         id: uuid4(),
-        match: MatchType.EQUAL,
+        // match: MatchType.EQUAL,
       },
     ];
     onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
@@ -58,13 +58,10 @@ export function SubfiltersList() {
     onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
 
-  function updateSubfilter(id: string, comparison: Record<string, any>) {
+  function updateSubfilter(id: string, newSubfilter: Record<string, any>) {
     const newSubfilters = subfilters.map((subfilter: Record<string, any>) => {
       if (subfilter.id === id) {
-        return {
-          ...subfilter,
-          ...comparison,
-        };
+        return newSubfilter;
       }
       return subfilter;
     });
@@ -80,7 +77,7 @@ export function SubfiltersList() {
               value={{
                 subfilter,
                 subfilter_id: `${condition_id}.comparison.filters.${subfilter.id}`,
-                onUpdate: comparison => updateSubfilter(subfilter.id, comparison),
+                onUpdate: newSubfilter => updateSubfilter(subfilter.id, newSubfilter),
               }}
               key={subfilter.id}
             >
@@ -146,10 +143,9 @@ function Branch({lastChild}: BranchProps) {
 }
 
 function ComparisonTypeField() {
-  const {subfilter, subfilter_id} = useSubfilterContext();
-  const [type, setType] = useState<DataConditionType | undefined>(undefined);
+  const {subfilter, subfilter_id, onUpdate} = useSubfilterContext();
 
-  if (!type) {
+  if (!subfilter.type) {
     return (
       <AutomationBuilderSelect
         name={`${subfilter_id}.type`}
@@ -167,7 +163,15 @@ function ComparisonTypeField() {
           },
         ]}
         onChange={(option: SelectValue<DataConditionType>) => {
-          setType(option.value);
+          // console.log('on change', option);
+          onUpdate({
+            type: option.value,
+            match: MatchType.EQUAL,
+            value: '',
+            ...(option.value === DataConditionType.EVENT_ATTRIBUTE
+              ? {attribute: Attributes.MESSAGE}
+              : {}),
+          });
         }}
       />
     );
@@ -175,7 +179,11 @@ function ComparisonTypeField() {
 
   return (
     <Fragment>
-      {type === DataConditionType.EVENT_ATTRIBUTE ? <AttributeField /> : <KeyField />}
+      {subfilter.type === DataConditionType.EVENT_ATTRIBUTE ? (
+        <AttributeField />
+      ) : (
+        <KeyField />
+      )}
       <MatchField />
       <ValueField />
     </Fragment>
@@ -195,9 +203,7 @@ function AttributeField() {
         label: attribute,
       }))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          attribute: option.value,
-        });
+        onUpdate({...subfilter, attribute: option.value});
       }}
     />
   );
@@ -209,12 +215,10 @@ function KeyField() {
     <AutomationBuilderInput
       name={`${subfilter_id}.key`}
       aria-label={t('Tag')}
-      placeholder={t('Enter tag')}
+      placeholder={t('tag')}
       value={subfilter.key}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          key: e.target.value,
-        });
+        onUpdate({...subfilter, key: e.target.value});
       }}
     />
   );
@@ -238,7 +242,7 @@ function MatchField() {
         },
       ]}
       onChange={(option: SelectValue<MatchType>) => {
-        onUpdate({match: option.value});
+        onUpdate({...subfilter, match: option.value});
       }}
     />
   );
@@ -253,9 +257,7 @@ function ValueField() {
       placeholder={t('value')}
       value={`${subfilter.value}`}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          value: e.target.value,
-        });
+        onUpdate({...subfilter, value: e.target.value});
       }}
     />
   );
@@ -283,6 +285,18 @@ function SubfilterDetails({subfilter}: {subfilter: Record<string, any>}) {
     match: subfilter.match === MatchType.EQUAL ? t('is') : t('is not'),
     value: subfilter.value,
   });
+}
+
+export function validateSubfilters(
+  subfilters: Array<Record<string, any>>
+): string | undefined {
+  for (const subfilter of subfilters) {
+    const isMissingAttributeOrTag = !subfilter.attribute || !subfilter.tag;
+    if (isMissingAttributeOrTag || !subfilter.match || !subfilter.value) {
+      return t('Ensure all subfilters are filled in.');
+    }
+  }
+  return undefined;
 }
 
 const RowWrapper = styled('div')`

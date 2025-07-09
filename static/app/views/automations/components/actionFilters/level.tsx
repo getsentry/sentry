@@ -57,3 +57,10 @@ function LevelField() {
     />
   );
 }
+
+export function validateLevelCondition(condition: DataCondition): string | undefined {
+  if (!condition.comparison.match || !condition.comparison.level) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
+}

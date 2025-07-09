@@ -107,3 +107,16 @@ function useOrganizationEnvironments() {
   );
   return {environments, isLoading};
 }
+
+export function validateLatestAdoptedReleaseCondition(
+  condition: DataCondition
+): string | undefined {
+  if (
+    !condition.comparison.release_age_type ||
+    !condition.comparison.age_comparison ||
+    !condition.comparison.environment
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
+}
