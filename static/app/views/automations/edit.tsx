@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,6 +21,8 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
@@ -30,9 +33,14 @@ import {
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
-import {getAutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getAutomationFormData,
+  getNewAutomationData,
+  validateAutomationBuilderState,
+} from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
-import {useAutomationQuery} from 'sentry/views/automations/hooks';
+import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -61,7 +69,6 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
 }
 
 export default function AutomationEdit() {
-  const organization = useOrganization();
   const params = useParams<{automationId: string}>();
 
   useWorkflowEngineFeatureGate({redirect: true});
@@ -72,6 +79,23 @@ export default function AutomationEdit() {
     isError,
     refetch,
   } = useAutomationQuery(params.automationId);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError || !automation) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return <AutomationEditForm automation={automation} />;
+}
+
+function AutomationEditForm({automation}: {automation: Automation}) {
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const params = useParams<{automationId: string}>();
+  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -105,16 +129,31 @@ export default function AutomationEdit() {
     });
   }, []);
 
-  if (isPending && !initialData) {
-    return <LoadingIndicator />;
-  }
+  const handleFormSubmit = useCallback<OnSubmitCallback>(
+    async (data, _, __, ___, ____) => {
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
 
-  if (isError || !automation || !initialData) {
-    return <LoadingError onRetry={refetch} />;
-  }
+      if (Object.keys(errors).length === 0) {
+        const formData = getNewAutomationData(data as AutomationFormData, state);
+        const updatedData = {
+          automationId: params.automationId,
+          ...formData,
+        };
+        const updatedAutomation = await updateAutomation(updatedData);
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      }
+    },
+    [params.automationId, organization.slug, navigate, updateAutomation, state]
+  );
 
   return (
-    <FullHeightForm hideFooter model={model} initialData={initialData}>
+    <FullHeightForm
+      hideFooter
+      model={model}
+      initialData={initialData}
+      onSubmit={handleFormSubmit}
+    >
       <AutomationDocumentTitle />
       <Layout.Page>
         <StyledLayoutHeader>
