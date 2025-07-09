@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

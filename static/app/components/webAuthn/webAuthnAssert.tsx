@@ -6,7 +6,7 @@ import noop from 'lodash/noop';
 
 import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';

@@ -1,7 +1,7 @@
 import {Fragment, useId} from 'react';
 
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';

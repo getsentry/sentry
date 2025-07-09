@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {AlertLink} from 'sentry/components/alert';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';

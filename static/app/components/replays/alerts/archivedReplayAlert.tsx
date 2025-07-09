@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {Flex} from 'sentry/components/core/layout';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

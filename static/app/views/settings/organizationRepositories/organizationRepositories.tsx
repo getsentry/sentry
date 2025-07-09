@@ -1,4 +1,4 @@
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {AlertLink} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';

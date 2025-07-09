@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';

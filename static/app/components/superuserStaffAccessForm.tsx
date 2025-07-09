@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
