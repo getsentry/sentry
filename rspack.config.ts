@@ -301,7 +301,14 @@ const appConfig: Configuration = {
                 remarkGfm,
                 remarkCallout,
               ],
-              rehypePlugins: [rehypeExpressiveCode],
+              rehypePlugins: [
+                [
+                  rehypeExpressiveCode,
+                  {
+                    useDarkModeMediaQuery: false,
+                  },
+                ],
+              ],
             },
           },
         ],
