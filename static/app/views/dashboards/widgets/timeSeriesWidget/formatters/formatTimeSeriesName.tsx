@@ -9,7 +9,23 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function formatTimeSeriesName(timeSeries: TimeSeries): string {
+  // If the timeSeries has `groupBy` information, don't bother including the Y
+  // axis name, just format the groupBy by concatenating the values. This is the
+  // most common desired behavior.
+  if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
+    return `${timeSeries.groupBy
+      ?.map(groupBy => {
+        if (groupBy.key === 'release') {
+          return formatVersion(groupBy.value);
+        }
+
+        return groupBy.value;
+      })
+      .join(',')}`;
+  }
+
   let {yAxis: seriesName} = timeSeries;
+
   // Decode from series name disambiguation
   seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
 
@@ -26,18 +42,6 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
   // Strip equation prefix
   if (maybeEquationAlias(seriesName)) {
     seriesName = stripEquationPrefix(seriesName);
-  }
-
-  if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
-    seriesName += ` : ${timeSeries.groupBy
-      ?.map(groupBy => {
-        if (groupBy.key === 'release') {
-          return formatVersion(groupBy.value);
-        }
-
-        return groupBy.value;
-      })
-      .join(',')}`;
   }
 
   return seriesName;
