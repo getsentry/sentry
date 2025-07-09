@@ -25,6 +25,9 @@ interface SnubaQuery {
   environment?: string;
 }
 
+/**
+ * See DataSourceSerializer
+ */
 interface BaseDataSource {
   id: string;
   organizationId: string;
@@ -59,16 +62,9 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
     timeoutMs: number;
     traceSampling: boolean;
     url: string;
-    urlDomain: string;
-    urlDomainSuffix: string;
   };
   type: 'uptime_subscription';
 }
-
-/**
- * See DataSourceSerializer
- */
-export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType =
   | 'error'
@@ -114,27 +110,44 @@ interface UptimeDetectorConfig {
   environment: string;
 }
 
-export type DetectorConfig = MetricDetectorConfig | UptimeDetectorConfig;
-
-interface NewDetector {
-  conditionGroup: DataConditionGroup | null;
-  config: DetectorConfig;
-  dataSources: DataSource[] | null;
+type BaseDetector = Readonly<{
+  createdBy: string | null;
+  dateCreated: string;
+  dateUpdated: string;
   disabled: boolean;
+  id: string;
+  lastTriggered: string;
   name: string;
+  owner: string | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
+}>;
+
+export interface MetricDetector extends BaseDetector {
+  readonly conditionGroup: DataConditionGroup | null;
+  readonly config: MetricDetectorConfig;
+  readonly dataSources: SnubaQueryDataSource[];
+  readonly type: 'metric_issue';
 }
 
-export interface Detector extends Readonly<NewDetector> {
-  readonly createdBy: string | null;
-  readonly dateCreated: string;
-  readonly dateUpdated: string;
-  readonly id: string;
-  readonly lastTriggered: string;
-  readonly owner: string | null;
+export interface UptimeDetector extends BaseDetector {
+  readonly config: UptimeDetectorConfig;
+  readonly dataSources: UptimeSubscriptionDataSource[];
+  readonly type: 'uptime_domain_failure';
 }
+
+interface CronDetector extends BaseDetector {
+  // TODO: Add cron detector type fields
+  readonly type: 'uptime_subscription';
+}
+
+export interface ErrorDetector extends BaseDetector {
+  // TODO: Add error detector type fields
+  readonly type: 'error';
+}
+
+export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<DataCondition, 'id'>>;
@@ -172,7 +185,7 @@ export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 
 export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   conditionGroup: UpdateConditionGroupPayload;
-  config: DetectorConfig;
+  config: MetricDetectorConfig;
   dataSource: UpdateSnubaDataSourcePayload;
   type: 'metric_issue';
 }

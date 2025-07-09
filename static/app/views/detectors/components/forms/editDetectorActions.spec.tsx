@@ -1,4 +1,4 @@
-import {DetectorFixture} from 'sentry-fixture/detectors';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -13,7 +13,7 @@ import {EditDetectorActions} from './editDetectorActions';
 
 describe('EditDetectorActions', () => {
   it('calls delete mutation when deletion is confirmed', async () => {
-    const detector = DetectorFixture();
+    const detector = MetricDetectorFixture();
     const organization = OrganizationFixture();
 
     const mockDeleteDetector = MockApiClient.addMockResponse({

@@ -11,7 +11,11 @@ import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {DataSource, Detector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  UptimeDetector,
+} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -76,12 +80,7 @@ function DetailItem({children}: {children: React.ReactNode}) {
   );
 }
 
-function ConfigDetails({detector}: {detector: Detector}) {
-  // TODO: Use a MetricDetector type to avoid checking for this
-  if (!('detectionType' in detector.config)) {
-    return null;
-  }
-
+function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
   const type = detector.config.detectionType;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
@@ -118,52 +117,58 @@ function ConfigDetails({detector}: {detector: Detector}) {
   }
 }
 
-function DataSourceDetails({dataSource}: {dataSource: DataSource}) {
-  const type = dataSource.type;
-  switch (type) {
-    case 'snuba_query_subscription':
-      if (!dataSource.queryObj) {
-        return <DetailItem>{t('Query not found.')}</DetailItem>;
-      }
-      return (
-        <Fragment>
-          <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
-          <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
-          <DetailItem>
-            {middleEllipsis(dataSource.queryObj.snubaQuery.query, 40)}
-          </DetailItem>
-        </Fragment>
-      );
-    case 'uptime_subscription':
-      return (
-        <Fragment>
-          <DetailItem>
-            {dataSource.queryObj.urlDomain + '.' + dataSource.queryObj.urlDomainSuffix}
-          </DetailItem>
-          <DetailItem>{getDuration(dataSource.queryObj.intervalSeconds)}</DetailItem>
-        </Fragment>
-      );
-    default:
-      unreachable(type);
-      return null;
-  }
+function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
+  return (
+    <Fragment>
+      {detector.dataSources.map(dataSource => {
+        if (!dataSource.queryObj) {
+          return null;
+        }
+        return (
+          <Fragment key={dataSource.id}>
+            <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
+            <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
+            <DetailItem>
+              {middleEllipsis(dataSource.queryObj.snubaQuery.query, 40)}
+            </DetailItem>
+          </Fragment>
+        );
+      })}
+      <MetricDetectorConfigDetails detector={detector} />
+    </Fragment>
+  );
+}
+
+function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
+  return (
+    <Fragment>
+      {detector.dataSources.map(dataSource => {
+        return (
+          <Fragment key={dataSource.id}>
+            <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
+            <DetailItem>{getDuration(dataSource.queryObj.intervalSeconds)}</DetailItem>
+          </Fragment>
+        );
+      })}
+    </Fragment>
+  );
 }
 
 function Details({detector}: {detector: Detector}) {
-  if (!detector.dataSources?.length) {
-    return null;
+  const detectorType = detector.type;
+  switch (detectorType) {
+    case 'metric_issue':
+      return <MetricDetectorDetails detector={detector} />;
+    case 'uptime_domain_failure':
+      return <UptimeDetectorDetails detector={detector} />;
+    // TODO: Implement details for Cron detectors
+    case 'uptime_subscription':
+    case 'error':
+      return null;
+    default:
+      unreachable(detectorType);
+      return null;
   }
-
-  return (
-    <Fragment>
-      {detector.dataSources.map(dataSource => (
-        <Fragment key={dataSource.id}>
-          <DataSourceDetails dataSource={dataSource} />
-        </Fragment>
-      ))}
-      <ConfigDetails detector={detector} />
-    </Fragment>
-  );
 }
 
 export function DetectorLink({detector, className}: DetectorLinkProps) {
