@@ -170,6 +170,7 @@ const StoryGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr minmax(auto, 360px);
   flex: 1;
+  height: 100%;
 `;
 
 const StoryContainer = styled('div')`
@@ -180,6 +181,8 @@ const StoryContainer = styled('div')`
   flex-direction: column;
   gap: ${space(4)};
   padding-inline: ${space(2)};
+  overflow-y: auto;
+  height: 100%;
 `;
 
 const StoryContent = styled('main')`
