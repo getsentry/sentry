@@ -152,7 +152,6 @@ DETAILED_PROJECT = {
         "filters:releases": "",
         "filters:error_messages": "",
         "feedback:branding": True,
-        "sentry:dynamic_sampling_minimum_sample_rate": True,
     },
     "digestsMinDelay": 180,
     "digestsMaxDelay": 600,
