@@ -45,7 +45,7 @@ def process_data_sources[
         packet_source_ids = {packet.source_id for packet in data_packets}
         source_to_detector = bulk_fetch_enabled_detectors(packet_source_ids, query_type)
 
-    # Create the result tuples using cached, fully prefetched detectors
+    # Create the result tuples
     result = []
     for packet in data_packets:
         detectors: list[Detector] = source_to_detector.get(packet.source_id, [])
