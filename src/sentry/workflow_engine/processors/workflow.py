@@ -415,9 +415,14 @@ def process_workflows(
             organization,
         ):
             for action in actions:
-                task_params = build_trigger_action_task_params(action, detector, event_data)
-
-                trigger_action.delay(**task_params)
+                if features.has(
+                    "organizations:workflow-engine-action-trigger-async",
+                    organization,
+                ):
+                    task_params = build_trigger_action_task_params(action, detector, event_data)
+                    trigger_action.delay(**task_params)
+                else:
+                    action.trigger(event_data, detector)
         else:
             logger.info(
                 "workflow_engine.triggered_actions",

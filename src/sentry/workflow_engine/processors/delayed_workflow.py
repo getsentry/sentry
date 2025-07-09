@@ -647,10 +647,16 @@ def fire_actions_for_groups(
                     organization,
                 ):
                     for action in filtered_actions:
-                        task_params = build_trigger_action_task_params(
-                            action, detector, workflow_event_data
-                        )
-                        trigger_action.delay(**task_params)
+                        if features.has(
+                            "organizations:workflow-engine-action-trigger-async",
+                            organization,
+                        ):
+                            task_params = build_trigger_action_task_params(
+                                action, detector, workflow_event_data
+                            )
+                            trigger_action.delay(**task_params)
+                        else:
+                            action.trigger(workflow_event_data, detector)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
