@@ -4,4 +4,4 @@ You've initiated an account merger which requires verification. Please use the c
 
 This code expires in {{mins_valid}} minutes.
 
-If you didn't attempt this action, please secure your account immediately and contact support@sentry.io.
+If you didn't attempt this action, please contact support@sentry.io immediately.

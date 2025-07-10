@@ -8,7 +8,6 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.users.models.user import User
 
 TOKEN_MINUTES_VALID = 30
 
@@ -58,13 +57,8 @@ class UserMergeVerificationCode(DefaultFieldsModel):
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
-        try:
-            user = User.objects.get(id=self.user.id)
-        except User.DoesNotExist:
-            return
-
         context = {
-            "user": user,
+            "user": self.user,
             "domain": get_server_hostname(),
             "code": self.token,
             "mins_valid": TOKEN_MINUTES_VALID,
@@ -79,4 +73,4 @@ class UserMergeVerificationCode(DefaultFieldsModel):
             html_template=f"sentry/emails/{template}.html",
             context=context,
         )
-        msg.send_async([user.email])
+        msg.send_async([self.user.email])

@@ -22,7 +22,6 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         user = request.user
-        # if user is authenticated, as they must be to use the endpoint, then user.id won't be None
         if user.id is None:
             return Response(
                 status=403, data={"error": "Must be authenticated to use this endpoint."}
