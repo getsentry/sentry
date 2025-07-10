@@ -37,7 +37,7 @@ interface ManualAlertLinkProps extends BaseAlertLinkProps {
   to?: never;
 }
 
-type AlertLinkProps =
+export type AlertLinkProps =
   | ExternalAlertLinkProps
   | InternalAlertLinkProps
   | ManualAlertLinkProps;
