@@ -14,29 +14,34 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
-import {useStoryTree} from 'sentry/stories/view/storyTree';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {useStoryBookFiles} from './useStoriesLoader';
+import {useStoryBookFilesByCategory} from './storySidebar';
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const files = useStoryBookFiles();
-  const tree = useStoryTree(files, {query: '', representation: 'category', type: 'flat'});
+  const {foundations, core, shared} = useStoryBookFilesByCategory();
+
   const storiesSearchHotkeys = useMemo(() => {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
   }, []);
+
   useHotkeys(storiesSearchHotkeys);
+
+  const sectionedItems: StoryTreeNode[] = useMemo(
+    () => [...foundations, ...core, ...shared],
+    [foundations, core, shared]
+  );
 
   return (
     <SearchComboBox
       label={t('Search stories')}
       menuTrigger="focus"
       inputRef={inputRef}
-      defaultItems={tree}
+      defaultItems={sectionedItems}
     >
       {item => (
         <Item
