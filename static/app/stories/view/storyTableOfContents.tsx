@@ -125,11 +125,11 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
     const position = entry.ref.compareDocumentPosition(previousEntry.ref);
 
     const isAfter = !!(position & Node.DOCUMENT_POSITION_PRECEDING);
-    const hierarchy =
-      TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
+    const shouldNest =
+      TAGNAME_ORDER.indexOf(entry.ref.tagName) <
       TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
 
-    if (isAfter && hierarchy && parentEntry) {
+    if (isAfter && shouldNest && parentEntry) {
       const parent: NestedEntry = {
         entry,
         children: [],
