@@ -61,5 +61,5 @@ export default function ReplaySlugChooser(props: Props) {
     );
   }
 
-  return null;
+  return input;
 }
