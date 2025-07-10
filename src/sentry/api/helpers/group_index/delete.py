@@ -15,11 +15,8 @@ from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphash import GroupHash
-from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -83,17 +80,6 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
-    # Tell seer to delete grouping records for these groups
-    may_schedule_task_to_delete_hashes_from_seer(error_ids)
-
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
-
-    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
-    # `Group` instances that are pending deletion
-    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
         kwargs={
