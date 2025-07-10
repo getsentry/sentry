@@ -61,7 +61,7 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
         try:
             trace_endpoint = OrganizationTraceEndpoint()
             snuba_params = trace_endpoint.get_snuba_params(request, organization)
-            trace_tree = trace_endpoint.query_trace_data(snuba_params, trace_id, [])
+            trace_tree = trace_endpoint.query_trace_data(snuba_params, trace_id)
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 

@@ -166,12 +166,15 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
 
     def serialize_rpc_event(
-        self, event: dict[str, Any], group_cache: dict[int, Group], additional_attributes: list[str]
+        self,
+        event: dict[str, Any],
+        group_cache: dict[int, Group],
+        additional_attributes: list[str] | None = None,
     ) -> SerializedEvent | SerializedIssue:
         if event.get("event_type") == "span":
             attribute_dict = {
                 attribute: event[attribute]
-                for attribute in additional_attributes
+                for attribute in additional_attributes or []
                 if attribute in event
             }
             return SerializedSpan(
@@ -301,7 +304,10 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
 
     @sentry_sdk.tracing.trace
     def query_trace_data(
-        self, snuba_params: SnubaParams, trace_id: str, additional_attributes: list[str]
+        self,
+        snuba_params: SnubaParams,
+        trace_id: str,
+        additional_attributes: list[str] | None = None,
     ) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
