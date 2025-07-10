@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import update_groups
+from sentry.integrations.discord.analytics import DiscordIntegrationAssign, DiscordIntegrationStatus
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
@@ -175,8 +176,9 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         assert self.request.user is not None
 
         analytics.record(
-            "integrations.discord.assign",
-            actor_id=self.request.user.id,
+            DiscordIntegrationAssign(
+                actor_id=self.request.user.id,
+            )
         )
 
         message = DiscordMessageBuilder(
@@ -241,10 +243,11 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
     def update_group(self, data: Mapping[str, object]) -> None:
         if self.group:
             analytics.record(
-                "integrations.discord.status",
-                organization_id=self.group.organization.id,
-                user_id=self.user.id,
-                status=data,
+                DiscordIntegrationStatus(
+                    organization_id=self.group.organization.id,
+                    user_id=self.user.id,
+                    status=data,
+                )
             )
             update_groups(
                 request=self.request.request, groups=[self.group], user=self.user, data=data
