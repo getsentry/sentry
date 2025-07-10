@@ -30,9 +30,7 @@ from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
-from sentry.sentry_apps.api.serializers.sentry_app import (
-    SentryAppSerializerResponse,
-)
+from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializerResponse
 from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
