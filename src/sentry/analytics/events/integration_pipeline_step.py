@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integrations.pipeline_step")
 class IntegrationPipelineStep(analytics.Event):
-    type = "integrations.pipeline_step"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("integration"),
-        analytics.Attribute("step_index"),
-        analytics.Attribute("pipeline_type"),
-    )
+    user_id: str
+    organization_id: str
+    integration: str
+    step_index: str
+    pipeline_type: str
 
 
 analytics.register(IntegrationPipelineStep)

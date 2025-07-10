@@ -1,10 +1,9 @@
 from sentry import analytics
 
 
+@analytics.eventclass("join_request.link_viewed")
 class JoinRequestLinkViewedEvent(analytics.Event):
-    type = "join_request.link_viewed"
-
-    attributes = (analytics.Attribute("organization_id"),)
+    organization_id: str
 
 
 analytics.register(JoinRequestLinkViewedEvent)
