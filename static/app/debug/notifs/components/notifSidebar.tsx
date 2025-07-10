@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export function Sidebar() {
+export function NotifSidebar() {
   return (
     <ul>
       {notificationCategories.map(category => (

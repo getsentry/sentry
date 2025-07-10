@@ -8,7 +8,7 @@ import {ThemeSwitcher} from 'sentry/stories/theme';
 import {H1, HeaderGrid} from 'sentry/stories/view/storyHeader';
 import {space} from 'sentry/styles/space';
 
-export function Header() {
+export function NotifHeader() {
   return (
     <HeaderGrid>
       <Link to="/stories">
@@ -17,7 +17,6 @@ export function Header() {
         </Title>
       </Link>
       <input type="text" placeholder="Search" />
-      {/* <StorySearch /> */}
       <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
         <LinkButton
           size="xs"
