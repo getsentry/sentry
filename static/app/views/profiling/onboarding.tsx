@@ -199,7 +199,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/IebjOcBKpUHBuFpfGO4f?embed"
+                  src="https://app.arcade.software/share/IebjOcBKpUHBuFpfGO4f?embed"
                   loading="lazy"
                   allowFullScreen
                 />
