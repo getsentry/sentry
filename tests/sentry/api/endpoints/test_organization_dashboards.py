@@ -47,11 +47,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         assert data["widgetDisplay"] == widget_displays
 
-        if dashboard.projects.count() > 0:
-            assert data.get("projects") == list(dashboard.projects.values_list("id", flat=True))
-        if dashboard.filters:
-            if dashboard.filters.get("all_projects"):
-                assert data.get("projects") == [-1]
+        filters = dashboard.get_filters()
+        if filters and filters.get("projects"):
+            assert data.get("projects") == filters["projects"]
 
         assert "widgets" not in data
 
