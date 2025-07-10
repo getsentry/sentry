@@ -14,7 +14,7 @@ export function chonkFor(theme: DO_NOT_USE_ChonkTheme, baseColor: string) {
     theme.type === 'dark'
       ? color.hsl(input.hue(), input.saturationl() * 0.1, input.lightness() * 0.1).hex()
       : color
-          .hsl(input.hue(), input.saturationl() * 0.75, input.lightness() * 0.75)
+          .hsl(input.hue(), input.saturationl() * 0.85, input.lightness() * 0.85)
           .hex();
 
   chonkCache.set(cacheKey, result);
