@@ -62,6 +62,7 @@ class SerializedSpan(SerializedEvent):
     start_timestamp: datetime
     is_transaction: bool
     transaction_id: str
+    additional_attributes: dict[str, Any]
 
 
 @region_silo_endpoint
