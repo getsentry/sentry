@@ -153,9 +153,9 @@ describe('TokensPage', () => {
         )
       ).toBeInTheDocument();
 
-      expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
       expect(
-        screen.getByText('91b57316-b1ff-4884-8d55-92b9936a05a3')
+        screen.getByDisplayValue('91b57316-b1ff-4884-8d55-92b9936a05a3')
       ).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();

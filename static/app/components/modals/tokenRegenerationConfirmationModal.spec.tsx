@@ -1,31 +1,21 @@
-import type {PropsWithChildren} from 'react';
-import styled from '@emotion/styled';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
 describe('TokenRegenerationConfirmationModal', function () {
-  const closeModal = jest.fn();
-
-  const styledWrapper = styled((c: PropsWithChildren) => c.children);
-  const modalRenderProps: ModalRenderProps = {
-    Body: styledWrapper(),
-    Footer: styledWrapper(),
-    Header: p => <span>{p.children}</span>,
-    closeModal,
-    CloseButton: makeCloseButton(() => {}),
-  };
-
   function renderComponent() {
-    return render(<TokenRegenerationConfirmationModal {...modalRenderProps} />);
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => <TokenRegenerationConfirmationModal {...modalProps} />)
+    );
   }
-
-  beforeEach(function () {
-    closeModal.mockClear();
-  });
 
   it('renders modal with correct header', function () {
     renderComponent();
@@ -66,7 +56,13 @@ describe('TokenRegenerationConfirmationModal', function () {
     renderComponent();
 
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
-    expect(closeModal).toHaveBeenCalledTimes(1);
+
+    // Verify modal is closed by checking that the header is no longer present
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', {name: 'Token created'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('has copy functionality for both tokens', function () {
