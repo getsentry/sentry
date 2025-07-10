@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("search.saved")
 class SearchSavedEvent(analytics.Event):
-    type = "search.saved"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("organization_id"),
-    )
+    user_id: str | None = None
+    default_user_id: str
+    project_id: str
+    organization_id: str
 
 
 analytics.register(SearchSavedEvent)

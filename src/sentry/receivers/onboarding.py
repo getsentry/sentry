@@ -22,6 +22,7 @@ from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
 from sentry.constants import InsightModules
@@ -108,13 +109,14 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             return
 
     analytics.record(
-        "project.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        origin=origin,
-        project_id=project.id,
-        platform=project.platform,
+        ProjectCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            origin=origin,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
     completed = complete_onboarding_task(

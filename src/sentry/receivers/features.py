@@ -5,16 +5,28 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
-from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
+from sentry.analytics.events.advanced_search_feature_gated import (
+    AdvancedSearchFeatureGateEvent,
+)
+from sentry.analytics.events.alert_created import AlertCreatedEvent
 from sentry.analytics.events.alert_edited import AlertEditedEvent
+from sentry.analytics.events.issue_archived import IssueArchivedEvent
 from sentry.analytics.events.issue_assigned import IssueAssignedEvent
 from sentry.analytics.events.issue_deleted import IssueDeletedEvent
 from sentry.analytics.events.issue_escalating import IssueEscalatingEvent
+from sentry.analytics.events.issue_ignored import IssueIgnoredEvent
 from sentry.analytics.events.issue_mark_reviewed import IssueMarkReviewedEvent
+from sentry.analytics.events.issue_priority import IssuePriorityUpdatedEvent
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.analytics.events.issue_unignored import IssueUnignoredEvent
+from sentry.analytics.events.issue_unresolved import IssueUnresolvedEvent
+from sentry.analytics.events.monitor_mark_failed import MonitorEnvironmentMarkFailed
+from sentry.analytics.events.organization_joined import OrganizationJoinedEvent
 from sentry.analytics.events.plugin_enabled import PluginEnabledEvent
 from sentry.analytics.events.repo_linked import RepoLinkedEvent
+from sentry.analytics.events.search_saved import SearchSavedEvent
+from sentry.analytics.events.sso_enabled import SSOEnabledEvent
+from sentry.analytics.events.team_created import TeamCreatedEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
@@ -204,7 +216,7 @@ def record_member_joined(organization_id: int, user_id: int, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record("organization.joined", user_id=user_id, organization_id=organization_id)
+    analytics.record(OrganizationJoinedEvent(user_id=user_id, organization_id=organization_id))
 
 
 @issue_assigned.connect(weak=False)
@@ -280,12 +292,13 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
-        "issue.unresolved",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        transition_type=transition_type,
+        IssueUnresolvedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+            transition_type=transition_type,
+        )
     )
 
 
@@ -332,11 +345,12 @@ def record_save_search_created(project, user, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "search.saved",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        project_id=project.id,
-        organization_id=project.organization_id,
+        SearchSavedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            project_id=project.id,
+            organization_id=project.organization_id,
+        )
     )
 
 
@@ -375,20 +389,21 @@ def record_alert_rule_created(
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "alert.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        rule_id=rule_id,
-        rule_type=rule_type,
-        referrer=referrer,
-        session_id=session_id,
-        is_api_token=is_api_token,
-        alert_rule_ui_component=alert_rule_ui_component,
-        duplicate_rule=duplicate_rule,
-        wizard_v3=wizard_v3,
-        query_type=query_type,
+        AlertCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            rule_id=rule_id,
+            rule_type=rule_type,
+            referrer=referrer,
+            session_id=session_id,
+            is_api_token=is_api_token,
+            alert_rule_ui_component=alert_rule_ui_component,
+            duplicate_rule=duplicate_rule,
+            wizard_v3=wizard_v3,
+            query_type=query_type,
+        )
     )
 
 
@@ -457,7 +472,7 @@ def record_sso_enabled(organization_id, user_id, provider, **kwargs):
     )
 
     analytics.record(
-        "sso.enabled", user_id=user_id, organization_id=organization_id, provider=provider
+        SSOEnabledEvent(user_id=user_id, organization_id=organization_id, provider=provider)
     )
 
 
@@ -538,16 +553,17 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
 
     for group in group_list:
         analytics.record(
-            "issue.ignored",
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            group_id=group.id,
-            ignore_duration=activity_data.get("ignoreDuration"),
-            ignore_count=activity_data.get("ignoreCount"),
-            ignore_window=activity_data.get("ignoreWindow"),
-            ignore_user_count=activity_data.get("ignoreUserCount"),
-            ignore_user_window=activity_data.get("ignoreUserWindow"),
+            IssueIgnoredEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                ignore_duration=activity_data.get("ignoreDuration"),
+                ignore_count=activity_data.get("ignoreCount"),
+                ignore_window=activity_data.get("ignoreWindow"),
+                ignore_user_count=activity_data.get("ignoreUserCount"),
+                ignore_user_window=activity_data.get("ignoreUserWindow"),
+            )
         )
 
 
@@ -561,12 +577,13 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
     for group in group_list:
         analytics.record(
-            "issue.archived",
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            group_id=group.id,
-            until_escalating=activity_data.get("until_escalating"),
+            IssueArchivedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                until_escalating=activity_data.get("until_escalating"),
+            )
         )
 
 
@@ -603,16 +620,17 @@ def record_update_priority(
     **kwargs,
 ):
     analytics.record(
-        "issue.priority_updated",
-        group_id=group.id,
-        new_priority=new_priority,
-        organization_id=project.organization_id,
-        project_id=project.id if project else None,
-        user_id=user_id,
-        previous_priority=previous_priority,
-        issue_category=group.issue_category.name.lower(),
-        issue_type=group.issue_type.slug,
-        reason=reason,
+        IssuePriorityUpdatedEvent(
+            group_id=group.id,
+            new_priority=new_priority,
+            organization_id=project.organization_id,
+            project_id=project.id if project else None,
+            user_id=user_id,
+            previous_priority=previous_priority,
+            issue_category=group.issue_category.name.lower(),
+            issue_type=group.issue_type.slug,
+            reason=reason,
+        )
     )
 
 
@@ -682,11 +700,12 @@ def record_team_created(
         default_user_id = user_id
 
     analytics.record(
-        "team.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        team_id=team_id,
+        TeamCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            team_id=team_id,
+        )
     )
 
 
@@ -780,11 +799,12 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
 @monitor_environment_failed.connect(weak=False)
 def record_monitor_failure(monitor_environment, **kwargs):
     analytics.record(
-        "monitor_environment.mark_failed",
-        organization_id=monitor_environment.monitor.organization_id,
-        monitor_id=monitor_environment.monitor.guid,
-        project_id=monitor_environment.monitor.project_id,
-        environment_id=monitor_environment.environment_id,
+        MonitorEnvironmentMarkFailed(
+            organization_id=monitor_environment.monitor.organization_id,
+            monitor_id=monitor_environment.monitor.guid,
+            project_id=monitor_environment.monitor.project_id,
+            environment_id=monitor_environment.environment_id,
+        )
     )
 
 
