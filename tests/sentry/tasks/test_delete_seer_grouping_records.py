@@ -31,18 +31,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
-    def test_does_not_schedule_task_if_missing_option(self, mock_apply_async: MagicMock) -> None:
-        """
-        Test that when the project option is not set, the task is not scheduled.
-        """
-        self.project.delete_option("sentry:similarity_backfill_completed")
-        group_ids, _ = self._setup_groups_and_hashes(number_of_groups=5)
-        may_schedule_task_to_delete_hashes_from_seer(group_ids)
-        assert mock_apply_async.call_count == 0
-
-    @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
-    )
     def test_simple(self, mock_apply_async: MagicMock) -> None:
         """
         Test that it correctly collects hashes and schedules a task.
@@ -131,3 +119,15 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         """
         may_schedule_task_to_delete_hashes_from_seer([])
         mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_does_not_schedule_task_if_missing_option(self, mock_apply_async: MagicMock) -> None:
+        """
+        Test that when the project option is not set, the task is not scheduled.
+        """
+        self.project.delete_option("sentry:similarity_backfill_completed")
+        group_ids, _ = self._setup_groups_and_hashes(number_of_groups=5)
+        may_schedule_task_to_delete_hashes_from_seer(group_ids)
+        assert mock_apply_async.call_count == 0
