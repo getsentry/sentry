@@ -1,4 +1,3 @@
-import base64
 import datetime
 import hashlib
 import hmac
@@ -507,13 +506,8 @@ def get_attributes_and_values(
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
-    if not settings.SEER_API_SHARED_SECRET:
+    if not settings.SEER_GHE_ENCRYPT_KEY:
         raise RuntimeError("Cannot encrypt access token without SEER_API_SHARED_SECRET")
-
-    if len(settings.SEER_API_SHARED_SECRET.encode("utf-8")) != 32:
-        raise RuntimeError(
-            "SEER_API_SHARED_SECRET must be 32 bytes long (after UTF-8 encoding) for Fernet encryption"
-        )
 
     integration = integration_service.get_integration(
         integration_id=integration_id,
@@ -534,7 +528,7 @@ def get_github_enterprise_integration_config(
         raise RuntimeError("No access token found")
 
     try:
-        fernet = Fernet(base64.urlsafe_b64encode(settings.SEER_API_SHARED_SECRET.encode("utf-8")))
+        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         sentry_sdk.capture_exception()
