@@ -58,7 +58,10 @@ function formatCategoryRowString(
     DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
-  if (category === DataCategoryExact.ATTACHMENT) {
+  if (
+    category === DataCategoryExact.ATTACHMENT ||
+    category === DataCategoryExact.LOG_BYTE
+  ) {
     return reservedWithUnits;
   }
 
@@ -113,6 +116,7 @@ function PlanMigrationRow(props: Props) {
     case 'replay':
     case 'monitorSeat':
     case 'attachment':
+    case 'logByte':
     case 'profileDuration':
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
       nextValue = formatCategoryRowString(props.type, props.nextValue, options);
