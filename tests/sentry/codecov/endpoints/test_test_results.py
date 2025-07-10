@@ -20,6 +20,7 @@ class TestResultsEndpointTest(APITestCase):
         return reverse(
             self.endpoint,
             kwargs={
+                "organization_id_or_slug": self.organization.slug,
                 "owner": owner,
                 "repository": repository,
             },
