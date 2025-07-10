@@ -32,7 +32,8 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         # We call it as a function and will schedule a task for the extra hash
         delete_seer_grouping_records_by_hash(project_id, hashes, 0)
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-            "args": [project_id, hashes, 100]
+            # We do not schedule the task with all the hashes, but only the extra ones
+            "args": [project_id, hashes[batch_size:], 0]
         }
 
     @patch(
