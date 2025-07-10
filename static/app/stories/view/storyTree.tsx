@@ -498,7 +498,7 @@ function File(props: {node: StoryTreeNode}) {
   );
 }
 
-const StoryList = styled('ul')`
+export const StoryList = styled('ul')`
   list-style-type: none;
   padding-left: 16px;
 
@@ -534,7 +534,7 @@ const FolderName = styled('div')`
   }
 `;
 
-const FolderLink = styled(Link, {
+export const FolderLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'active',
 })<{active: boolean}>`
   display: flex;
