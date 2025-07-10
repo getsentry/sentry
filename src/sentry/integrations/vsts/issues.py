@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import ResolveSyncAction
-from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
@@ -20,6 +20,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -294,11 +295,11 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                         "issue_key": external_issue.key,
                     },
                 )
-                return
+                raise IntegrationSyncTargetNotFound("No matching VSTS user found.")
 
         try:
             client.update_work_item(external_issue.key, assigned_to=assignee)
-        except (ApiUnauthorized, ApiError):
+        except (ApiUnauthorized, ApiError) as e:
             self.logger.info(
                 "vsts.failed-to-assign",
                 extra={
@@ -307,6 +308,11 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "issue_key": external_issue.key,
                 },
             )
+            if isinstance(e, ApiUnauthorized):
+                raise IntegrationInstallationConfigurationError(
+                    "Insufficient permissions to assign user to the VSTS issue."
+                ) from e
+            raise IntegrationError("There was an error assigning the issue.") from e
         except Exception as e:
             self.raise_error(e)
 

@@ -1275,7 +1275,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except ApiUnauthorized:
+        except ApiUnauthorized as e:
             logger.info(
                 "jira_server.user-assignment-unauthorized",
                 extra={
@@ -1284,7 +1284,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             )
             raise IntegrationInstallationConfigurationError(
                 "Insufficient permissions to assign user to Jira Server issue"
-            )
+            ) from e
         except ApiError as e:
             logger.info(
                 "jira_server.user-assignment-request-error",
@@ -1293,7 +1293,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     "error": str(e),
                 },
             )
-            raise IntegrationError("Failed to assign user to Jira Server issue")
+            raise IntegrationError("Failed to assign user to Jira Server issue") from e
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int

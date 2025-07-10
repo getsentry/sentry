@@ -2,7 +2,6 @@ from typing import Any
 
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -107,7 +106,6 @@ def sync_assignee_outbound(
         except (
             OrganizationIntegrationNotFound,
             ApiUnauthorized,
-            InvalidConfiguration,
             IntegrationSyncTargetNotFound,
             IntegrationInstallationConfigurationError,
         ) as e:
