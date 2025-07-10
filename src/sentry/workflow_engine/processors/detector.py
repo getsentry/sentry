@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
+
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -76,6 +78,7 @@ def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
     )
 
 
+@sentry_sdk.trace
 def process_detectors[
     T
 ](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
