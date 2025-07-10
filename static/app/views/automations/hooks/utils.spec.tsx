@@ -40,8 +40,7 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: new Set(),
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {},
       conflictReason: null,
     });
   });
@@ -74,8 +73,10 @@ describe('findConflictingConditions', () => {
 
     const anyShortCircuitResult = findConflictingConditions(triggers, actionFilters);
     expect(anyShortCircuitResult).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {actionFilter1: new Set(['2'])},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
@@ -85,8 +86,10 @@ describe('findConflictingConditions', () => {
       actionFilters
     );
     expect(allResult).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {actionFilter1: new Set(['2'])},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
@@ -126,8 +129,9 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: new Set(['1', '2']),
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {
+        triggers: new Set(['1', '2']),
+      },
       conflictReason:
         'The triggers highlighted in red are in conflict with "A new issue is created."',
     });
@@ -190,8 +194,10 @@ describe('findConflictingConditions', () => {
       anyShortCircuitActionFilters
     );
     expect(anyShortCircuitResult).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {actionFilter1: new Set(['2', '3', '4', '5', '6', '7'])},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+      },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
@@ -205,8 +211,10 @@ describe('findConflictingConditions', () => {
     ];
     const allResult = findConflictingConditions(triggers, allActionFilters);
     expect(allResult).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {actionFilter1: new Set(['2', '3', '4', '5', '6', '7'])},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+      },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
@@ -249,8 +257,7 @@ describe('findConflictingConditions', () => {
     ];
     const result = findConflictingConditions(triggers, anyShortCircuitActionFilters);
     expect(result).toEqual({
-      conflictingTriggers: new Set(),
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {},
       conflictReason: null,
     });
 
@@ -265,8 +272,10 @@ describe('findConflictingConditions', () => {
     ];
     const resultWithAllLogic = findConflictingConditions(triggers, allActionFilters);
     expect(resultWithAllLogic).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {actionFilter1: new Set(['2'])},
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
+        actionFilter1: new Set(['2']),
+      },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
     });
@@ -329,8 +338,8 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingTriggers: new Set(['1']),
-      conflictingActionFilters: {
+      conflictingConditionGroups: {
+        triggers: new Set(['1']),
         actionFilter1: new Set(['2']),
         actionFilter2: new Set(['3']),
         actionFilter3: new Set(['4']),

@@ -1,15 +1,13 @@
 import {t} from 'sentry/locale';
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import type {
-  ConflictingConditions,
-  DataConditionGroup,
-} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
+import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
@@ -39,8 +37,7 @@ export function findConflictingConditions(
   const duplicateConditions = findDuplicateTriggerConditions(triggers);
   if (duplicateConditions.size > 0) {
     return {
-      conflictingTriggers: duplicateConditions,
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {[triggers.id]: duplicateConditions},
       conflictReason: t('Delete duplicate triggers to continue.'),
     };
   }
@@ -57,16 +54,14 @@ export function findConflictingConditions(
     triggers.conditions.length > 1
   ) {
     return {
-      conflictingTriggers: findConflictingConditionsForConditionGroup(triggers),
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {
+        [triggers.id]: findConflictingConditionsForConditionGroup(triggers),
+      },
       conflictReason: t(
         'The triggers highlighted in red are in conflict with "A new issue is created."'
       ),
     };
   }
-
-  const conflictingConditions: Record<string, Set<string>> = {};
-  let hasConflictingActionFilters = false;
 
   // First seen event condition does not cause conflicts if the logic type is ANY_SHORT_CIRCUIT and there are multiple trigger conditions
   if (
@@ -76,6 +71,9 @@ export function findConflictingConditions(
       triggers.conditions.length > 1
     )
   ) {
+    const conflictingConditions: Record<string, Set<string>> = {};
+    let hasConflictingActionFilters = false;
+
     // Create a mapping of conflicting conditions for each action filter
     for (const actionFilter of actionFilters) {
       const conflicts = findConflictingConditionsForConditionGroup(actionFilter);
@@ -87,8 +85,10 @@ export function findConflictingConditions(
     // First seen event is only conflicting if there are conflicting action filter conditions
     if (hasConflictingActionFilters) {
       return {
-        conflictingTriggers: new Set<string>([firstSeenId]),
-        conflictingActionFilters: conflictingConditions,
+        conflictingConditionGroups: {
+          [triggers.id]: new Set<string>([firstSeenId]),
+          ...conflictingConditions,
+        },
         conflictReason: t(
           'The conditions highlighted in red are in conflict with "A new issue is created."'
         ),
@@ -96,8 +96,7 @@ export function findConflictingConditions(
     }
   }
   return {
-    conflictingTriggers: new Set<string>(),
-    conflictingActionFilters: {},
+    conflictingConditionGroups: {},
     conflictReason: null,
   };
 }
@@ -134,8 +133,8 @@ function findConflictingConditionsForConditionGroup(
       if (isInvalidAgeComparison || isInvalidIssueOccurence) {
         conflictingConditions.add(condition.id);
       }
-      return conflictingConditions;
     }
+    return conflictingConditions;
   }
 
   // Find incompatible conditions for ANY_SHORT_CIRCUIT and ALL logic types
