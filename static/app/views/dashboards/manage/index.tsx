@@ -152,7 +152,9 @@ function ManageDashboards() {
     query: decodeScalar(location.query.query, ''),
     cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
     sort: getActiveSort()!.value,
-    enabled: dashboardsLayout === TABLE,
+    enabled:
+      organization.features.includes('dashboards-starred-reordering') &&
+      dashboardsLayout === TABLE,
   });
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';

@@ -30,7 +30,7 @@ export function useOwnedDashboards({
     ],
     {
       staleTime: 0,
-      enabled: organization.features.includes('dashboards-starred-reordering') && enabled,
+      enabled,
     }
   );
 }
