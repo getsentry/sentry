@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {NotifEmptyState} from 'sentry/debug/notifs/components/notifEmptyState';
 import {NotifHeader} from 'sentry/debug/notifs/components/notifHeader';
 import {NotifSidebar} from 'sentry/debug/notifs/components/notifSidebar';
@@ -38,7 +39,10 @@ export default function NotifIndex() {
           <BodyContainer>
             {selectedSource ? (
               <Fragment>
-                <SourceTitle>{selectedSource.label}</SourceTitle>
+                <SourceTitle>
+                  {selectedSource.label}
+                  <Tag type="success">{selectedSource.category.label}</Tag>
+                </SourceTitle>
                 <EmailPreview />
                 <SlackPreview />
                 <DiscordPreview />
@@ -65,8 +69,8 @@ const BodyContainer = styled('div')`
 `;
 
 const SourceTitle = styled('h2')`
-  text-decoration: underline;
-  text-decoration-color: ${p => p.theme.tokens.graphics.success};
-  text-decoration-thickness: 2px;
-  margin: 0;
+  margin-bottom: ${space(1)};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
