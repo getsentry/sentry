@@ -112,7 +112,7 @@ describe('TokensPage', () => {
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
     });
 
-    it('renders a confirm modal when the regenerate token button is clicked', async () => {
+    it('Generates a new token when the regenerate token button is clicked', async () => {
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -140,9 +140,25 @@ describe('TokensPage', () => {
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
+      // Click the Generate new token button to open the modal
       await userEvent.click(screen.getByRole('button', {name: 'Generate new token'}));
 
-      // TODO: Add the action stuff when this is linked up
+      // This is confirming all the new modal stuff
+      expect(
+        await screen.findByRole('heading', {name: 'Token created'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          `Please copy this token to a safe place - it won't be shown again.`
+        )
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+      expect(
+        screen.getByText('91b57316-b1ff-4884-8d55-92b9936a05a3')
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
   });
 });
