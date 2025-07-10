@@ -35,7 +35,9 @@ export function useTraceExploreAiQuerySetup({
     if (hasSetupRun.current) {
       const projectsChanged =
         previousProjects.current.length !== selectedProjects.length ||
-        previousProjects.current.some((id, index) => id !== selectedProjects[index]);
+        previousProjects.current.some(
+          (id, index) => id !== Number(selectedProjects[index])
+        );
 
       if (!projectsChanged) return;
     }
