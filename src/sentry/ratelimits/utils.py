@@ -81,7 +81,6 @@ def get_rate_limit_key(
     from sentry.auth.system import is_system_auth
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.models.apikey import ApiKey
-    from sentry.models.orgauthtoken import is_org_auth_token_auth
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
@@ -97,17 +96,9 @@ def get_rate_limit_key(
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
 
-        if request_user.is_sentry_app:
-            category = "org"
-            id = get_organization_id_from_token(token_id)
-
-            # Fallback to IP address limit if we can't find the organization
-            if id is None and ip_address is not None:
-                category = "ip"
-                id = ip_address
-        else:
-            category = "user"
-            id = request_auth.user_id
+        # Apply per-user rate limiting for all API tokens
+        category = "user"
+        id = request_auth.user_id
 
     elif (
         not isinstance(request_auth, ApiKey)
@@ -117,40 +108,7 @@ def get_rate_limit_key(
         category = "user"
         id = request_user.id
 
-    # Check if this is an org auth token and apply per-user rate limiting
-    elif is_org_auth_token_auth(request_auth):
-        # Get the user ID who created the org auth token for per-user rate limiting
-        created_by_id = None
-        if isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
-            # For AuthenticatedToken, we need to get the created_by_id from the actual token
-            from sentry.models.orgauthtoken import OrgAuthToken
-            from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
-            from sentry.silo.base import SiloMode
-
-            try:
-                if SiloMode.get_current_mode() == SiloMode.REGION:
-                    token = OrgAuthTokenReplica.objects.get(orgauthtoken_id=request_auth.entity_id)
-                    created_by_id = token.created_by_id
-                else:
-                    token = OrgAuthToken.objects.get(id=request_auth.entity_id)
-                    created_by_id = token.created_by_id
-            except (OrgAuthToken.DoesNotExist, OrgAuthTokenReplica.DoesNotExist):
-                pass
-        else:
-            # For direct OrgAuthToken objects
-            created_by_id = getattr(request_auth, "created_by_id", None)
-
-        if created_by_id:
-            category = "user"
-            id = created_by_id
-        elif ip_address is not None:
-            # Fallback to IP if we can't get the creator
-            category = "ip"
-            id = ip_address
-        else:
-            return None
-
-    # ApiKeys will be treated with IP ratelimits
+    # ApiKeys & OrgAuthTokens will be treated with IP ratelimits
     elif ip_address is not None:
         category = "ip"
         id = ip_address
