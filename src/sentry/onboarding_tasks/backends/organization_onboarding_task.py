@@ -6,6 +6,7 @@ from django.forms import model_to_dict
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.onboarding_complete import OnboardingCompleteEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
@@ -103,10 +104,11 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                         value={"updated": json.datetime_to_str(timezone.now())},
                     )
                 analytics.record(
-                    "onboarding.complete",
-                    user_id=organization.default_owner_id,
-                    organization_id=organization_id,
-                    referrer="onboarding_tasks",
+                    OnboardingCompleteEvent(
+                        user_id=organization.default_owner_id,
+                        organization_id=organization_id,
+                        referrer="onboarding_tasks",
+                    )
                 )
             except IntegrityError:
                 pass

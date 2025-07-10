@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("onboarding.complete")
 class OnboardingCompleteEvent(analytics.Event):
-    type = "onboarding.complete"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("referrer"),
-    )
+    user_id: str
+    organization_id: str
+    referrer: str
 
 
 analytics.register(OnboardingCompleteEvent)
