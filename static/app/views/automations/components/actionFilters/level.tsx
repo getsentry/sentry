@@ -8,6 +8,7 @@ import {
   LEVEL_MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function LevelDetails({condition}: {condition: DataCondition}) {
@@ -58,7 +59,9 @@ function LevelField() {
   );
 }
 
-export function validateLevelCondition(condition: DataCondition): string | undefined {
+export function validateLevelCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (!condition.comparison.match || !condition.comparison.level) {
     return t('Ensure all fields are filled in.');
   }

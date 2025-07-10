@@ -2,6 +2,7 @@ import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/for
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function IssueOccurrencesDetails({condition}: {condition: DataCondition}) {
@@ -35,9 +36,9 @@ function ValueField() {
   );
 }
 
-export function validateIssueOccurrencesCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateIssueOccurrencesCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (!condition.comparison.value) {
     return t('You must specify a value.');
   }

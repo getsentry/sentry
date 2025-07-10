@@ -14,6 +14,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import {TargetType} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 const TARGET_TYPE_CHOICES = [
@@ -121,9 +122,9 @@ function IdentifierField() {
   return null;
 }
 
-export function validateAssignedToCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateAssignedToCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (!condition.comparison.targetType) {
     return t('You must specify an assignee type.');
   }

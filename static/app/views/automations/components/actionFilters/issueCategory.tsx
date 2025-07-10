@@ -3,6 +3,7 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 enum GroupCategory {
@@ -54,9 +55,9 @@ export function IssueCategoryNode() {
   });
 }
 
-export function validateIssueCategoryCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateIssueCategoryCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (!condition.comparison.value) {
     return t('You must select an issue category.');
   }

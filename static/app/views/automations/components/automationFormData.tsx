@@ -1,6 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
@@ -12,44 +13,45 @@ export interface AutomationFormData {
   name: string;
 }
 
+const stripDataConditionId = (condition: any) => {
+  const {id: _id, ...conditionWithoutId} = condition;
+
+  if (condition.comparison?.filters) {
+    return {
+      ...conditionWithoutId,
+      comparison: {
+        ...condition.comparison,
+        filters: condition.comparison.filters?.map(stripSubfilterTypeAndId) || [],
+      },
+    };
+  }
+  return conditionWithoutId;
+};
+
+// subfilters have a `type` for the frontend to distinguish between attribute and tag comparisons, but this is not expected by the backend
+const stripSubfilterTypeAndId = (subfilter: any) => {
+  const {id: _id, type: _type, ...subfilterWithoutTypeAndId} = subfilter;
+  return subfilterWithoutTypeAndId;
+};
+
+const stripActionId = (action: any) => {
+  const {id: _id, ...actionWithoutId} = action;
+  return actionWithoutId;
+};
+
+const stripDataConditionGroupId = (group: any) => {
+  const {id: _id, ...groupWithoutId} = group;
+  return {
+    ...groupWithoutId,
+    conditions: group.conditions?.map(stripDataConditionId) || [],
+    actions: group.actions?.map(stripActionId) || [],
+  };
+};
+
 export function getNewAutomationData(
   data: AutomationFormData,
   state: AutomationBuilderState
 ): NewAutomation {
-  const stripDataConditionId = (condition: any) => {
-    const {id: _id, ...conditionWithoutId} = condition;
-
-    if (condition.comparison?.filters) {
-      return {
-        ...conditionWithoutId,
-        comparison: {
-          ...condition.comparison,
-          filters: condition.comparison.filters?.map(stripSubfilterTypeAndId) || [],
-        },
-      };
-    }
-    return conditionWithoutId;
-  };
-
-  const stripSubfilterTypeAndId = (subfilter: any) => {
-    const {id: _id, type: _type, ...subfilterWithoutTypeAndId} = subfilter;
-    return subfilterWithoutTypeAndId;
-  };
-
-  const stripActionId = (action: any) => {
-    const {id: _id, ...actionWithoutId} = action;
-    return actionWithoutId;
-  };
-
-  const stripDataConditionGroupId = (group: any) => {
-    const {id: _id, ...groupWithoutId} = group;
-    return {
-      ...groupWithoutId,
-      conditions: group.conditions?.map(stripDataConditionId) || [],
-      actions: group.actions?.map(stripActionId) || [],
-    };
-  };
-
   const result = {
     name: data.name,
     triggers: stripDataConditionGroupId(state.triggers),
@@ -74,13 +76,17 @@ export function getAutomationFormData(
   };
 }
 
+export interface ValidateDataConditionProps {
+  condition: DataCondition;
+}
+
 export function validateAutomationBuilderState(state: AutomationBuilderState) {
   const errors: Record<string, string> = {};
   // validate trigger conditions
   for (const condition of state.triggers.conditions || []) {
     const validationResult = dataConditionNodesMap
       .get(condition.type)
-      ?.validate?.(condition);
+      ?.validate?.({condition});
     if (validationResult) {
       errors[condition.id] = validationResult;
     }
@@ -92,7 +98,7 @@ export function validateAutomationBuilderState(state: AutomationBuilderState) {
     for (const condition of actionFilter.conditions || []) {
       const validationResult = dataConditionNodesMap
         .get(condition.type)
-        ?.validate?.(condition);
+        ?.validate?.({condition});
       if (validationResult) {
         errors[condition.id] = validationResult;
       }

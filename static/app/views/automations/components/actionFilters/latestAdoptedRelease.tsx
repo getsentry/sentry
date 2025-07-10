@@ -11,6 +11,7 @@ import {
   MODEL_AGE_CHOICES,
   type ModelAge,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
@@ -108,9 +109,9 @@ function useOrganizationEnvironments() {
   return {environments, isLoading};
 }
 
-export function validateLatestAdoptedReleaseCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateLatestAdoptedReleaseCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (
     !condition.comparison.release_age_type ||
     !condition.comparison.age_comparison ||

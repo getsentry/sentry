@@ -8,6 +8,7 @@ import {
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function TaggedEventDetails({condition}: {condition: DataCondition}) {
@@ -79,9 +80,9 @@ function ValueField() {
   );
 }
 
-export function validateTaggedEventCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateTaggedEventCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (
     !condition.comparison.key ||
     !condition.comparison.match ||

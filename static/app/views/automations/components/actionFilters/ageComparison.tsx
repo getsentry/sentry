@@ -9,6 +9,7 @@ import {
   TimeUnit,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 const TIME_CHOICES = [
@@ -98,9 +99,9 @@ function TimeField() {
   );
 }
 
-export function validateAgeComparisonCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateAgeComparisonCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (
     !condition.comparison.comparison_type ||
     condition.comparison.value === undefined ||

@@ -19,6 +19,7 @@ import {
   validateSubfilters,
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {
   dataConditionNodesMap,
   useDataConditionNodeContext,
@@ -137,9 +138,9 @@ function ComparisonTypeField() {
   );
 }
 
-export function validateEventUniqueUserFrequencyCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateEventUniqueUserFrequencyCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (condition.type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY) {
     return t('You must select a comparison type.');
   }

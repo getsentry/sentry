@@ -7,6 +7,7 @@ import {
   PRIORITY_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
@@ -37,9 +38,9 @@ export function IssuePriorityNode() {
   });
 }
 
-export function validateIssuePriorityCondition(
-  condition: DataCondition
-): string | undefined {
+export function validateIssuePriorityCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
   if (!condition.comparison) {
     return t('You must select a priority level.');
   }
