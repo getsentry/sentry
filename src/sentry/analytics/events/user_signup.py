@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("user.signup")
 class UserSignUpEvent(analytics.Event):
-    type = "user.signup"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("source"),
-        analytics.Attribute("provider", required=False),
-        analytics.Attribute("referrer", required=False),
-    )
+    user_id: str
+    source: str
+    provider: str | None = None
+    referrer: str | None = None
 
 
 class RelocationUserSignUpEvent(UserSignUpEvent):
