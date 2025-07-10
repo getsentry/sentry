@@ -16,8 +16,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 
-BATCH_SIZE = 100
-
 logger = logging.getLogger(__name__)
 
 
@@ -42,15 +40,16 @@ def delete_seer_grouping_records_by_hash(
 ) -> None:
     """
     Task to delete seer grouping records by hash list.
-    Calls the seer delete by hash endpoint with batches of hashes of size `BATCH_SIZE`.
+    Calls the seer delete by hash endpoint with batches of hashes of size `batch_size`.
     """
     if killswitch_enabled(project_id, ReferrerOptions.DELETION) or options.get(
         "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
     ):
         return
 
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
     len_hashes = len(hashes)
-    end_index = min(last_deleted_index + BATCH_SIZE, len_hashes)
+    end_index = min(last_deleted_index + batch_size, len_hashes)
     call_seer_to_delete_these_hashes(project_id, hashes[last_deleted_index:end_index])
     if end_index < len_hashes:
         delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hashes, end_index])
@@ -70,15 +69,16 @@ def call_delete_seer_grouping_records_by_hash(
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
         group_hashes = []
+        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
 
         for group_hash in RangeQuerySetWrapper(
             GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids),
-            step=BATCH_SIZE,
+            step=batch_size,
         ):
             group_hashes.append(group_hash.hash)
 
-            # Schedule task when we reach BATCH_SIZE
-            if len(group_hashes) >= BATCH_SIZE:
+            # Schedule task when we reach batch_size
+            if len(group_hashes) >= batch_size:
                 delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
                 group_hashes = []
 

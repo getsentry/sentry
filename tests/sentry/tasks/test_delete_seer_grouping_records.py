@@ -1,9 +1,9 @@
 from time import time
 from unittest.mock import MagicMock, patch
 
+from sentry import options
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.delete_seer_grouping_records import (
-    BATCH_SIZE,
     call_delete_seer_grouping_records_by_hash,
     delete_seer_grouping_records_by_hash,
 )
@@ -23,11 +23,12 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_call_seer_to_delete_these_hashes: MagicMock,
     ) -> None:
         """
-        Test that when delete_seer_grouping_records_by_hash is called with over BATCH_SIZE hashes,
-        it spawns another task with the end index of the previous batch.
+        Test that when delete_seer_grouping_records_by_hash is called with more hashes than the batch size, it spawns
+        another task with the end index of the previous batch.
         """
+        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
         mock_call_seer_to_delete_these_hashes.return_value = True
-        project_id, hashes = 1, [str(i) for i in range(BATCH_SIZE + 1)]
+        project_id, hashes = 1, [str(i) for i in range(batch_size + 1)]
         # We call it as a function and will schedule a task for the extra hash
         delete_seer_grouping_records_by_hash(project_id, hashes, 0)
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
@@ -63,7 +64,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     def test_call_delete_seer_grouping_records_by_hash_chunked(self) -> None:
         """
         Test that call_delete_seer_grouping_records_by_hash chunks large numbers of hashes
-        into separate tasks with a maximum of BATCH_SIZE hashes per task.
+        into separate tasks with a maximum of batch_size hashes per task.
         """
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -72,7 +73,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             patch(
                 "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
             ) as mock_apply_async,
-            patch("sentry.tasks.delete_seer_grouping_records.BATCH_SIZE", batch_size),
+            self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}),
         ):
             # Create 15 group hashes to test chunking (10 + 5 with batch size of 10)
             group_ids, expected_hashes = [], []
