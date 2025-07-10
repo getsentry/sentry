@@ -13,6 +13,7 @@ from django.db.models import Case, Exists, F, Func, OuterRef, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django_stubs_ext import QuerySetAny
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
@@ -32,6 +33,7 @@ from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -817,4 +819,34 @@ def get_previous_release(release: Release) -> Release | None:
         .exclude(version=release.version)
         .order_by("-sort")
         .first()
+    )
+
+
+def filter_releases_by_projects(queryset: QuerySetAny, project_ids: list[int]):
+    """Return releases belonging to a project."""
+    if not project_ids:
+        return queryset
+
+    return queryset.filter(
+        Exists(
+            ReleaseProject.objects.filter(
+                release=OuterRef("pk"),
+                project_id__in=project_ids,
+            )
+        )
+    )
+
+
+def filter_releases_by_environments(queryset: QuerySetAny, environment_ids: list[int]):
+    """Return a release queryset filtered by environments."""
+    if not environment_ids:
+        return queryset
+
+    return queryset.filter(
+        Exists(
+            ReleaseProjectEnvironment.objects.filter(
+                release=OuterRef("pk"),
+                environment_id__in=environment_ids,
+            )
+        )
     )
