@@ -411,7 +411,6 @@ const StyledPanelTable = styled(PanelTable)`
   overflow-x: auto;
   overflow-y: hidden;
 
-  /* Set a minimum width to ensure the table has proper dimensions */
   min-width: 100%;
 
   @media (min-width: ${props => props.theme.breakpoints.lg}) {
