@@ -114,6 +114,9 @@ LOGS_PRIVATE_ATTRIBUTES: set[str] = {
     if definition.private
 }
 
+# For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
+LOGS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {"sentry._meta"}
+
 LOGS_REPLACEMENT_ATTRIBUTES: set[str] = {
     definition.replacement
     for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
