@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
+from sentry.analytics.events.project_issue_searched import ProjectIssueSearchEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -191,11 +192,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if results and query:
             advanced_search.send(project=project, sender=request.user)
             analytics.record(
-                "project_issue.searched",
-                user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                query=query,
+                ProjectIssueSearchEvent(
+                    user_id=request.user.id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    query=query,
+                )
             )
 
         return response

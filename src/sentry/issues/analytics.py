@@ -1,10 +1,9 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue_forecasts.saved")
 class IssueForecastSaved(analytics.Event):
-    type = "issue_forecasts.saved"
-
-    attributes = (analytics.Attribute("num_groups"),)
+    num_groups: str
 
 
 analytics.register(IssueForecastSaved)
