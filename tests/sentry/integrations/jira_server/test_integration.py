@@ -19,7 +19,12 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -877,7 +882,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 }
             ],
         )
-        with pytest.raises(IntegrationError) as exc_info:
+        with pytest.raises(IntegrationInstallationConfigurationError) as exc_info:
             self.installation.sync_assignee_outbound(
                 external_issue=external_issue, user=user, assign=True
             )
@@ -902,7 +907,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 {
                     "accountId": "deadbeef123",
                     "displayName": "Dead Beef",
-                    "username": "bob@example.com",
+                    "emailAddress": "bob@example.com",
                 }
             ],
         )
