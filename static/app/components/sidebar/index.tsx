@@ -212,14 +212,19 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features={['performance-trace-explorer', 'performance-view']}>
-      <SidebarItem
-        {...sidebarItemProps}
-        label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/traces/`}
-        id="performance-trace-explorer"
-        icon={<SubitemDot collapsed />}
-      />
+    <Feature features={['performance-view']}>
+      <Feature
+        features={['performance-trace-explorer', 'visibility-explore-view']}
+        requireAll={false}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/traces/`}
+          id="performance-trace-explorer"
+          icon={<SubitemDot collapsed />}
+        />
+      </Feature>
     </Feature>
   );
 

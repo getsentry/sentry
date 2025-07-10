@@ -95,12 +95,21 @@ export enum SpanFields {
   NAME = 'span.name',
   KIND = 'span.kind',
   STATUS = 'span.status',
+  STATUS_MESSAGE = 'span.status_message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
   DEVICE_CLASS = 'device.class',
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
+  GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
+  GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
+  GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
+  GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
+  GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
+  GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
+  GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
+  GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
 }
 
 type WebVitalsMeasurements =
@@ -140,6 +149,10 @@ type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
+  | SpanFields.GEN_AI_USAGE_TOTAL_COST
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -149,6 +162,11 @@ type SpanStringFields =
   | SpanFields.NAME
   | SpanFields.KIND
   | SpanFields.STATUS
+  | SpanFields.STATUS_MESSAGE
+  | SpanFields.GEN_AI_AGENT_NAME
+  | SpanFields.GEN_AI_REQUEST_MODEL
+  | SpanFields.GEN_AI_RESPONSE_MODEL
+  | SpanFields.GEN_AI_TOOL_NAME
   | 'span_id'
   | 'span.op'
   | 'span.description'

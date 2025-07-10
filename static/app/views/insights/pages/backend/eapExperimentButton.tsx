@@ -54,7 +54,7 @@ export function EAPExperimentButton() {
   }
 
   return (
-    <DropdownMenu
+    <StyledDropdownMenu
       trigger={triggerProps => (
         <StyledDropdownButton {...triggerProps} size={'sm'}>
           {/* Passing icon as child to avoid extra icon margin */}
@@ -78,4 +78,8 @@ const StyledDropdownButton = styled(DropdownButton)`
   :hover {
     color: ${p => p.theme.button.primary.background};
   }
+`;
+
+const StyledDropdownMenu = styled(DropdownMenu)`
+  display: none;
 `;

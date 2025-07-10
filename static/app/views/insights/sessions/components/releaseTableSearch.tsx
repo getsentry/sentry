@@ -66,14 +66,12 @@ export default function ReleaseTableSearch() {
 
   return (
     <StyledSearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       onSearch={handleSearch}
       initialQuery={getQuery() || ''}
       filterKeys={filterKeys}
       getTagValues={getTagValues}
       placeholder={t('Search by version, build, package, or stage')}
       searchSource="releases"
-      showUnsubmittedIndicator
     />
   );
 }
