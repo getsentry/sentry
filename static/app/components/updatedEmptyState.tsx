@@ -152,57 +152,53 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
                     <div>
-                      <div>
-                        {step?.description ?? (
-                          <DescriptionWrapper>{step?.description}</DescriptionWrapper>
-                        )}
-                        {step?.configurations?.map((configuration, configIndex) => (
-                          <div key={configIndex}>
-                            <DescriptionWrapper>
-                              {configuration.description}
-                            </DescriptionWrapper>
-                            <CodeSnippetWrapper>
-                              {configuration.code ? (
-                                Array.isArray(configuration.code) ? (
-                                  <TabbedCodeSnippet tabs={configuration.code} />
-                                ) : (
-                                  <OnboardingCodeSnippet
-                                    language={configuration.language}
-                                  >
-                                    {configuration.code}
-                                  </OnboardingCodeSnippet>
-                                )
-                              ) : null}
-                            </CodeSnippetWrapper>
-                          </div>
-                        ))}
-                        {step?.additionalInfo && (
-                          <DescriptionWrapper>{step?.additionalInfo}</DescriptionWrapper>
-                        )}
-                      </div>
-                      {index === steps.length - 1 ? (
-                        <FirstEventIndicator
-                          organization={organization}
-                          project={project}
-                          eventType="error"
-                        >
-                          {({indicator, firstEventButton}) => (
-                            <FirstEventWrapper>
-                              <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                              <StyledButtonBar gap={1}>
-                                <GuidedSteps.BackButton size="md" />
-                                {firstEventButton}
-                              </StyledButtonBar>
-                            </FirstEventWrapper>
-                          )}
-                        </FirstEventIndicator>
-                      ) : (
-                        <GuidedSteps.ButtonWrapper>
-                          <GuidedSteps.BackButton size="md" />
-                          <GuidedSteps.NextButton size="md" />
-                        </GuidedSteps.ButtonWrapper>
+                      {step?.description ?? (
+                        <DescriptionWrapper>{step?.description}</DescriptionWrapper>
+                      )}
+                      {step?.configurations?.map((configuration, configIndex) => (
+                        <div key={configIndex}>
+                          <DescriptionWrapper>
+                            {configuration.description}
+                          </DescriptionWrapper>
+                          <CodeSnippetWrapper>
+                            {configuration.code ? (
+                              Array.isArray(configuration.code) ? (
+                                <TabbedCodeSnippet tabs={configuration.code} />
+                              ) : (
+                                <OnboardingCodeSnippet language={configuration.language}>
+                                  {configuration.code}
+                                </OnboardingCodeSnippet>
+                              )
+                            ) : null}
+                          </CodeSnippetWrapper>
+                        </div>
+                      ))}
+                      {step?.additionalInfo && (
+                        <DescriptionWrapper>{step?.additionalInfo}</DescriptionWrapper>
                       )}
                     </div>
+                    {index === steps.length - 1 ? (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <FirstEventWrapper>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </FirstEventWrapper>
+                        )}
+                      </FirstEventIndicator>
+                    ) : (
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <GuidedSteps.NextButton size="md" />
+                      </GuidedSteps.ButtonWrapper>
+                    )}
                   </GuidedSteps.Step>
                 );
               })}
