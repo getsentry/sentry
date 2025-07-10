@@ -169,7 +169,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         self, event: dict[str, Any], group_cache: dict[int, Group], additional_attributes: list[str]
     ) -> SerializedEvent | SerializedIssue:
         if event.get("event_type") == "span":
-            attributeDict = {
+            attribute_dict = {
                 attribute: event[attribute]
                 for attribute in additional_attributes
                 if attribute in event
@@ -207,7 +207,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 op=event["span.op"],
                 name=event["span.name"],
                 event_type="span",
-                additional_attributes=attributeDict,
+                additional_attributes=attribute_dict,
             )
         else:
             return self.serialize_rpc_issue(event, group_cache)
