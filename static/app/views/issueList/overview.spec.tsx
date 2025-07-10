@@ -19,7 +19,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DEFAULT_QUERY} from 'sentry/constants';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -28,6 +27,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
