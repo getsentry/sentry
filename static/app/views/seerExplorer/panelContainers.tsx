@@ -36,15 +36,31 @@ function PanelContainers({
               <IconSeer size="lg" variant="waiting" />
             </MinimizedPanel>
           ) : (
-            <PanelContainer
-              panelSize={panelSize}
-              initial={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-              animate={{opacity: 1, y: 0, scale: 1, transformOrigin: 'bottom center'}}
-              exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-              transition={{duration: 0.1, ease: 'easeOut'}}
-            >
-              <PanelContent>{children}</PanelContent>
-            </PanelContainer>
+            <Fragment>
+              {panelSize === 'max' && (
+                <Backdrop
+                  key="backdrop"
+                  initial={{opacity: 0}}
+                  animate={{opacity: 1}}
+                  exit={{opacity: 0}}
+                  transition={{duration: 0.1}}
+                />
+              )}
+              <PanelContainer
+                panelSize={panelSize}
+                initial={{
+                  opacity: 0,
+                  y: 50,
+                  scale: 0.1,
+                  transformOrigin: 'bottom center',
+                }}
+                animate={{opacity: 1, y: 0, scale: 1, transformOrigin: 'bottom center'}}
+                exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
+                transition={{duration: 0.1, ease: 'easeOut'}}
+              >
+                <PanelContent>{children}</PanelContent>
+              </PanelContainer>
+            </Fragment>
           )}
         </Fragment>
       )}
@@ -53,6 +69,17 @@ function PanelContainers({
 }
 
 export default PanelContainers;
+
+const Backdrop = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  pointer-events: auto;
+`;
 
 const PanelContainer = styled(motion.div)<{panelSize: 'max' | 'med'}>`
   position: fixed;

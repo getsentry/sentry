@@ -12,6 +12,7 @@ export interface SlashCommand {
 
 interface SlashCommandsProps {
   inputValue: string;
+  onClear: () => void;
   onClose: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onMaxSize: () => void;
@@ -26,6 +27,7 @@ function SlashCommands({
   onMaxSize,
   onMedSize,
   onMinSize,
+  onClear,
 }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const openFeedbackForm = useFeedbackForm();
@@ -33,6 +35,11 @@ function SlashCommands({
   // Default slash commands
   const DEFAULT_COMMANDS = useMemo(
     (): SlashCommand[] => [
+      {
+        command: '/clear',
+        description: 'Clear conversation and start a new session',
+        handler: onClear,
+      },
       {
         command: '/max-size',
         description: 'Expand panel to full viewport height',
@@ -65,7 +72,7 @@ function SlashCommands({
           ]
         : []),
     ],
-    [onMaxSize, onMedSize, onMinSize, openFeedbackForm]
+    [onClear, onMaxSize, onMedSize, onMinSize, openFeedbackForm]
   );
 
   // Filter commands based on current input

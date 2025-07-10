@@ -8,6 +8,7 @@ import SlashCommands, {type SlashCommand} from './slashCommands';
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
+  onClear: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
@@ -17,12 +18,13 @@ interface InputSectionProps {
   onMinSize: () => void;
   onSlashCommandsClose: () => void;
   showSlashCommands: boolean;
-  ref?: React.RefObject<HTMLTextAreaElement>;
+  ref?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 function InputSection({
   inputValue,
   focusedBlockIndex,
+  onClear,
   onInputChange,
   onKeyDown,
   onInputClick,
@@ -43,6 +45,7 @@ function InputSection({
           onMaxSize={onMaxSize}
           onMedSize={onMedSize}
           onMinSize={onMinSize}
+          onClear={onClear}
         />
         <InputRow>
           <ChevronIcon direction="right" size="sm" />

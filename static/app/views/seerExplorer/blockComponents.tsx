@@ -3,6 +3,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 
 import type {Block} from './types';
 
@@ -31,10 +32,11 @@ function BlockComponent({block, isLast, isFocused, onClick, ref}: BlockProps) {
           ) : (
             <BlockRow>
               <ResponseDot isLoading={block.loading} />
-              <BlockContent>{block.content}</BlockContent>
+              <BlockContent text={block.content} />
             </BlockRow>
           )}
           {isFocused && <FocusIndicator />}
+          {isFocused && <DeleteHint>Rethink from here ⌫</DeleteHint>}
         </motion.div>
       </AnimatePresence>
     </Block>
@@ -52,10 +54,6 @@ const Block = styled('div')<{isLast?: boolean}>`
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
-
-  &:hover {
-    background-color: ${p => p.theme.hover};
-  }
 `;
 
 const BlockRow = styled('div')`
@@ -93,19 +91,45 @@ const ResponseDot = styled('div')<{isLoading?: boolean}>`
   `}
 `;
 
-const BlockContent = styled('div')`
+const BlockContent = styled(MarkedText)`
   width: 100%;
   padding: ${space(2)};
-  line-height: 1.4;
   color: ${p => p.theme.textColor};
   white-space: pre-wrap;
   word-wrap: break-word;
+
+  p,
+  li,
+  ul {
+    margin: -${space(1)} 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-size: ${p => p.theme.fontSize.lg};
+  }
+
+  p:first-child,
+  li:first-child,
+  ul:first-child,
+  h1:first-child,
+  h2:first-child,
+  h3:first-child,
+  h4:first-child,
+  h5:first-child,
+  h6:first-child {
+    margin-top: 0;
+  }
 `;
 
 const UserBlockContent = styled('div')`
   width: 100%;
   padding: ${space(2)} ${space(2)} ${space(2)} 0;
-  line-height: 1.4;
   white-space: pre-wrap;
   word-wrap: break-word;
   color: ${p => p.theme.subText};
@@ -118,4 +142,16 @@ const FocusIndicator = styled('div')`
   bottom: 0;
   width: 3px;
   background: ${p => p.theme.pink400};
+`;
+
+const DeleteHint = styled('div')`
+  position: absolute;
+  bottom: ${space(0.5)};
+  right: ${space(1)};
+  padding: ${space(0.25)} ${space(0.5)};
+  font-size: 10px;
+  color: ${p => p.theme.subText};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  pointer-events: none;
+  white-space: nowrap;
 `;

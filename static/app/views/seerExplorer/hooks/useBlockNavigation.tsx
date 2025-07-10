@@ -8,7 +8,8 @@ interface UseBlockNavigationProps {
   focusedBlockIndex: number;
   isOpen: boolean;
   setFocusedBlockIndex: (index: number) => void;
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  onDeleteFromIndex?: (index: number) => void;
 }
 
 export function useBlockNavigation({
@@ -18,6 +19,7 @@ export function useBlockNavigation({
   blockRefs,
   textareaRef,
   setFocusedBlockIndex,
+  onDeleteFromIndex,
 }: UseBlockNavigationProps) {
   // Handle keyboard navigation
   useEffect(() => {
@@ -60,6 +62,14 @@ export function useBlockNavigation({
         setFocusedBlockIndex(-1);
         textareaRef.current?.focus();
         textareaRef.current?.scrollIntoView({block: 'nearest'});
+      } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
+        e.preventDefault();
+        // Delete from this block and all blocks after it
+        onDeleteFromIndex?.(focusedBlockIndex);
+        // Focus returns to input
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+        textareaRef.current?.scrollIntoView({block: 'nearest'});
       }
     };
 
@@ -72,5 +82,6 @@ export function useBlockNavigation({
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
+    onDeleteFromIndex,
   ]);
 }
