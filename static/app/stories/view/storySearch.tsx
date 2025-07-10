@@ -81,7 +81,7 @@ export function StorySearch() {
       {item => {
         if (isStorySection(item)) {
           return (
-            <Section key={item.key} title={item.label}>
+            <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
               {item.options.map(storyItem => (
                 <Item
                   key={storyItem.filesystemPath}
@@ -220,4 +220,15 @@ const StyledOverlay = styled(Overlay)`
   width: 320px;
   max-height: calc(100dvh - 128px);
   overflow-y: auto;
+
+  /* Make section headers darker in this component */
+  p[id][aria-hidden='true'] {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const SectionTitle = styled('span')`
+  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  text-transform: uppercase;
 `;
