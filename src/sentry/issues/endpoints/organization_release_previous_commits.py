@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.release_get_previous_commits import ReleaseGetPreviousCommitsEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -57,11 +58,12 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         )
 
         analytics.record(
-            "release.get_previous_commits",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization.id,
-            project_ids=[project.id for project in release.projects.all()],
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            ReleaseGetPreviousCommitsEvent(
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=organization.id,
+                project_ids=[project.id for project in release.projects.all()],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
         )
 
         if not prev_release_with_commits:

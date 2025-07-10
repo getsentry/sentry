@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("release.get_previous_commits")
 class ReleaseGetPreviousCommitsEvent(analytics.Event):
-    type = "release.get_previous_commits"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_ids"),
-        analytics.Attribute("user_agent", required=False),
-    )
+    user_id: str | None = None
+    organization_id: str
+    project_ids: str
+    user_agent: str | None = None
 
 
 analytics.register(ReleaseGetPreviousCommitsEvent)

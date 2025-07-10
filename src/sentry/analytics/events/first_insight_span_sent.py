@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("first_insight_span.sent")
 class FirstInsightSpanSentEvent(analytics.Event):
-    type = "first_insight_span.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("module"),
-        analytics.Attribute("platform", required=False),
-    )
+    organization_id: str
+    user_id: str
+    project_id: str
+    module: str
+    platform: str | None = None
 
 
 analytics.register(FirstInsightSpanSentEvent)

@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
@@ -648,11 +649,12 @@ class StatsMixin:
 class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
         analytics.record(
-            "release.set_commits_local",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            ReleaseSetCommitsLocalEvent(
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=organization_id,
+                project_ids=project_ids,
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
         )
 
 

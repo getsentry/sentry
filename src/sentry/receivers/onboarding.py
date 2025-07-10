@@ -7,6 +7,11 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
+from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -171,11 +176,12 @@ def record_first_transaction(project, event, **kwargs):
         date_completed=event.datetime,
     )
     analytics.record(
-        "first_transaction.sent",
-        default_user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstTransactionSentEvent(
+            default_user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -272,11 +278,12 @@ def record_cron_monitor_created(project, user, from_upsert, **kwargs):
 )
 def record_first_cron_checkin(project, monitor_id, **kwargs):
     analytics.record(
-        "first_cron_checkin.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        monitor_id=monitor_id,
+        FirstCronCheckinSent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            monitor_id=monitor_id,
+        )
     )
 
 
@@ -285,12 +292,13 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 )
 def record_first_insight_span(project, module, **kwargs):
     analytics.record(
-        "first_insight_span.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-        module=module,
+        FirstInsightSpanSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+            module=module,
+        )
     )
 
 
@@ -303,11 +311,12 @@ def record_member_invited(member, user, **kwargs):
     )
 
     analytics.record(
-        "member.invited",
-        invited_member_id=member.id,
-        inviter_user_id=user.id if user else None,
-        organization_id=member.organization_id,
-        referrer=kwargs.get("referrer"),
+        MemberInvitedEvent(
+            invited_member_id=member.id,
+            inviter_user_id=user.id if user else None,
+            organization_id=member.organization_id,
+            referrer=kwargs.get("referrer"),
+        )
     )
 
 
@@ -475,11 +484,12 @@ def record_integration_added(
 def record_project_transferred(old_org_id: int, project: Project, **kwargs):
 
     analytics.record(
-        "project.transferred",
-        old_organization_id=old_org_id,
-        new_organization_id=project.organization.id,
-        project_id=project.id,
-        platform=project.platform,
+        ProjectTransferredEvent(
+            old_organization_id=old_org_id,
+            new_organization_id=project.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
     transfer_onboarding_tasks(

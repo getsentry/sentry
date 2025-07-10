@@ -7,6 +7,7 @@ from typing import Any, override
 import sentry_sdk
 
 from sentry import analytics
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.services.integration import (
     RpcIntegration,
@@ -121,12 +122,13 @@ class IntegrationEventAction(EventAction, abc.ABC):
             alert_id=rule.id if rule else None,
         )
         analytics.record(
-            "alert.sent",
-            provider=self.provider,
-            alert_id=rule.id if rule else "",
-            alert_type="issue_alert",
-            organization_id=event.organization.id,
-            project_id=event.project_id,
-            external_id=external_id,
-            notification_uuid=notification_uuid if notification_uuid else "",
+            AlertSentEvent(
+                provider=self.provider,
+                alert_id=rule.id if rule else "",
+                alert_type="issue_alert",
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                external_id=external_id,
+                notification_uuid=notification_uuid if notification_uuid else "",
+            )
         )

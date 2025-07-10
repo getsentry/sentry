@@ -1,13 +1,10 @@
 from sentry import analytics
 
 
+@analytics.eventclass("eventuser_endpoint.request")
 class EventUserEndpointRequest(analytics.Event):
-    type = "eventuser_endpoint.request"
-
-    attributes = (
-        analytics.Attribute("endpoint", required=True),
-        analytics.Attribute("project_id", required=False),
-    )
+    endpoint: str
+    project_id: str | None = None
 
 
 analytics.register(EventUserEndpointRequest)
