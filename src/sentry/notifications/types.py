@@ -32,6 +32,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_PROFILE_DURATION = "quotaProfileDuration"
     QUOTA_PROFILE_DURATION_UI = "quotaProfileDurationUI"
     QUOTA_SEER_BUDGET = "quotaSeerBudget"
+    QUOTA_LOGS = "quotaLogs"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
