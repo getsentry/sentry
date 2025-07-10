@@ -1,10 +1,10 @@
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+from sentry import options
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.delete_seer_grouping_records import (
     call_delete_seer_grouping_records_by_hash,
-    call_seer_delete_project_grouping_records,
     delete_seer_grouping_records_by_hash,
 )
 from sentry.testutils.cases import TestCase
@@ -13,49 +13,104 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestDeleteSeerGroupingRecordsByHash(TestCase):
-    @patch("sentry.tasks.delete_seer_grouping_records.delete_grouping_records_by_hash")
+    @patch("sentry.tasks.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_seer_grouping_records_by_hash_batches(
         self,
-        mock_delete_seer_grouping_records_by_hash_apply_async,
-        mock_delete_grouping_records_by_hash,
-    ):
+        mock_delete_seer_grouping_records_by_hash_apply_async: MagicMock,
+        mock_call_seer_to_delete_these_hashes: MagicMock,
+    ) -> None:
         """
-        Test that when delete_seer_grouping_records_by_hash is called with over 20 hashes, it spawns
+        Test that when delete_seer_grouping_records_by_hash is called with more hashes than the batch size, it spawns
         another task with the end index of the previous batch.
         """
-        mock_delete_grouping_records_by_hash.return_value = True
-        project_id, hashes = 1, [str(i) for i in range(101)]
+        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+        mock_call_seer_to_delete_these_hashes.return_value = True
+        project_id, hashes = 1, [str(i) for i in range(batch_size + 1)]
+        # We call it as a function and will schedule a task for the extra hash
         delete_seer_grouping_records_by_hash(project_id, hashes, 0)
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-            "args": [project_id, hashes, 100]
+            # We do not schedule the task with all the hashes, but only the extra ones
+            "args": [project_id, hashes[batch_size:], 0]
         }
 
-    @patch("sentry.tasks.delete_seer_grouping_records.logger")
-    def test_call_delete_seer_grouping_records_by_hash_simple(self, mock_logger):
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_call_delete_seer_grouping_records_by_hash_simple(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        """
+        Test that call_delete_seer_grouping_records_by_hash correctly collects hashes
+        and calls the deletion task with the expected parameters.
+        """
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        group_ids, hashes = [], []
+        group_ids, expected_hashes = [], []
         for i in range(5):
             group = self.create_group(project=self.project)
             group_ids.append(group.id)
             group_hash = GroupHash.objects.create(
-                project=self.project, hash=str(i) * 32, group_id=group.id
+                project=self.project, hash=f"{i:032d}", group=group
             )
-            hashes.append(group_hash.hash)
-        call_delete_seer_grouping_records_by_hash(group_ids)
-        mock_logger.info.assert_called_with(
-            "calling seer record deletion by hash",
-            extra={"project_id": self.project.id, "hashes": hashes},
-        )
+            expected_hashes.append(group_hash.hash)
 
-    @patch("sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash")
-    @patch("sentry.tasks.delete_seer_grouping_records.logger")
+        call_delete_seer_grouping_records_by_hash(group_ids)
+
+        # Verify that the task was called with the correct parameters
+        mock_apply_async.assert_called_once_with(args=[self.project.id, expected_hashes, 0])
+
+    def test_call_delete_seer_grouping_records_by_hash_chunked(self) -> None:
+        """
+        Test that call_delete_seer_grouping_records_by_hash chunks large numbers of hashes
+        into separate tasks with a maximum of batch_size hashes per task.
+        """
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        batch_size = 10
+        with (
+            patch(
+                "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+            ) as mock_apply_async,
+            self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}),
+        ):
+            # Create 15 group hashes to test chunking (10 + 5 with batch size of 10)
+            group_ids, expected_hashes = [], []
+            for i in range(batch_size + 5):
+                group = self.create_group(project=self.project)
+                group_ids.append(group.id)
+                group_hash = GroupHash.objects.create(
+                    project=self.project, hash=f"{i:032d}", group=group
+                )
+                expected_hashes.append(group_hash.hash)
+
+            call_delete_seer_grouping_records_by_hash(group_ids)
+
+            # Verify that the task was called 2 times (15 hashes / 10 per chunk = 2 chunks)
+            assert mock_apply_async.call_count == 2
+
+            # Verify the first chunk has batch_size hashes
+            first_call_args = mock_apply_async.call_args_list[0][1]["args"]
+            assert len(first_call_args[1]) == batch_size
+            assert first_call_args[0] == self.project.id
+            assert first_call_args[1] == expected_hashes[0:batch_size]
+            assert first_call_args[2] == 0
+
+            # Verify the second chunk has 5 hashes (remainder)
+            second_call_args = mock_apply_async.call_args_list[1][1]["args"]
+            assert len(second_call_args[1]) == 5
+            assert second_call_args[0] == self.project.id
+            assert second_call_args[1] == expected_hashes[batch_size:]
+            assert second_call_args[2] == 0
+
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
     def test_call_delete_seer_grouping_records_by_hash_no_hashes(
-        self, mock_logger, mock_delete_seer_grouping_records_by_hash
-    ):
+        self, mock_apply_async: MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         group_ids = []
@@ -63,20 +118,13 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             group = self.create_group(project=self.project)
             group_ids.append(group.id)
         call_delete_seer_grouping_records_by_hash(group_ids)
-        mock_logger.info.assert_called_with(
-            "calling seer record deletion by hash",
-            extra={"project_id": self.project.id, "hashes": []},
-        )
-        mock_delete_seer_grouping_records_by_hash.assert_not_called()
+        mock_apply_async.assert_not_called()
 
-    @patch("sentry.tasks.delete_seer_grouping_records.logger")
-    def test_call_delete_seer_grouping_records_by_hash_no_group_ids(self, mock_logger):
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_call_delete_seer_grouping_records_by_hash_no_group_ids(
+        self, mock_apply_async: MagicMock
+    ) -> None:
         call_delete_seer_grouping_records_by_hash([])
-        mock_logger.info.assert_not_called()
-
-    @patch("sentry.tasks.delete_seer_grouping_records.delete_project_grouping_records")
-    def test_call_delete_project_and_delete_grouping_records(
-        self, mock_delete_project_grouping_records
-    ):
-        call_seer_delete_project_grouping_records(self.project.id)
-        mock_delete_project_grouping_records.assert_called_once()
+        mock_apply_async.assert_not_called()

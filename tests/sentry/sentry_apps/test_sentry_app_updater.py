@@ -60,12 +60,12 @@ class TestUpdater(TestCase):
         # SLO assertions
         assert_success_metric(mock_record=mock_record)
 
-        # CREATE (success) -> UPDATE (success)
+        # CREATE (success) -> INSTALLATION_CREATE (success) -> UPDATE (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     def test_updates_unpublished_app_scopes(self):
@@ -233,12 +233,12 @@ class TestUpdater(TestCase):
         # SLO assertions
         assert_success_metric(mock_record=mock_record)
 
-        # APP_CREATE (success) -> WEBHOOK_UPDATE (success)
+        # APP_CREATE (success) -> INSTALL_CREATE (success) -> WEBHOOK_UPDATE (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
 
     def test_delete_service_hook_on_update(self):

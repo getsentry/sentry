@@ -1,10 +1,10 @@
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 function getInstallSnippet({
@@ -361,13 +361,16 @@ export const getNodeAgentMonitoringOnboarding = ({
   introduction: () => (
     <Alert type="info">
       {tct(
-        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK].',
+        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {
           vercelai: (
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
           ),
           openai: (
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+          manual: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
           ),
         }
       )}
@@ -415,22 +418,19 @@ export const getNodeAgentMonitoringOnboarding = ({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // Add the Vercel AI SDK integration
-    ${basePackage === 'nextjs' && '// vercelAIIntegration should be included only to config.server'}
-    Sentry.vercelAIIntegration({
-      recordInputs: true,
-      recordOutputs: true,
-    }),
+    // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
+    Sentry.vercelAIIntegration(),
   ],
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
+  sendDefaultPii: true,
 });`,
             },
           ],
         },
         {
           description: tct(
-            'To correctly capture spans, pass the [code:experimental_telemetry] object with [code:isEnabled: true] to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+            'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
             {
               code: <code />,
               link: (
@@ -451,6 +451,8 @@ const result = await generateText({
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
+    recordInputs: true,
+    recordOutputs: true,
   },
 });`,
             },

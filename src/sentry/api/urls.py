@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -929,6 +930,11 @@ AUTH_URLS = [
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
     ),
+    re_path(
+        r"^merge-accounts/$",
+        AuthMergeUserAccountsEndpoint.as_view(),
+        name="sentry-api-0-auth-merge-accounts",
+    ),
 ]
 
 BROADCAST_URLS = [
@@ -1047,6 +1053,20 @@ RELAY_URLS = [
         name="sentry-api-0-relays-details",
     ),
 ]
+
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
+        TestResultsAggregatesEndpoint.as_view(),
+        name="sentry-api-0-test-results-aggregates",
+    ),
+]
+
 
 USER_URLS = [
     re_path(
@@ -2389,6 +2409,10 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/",
+        include(PREVENT_URLS),
+    ),
     *workflow_urls.organization_urlpatterns,
 ]
 
@@ -3290,19 +3314,6 @@ INTERNAL_URLS = [
     *preprod_urls.preprod_internal_urlpatterns,
 ]
 
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
-]
-
 urlpatterns = [
     # Relay
     re_path(
@@ -3367,11 +3378,6 @@ urlpatterns = [
     re_path(
         r"^broadcasts/",
         include(BROADCAST_URLS),
-    ),
-    # Prevent
-    re_path(
-        r"^prevent/",
-        include(PREVENT_URLS),
     ),
     #
     #

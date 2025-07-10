@@ -96,13 +96,17 @@ export function LogsInfiniteTable({
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-    staticColumnWidths: {
-      [OurLogKnownFieldKey.MESSAGE]: '1fr',
-    },
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.length,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+      },
+    }
+  );
 
   const estimateSize = useCallback(
     (index: number) => {
