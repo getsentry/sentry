@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import {Link} from 'sentry/components/core/link';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -9,7 +7,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -36,7 +33,10 @@ function SeerAutomationRoot() {
   if (isLoading) {
     return (
       <Fragment>
-        <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
+        <SentryDocumentTitle
+          title={t('Seer Organization Settings')}
+          orgSlug={organization.slug}
+        />
         <Placeholder height="60px" />
         <br />
         <Placeholder height="200px" />
@@ -57,7 +57,10 @@ function SeerAutomationRoot() {
   if (needsSetup) {
     return (
       <Fragment>
-        <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
+        <SentryDocumentTitle
+          title={t('Seer Organization Settings')}
+          orgSlug={organization.slug}
+        />
         <AiSetupDataConsent />
       </Fragment>
     );
@@ -66,16 +69,14 @@ function SeerAutomationRoot() {
   // Show the regular settings page
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Seer Automation')}
-        subtitle={t(
-          'Seer can automatically find a root cause and solution for incoming issues.'
-        )}
+      <SentryDocumentTitle
+        title={t('Seer Organization Settings')}
+        orgSlug={organization.slug}
       />
-      <StyledAlert type="info">
-        {tct(
-          "Choose how Seer automates analysis of incoming issues across your projects. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
+      <SettingsPageHeader
+        title={t('Seer Organization Settings')}
+        subtitle={tct(
+          "Seer is Sentry's AI agent which performs root cause analysis and can generate code solution for issues. Choose when Seer performs analysis of incoming issues across your projects. Scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
           {
             link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
             spendlink: (
@@ -83,7 +84,7 @@ function SeerAutomationRoot() {
             ),
           }
         )}
-      </StyledAlert>
+      />
       <ProjectPermissionAlert />
 
       <NoProjectMessage organization={organization}>
@@ -93,9 +94,5 @@ function SeerAutomationRoot() {
     </Fragment>
   );
 }
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
-`;
 
 export default SeerAutomationRoot;
