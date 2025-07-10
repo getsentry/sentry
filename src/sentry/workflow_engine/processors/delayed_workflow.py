@@ -628,6 +628,14 @@ def fire_actions_for_groups(
         ).filter(workflow__in=workflows)
     }
 
+    # Feature check caching to keep us within the trace budget.
+    should_trigger_actions = features.has(
+        "organizations:workflow-engine-trigger-actions", organization
+    )
+    should_trigger_actions_async = features.has(
+        "organizations:workflow-engine-action-trigger-async", organization
+    )
+
     total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
@@ -701,15 +709,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    organization,
-                ):
+                if should_trigger_actions:
                     for action in filtered_actions:
-                        if features.has(
-                            "organizations:workflow-engine-action-trigger-async",
-                            organization,
-                        ):
+                        if should_trigger_actions_async:
                             task_params = build_trigger_action_task_params(
                                 action, detector, workflow_event_data
                             )
