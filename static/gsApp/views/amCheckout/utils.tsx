@@ -382,7 +382,7 @@ function recordAnalytics(
     spans: data.reservedSpans,
     profileDuration: data.reservedProfileDuration,
     uptime: data.reservedUptime,
-    logs: data.reservedLogByte,
+    logs: data.reservedLogBytes,
   };
 
   const previousData = {
@@ -395,6 +395,7 @@ function recordAnalytics(
     profileDuration: subscription.categories.profileDuration?.reserved || undefined,
     spans: subscription.categories.spans?.reserved || undefined,
     uptime: subscription.categories.uptime?.reserved || undefined,
+    logs: subscription.categories.logBytes?.reserved || undefined,
   };
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
