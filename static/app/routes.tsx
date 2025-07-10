@@ -42,7 +42,9 @@ import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-function buildRoutes() {
+function buildRoutes(
+  SentryHooksProvider: React.ComponentType<React.PropsWithChildren> = Fragment
+) {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -2560,8 +2562,8 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <ProvideAriaRouter>
-      <Route>
+    <Route component={ProvideAriaRouter}>
+      <Route component={SentryHooksProvider}>
         {experimentalSpaRoutes}
         <Route path="/" component={errorHandler(App)}>
           {rootRoutes}
@@ -2571,7 +2573,7 @@ function buildRoutes() {
           <Route path="*" component={errorHandler(RouteNotFound)} />
         </Route>
       </Route>
-    </ProvideAriaRouter>
+    </Route>
   );
 
   return appRoutes;
