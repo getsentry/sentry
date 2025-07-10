@@ -9,7 +9,7 @@ class ReleaseCreatedEvent(Event):
     project_ids: list[int]
     user_agent: str | None = None
     auth_type: str | None = None
-    created_status: str
+    created_status: int
 
 
 analytics.register(ReleaseCreatedEvent)
