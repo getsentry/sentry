@@ -1,32 +1,23 @@
 from sentry import analytics
 
 
+@analytics.eventclass("preprod_artifact.api.assemble")
 class PreprodArtifactApiAssembleEvent(analytics.Event):
-    type = "preprod_artifact.api.assemble"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: str
+    project_id: str
+    user_id: str | None = None
 
 
+@analytics.eventclass("preprod_artifact.api.update")
 class PreprodArtifactApiUpdateEvent(analytics.Event):
-    type = "preprod_artifact.api.update"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-    )
+    organization_id: str
+    project_id: str
 
 
+@analytics.eventclass("preprod_artifact.api.assemble_generic")
 class PreprodArtifactApiAssembleGenericEvent(analytics.Event):
-    type = "preprod_artifact.api.assemble_generic"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-    )
+    organization_id: str
+    project_id: str
 
 
 analytics.register(PreprodArtifactApiAssembleEvent)
