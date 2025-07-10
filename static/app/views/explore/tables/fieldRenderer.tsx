@@ -146,7 +146,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{data[field]}</Link>;
+    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
@@ -162,9 +162,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = (
-      <Link to={target}>{spanId ? getShortEventId(data[field]) : data[field]}</Link>
-    );
+    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   if (field === 'profile.id') {

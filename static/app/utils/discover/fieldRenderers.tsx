@@ -47,7 +47,6 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
@@ -68,7 +67,6 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -143,7 +141,9 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
-const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+export const emptyStringValue = (
+  <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>
+);
 const missingUserMisery = tct(
   'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
   {
@@ -476,30 +476,12 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   id: {
     sortField: 'id',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: data => {
       const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
-
-      if (!data.trace) {
-        return <Container>{getShortEventId(id)}</Container>;
-      }
-
-      const target = generateLinkToEventInTraceView({
-        traceSlug: data.trace,
-        timestamp: data.timestamp,
-        targetId: data['transaction.span_id'],
-        organization,
-        location,
-        spanId: id,
-      });
-
-      return (
-        <Container>
-          <Link to={target}>{getShortEventId(id)}</Link>
-        </Container>
-      );
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   span_id: {
@@ -564,25 +546,13 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   trace: {
     sortField: 'trace',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return emptyValue;
       }
 
-      const target = getTraceDetailsUrl({
-        traceSlug: data.trace,
-        timestamp: data.timestamp,
-        organization,
-        dateSelection: {statsPeriod: undefined, start: undefined, end: undefined},
-        location,
-      });
-
-      return (
-        <Container>
-          <Link to={target}>{getShortEventId(id)}</Link>
-        </Container>
-      );
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   'issue.id': {

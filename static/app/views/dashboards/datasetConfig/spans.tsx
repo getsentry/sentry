@@ -2,6 +2,7 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {Link} from 'sentry/components/core/link';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -13,7 +14,8 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
@@ -21,6 +23,8 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -172,6 +176,9 @@ export const SpansConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization) => {
+    if (field === 'id') {
+      return renderEventInTraceView;
+    }
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
@@ -355,4 +362,24 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function renderEventInTraceView(
+  data: any,
+  {location, organization}: RenderFunctionBaggage
+) {
+  const spanId: string = data.id;
+  if (!spanId) {
+    return emptyStringValue;
+  }
+  const target = generateLinkToEventInTraceView({
+    traceSlug: data.trace,
+    timestamp: data.timestamp,
+    targetId: data['transaction.span_id'],
+    organization,
+    location,
+    spanId,
+  });
+
+  return <Link to={target}>{getShortEventId(spanId)}</Link>;
 }

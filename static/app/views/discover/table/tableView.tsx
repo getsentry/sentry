@@ -379,7 +379,7 @@ function TableView(props: TableViewProps) {
 
       const idLink = (
         <StyledLink data-test-id="view-event" to={target}>
-          {getShortEventId(dataRow[columnKey])}
+          {cell}
         </StyledLink>
       );
 
