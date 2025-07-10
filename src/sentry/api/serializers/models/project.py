@@ -285,6 +285,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
     hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -553,6 +554,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -801,6 +803,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
