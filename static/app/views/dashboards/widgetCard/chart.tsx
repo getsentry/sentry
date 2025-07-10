@@ -186,7 +186,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         tableResults[i]?.meta
       ).map((column, index) => ({
         key: column.key,
-        name: column.name,
         width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
         sortable:
