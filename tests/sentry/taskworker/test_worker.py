@@ -224,6 +224,43 @@ class TestTaskWorker(TestCase):
             )
             assert mock_client.update_task.call_args.args[1] is None
 
+    @override_options({"taskworker.fetch_next.disabled_pools": ["testing"]})
+    def test_run_once_with_fetch_next_disabled(self) -> None:
+        # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
+        max_runtime = 5
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051",
+            num_brokers=1,
+            max_child_task_count=1,
+            process_type="fork",
+            processing_pool_name="testing",
+        )
+        with mock.patch.object(taskworker, "client") as mock_client:
+            mock_client.update_task.return_value = None
+            mock_client.get_task.return_value = SIMPLE_TASK
+            taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
+
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 2:
+                    break
+                if time.time() - start > max_runtime:
+                    taskworker.shutdown()
+                    raise AssertionError("Timeout waiting for update_task to be called")
+
+            taskworker.shutdown()
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 2
+            assert mock_client.update_task.call_args.args[0].host == "localhost:50051"
+            assert mock_client.update_task.call_args.args[0].task_id == SIMPLE_TASK.activation.id
+            assert (
+                mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
+            )
+            assert mock_client.update_task.call_args.args[1] is None
+
     def test_run_once_with_update_failure(self) -> None:
         # Cover the scenario where update_task fails a few times in a row
         # We should retain the result until RPC succeeds.

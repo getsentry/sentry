@@ -170,6 +170,7 @@ const StoryGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr minmax(auto, 360px);
   flex: 1;
+  height: 100%;
 `;
 
 const StoryContainer = styled('div')`
