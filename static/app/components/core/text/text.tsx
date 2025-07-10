@@ -120,7 +120,6 @@ export const Text = styled((props: TextProps) => {
 interface HeadingProps extends Omit<TextProps, 'as'> {
   /**
    * The HTML element to render the title as.
-   * @default h1
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
@@ -133,7 +132,7 @@ interface HeadingProps extends Omit<TextProps, 'as'> {
 
 export const Heading = styled((props: HeadingProps) => {
   const {children, as, ...rest} = props;
-  const HeadingComponent = as || 'h1';
+  const HeadingComponent = as;
 
   return <HeadingComponent {...rest}>{children}</HeadingComponent>;
 })`
