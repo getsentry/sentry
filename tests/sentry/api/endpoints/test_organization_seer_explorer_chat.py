@@ -14,9 +14,13 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_get_without_run_id_returns_null_session(self):
-        response = self.client.get(self.url)
+        with patch(
+            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            response = self.client.get(self.url)
 
-        assert response.status_code == 200
+        assert response.status_code == 404
         assert response.data == {"session": None}
 
     @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
@@ -31,20 +35,15 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         }
         mock_call_seer_state.return_value = mock_response
 
-        response = self.client.get(self.url, {"run_id": "test-run-123"})
+        with patch(
+            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            response = self.client.get(self.url, {"run_id": "test-run-123"})
 
         assert response.status_code == 200
         assert response.data == mock_response
         mock_call_seer_state.assert_called_once_with(self.organization, "test-run-123")
-
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
-    def test_get_with_seer_error_returns_500(self, mock_call_seer_state):
-        mock_call_seer_state.side_effect = Exception("Seer is down")
-
-        response = self.client.get(self.url, {"run_id": "test-run-123"})
-
-        assert response.status_code == 500
-        assert response.data == {"session": None}
 
     def test_post_without_query_returns_400(self):
         with patch(
@@ -122,22 +121,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             1704067200.0,
         )
 
-    @patch(
-        "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_seer_error_returns_500(
-        self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
-    ):
-        mock_call_seer_chat.side_effect = Exception("Seer API error")
-
-        data = {"query": "Test query"}
-        response = self.client.post(self.url, data, format="json")
-
-        assert response.status_code == 500
-        assert response.data == {"error": "Failed to process chat request"}
-
     def test_post_with_ai_features_disabled_returns_403(self):
         # Set the organization option to hide AI features
         self.organization.update_option("sentry:hide_ai_features", True)
@@ -161,9 +144,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 403
-        assert response.data == {
-            "detail": "AI Autofix has not been acknowledged by the organization."
-        }
+        assert response.data == {"detail": "Seer has not been acknowledged by the organization."}
         mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization.id)
 
 

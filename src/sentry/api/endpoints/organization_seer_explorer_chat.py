@@ -99,13 +99,23 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
-        if not request.user.is_authenticated:
-            return Response(status=400)
+        user = request.user
+        if not features.has(
+            "organizations:gen-ai-features", organization, actor=user
+        ) or not features.has("organizations:seer-explorer", organization, actor=user):
+            return Response({"detail": "Feature flag not enabled"}, status=400)
+        if organization.get_option("sentry:hide_ai_features"):
+            return Response(
+                {"detail": "AI features are disabled for this organization."}, status=403
+            )
+        if not get_seer_org_acknowledgement(organization.id):
+            return Response(
+                {"detail": "Seer has not been acknowledged by the organization."}, status=403
+            )
 
         run_id = request.GET.get("run_id")
-
         if not run_id:
-            return Response({"session": None})
+            return Response({"session": None}, status=404)
 
         response_data = _call_seer_explorer_state(organization, run_id)
         return Response(response_data)
@@ -127,15 +137,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             "organizations:gen-ai-features", organization, actor=user
         ) or not features.has("organizations:seer-explorer", organization, actor=user):
             return Response({"detail": "Feature flag not enabled"}, status=400)
-
         if organization.get_option("sentry:hide_ai_features"):
             return Response(
                 {"detail": "AI features are disabled for this organization."}, status=403
             )
-
         if not get_seer_org_acknowledgement(organization.id):
             return Response(
-                {"detail": "AI Autofix has not been acknowledged by the organization."}, status=403
+                {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
 
         try:
