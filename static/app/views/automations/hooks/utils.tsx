@@ -42,26 +42,27 @@ export function findConflictingConditions(
     };
   }
 
+  // Check for mutually exclusive trigger conditions with ALL logic
+  const conflictingTriggerConditions =
+    findConflictingConditionsForConditionGroup(triggers);
+  if (
+    triggers.logicType === DataConditionGroupLogicType.ALL &&
+    conflictingTriggerConditions.size > 1
+  ) {
+    return {
+      conflictingConditionGroups: {
+        [triggers.id]: conflictingTriggerConditions,
+      },
+      conflictReason: t(
+        'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
+      ),
+    };
+  }
+
   // Check for first seen event condition
   const firstSeenId = triggers.conditions.find(
     condition => condition.type === DataConditionType.FIRST_SEEN_EVENT
   )?.id;
-
-  // Check for conflicting trigger conditions
-  if (
-    triggers.logicType === DataConditionGroupLogicType.ALL &&
-    firstSeenId &&
-    triggers.conditions.length > 1
-  ) {
-    return {
-      conflictingConditionGroups: {
-        [triggers.id]: findConflictingConditionsForConditionGroup(triggers),
-      },
-      conflictReason: t(
-        'The triggers highlighted in red are in conflict with "A new issue is created."'
-      ),
-    };
-  }
 
   // First seen event condition does not cause conflicts if the logic type is ANY_SHORT_CIRCUIT and there are multiple trigger conditions
   if (
@@ -171,17 +172,24 @@ function findConflictingConditionsForConditionGroup(
 }
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
-  const conditionCounts: Record<string, string> = {};
+  const conditionCounts: Record<string, string[]> = {};
+  const duplicates: Set<string> = new Set();
 
+  // Count the number of conditions for each type
   for (const condition of triggers.conditions) {
     if (conflictingTriggers.has(condition.type)) {
-      const existingCondition = conditionCounts[condition.type];
-      if (existingCondition) {
-        return new Set<string>([existingCondition, condition.id]);
+      if (!conditionCounts[condition.type]) {
+        conditionCounts[condition.type] = [];
       }
-      conditionCounts[condition.type] = condition.id;
+      conditionCounts[condition.type]?.push(condition.id);
     }
   }
 
-  return new Set<string>();
+  // Find all duplicates
+  Object.entries(conditionCounts).forEach(([, conditionIds]) => {
+    if (conditionIds.length > 1) {
+      conditionIds.forEach(id => duplicates.add(id));
+    }
+  });
+  return duplicates;
 }

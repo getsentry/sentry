@@ -1,3 +1,5 @@
+import {DataConditionFixture} from 'sentry-fixture/automations';
+
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
@@ -133,7 +135,7 @@ describe('findConflictingConditions', () => {
         triggers: new Set(['1', '2']),
       },
       conflictReason:
-        'The triggers highlighted in red are in conflict with "A new issue is created."',
+        'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.',
     });
   });
 
@@ -346,6 +348,28 @@ describe('findConflictingConditions', () => {
       },
       conflictReason:
         'The conditions highlighted in red are in conflict with \"A new issue is created.\"',
+    });
+  });
+
+  it('correctly handles duplicate trigger conditions', () => {
+    const triggers: DataConditionGroup = {
+      id: 'triggers',
+      logicType: DataConditionGroupLogicType.ALL,
+      conditions: [
+        DataConditionFixture({id: '1', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '2', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '3', type: DataConditionType.FIRST_SEEN_EVENT}),
+        DataConditionFixture({id: '4', type: DataConditionType.REAPPEARED_EVENT}),
+        DataConditionFixture({id: '5', type: DataConditionType.REAPPEARED_EVENT}),
+      ],
+    };
+
+    const result = findConflictingConditions(triggers, []);
+    expect(result).toEqual({
+      conflictingConditionGroups: {
+        triggers: new Set(['1', '2', '3', '4', '5']),
+      },
+      conflictReason: 'Delete duplicate triggers to continue.',
     });
   });
 });
