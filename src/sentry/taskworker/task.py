@@ -178,31 +178,30 @@ class Task(Generic[P, R]):
                 )
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
-        if self.compression_type == CompressionType.ZSTD:
-            option_flag = f"taskworker.{self._namespace.name}.compression.rollout"
-            compression_rollout_rate = options.get(option_flag)
-            # TODO(taskworker): This option is for added safety and requires a rollout
-            # percentage to be set to actually use compression.
-            # We can remove this later.
-            if compression_rollout_rate and compression_rollout_rate > random.random():
-                # Worker uses this header to determine if the parameters are decompressed
-                headers["compression-type"] = CompressionType.ZSTD.value
-                start_time = time.perf_counter()
-                parameters_data = zstd.compress(parameters_json)
-                # Compressed data is binary and needs base64 encoding for transport
-                parameters_str = base64.b64encode(parameters_data).decode("utf8")
-                end_time = time.perf_counter()
+        compression_rollout_rate = options.get("taskworker.enable_compression.rollout")
+        if (
+            self.compression_type == CompressionType.ZSTD
+            and compression_rollout_rate
+            and compression_rollout_rate > random.random()
+        ):
+            # Worker uses this header to determine if the parameters are decompressed
+            headers["compression-type"] = CompressionType.ZSTD.value
+            start_time = time.perf_counter()
+            parameters_data = zstd.compress(parameters_json)
+            # Compressed data is binary and needs base64 encoding for transport
+            parameters_str = base64.b64encode(parameters_data).decode("utf8")
+            end_time = time.perf_counter()
 
-                metrics.distribution(
-                    "taskworker.producer.compressed_parameters_size",
-                    len(parameters_str),
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
-                )
-                metrics.distribution(
-                    "taskworker.producer.compression_time",
-                    end_time - start_time,
-                    tags={"namespace": self._namespace.name, "taskname": self.name},
-                )
+            metrics.distribution(
+                "taskworker.producer.compressed_parameters_size",
+                len(parameters_str),
+                tags={"namespace": self._namespace.name, "taskname": self.name},
+            )
+            metrics.distribution(
+                "taskworker.producer.compression_time",
+                end_time - start_time,
+                tags={"namespace": self._namespace.name, "taskname": self.name},
+            )
         else:
             parameters_str = parameters_json.decode("utf8")
 

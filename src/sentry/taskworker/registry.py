@@ -109,6 +109,8 @@ class TaskNamespace:
         wait_for_delivery: bool
             If true, the task will wait for the delivery report to be received
             before returning.
+        compression_type: CompressionType
+            The compression type to use to compress the task parameters.
         """
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
