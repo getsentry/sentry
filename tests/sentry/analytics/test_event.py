@@ -59,7 +59,7 @@ class EventTest(TestCase):
 
         result = ExampleEvent.from_instance(
             None,
-            id="1",  # type: ignore[arg-type]
+            id="1",
             map={"key": "value"},
             optional=False,
         )
