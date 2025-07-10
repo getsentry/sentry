@@ -34,16 +34,19 @@ export function MetricDetectorPreviewChart() {
   const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
 
   // Create condition group from form data using the helper function
-  const conditions = useMemo(
-    () =>
-      createConditions({
-        conditionType,
-        conditionValue,
-        initialPriorityLevel,
-        highThreshold,
-      }),
-    [conditionType, conditionValue, initialPriorityLevel, highThreshold]
-  );
+  const conditions = useMemo(() => {
+    // Wait for a condition value to be defined
+    if (kind === 'static' && !conditionValue) {
+      return [];
+    }
+
+    return createConditions({
+      conditionType,
+      conditionValue,
+      initialPriorityLevel,
+      highThreshold,
+    });
+  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
 
   return (
     <MetricDetectorChart
