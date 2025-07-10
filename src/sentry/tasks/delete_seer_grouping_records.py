@@ -69,7 +69,7 @@ def delete_seer_grouping_records_by_hash(
             delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
-def call_delete_seer_grouping_records_by_hash(
+def may_schedule_task_to_delete_hashes_from_seer(
     group_ids: Sequence[int],
 ) -> None:
     project = None
