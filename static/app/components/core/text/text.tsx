@@ -200,6 +200,5 @@ function getLineHeight(density: TextProps['density']) {
 }
 
 function getFontSize(size: TextProps['size'], theme: Theme) {
-  if (!size) return theme.fontSize.md;
-  return theme.fontSize[size];
+  return theme.fontSize[size ?? 'md'];
 }
