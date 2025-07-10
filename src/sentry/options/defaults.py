@@ -3186,32 +3186,24 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.try_compress.profile_metrics",
-    default=0.0,
-    type=Float,
+    "taskworker.route.overrides",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-register(
-    "taskworker.try_compress.profile_metrics.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Taskbroker flags
 register(
     "taskworker.try_compress.profile_metrics.level",
     default=6,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
-    "taskworker.route.overrides",
-    default={},
+    "taskworker.fetch_next.disabled_pools",
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+# Taskbroker rollout flags
 register(
     "taskworker.deletions.rollout",
     default={},
