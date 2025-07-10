@@ -7,13 +7,14 @@ This directory serves as a flexible collection space for miscellaneous documenta
 ## 📂 How to Use This Directory
 
 ### Option 1: Miscellaneous Documentation Collection
+
 Store various project documents that need a home:
 
 ```
 dir-name/
 ├── README.md                    # This file
 ├── meeting-notes.md            # Important decisions and discussions
-├── troubleshooting-guide.md    # Common issues and solutions  
+├── troubleshooting-guide.md    # Common issues and solutions
 ├── research-notes.md           # Technology evaluations and experiments
 ├── deployment-checklist.md     # Release and deployment procedures
 ├── api-documentation.md        # API specifications and examples
@@ -21,6 +22,7 @@ dir-name/
 ```
 
 ### Option 2: Monorepo App Documentation
+
 If you have multiple applications, organize documentation by app:
 
 ```
@@ -43,6 +45,7 @@ dir-name/
 ```
 
 ### Option 3: Domain-Specific Organization
+
 Organize by business domain or feature area:
 
 ```
@@ -65,18 +68,21 @@ dir-name/
 ## 📋 Document Types to Store Here
 
 ### Technical Documentation
+
 - **Architecture decisions** - Important technical choices and rationale
 - **Integration guides** - Third-party service setup and configuration
 - **Database documentation** - Schema designs and migration guides
 - **API specifications** - Endpoint documentation and examples
 
 ### Operational Documentation
+
 - **Deployment procedures** - Step-by-step deployment guides
 - **Monitoring setup** - Error tracking and performance monitoring
 - **Troubleshooting guides** - Common issues and their solutions
 - **Runbooks** - Operational procedures and emergency responses
 
 ### Project Management
+
 - **Meeting notes** - Important decisions and action items
 - **Requirements documents** - Business requirements and specifications
 - **Testing strategies** - Test plans and quality assurance procedures
@@ -85,12 +91,14 @@ dir-name/
 ## 🔧 Best Practices
 
 ### File Organization
+
 - **Use descriptive names** - Make file purposes clear from the filename
 - **Group related docs** - Keep similar documents in subdirectories
 - **Maintain a README** - Each subdirectory should have its own README
 - **Link between docs** - Create navigation between related documents
 
 ### Naming Conventions
+
 ```
 # Use kebab-case for files
 troubleshooting-guide.md
@@ -104,22 +112,27 @@ third-party-integrations.md     # Not: integrations.md
 ```
 
 ### Document Structure
+
 ```markdown
 # Document Title
 
 ## 🎯 Purpose
+
 Brief description of what this document covers
 
 ## 📋 Contents
+
 - Main sections with clear organization
 - Use bullet points and numbered lists
 - Include code examples where helpful
 
 ## 🔗 Related Documents
+
 - Link to other relevant documentation
 - Reference external resources
 
 ## 📅 Maintenance
+
 - Note when document was last updated
 - Include update frequency recommendations
 ```
@@ -135,12 +148,14 @@ This directory complements the main cursor structure:
 ## 📝 Getting Started
 
 ### For New Projects
+
 1. Rename this directory to something meaningful for your project
 2. Create subdirectories based on your organization needs
 3. Add README files to each subdirectory
 4. Start documenting as you build
 
 ### For Existing Projects
+
 1. Audit your current documentation
 2. Move relevant docs into this organized structure
 3. Create missing documentation for key areas
@@ -148,4 +163,4 @@ This directory complements the main cursor structure:
 
 ---
 
-> 💡 **Tip**: This is a flexible space - adapt the structure to your project's needs. The key is keeping important documentation organized and discoverable. 
+> 💡 **Tip**: This is a flexible space - adapt the structure to your project's needs. The key is keeping important documentation organized and discoverable.

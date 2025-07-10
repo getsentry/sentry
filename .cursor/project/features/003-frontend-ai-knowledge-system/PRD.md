@@ -9,9 +9,11 @@ This document outlines the technical requirements for implementing a comprehensi
 ### 1. Enhanced Cursor Rules
 
 #### 1.1 UI Architecture Guide (`ui-architecture.mdc`)
+
 **Purpose**: Provide AI agents with comprehensive understanding of Sentry's frontend structure
 
 **Requirements**:
+
 - Document React 18 + TypeScript architecture patterns
 - Explain MobX store organization and state management
 - Detail routing structure using React Router
@@ -20,8 +22,10 @@ This document outlines the technical requirements for implementing a comprehensi
 - Include component lifecycle and data flow patterns
 
 **Implementation**:
+
 ```markdown
 # Contents will include:
+
 - App structure overview (routes.tsx, components/, stores/, etc.)
 - MobX store patterns used throughout Sentry
 - Component organization and naming conventions
@@ -30,9 +34,11 @@ This document outlines the technical requirements for implementing a comprehensi
 ```
 
 #### 1.2 Design System Guide (`design-system.mdc`)
+
 **Purpose**: Enable AI to understand and apply Sentry's design system consistently
 
 **Requirements**:
+
 - Document core components from `static/app/components/`
 - Extract key design tokens (colors, spacing, typography)
 - Reference brand.getsentry.com guidelines
@@ -40,6 +46,7 @@ This document outlines the technical requirements for implementing a comprehensi
 - Provide examples of proper component composition
 
 **Implementation**:
+
 ```typescript
 // Example component documentation pattern
 interface ButtonProps {
@@ -55,9 +62,11 @@ interface ButtonProps {
 ```
 
 #### 1.3 Frontend Patterns Guide (`frontend-patterns.mdc`)
+
 **Purpose**: Document established patterns for common UI scenarios
 
 **Requirements**:
+
 - List management patterns (IssueList, OrganizationList, etc.)
 - Form patterns with validation and error handling
 - Modal and drawer patterns
@@ -68,10 +77,12 @@ interface ButtonProps {
 ### 2. Stories System Enhancement
 
 #### 2.1 AI-Optimized Story Structure
+
 **Current State**: `static/app/stories/` contains basic storybook setup
 **Target State**: Rich, AI-consumable component documentation
 
 **Requirements**:
+
 - Enhance existing stories with comprehensive usage examples
 - Add JSDoc comments explaining component purpose and usage
 - Include common composition patterns in stories
@@ -79,6 +90,7 @@ interface ButtonProps {
 - Add accessibility and performance notes
 
 **Implementation Example**:
+
 ```typescript
 // static/app/stories/button.stories.tsx
 /**
@@ -99,9 +111,11 @@ export const ButtonStories = {
 ```
 
 #### 2.2 Component Discovery System
+
 **Purpose**: Help AI agents find and understand component relationships
 
 **Requirements**:
+
 - Create component catalog with categories and tags
 - Document component dependencies and composition patterns
 - Include real-world usage examples from codebase
@@ -110,15 +124,18 @@ export const ButtonStories = {
 ### 3. External Documentation Integration
 
 #### 3.1 Developer Documentation References
+
 **Target**: https://develop.sentry.dev/frontend/
 
 **Requirements**:
+
 - Identify high-value frontend documentation pages
 - Create structured references in cursor rules
 - Focus on architecture, testing, and contribution guidelines
 - Include links to specific guides for common patterns
 
 **Priority Documentation**:
+
 - Frontend architecture overview
 - Component development guidelines
 - Testing strategies and patterns
@@ -126,9 +143,11 @@ export const ButtonStories = {
 - Accessibility requirements
 
 #### 3.2 Brand Guidelines Integration
+
 **Target**: https://brand.getsentry.com
 
 **Requirements**:
+
 - Extract core design tokens into AI-readable format
 - Reference comprehensive brand guidelines externally
 - Document color palette with semantic meanings
@@ -136,6 +155,7 @@ export const ButtonStories = {
 - Specify spacing system and layout principles
 
 **Implementation**:
+
 ```typescript
 // Design tokens extracted for AI reference
 const SENTRY_DESIGN_TOKENS = {
@@ -147,57 +167,73 @@ const SENTRY_DESIGN_TOKENS = {
     // Semantic usage: primary for CTAs, success for confirmations
   },
   spacing: {
-    xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px'
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
     // Usage: xs for tight spacing, md for standard, xl for sections
-  }
+  },
 };
 ```
 
 ## Implementation Plan
 
 ### Phase 1: Foundation (Week 1-2)
+
 **Deliverables**:
+
 - Create `ui-architecture.mdc` with core frontend patterns
 - Audit existing components and identify documentation gaps
 - Establish component documentation standards
 
 **Tasks**:
+
 - [ ] Analyze `static/app/` structure and key patterns
 - [ ] Document MobX store patterns and usage
 - [ ] Create routing and navigation documentation
 - [ ] Establish JSDoc standards for components
 
 ### Phase 2: Design System Documentation (Week 3-4)
+
 **Deliverables**:
+
 - Create `design-system.mdc` with comprehensive component guide
 - Enhance core component stories with usage examples
 - Extract and document design tokens
 
 **Tasks**:
+
 - [ ] Document top 20 most-used components with patterns
 - [ ] Create design token reference from brand guidelines
 - [ ] Enhance Button, Panel, Badge, Dropdown stories
 - [ ] Document component composition patterns
 
 ### Phase 3: Pattern Documentation (Week 5-6)
+
 **Deliverables**:
+
 - Create `frontend-patterns.mdc` with common UI patterns
 - Document form, list, and navigation patterns
 - Create component discovery aids
 
 **Tasks**:
+
 - [ ] Document list management patterns (Issues, Organizations)
 - [ ] Create form validation and error handling patterns
 - [ ] Document modal and drawer usage patterns
 - [ ] Create component relationship mappings
 
 ### Phase 4: Integration & Testing (Week 7-8)
+
 **Deliverables**:
+
 - Integrate external documentation references
 - Test AI understanding with sample prompts
 - Refine documentation based on AI feedback
 
 **Tasks**:
+
 - [ ] Add develop.sentry.dev references to cursor rules
 - [ ] Test AI component suggestions against established patterns
 - [ ] Validate AI understanding of design system
@@ -206,46 +242,56 @@ const SENTRY_DESIGN_TOKENS = {
 ## Technical Specifications
 
 ### Documentation Format Standards
-```markdown
+
+````markdown
 ## Component: Button
 
 ### Purpose
+
 Primary interface element for user actions
 
 ### Usage Patterns
+
 - **Primary**: Main call-to-action (Save, Create, Submit)
 - **Secondary**: Supporting actions (Cancel, Reset)
 - **Danger**: Destructive actions (Delete, Remove)
 
 ### Code Example
+
 ```typescript
 <Button variant="primary" onClick={handleSave}>
   Save Changes
 </Button>
 ```
+````
 
 ### Accessibility Notes
+
 - Include meaningful aria-label for icon-only buttons
 - Ensure sufficient color contrast for all variants
 
 ### Performance Notes
+
 - Automatically includes loading states for async actions
 - Uses React.memo for optimization
+
 ```
 
 ### File Organization
 ```
+
 .cursor/rules/
-├── ui-architecture.mdc     # Frontend structure and patterns
-├── design-system.mdc       # Components and design tokens
-├── frontend-patterns.mdc   # Common UI patterns and layouts
+├── ui-architecture.mdc # Frontend structure and patterns
+├── design-system.mdc # Components and design tokens
+├── frontend-patterns.mdc # Common UI patterns and layouts
 └── llms/
-    └── frontend-context.mdc # AI-specific guidance
+└── frontend-context.mdc # AI-specific guidance
 
 static/app/stories/
-├── foundations/           # Design tokens and principles
-├── components/           # Enhanced component stories
-└── patterns/            # Common UI pattern examples
+├── foundations/ # Design tokens and principles
+├── components/ # Enhanced component stories
+└── patterns/ # Common UI pattern examples
+
 ```
 
 ## Success Criteria
@@ -311,3 +357,4 @@ static/app/stories/
 3. **Documentation Audit** - Identify existing documentation gaps and priorities
 4. **Implementation Planning** - Assign ownership and create detailed task breakdown
 5. **Success Metrics Setup** - Establish baseline measurements and tracking mechanisms
+```

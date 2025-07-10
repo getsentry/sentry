@@ -12,18 +12,21 @@ This PR implements a comprehensive redesign of Sentry's AI settings interface, p
 ## 🚀 What's New
 
 ### For Engineering Managers
+
 - **Unified Organization Settings:** Single interface to configure AI defaults for all projects
 - **Clear Terminology:** Replaced confusing "automation" language with explicit "scan" and "fix" terminology
 - **Organization-Level Stopping Point:** Configure PR creation behavior at the organization level
 - **Project Override Visibility:** Clear indicators showing which projects have custom settings
 
 ### For DevOps Engineers
+
 - **Inline Repository Configuration:** Add and configure repositories directly from settings page
 - **Expandable Project Controls:** Manage multiple projects without page navigation
 - **Bulk Operations:** Apply settings changes to multiple projects efficiently
 - **Advanced Settings Toggle:** Hide complex configurations by default
 
 ### For Technical Leads
+
 - **Project Override Interface:** Easily customize AI behavior for specific projects
 - **Repository Branch Management:** Configure branch patterns for AI processing
 - **Inheritance Indicators:** Clear view of which settings come from organization defaults
@@ -497,6 +500,7 @@ describe('OrganizationAISettings', () => {
 ## 🎨 UI/UX Implementation
 
 ### Design System Integration
+
 - **React Components:** TypeScript with functional components and hooks
 - **Tailwind CSS:** Utility-first styling with custom design tokens
 - **Sentry UI Library:** Consistent with existing Sentry design patterns
@@ -505,6 +509,7 @@ describe('OrganizationAISettings', () => {
 ### Key User Flows
 
 #### Organization Settings Configuration
+
 1. **Navigate to Organization AI Settings:** Single entry point for all AI configuration
 2. **Configure Organization Defaults:** Set scanning, fixing, and stopping point defaults
 3. **View Project Overrides:** See which projects have custom settings with visual indicators
@@ -512,6 +517,7 @@ describe('OrganizationAISettings', () => {
 5. **Save Changes:** Immediate feedback with validation and success states
 
 #### Project Override Management
+
 1. **Enable Project Override:** Toggle to enable project-specific settings
 2. **Configure Project Settings:** Override specific settings while maintaining inheritance
 3. **Repository Configuration:** Add/remove repositories and configure branch patterns
@@ -519,6 +525,7 @@ describe('OrganizationAISettings', () => {
 5. **View Inheritance:** Clear indication of which settings come from organization
 
 #### Repository Management
+
 1. **Add Repository:** Connect GitHub/GitLab/Bitbucket repositories
 2. **Configure Branch Patterns:** Set branch patterns for AI processing
 3. **Enable/Disable AI:** Toggle AI features per repository
@@ -528,6 +535,7 @@ describe('OrganizationAISettings', () => {
 ## 📊 Analytics & Monitoring Implementation
 
 ### Event Tracking
+
 ```typescript
 // Settings interaction tracking
 import {trackEvent} from 'sentry/utils/analytics';
@@ -558,6 +566,7 @@ trackEvent('ai_settings_repository_config', {
 ```
 
 ### Error Monitoring
+
 ```typescript
 // Settings save error tracking
 import * as Sentry from '@sentry/react';
@@ -586,6 +595,7 @@ try {
 ## 🔐 Security & Permissions Implementation
 
 ### Access Control
+
 ```python
 # Organization AI settings permission
 class OrganizationAISettingsPermission(OrganizationPermission):
@@ -612,6 +622,7 @@ class ProjectRepositoryPermission(ProjectPermission):
 ```
 
 ### Input Validation
+
 ```python
 # AI settings validation
 from rest_framework import serializers
@@ -641,6 +652,7 @@ class ProjectAISettingsSerializer(serializers.Serializer):
 ## 🧪 Testing Implementation
 
 ### Unit Tests
+
 ```typescript
 // Organization AI settings tests
 describe('OrganizationAISettings', () => {
@@ -675,6 +687,7 @@ describe('OrganizationAISettings', () => {
 ```
 
 ### Integration Tests
+
 ```python
 # API endpoint tests
 class OrganizationAISettingsAPITest(APITestCase):
@@ -707,6 +720,7 @@ class OrganizationAISettingsAPITest(APITestCase):
 ```
 
 ### E2E Tests
+
 ```typescript
 // End-to-end workflow tests
 describe('AI Settings E2E', () => {
@@ -738,6 +752,7 @@ describe('AI Settings E2E', () => {
 ## 📋 Deployment Checklist
 
 ### Pre-Deployment
+
 - [ ] Database migrations tested in staging environment
 - [ ] API endpoints tested with existing settings data
 - [ ] Frontend components tested across browser compatibility matrix
@@ -747,6 +762,7 @@ describe('AI Settings E2E', () => {
 - [ ] Support team trained on new settings interface
 
 ### Production Deployment
+
 - [ ] Database migrations applied with zero downtime
 - [ ] Feature flag enabled for gradual rollout
 - [ ] API endpoints deployed with backward compatibility
@@ -756,6 +772,7 @@ describe('AI Settings E2E', () => {
 - [ ] A/B testing setup for interface comparison
 
 ### Post-Deployment
+
 - [ ] Monitor error rates and performance metrics
 - [ ] Collect user feedback through in-app surveys
 - [ ] Track success metrics (configuration time, adoption rate)
@@ -766,6 +783,7 @@ describe('AI Settings E2E', () => {
 ## 🔄 Migration Strategy
 
 ### Phase 1: Soft Launch (Week 1)
+
 - Deploy new interface behind feature flag
 - Enable for internal users and selected beta organizations
 - Monitor performance and collect initial feedback
@@ -773,6 +791,7 @@ describe('AI Settings E2E', () => {
 - Validate data migration and settings preservation
 
 ### Phase 2: Gradual Rollout (Weeks 2-3)
+
 - Enable for 25% of organizations with <10 projects
 - Monitor adoption rates and user behavior
 - Collect feedback through in-app surveys
@@ -780,6 +799,7 @@ describe('AI Settings E2E', () => {
 - Expand to 50% of organizations
 
 ### Phase 3: Full Deployment (Week 4)
+
 - Enable for all organizations
 - Monitor overall adoption and usage patterns
 - Track success metrics against baseline
@@ -789,33 +809,35 @@ describe('AI Settings E2E', () => {
 ## 📈 Success Metrics Tracking
 
 ### Implementation Metrics
+
 ```typescript
 // Success metrics dashboard
 const successMetrics = {
   configurationTime: {
     baseline: 300, // 5 minutes average
-    target: 120,   // 2 minutes target
-    current: trackingValue
+    target: 120, // 2 minutes target
+    current: trackingValue,
   },
   adoptionRate: {
     baseline: 0.45, // 45% adoption
-    target: 0.56,   // 56% target (+25%)
-    current: trackingValue
+    target: 0.56, // 56% target (+25%)
+    current: trackingValue,
   },
   supportTickets: {
-    baseline: 100,  // per month
-    target: 60,     // 40% reduction
-    current: trackingValue
+    baseline: 100, // per month
+    target: 60, // 40% reduction
+    current: trackingValue,
   },
   userSatisfaction: {
-    baseline: 3.2,  // out of 5
-    target: 4.25,   // 85% satisfaction
-    current: trackingValue
-  }
+    baseline: 3.2, // out of 5
+    target: 4.25, // 85% satisfaction
+    current: trackingValue,
+  },
 };
 ```
 
 ### Post-Launch Monitoring
+
 - Real-time dashboard for settings configuration success rate
 - Weekly reports on AI feature adoption trends
 - Monthly analysis of support ticket volume and categories
@@ -825,5 +847,6 @@ const successMetrics = {
 ---
 
 **Document History:**
+
 - 2024-01-15: v1.0 - Initial implementation plan - [Author] - Detailed technical specifications
 - 2024-01-15: v1.1 - Added testing and deployment details - [Author] - Enhanced with security and monitoring

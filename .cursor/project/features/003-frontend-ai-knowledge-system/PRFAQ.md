@@ -10,6 +10,7 @@ AI agents and models working on the Sentry monorepo lack comprehensive context a
 - **Brand guideline violations** and inconsistent user experience
 
 Currently, AI assistance relies on limited context from basic cursor rules, missing the rich ecosystem of:
+
 - Frontend architecture patterns in `static/app/`
 - Component library structure and design system
 - Storybook documentation in `static/app/stories/`
@@ -22,39 +23,44 @@ Currently, AI assistance relies on limited context from basic cursor rules, miss
 **Frontend AI Knowledge System** - A comprehensive system to provide AI models with deep context about Sentry's frontend architecture, components, and patterns through three integrated approaches:
 
 ### 1. Enhanced Cursor Rules
+
 - **UI Architecture Guide** (`ui-architecture.mdc`) - Frontend structure, routing, state management
 - **Design System Guide** (`design-system.mdc`) - Components, tokens, brand guidelines
 - **Frontend Patterns Guide** (`frontend-patterns.mdc`) - Common patterns, best practices
 
 ### 2. Unified Documentation Integration
+
 - **External Documentation Links** - Reference develop.sentry.dev and brand.getsentry.com
 - **Stories Enhancement** - Improve `static/app/stories/` for AI consumption
 - **Code Discovery Patterns** - AI-friendly component and pattern discovery
 
 ### 3. AI-Optimized Frontend Structure
+
 - **Component Documentation Standards** - Consistent AI-readable component docs
 - **Pattern Recognition Aids** - Clear examples and usage patterns
 - **Integration Examples** - Real implementation examples for common use cases
 
 ## Customer Quotes
 
-**Senior Frontend Engineer**: *"AI suggestions now understand our component library and design system. Instead of generic React components, I get suggestions that use our actual Badge, Button, and Panel components with proper styling."*
+**Senior Frontend Engineer**: _"AI suggestions now understand our component library and design system. Instead of generic React components, I get suggestions that use our actual Badge, Button, and Panel components with proper styling."_
 
-**Product Designer**: *"The AI respects our brand guidelines automatically. Generated components follow our spacing, colors, and typography without manual correction."*
+**Product Designer**: _"The AI respects our brand guidelines automatically. Generated components follow our spacing, colors, and typography without manual correction."_
 
-**New Team Member**: *"The AI helped me understand Sentry's frontend patterns quickly. It suggested the right store patterns, error boundaries, and performance optimizations from day one."*
+**New Team Member**: _"The AI helped me understand Sentry's frontend patterns quickly. It suggested the right store patterns, error boundaries, and performance optimizations from day one."_
 
-**Engineering Manager**: *"Code reviews for AI-assisted features now focus on business logic instead of UI consistency. Our design system adoption improved significantly."*
+**Engineering Manager**: _"Code reviews for AI-assisted features now focus on business logic instead of UI consistency. Our design system adoption improved significantly."_
 
 ## Goals
 
 ### Qualitative Goals
+
 - AI understands Sentry's frontend architecture and component patterns
 - Generated code follows established design system and brand guidelines
 - AI suggestions integrate seamlessly with existing component library
 - New features maintain consistent user experience and performance standards
 
 ### Quantitative Goals
+
 - **90%** of AI-generated components pass visual design review on first attempt
 - **50%** reduction in time spent polishing AI-generated UI code
 - **100%** coverage of core UI patterns in AI knowledge system
@@ -72,6 +78,7 @@ When an AI agent works on a Sentry frontend feature:
 5. **Performance Optimization** - AI includes proper lazy loading, memoization, error boundaries
 
 Example interaction:
+
 ```
 Human: "Add a new issues filter dropdown"
 AI: "I'll create this using the existing DropdownButton and SearchableDropDown components from our design system, following the established filter pattern used in IssueListHeader. I'll integrate with the IssueStore for state management and include proper loading states and error boundaries."
@@ -106,6 +113,7 @@ A: Track component reuse rates, design review feedback, and time-to-merge for AI
 ## Success Criteria
 
 This project succeeds when:
+
 - AI agents generate UI code indistinguishable from human-written Sentry frontend code
 - New features seamlessly integrate with existing design system and architecture
 - Frontend development velocity increases through improved AI assistance
