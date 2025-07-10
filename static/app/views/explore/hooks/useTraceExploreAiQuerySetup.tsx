@@ -14,6 +14,7 @@ export function useTraceExploreAiQuerySetup({
   enableAISearch,
 }: UseTraceExploreAiQuerySetupArgs) {
   const hasSetupRun = useRef(false);
+  const previousProjects = useRef<number[]>([]);
 
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -22,7 +23,7 @@ export function useTraceExploreAiQuerySetup({
   const memberProjects = projects.filter(p => p.isMember);
 
   useEffect(() => {
-    if (!enableAISearch || hasSetupRun.current) return;
+    if (!enableAISearch) return;
 
     const selectedProjects =
       pageFilters.selection.projects &&
@@ -31,6 +32,15 @@ export function useTraceExploreAiQuerySetup({
         ? pageFilters.selection.projects
         : memberProjects.map(p => p.id);
 
+    if (hasSetupRun.current) {
+      const projectsChanged =
+        previousProjects.current.length !== selectedProjects.length ||
+        previousProjects.current.some((id, index) => id !== selectedProjects[index]);
+
+      if (!projectsChanged) return;
+    }
+
+    previousProjects.current = selectedProjects.map(Number);
     hasSetupRun.current = true;
 
     (async () => {
