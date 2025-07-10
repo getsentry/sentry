@@ -10,8 +10,8 @@ import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponent
 interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
     BaseAvatarStyleProps {
+  identifier: string | undefined;
   displayName?: string;
-  identifier?: string;
   ref?: React.Ref<SVGSVGElement>;
 }
 
