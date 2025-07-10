@@ -16,12 +16,13 @@ This implementation adds comprehensive AI knowledge system for Sentry's frontend
 
 **File**: `.cursor/rules/ui-architecture.mdc`
 
-```markdown
+````markdown
 # Sentry Frontend UI Architecture
 
 ## Application Structure
 
 ### Core Directories
+
 - `static/app/routes.tsx` - Main routing configuration
 - `static/app/components/` - Reusable UI components
 - `static/app/stores/` - MobX state management
@@ -45,6 +46,7 @@ const Component: React.FC<ComponentProps> = ({data, onAction}) => {
 
 export default React.memo(Component);
 ```
+````
 
 ### MobX Store Patterns
 
@@ -91,7 +93,8 @@ yarn storybook
 - Use local dev server (yarn dev:ui) for testing
 - Check existing stories before creating new components
 - Follow TypeScript strict mode requirements
-```
+
+````
 
 #### 1.2 Create `design-system.mdc`
 
@@ -117,9 +120,10 @@ interface ButtonProps {
 // Primary: Save, Create, Submit (main actions)
 // Secondary: Cancel, Reset (supporting actions)
 // Danger: Delete, Remove (destructive actions)
-```
+````
 
 ### Panel Component
+
 **Location**: `static/app/components/panels/panel.tsx`
 
 ```typescript
@@ -141,21 +145,21 @@ const SENTRY_TOKENS = {
     warning: '#FFC107',
     error: '#E03E2F',
     gray100: '#FAFBFC',
-    gray500: '#80808D'
+    gray500: '#80808D',
   },
   spacing: {
     xs: '4px',
     sm: '8px',
     md: '16px',
     lg: '24px',
-    xl: '32px'
+    xl: '32px',
   },
   typography: {
     h1: '32px',
     h2: '24px',
     body: '14px',
-    caption: '12px'
-  }
+    caption: '12px',
+  },
 };
 ```
 
@@ -173,7 +177,8 @@ const SENTRY_TOKENS = {
 - Maintain 4.5:1 color contrast ratio
 - Support keyboard navigation
 - Include proper focus indicators
-```
+
+````
 
 #### 1.3 Create `frontend-patterns.mdc`
 
@@ -206,7 +211,7 @@ const EntityList: React.FC = () => {
     </Panel>
   );
 };
-```
+````
 
 ### Form Patterns
 
@@ -263,7 +268,8 @@ const EntityForm: React.FC = () => {
   />
 )}
 ```
-```
+
+````
 
 ### Phase 2: Stories System Enhancement
 
@@ -345,7 +351,7 @@ export const AsyncAction = () => {
     </Button>
   );
 };
-```
+````
 
 #### 2.2 Component Discovery System
 
@@ -411,13 +417,16 @@ export const ComponentCategories = () => (
 ## brand.getsentry.com
 
 ### Design Token Reference:
+
 - Color system and semantic usage
 - Typography scale and hierarchy
 - Spacing system and layout principles
 - Icon library and usage guidelines
 
 ### Usage in AI Context:
+
 When suggesting UI changes, reference these guidelines for:
+
 - Color choices (primary, success, warning, error)
 - Spacing decisions (4px, 8px, 16px, 24px, 32px)
 - Typography hierarchy (h1: 32px, h2: 24px, body: 14px)
@@ -453,6 +462,7 @@ static/app/stories/
 ### 1. AI Context Validation
 
 **Test Prompts**:
+
 ```
 "Create a form for editing a Sentry project with name, platform, and team fields"
 Expected: Uses Form, FormField, TextInput, Select components
@@ -470,14 +480,14 @@ Expected: Uses Button variant="primary" with proper styling
 // Test that AI can find and use existing components
 describe('AI Component Suggestions', () => {
   test('suggests existing Button component over custom button', () => {
-    const prompt = "Add a primary action button";
+    const prompt = 'Add a primary action button';
     const suggestion = getAISuggestion(prompt);
     expect(suggestion).toContain('Button variant="primary"');
     expect(suggestion).not.toContain('<button');
   });
 
   test('suggests Panel for content containers', () => {
-    const prompt = "Create a container for project settings";
+    const prompt = 'Create a container for project settings';
     const suggestion = getAISuggestion(prompt);
     expect(suggestion).toContain('<Panel>');
   });
@@ -504,24 +514,28 @@ describe('Design Token Compliance', () => {
 ## Deployment Plan
 
 ### Phase 1: Foundation (Week 1-2)
+
 - [ ] Create `.cursor/rules/ui-architecture.mdc`
 - [ ] Document MobX patterns and routing structure
 - [ ] Add local development setup documentation
 - [ ] Create onboarding guidance for new team members
 
 ### Phase 2: Design System (Week 3-4)
+
 - [ ] Create `.cursor/rules/design-system.mdc`
 - [ ] Extract design tokens from brand guidelines
 - [ ] Document top 20 components with usage patterns
 - [ ] Enhance Button, Panel, Form stories with AI context
 
 ### Phase 3: Patterns (Week 5-6)
+
 - [ ] Create `.cursor/rules/frontend-patterns.mdc`
 - [ ] Document list management patterns
 - [ ] Create form validation and modal patterns
 - [ ] Add component relationship mappings
 
 ### Phase 4: Integration (Week 7-8)
+
 - [ ] Add external documentation references
 - [ ] Test AI understanding with validation prompts
 - [ ] Create feedback collection mechanism
@@ -530,6 +544,7 @@ describe('Design Token Compliance', () => {
 ## Success Metrics
 
 ### Technical Validation
+
 - [ ] Component reuse rate in AI suggestions: >75%
 - [ ] Brand guideline compliance: 100%
 - [ ] TypeScript compilation success: 100%
@@ -537,6 +552,7 @@ describe('Design Token Compliance', () => {
 - [ ] New team member onboarding success: >100% report AI rules helped
 
 ### Quality Assurance
+
 - [ ] AI-generated components pass visual review: >90%
 - [ ] Time reduction in UI polish: >50%
 - [ ] Core UI pattern coverage: 100%
@@ -545,19 +561,25 @@ describe('Design Token Compliance', () => {
 ## Risk Mitigation
 
 ### Documentation Maintenance
+
 **Implementation**:
+
 - Tie documentation updates to component library changes via GitHub Actions
 - Create automated validation checks for component examples
 - Assign documentation ownership to component maintainers
 
 ### AI Context Overload
+
 **Implementation**:
+
 - Prioritize 20 most commonly used components first
 - Use progressive disclosure with summary sections
 - Implement context relevance scoring based on current file context
 
 ### Team Adoption
+
 **Implementation**:
+
 - Create onboarding sessions for AI-assisted development
 - Provide feedback channels for documentation improvements
 - Establish code review guidelines for AI-assisted features
@@ -565,23 +587,25 @@ describe('Design Token Compliance', () => {
 ## Monitoring and Analytics
 
 ### Usage Tracking
+
 ```typescript
 // Track AI suggestion acceptance rates
 analytics.track('ai_suggestion_accepted', {
   component_type: 'Button',
   pattern_type: 'form_action',
-  context: 'project_settings'
+  context: 'project_settings',
 });
 
 // Track component reuse vs. custom creation
 analytics.track('component_usage', {
   reused_existing: true,
   component_name: 'Panel',
-  suggestion_source: 'ai_cursor'
+  suggestion_source: 'ai_cursor',
 });
 ```
 
 ### Success Metrics Dashboard
+
 - Component reuse rates over time
 - Brand compliance scores
 - Development velocity improvements
