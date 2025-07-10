@@ -49,7 +49,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.snuba.ourlogs import run_timeseries_query
+from sentry.snuba.ourlogs import run_timeseries_query as ourlogs_run_timeseries_query
+from sentry.snuba.spans_rpc import run_timeseries_query as spans_rpc_run_timeseries_query
 from sentry.snuba.tasks import create_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -394,7 +395,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_eap(self, mock_seer_request):
+    @patch(
+        "sentry.seer.anomaly_detection.utils.spans_rpc.run_timeseries_query",
+        wraps=spans_rpc_run_timeseries_query,
+    )
+    def test_anomaly_detection_alert_eap_spans(
+        self, mock_spans_timeseries_query, mock_seer_request
+    ):
         data = deepcopy(self.dynamic_alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
@@ -413,6 +420,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+        assert mock_spans_timeseries_query.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -423,7 +431,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     )
     @patch(
         "sentry.seer.anomaly_detection.utils.ourlogs.run_timeseries_query",
-        wraps=run_timeseries_query,
+        wraps=ourlogs_run_timeseries_query,
     )
     def test_anomaly_detection_alert_ourlogs(
         self, mock_ourlogs_run_timeseries_query, mock_seer_request
