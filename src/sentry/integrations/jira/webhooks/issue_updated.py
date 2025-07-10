@@ -34,8 +34,8 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
     rate_limits = {
         "POST": {
             RateLimitCategory.IP: RateLimit(limit=100, window=1),
-            RateLimitCategory.USER: RateLimit(limit=100, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+            RateLimitCategory.USER: RateLimit(limit=50, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=1),  # Higher limit as fallback
         },
     }
 
