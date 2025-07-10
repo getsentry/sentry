@@ -193,16 +193,14 @@ function StoryContentsList({
       child.children.some(grandChild => grandChild.entry.ref.id === activeId)
   );
 
-  // Apply active styling if this entry is active OR if any child is active
-  const shouldShowActive = isActive || hasActiveChild;
-
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
     <li>
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
-        isActive={shouldShowActive}
+        isActive={isActive}
+        hasActiveChild={hasActiveChild}
         onClick={() => setActiveId(entry.entry.ref.id)}
       >
         <TextOverflow>{entry.entry.title}</TextOverflow>
@@ -237,95 +235,75 @@ const StoryIndexContainer = styled('div')`
   }
 `;
 
-const StoryIndexListContainer = styled('div')`
-  > ul {
-    padding-left: 0;
-    margin-top: ${space(1)};
-  }
-
-  > ul > li {
-    padding-left: 0;
-    margin-top: ${space(0.5)};
-
-    > a {
-      margin-bottom: ${space(0.25)};
-    }
-  }
-`;
+const StoryIndexListContainer = styled('div')``;
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: 0 0 ${space(1)} 0;
-  margin: 0 0 ${space(1)} 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${space(1)};
+  border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
-  width: 200px;
+  margin-left: -${space(2)};
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
 
-  li {
-    margin-bottom: ${space(0.5)};
-
-    ul {
-      margin-top: ${space(0.5)};
-      margin-bottom: ${space(0.5)};
-
-      li {
-        margin-bottom: ${space(0.25)};
-      }
-    }
+  ul {
+    margin-left: -${space(1)};
+    padding-left: ${space(1)};
+    border-left: none;
   }
 `;
 
-const StyledLink = styled('a')<{isActive: boolean}>`
-  padding: ${space(0.5)} ${space(0.75)};
+const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   display: block;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.muted};
   text-decoration: none;
+  line-height: 1;
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.4;
-  transition: all 0.15s ease;
+  padding: ${space(1)};
+  transition: color 80ms ease-out;
+  border-radius: ${p => p.theme.borderRadius};
   position: relative;
 
   &:hover {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.textColor};
   }
 
   ${p =>
     p.isActive &&
     `
-      color: ${p.theme.textColor};
-      font-weight: ${p.theme.fontWeight.bold};
+      color: ${p.theme.tokens.content.accent};
+      &::before {
+        content: '';
+        display: block;
+        position: absolute;
+        left: -${space(1)};
+        width: 4px;
+        height: 16px;
+        border-radius: 4px;
+        transform: translateX(-2px);
+        background: ${p.theme.tokens.graphics.accent};
+      }
+    `}
+  ${p =>
+    p.hasActiveChild &&
+    `
+      color: ${p.theme.tokens.content.primary};
     `}
 `;
 
-const StyledChildLink = styled('a')<{isActive: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  padding: ${space(0.25)} ${space(0.5)};
-  margin-left: ${space(0.5)};
-  border-left: 2px solid transparent;
-  display: block;
-  color: ${p => p.theme.textColor};
-  text-decoration: none;
-  line-height: 1.4;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: ${p => p.theme.hover};
-    color: ${p => p.theme.textColor};
-    border-left-color: ${p => p.theme.activeText};
-  }
-
-  ${p =>
-    p.isActive &&
-    `
-      border-left-color: ${p.theme.activeText};
-    `}
+const StyledChildLink = styled(StyledLink)<{isActive: boolean}>`
+  margin-left: ${space(2)};
+  border-left: 0;
 `;
