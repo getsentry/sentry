@@ -11,6 +11,7 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -824,9 +825,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             ],
         )
 
-        with pytest.raises(IntegrationError) as e:
+        with pytest.raises(IntegrationSyncTargetNotFound) as e:
             self.installation.sync_assignee_outbound(external_issue, user)
-        assert str(e.value) == "Failed to assign user to Jira Server issue"
+        assert str(e.value) == "No matching Jira Server user found"
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
