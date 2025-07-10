@@ -4,7 +4,7 @@ import type {AvatarSentryApp} from 'sentry/types/integrations';
 import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 interface SentryAppAvatarProps extends BaseAvatarProps {
-  sentryApp: AvatarSentryApp;
+  sentryApp: AvatarSentryApp | undefined;
   isColor?: boolean;
   isDefault?: boolean;
   ref?: React.Ref<HTMLSpanElement>;

@@ -4,7 +4,7 @@ import {explodeSlug} from 'sentry/utils';
 import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 interface OrganizationAvatarProps extends BaseAvatarProps {
-  organization: OrganizationSummary;
+  organization: OrganizationSummary | undefined;
   ref?: React.Ref<HTMLSpanElement>;
 }
 
@@ -18,7 +18,7 @@ export function OrganizationAvatar({
     return null;
   }
 
-  const slug = organization?.slug || '';
+  const slug = organization.slug || '';
   const title = explodeSlug(slug);
 
   return (
