@@ -24,7 +24,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
-    get_dataset_from_label,
+    get_dataset_from_label_and_event_types,
     get_event_types,
     translate_direction,
 )
@@ -156,7 +156,7 @@ def send_historical_data_to_seer(
     if not snuba_query:
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
-    dataset = get_dataset_from_label(snuba_query.dataset)
+    dataset = get_dataset_from_label_and_event_types(snuba_query.dataset, event_types)
     query_columns = get_query_columns([snuba_query.aggregate], window_min)
     event_types = get_event_types(snuba_query, event_types)
     if not alert_rule.organization:
