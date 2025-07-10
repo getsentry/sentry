@@ -3,6 +3,7 @@ from __future__ import annotations
 import orjson
 import requests
 from django.conf import settings
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +16,24 @@ from sentry.models.organization import Organization
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class SeerExplorerChatSerializer(serializers.Serializer):
+    query = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        help_text="The user's query to send to the Seer Explorer.",
+    )
+    insert_index = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Optional index to insert the message at.",
+    )
+    message_timestamp = serializers.FloatField(
+        required=False,
+        allow_null=True,
+        help_text="Optional timestamp for the message.",
+    )
 
 
 def _call_seer_explorer_chat(
@@ -149,17 +168,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
 
-        try:
-            data = orjson.loads(request.body)
-        except orjson.JSONDecodeError:
-            return Response({"error": "Invalid JSON"}, status=400)
+        serializer = SeerExplorerChatSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        query = data.get("query")
-        insert_index = data.get("insert_index")
-        message_timestamp = data.get("message_timestamp")
-
-        if not query:
-            return Response({"error": "Query is required"}, status=400)
+        validated_data = serializer.validated_data
+        query = validated_data["query"]
+        insert_index = validated_data.get("insert_index")
+        message_timestamp = validated_data.get("message_timestamp")
 
         response_data = _call_seer_explorer_chat(
             organization, run_id, query, insert_index, message_timestamp

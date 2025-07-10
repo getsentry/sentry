@@ -39,7 +39,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
-            response = self.client.get(self.url, {"run_id": "test-run-123"})
+            response = self.client.get(f"{self.url}test-run-123/")
 
         assert response.status_code == 200
         assert response.data == mock_response
@@ -53,7 +53,17 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             response = self.client.post(self.url, {}, format="json")
 
             assert response.status_code == 400
-            assert response.data == {"error": "Query is required"}
+            assert response.data == {"query": ["This field is required."]}
+
+    def test_post_with_empty_query_returns_400(self):
+        with patch(
+            "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
+            return_value=True,
+        ):
+            response = self.client.post(self.url, {"query": "   "}, format="json")
+
+            assert response.status_code == 400
+            assert response.data == {"query": ["This field may not be blank."]}
 
     def test_post_with_invalid_json_returns_400(self):
         with patch(
@@ -63,7 +73,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             response = self.client.post(self.url, "invalid json", content_type="application/json")
 
             assert response.status_code == 400
-            assert response.data == {"error": "Invalid JSON"}
+            assert "detail" in response.data
+            assert "JSON parse error" in str(response.data["detail"])
 
     @patch(
         "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
@@ -104,12 +115,11 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_call_seer_chat.return_value = mock_response
 
         data = {
-            "run_id": "existing-run-789",
             "query": "Follow up question",
             "insert_index": 2,
             "message_timestamp": 1704067200.0,
         }
-        response = self.client.post(self.url, data, format="json")
+        response = self.client.post(f"{self.url}existing-run-789/", data, format="json")
 
         assert response.status_code == 200
         assert response.data == mock_response
