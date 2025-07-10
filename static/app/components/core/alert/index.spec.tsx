@@ -3,9 +3,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {Alert} from 'sentry/components/core/alert';
 
 describe('Alert', () => {
-  it('does not render icon by default', () => {
+  it('renders icon by default', () => {
     render(<Alert type="info">Hello</Alert>);
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('img')).toBeInTheDocument();
   });
   it('renders icon when showIcon is true', () => {
     render(<Alert type="info">Hello</Alert>);
