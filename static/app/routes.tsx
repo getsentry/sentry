@@ -276,7 +276,7 @@ function buildRoutes() {
       />
       <Route
         path="/notifs/"
-        component={make(() => import('sentry/notifs/index'))}
+        component={make(() => import('sentry/debug/notifs/views/index'))}
         withOrgPath
       />
     </Route>

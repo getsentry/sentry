@@ -1,4 +1,4 @@
-import {PreviewBox} from 'sentry/notifs/previewBox';
+import {PreviewBox} from 'sentry/debug/notifs/components/previewBox';
 
 export function SlackPreview() {
   return (
