@@ -1159,6 +1159,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
+    neutral: string;
   };
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
@@ -1221,6 +1222,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   chart: {
+    neutral: color(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1298,6 +1300,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   chart: {
+    neutral: color(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },

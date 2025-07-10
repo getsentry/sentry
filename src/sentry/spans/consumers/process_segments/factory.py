@@ -4,7 +4,7 @@ from datetime import datetime
 
 import orjson
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaProducer, build_kafka_producer_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -63,7 +63,8 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
 
         self.producer = KafkaProducer(
-            build_kafka_configuration(default_config=producer_config), use_simple_futures=True
+            build_kafka_producer_configuration(default_config=producer_config),
+            use_simple_futures=True,
         )
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 

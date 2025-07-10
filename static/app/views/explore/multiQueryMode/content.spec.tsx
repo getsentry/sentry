@@ -86,6 +86,10 @@ describe('MultiQueryModeContent', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
       body: [],
