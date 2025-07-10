@@ -32,9 +32,7 @@ class DataForwardingPlugin(Plugin):
         return "data-forwarding"
 
     def get_rl_key(self, event):
-        # Data forwarding plugins operate in server-side event processing context
-        # without user context, so we use project-based rate limiting instead of organization-wide
-        return f"{self.conf_key}:project:{event.project.id}"
+        return f"{self.conf_key}:{event.project.organization_id}"
 
     def initialize_variables(self, event):
         return

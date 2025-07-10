@@ -97,10 +97,10 @@ def get_rate_limit_key(
             assert False  # Can't happen as asserted by is_api_token_auth check
 
         if request_user.is_sentry_app:
-            category = "org"
-            id = get_organization_id_from_token(token_id)
+            category = "user"
+            id = request_auth.user_id
 
-            # Fallback to IP address limit if we can't find the organization
+            # Fallback to IP address limit if we can't find the user
             if id is None and ip_address is not None:
                 category = "ip"
                 id = ip_address
@@ -133,17 +133,7 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: int) -> int | None:
-    from sentry.sentry_apps.services.app import app_service
 
-    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
-    # Return None to avoid collisions caused by tokens not being associated with
-    # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
-    if not organization_id:
-        logger.info("installation.not_found", extra={"token_id": token_id})
-        return None
-
-    return organization_id
 
 
 def get_rate_limit_config(
