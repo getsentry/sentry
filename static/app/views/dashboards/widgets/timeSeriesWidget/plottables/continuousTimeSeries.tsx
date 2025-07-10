@@ -64,7 +64,7 @@ export abstract class ContinuousTimeSeries<
   get name(): string {
     let name = `${this.timeSeries.yAxis}`;
 
-    if (this.timeSeries.groupBy?.length && this.timeSeries.groupBy.length > 0) {
+    if (this.timeSeries.groupBy?.length) {
       name += ` : ${this.timeSeries.groupBy
         ?.map(groupBy => {
           return `${groupBy.key}:${groupBy.value}`;
