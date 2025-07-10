@@ -332,7 +332,9 @@ function ReviewAndConfirmBody({
       />
       {cardActionError && (
         <Alert.Container>
-          <Alert type="error">{cardActionError}</Alert>
+          <Alert type="error" showIcon={false}>
+            {cardActionError}
+          </Alert>
         </Alert.Container>
       )}
       <ReviewAndConfirmItems previewData={previewData} />

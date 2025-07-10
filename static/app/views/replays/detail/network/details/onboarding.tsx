@@ -182,7 +182,7 @@ function SetupInstructions({
       </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {tct('Enable [field] to capture both Request and Response bodies.', {
               field: <code>networkCaptureBodies: true</code>,
             })}

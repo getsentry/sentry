@@ -251,7 +251,7 @@ function AcceptOrganizationInvite() {
     return (
       <NarrowLayout>
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {tct(
               'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
               {
@@ -279,7 +279,7 @@ function AcceptOrganizationInvite() {
       <SettingsPageHeader title={t('Accept organization invite')} />
       {isAcceptError && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             {t('Failed to join this organization. Please try again')}
           </Alert>
         </Alert.Container>

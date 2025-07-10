@@ -500,7 +500,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="info">
+            <Alert type="info" showIcon={false}>
               {'You need to associate an identity with ' +
                 this.props.plugin.name +
                 ' before you can create issues with this service.'}
@@ -512,7 +512,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     }
     if (error.error_type === 'config') {
       return (
-        <Alert type="info">
+        <Alert type="info" showIcon={false}>
           {error.has_auth_configured ? (
             <Fragment>
               You still need to{' '}
@@ -544,10 +544,18 @@ class IssueActions extends PluginComponentBase<Props, State> {
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
-      return <Alert type="error">{errors}</Alert>;
+      return (
+        <Alert type="error" showIcon={false}>
+          {errors}
+        </Alert>
+      );
     }
     if (error.message) {
-      return <Alert type="error">{error.message}</Alert>;
+      return (
+        <Alert type="error" showIcon={false}>
+          {error.message}
+        </Alert>
+      );
     }
     return <LoadingError />;
   }

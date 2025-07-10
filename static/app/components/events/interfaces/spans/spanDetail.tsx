@@ -326,7 +326,11 @@ function SpanDetail(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
+        <Alert
+          type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'}
+          system
+          showIcon
+        >
           <ErrorMessageTitle>
             {tn(
               '%s error event or performance issue is associated with this span.',

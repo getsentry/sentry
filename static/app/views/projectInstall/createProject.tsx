@@ -536,7 +536,7 @@ export function CreateProject() {
           </FormFieldGroup>
           {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
-              <Alert type="error">
+              <Alert type="error" showIcon={false}>
                 {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
