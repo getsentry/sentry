@@ -520,6 +520,7 @@ export function getCheckoutAPIData({
     reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
     reservedSpans: formatReservedData(formData.reserved.spans),
     reservedUptime: formatReservedData(formData.reserved.uptime),
+    reservedLogBytes: formatReservedData(formData.reserved.logBytes),
   } satisfies Partial<
     // Enforce plural spelling against the enums in DataCategory
     Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
