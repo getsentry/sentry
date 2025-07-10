@@ -314,7 +314,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
         queryset = Release.objects.filter(organization_id=organization.id)
         queryset = filter_releases_by_environments(
-            queryset, [e.id for e in filter_params.get("environment_objects", [])]
+            queryset,
+            filter_params["project_id"],
+            [e.id for e in filter_params.get("environment_objects", [])],
         )
         queryset = queryset.annotate(date=F("date_added"))
 
@@ -673,7 +675,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         queryset = add_date_filter_to_queryset(queryset, filter_params)
         queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
         queryset = filter_releases_by_environments(
-            queryset, [e.id for e in filter_params.get("environment_objects", [])]
+            queryset,
+            filter_params["project_id"],
+            [e.id for e in filter_params.get("environment_objects", [])],
         )
         queryset = (
             queryset.annotate(date=F("date_added")).values("version", "date").order_by("-date")

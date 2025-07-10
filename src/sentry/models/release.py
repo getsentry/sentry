@@ -837,7 +837,11 @@ def filter_releases_by_projects(queryset: QuerySetAny, project_ids: list[int]):
     )
 
 
-def filter_releases_by_environments(queryset: QuerySetAny, environment_ids: list[int]):
+def filter_releases_by_environments(
+    queryset: QuerySetAny,
+    project_ids: list[int],
+    environment_ids: list[int],
+):
     """Return a release queryset filtered by environments."""
     if not environment_ids:
         return queryset
@@ -847,6 +851,7 @@ def filter_releases_by_environments(queryset: QuerySetAny, environment_ids: list
             ReleaseProjectEnvironment.objects.filter(
                 release=OuterRef("pk"),
                 environment_id__in=environment_ids,
+                project_id__in=project_ids,
             )
         )
     )
