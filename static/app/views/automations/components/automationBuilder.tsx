@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -24,6 +24,7 @@ import {AutomationBuilderConflictContext} from 'sentry/views/automations/compone
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export default function AutomationBuilder() {
@@ -114,6 +115,18 @@ interface ActionFilterBlockProps {
 
 function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const {actions} = useAutomationBuilderContext();
+  const {mutateAsync: sendTestNotification} = useSendTestNotification();
+
+  const handleSendTestNotification = useCallback(async () => {
+    const actionFilterActions = actionFilter.actions || [];
+
+    await sendTestNotification(
+      actionFilterActions.map(action => {
+        const {id: _id, ...actionWithoutId} = action;
+        return actionWithoutId;
+      })
+    );
+  }, [actionFilter.actions, sendTestNotification]);
 
   return (
     <IfThenWrapper>
@@ -188,7 +201,9 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         />
       </Step>
       <span>
-        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+        <Button icon={<IconMail />} onClick={handleSendTestNotification}>
+          {t('Send Test Notification')}
+        </Button>
       </span>
     </IfThenWrapper>
   );
