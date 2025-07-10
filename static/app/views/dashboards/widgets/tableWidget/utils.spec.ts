@@ -7,11 +7,9 @@ describe('Table Widget Visualization Utils', function () {
     const columns = TabularColumnsFixture([
       {
         key: 'columnOne',
-        name: 'columnOne',
       },
       {
         key: 'columnTwo',
-        name: 'columnTwo',
       },
     ]);
     const fieldAliases = ['Column One', ''];
