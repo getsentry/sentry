@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  // @ts-expect-error TS18055: 'Query.PRIORITIZED' has a string type, but must have syntactically recognizable string syntax when 'isolatedModules' is enabled.
   PRIORITIZED = DEFAULT_QUERY, // eslint-disable-line @typescript-eslint/prefer-literal-enum-member
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
