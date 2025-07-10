@@ -84,7 +84,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
   const hasData =
     queriesRequest.data && queriesRequest.data.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
   const aliases = Object.fromEntries(
     queriesRequest.data?.map(item => [
@@ -188,7 +188,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

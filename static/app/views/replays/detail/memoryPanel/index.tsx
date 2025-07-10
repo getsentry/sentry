@@ -71,8 +71,8 @@ const ChartWrapper = styled('div')`
 `;
 
 const ChartTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   flex: 0 1 auto;
   margin: 0;

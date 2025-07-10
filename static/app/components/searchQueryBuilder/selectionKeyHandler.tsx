@@ -10,6 +10,7 @@ import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 type SelectionKeyHandlerProps = {
+  gridRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   undo: () => void;
   ref?: React.Ref<HTMLInputElement>;
@@ -23,7 +24,12 @@ type SelectionKeyHandlerProps = {
  * We use an invisible input element in order to handle paste events. Without
  * this, the browser will need to ask for clipboard permissions.
  */
-export function SelectionKeyHandler({ref, state, undo}: SelectionKeyHandlerProps) {
+export function SelectionKeyHandler({
+  ref,
+  state,
+  undo,
+  gridRef,
+}: SelectionKeyHandlerProps) {
   const {dispatch, disabled} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
@@ -149,6 +155,19 @@ export function SelectionKeyHandler({ref, state, undo}: SelectionKeyHandlerProps
     [dispatch, selectInDirection, selectedTokens, state, undo]
   );
 
+  // Ensure that the selection is cleared when this input loses focus
+  const onBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      // React Aria will sometimes focus the grid element, which we handle in useQueryBuilderGrid().
+      // This should be ignored since focus will return here.
+      if (e.relatedTarget === gridRef.current) {
+        return;
+      }
+      state.selectionManager.clearSelection();
+    },
+    [state.selectionManager, gridRef]
+  );
+
   // Using VisuallyHidden because display: none will not allow the input to be focused
   return (
     <VisuallyHidden>
@@ -159,6 +178,7 @@ export function SelectionKeyHandler({ref, state, undo}: SelectionKeyHandlerProps
         onPaste={onPaste}
         onKeyDown={onKeyDown}
         disabled={disabled}
+        onBlur={onBlur}
       />
     </VisuallyHidden>
   );

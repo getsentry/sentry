@@ -89,11 +89,11 @@ const KeyName = styled('div')`
 const DateCreated = styled('div')`
   grid-row: 2/3;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-row: 1/3;
   }
 `;
@@ -103,7 +103,7 @@ const Header = styled('div')`
   grid-row-gap: ${space(0.25)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr max-content;
     grid-template-rows: repeat(2, max-content);
   }

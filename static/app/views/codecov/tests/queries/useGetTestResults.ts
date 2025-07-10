@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
@@ -8,8 +9,33 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {
+  SummaryFilterKey,
+  SummaryTAFilterKey,
+} from 'sentry/views/codecov/tests/config';
+import {
+  DATE_TO_QUERY_INTERVAL,
+  SUMMARY_TO_TA_TABLE_FILTER_KEY,
+  TABLE_FIELD_NAME_TO_SORT_KEY,
+} from 'sentry/views/codecov/tests/config';
+import type {SortableTAOptions} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
 
-export type TestResultItem = {
+/**
+ * This function will take the column value and adjust it to the
+ * value the backend expects to sort on.
+ *
+ * @param value the column that was selected for sorting
+ *
+ * @returns a key the backend expects to sort by
+ */
+function sortValueToSortKey(value: string) {
+  const word = value.replace(/^[+-]/, '') as SortableTAOptions;
+  const sign = value[0] === '-' ? '-' : '';
+  return `${sign}${TABLE_FIELD_NAME_TO_SORT_KEY[word]}`;
+}
+
+type TestResultItem = {
   avgDuration: number;
   commitsFailed: number;
   failureRate: number;
@@ -35,7 +61,18 @@ interface TestResults {
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
 export function useInfiniteTestResults() {
-  const {integratedOrg, repository} = useCodecovContext();
+  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+  const organization = useOrganization();
+  const [searchParams] = useSearchParams();
+
+  const sortBy = searchParams.get('sort') || '-commitsFailed';
+  const signedSortBy = sortValueToSortKey(sortBy);
+
+  const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
+  let mappedFilterBy = null;
+  if (filterBy in SUMMARY_TO_TA_TABLE_FILTER_KEY) {
+    mappedFilterBy = SUMMARY_TO_TA_TABLE_FILTER_KEY[filterBy as SummaryTAFilterKey];
+  }
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
@@ -43,13 +80,12 @@ export function useInfiniteTestResults() {
     InfiniteData<ApiResult<TestResults>>,
     QueryKey
   >({
-    // TODO: this query key should have branch and codecovPeriod so the request updates when these change
     queryKey: [
-      `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
     ],
     queryFn: async ({
-      queryKey: [url, endpointOptions],
+      queryKey: [url],
       client,
       signal,
       meta,
@@ -58,9 +94,15 @@ export function useInfiniteTestResults() {
         queryKey: [
           url,
           {
-            ...endpointOptions,
-            // TODO: expand when query params are known
-            query: {},
+            query: {
+              interval:
+                DATE_TO_QUERY_INTERVAL[
+                  codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
+                ],
+              sortBy: signedSortBy,
+              branch,
+              ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+            },
           },
         ],
         client,
@@ -88,6 +130,7 @@ export function useInfiniteTestResults() {
             totalPassCount,
             totalFlakyFailCount,
             totalSkipCount,
+            flakeRate,
             ...other
           }) => {
             const isBrokenTest =
@@ -95,8 +138,9 @@ export function useInfiniteTestResults() {
             return {
               ...other,
               testName: name,
-              averageDurationMs: avgDuration,
+              averageDurationMs: avgDuration * 1000,
               lastRun: updatedAt,
+              flakeRate: flakeRate * 100,
               isBrokenTest,
             };
           }
@@ -107,6 +151,7 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

@@ -43,7 +43,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -318,15 +318,15 @@ class EmailActionHandler(ActionHandler):
 
 
 @AlertRuleTriggerAction.register_type(
-    "pagerduty",
+    IntegrationProviderSlug.PAGERDUTY.value,
     AlertRuleTriggerAction.Type.PAGERDUTY,
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="pagerduty",
+    integration_provider=IntegrationProviderSlug.PAGERDUTY.value,
 )
 class PagerDutyActionHandler(DefaultActionHandler):
     @property
     def provider(self) -> str:
-        return "pagerduty"
+        return IntegrationProviderSlug.PAGERDUTY.value
 
     def send_alert(
         self,

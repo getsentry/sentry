@@ -20,6 +20,9 @@ class SentryAppInteractionType(StrEnum):
     # Authorizations
     AUTHORIZATIONS = "authorizations"
 
+    # Managing Sentry Apps
+    MANAGEMENT = "management"
+
 
 @dataclass
 class SentryAppInteractionEvent(EventLifecycleMetric):
@@ -123,3 +126,10 @@ class SentryAppEventType(StrEnum):
     # authorizations
     GRANT_EXCHANGER = "grant_exchanger"
     REFRESHER = "refresher"
+
+    # management
+    APP_CREATE = "app_create"
+    APP_UPDATE = "app_update"
+    REQUESTS = "requests"
+    WEBHOOK_UPDATE = "webhook_update"
+    INSTALLATION_CREATE = "install_create"

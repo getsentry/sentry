@@ -118,7 +118,7 @@ export const PositiveLabel = styled(({className}) => (
   color: ${p => p.theme.green400};
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   gap: ${space(0.5)};
 `;
 
@@ -131,7 +131,7 @@ export const NegativeLabel = styled(({className}) => (
   color: ${p => p.theme.red400};
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   gap: ${space(0.5)};
 `;
 
@@ -155,7 +155,7 @@ export function ExampleCard({imgSrc, text, isPositive}) {
   );
 }
 
-export function ColorPalette({name, palette}) {
+export function ColorPalette({name, palette = []}) {
   const theme = useTheme();
 
 return (

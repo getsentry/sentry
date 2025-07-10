@@ -58,7 +58,10 @@ function formatCategoryRowString(
     DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
-  if (category === DataCategoryExact.ATTACHMENT) {
+  if (
+    category === DataCategoryExact.ATTACHMENT ||
+    category === DataCategoryExact.LOG_BYTE
+  ) {
     return reservedWithUnits;
   }
 
@@ -89,7 +92,7 @@ function PlanMigrationRow(props: Props) {
 
   const options = {isAbbreviated: true};
 
-  // TODO(data categories): check if this can be parsed
+  // TODO(data categories): BIL-955
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});
@@ -113,6 +116,7 @@ function PlanMigrationRow(props: Props) {
     case 'replay':
     case 'monitorSeat':
     case 'attachment':
+    case 'logByte':
     case 'profileDuration':
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
       nextValue = formatCategoryRowString(props.type, props.nextValue, options);

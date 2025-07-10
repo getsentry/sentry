@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import {DATE_TO_QUERY_INTERVAL} from 'sentry/views/codecov/tests/config';
 
 type TestResultAggregate = {
   flakeCount: number;
@@ -21,25 +24,30 @@ type TestResultAggregate = {
   totalSlowTestsPercentChange: number | null;
 };
 
+type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
+
 export function useTestResultsAggregates() {
   const api = useApi();
-  const {integratedOrg, repository} = useCodecovContext();
+  const organization = useOrganization();
+  const {integratedOrg, repository, codecovPeriod} = useCodecovContext();
 
   const {data, ...rest} = useQuery<
     TestResultAggregate,
     Error,
     TestResultAggregate,
-    [string]
+    QueryKey
   >({
-    // TODO: this query key should have branch and codecovPeriod so the request updates when these change
     queryKey: [
-      `/prevent/owner/${integratedOrg}/repository/${repository}/test-results-aggregates/`,
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results-aggregates/`,
+      {query: {codecovPeriod}},
     ],
     queryFn: async ({queryKey: [url]}): Promise<TestResultAggregate> => {
       const result = await api.requestPromise(url, {
         method: 'GET',
-        // TODO: expand when query params are known
-        data: {},
+        query: {
+          interval:
+            DATE_TO_QUERY_INTERVAL[codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL],
+        },
       });
 
       return result as TestResultAggregate;
@@ -49,8 +57,8 @@ export function useTestResultsAggregates() {
   const memoizedData = useMemo(() => {
     return {
       ciEfficiency: {
-        totalTestsRunTime: data && data.totalDuration * 1000,
-        slowestTestsDuration: data && data.slowestTestsDuration * 1000,
+        totalTestsRunTime: data && data?.totalDuration * 1000,
+        slowestTestsDuration: data && data?.slowestTestsDuration * 1000,
         slowestTests: data?.totalSlowTests,
         totalTestsRunTimeChange: data?.totalDurationPercentChange,
       },

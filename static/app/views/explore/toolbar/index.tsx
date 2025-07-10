@@ -1,13 +1,6 @@
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
-import {
-  useExploreFields,
-  useExploreGroupBys,
-  useExploreSortBys,
-  useExploreVisualizes,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
@@ -20,24 +13,12 @@ interface ExploreToolbarProps {
   width?: number;
 }
 
-export function ExploreToolbar({width}: ExploreToolbarProps) {
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
-  const sortBys = useExploreSortBys();
-  const setSortBys = useSetExploreSortBys();
-
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   return (
     <Container width={width}>
-      <ToolbarVisualize />
+      <ToolbarVisualize allowEquations={extras?.includes('equations') || false} />
       <ToolbarGroupBy autoSwitchToAggregates />
-      <ToolbarSortBy
-        fields={fields}
-        groupBys={groupBys}
-        visualizes={visualizes}
-        sorts={sortBys}
-        setSorts={setSortBys}
-      />
+      <ToolbarSortBy />
       <ToolbarSaveAs />
     </Container>
   );

@@ -8,9 +8,6 @@
     // features are supported based on our browser usage configuration in
     // package.json). `target` DOES NOT affect the babel output! [0]
     //
-    // We DO however, use ts-node to build jest, webpack, and a few other
-    // {build,dev}-time tools. Because these are run through node, we can
-    // target what our current version of node supports (see [1])
     //
     // [0]: https://babeljs.io/docs/en/babel-preset-typescript
     // [1]: https://node.green
@@ -122,15 +119,5 @@
     ]
   },
   "include": ["../static/app", "../static/gsApp", "../tests/js"],
-  "exclude": ["../node_modules", "../**/*.benchmark.ts"],
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      // TODO: We should be able to use "node16" on next major version of jest
-      // https://github.com/jestjs/jest/pull/14739
-      "module": "commonjs",
-      // TODO: node10 will be deprecated in typescript 6.0
-      "moduleResolution": "node10"
-    }
-  }
+  "exclude": ["../node_modules"]
 }

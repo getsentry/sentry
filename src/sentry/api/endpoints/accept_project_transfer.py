@@ -1,3 +1,5 @@
+import logging
+
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
 from django.utils.encoding import force_str
@@ -22,6 +24,8 @@ from sentry.signals import project_transferred
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidPayload(Exception):
@@ -144,12 +148,25 @@ class AcceptProjectTransferEndpoint(Endpoint):
             sender=self,
         )
 
+        logger.info(
+            "project_transferred",
+            extra={
+                "old_organization_id": old_organization.id,
+                "new_organization_id": organization.id,
+                "project_id": project.id,
+            },
+        )
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_ACCEPT_TRANSFER"),
-            data=project.get_audit_log_data(),
+            data={
+                "old_organization_slug": old_organization.slug,
+                "new_organization_slug": organization.slug,
+                "project_slug": project.slug,
+            },
             transaction_id=transaction_id,
         )
 

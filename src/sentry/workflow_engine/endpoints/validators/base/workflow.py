@@ -89,7 +89,14 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         validator = BaseActionValidator(context=self.context)
         for action in actions_data:
-            self._update_or_create(action, validator, Action)
+            action_instance = self._update_or_create(action, validator, Action)
+
+            # If this is a new action, associate it to the condition group
+            if action.get("id") is None:
+                DataConditionGroupAction.objects.create(
+                    action=action_instance,
+                    condition_group=condition_group,
+                )
 
     def update_or_create_data_condition_group(
         self,
@@ -185,6 +192,7 @@ class WorkflowValidator(CamelSnakeSerializer):
                 organization_id=self.context["organization"].id,
                 environment_id=validated_value.get("environment_id"),
                 when_condition_group=when_condition_group,
+                created_by_id=self.context["request"].user.id,
             )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?

@@ -5,18 +5,23 @@ import {useQueryClient} from '@tanstack/react-query';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import Link from 'sentry/components/links/link';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {NoAccess} from 'sentry/components/noAccess';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +30,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {AutofixRepositories} from './autofixRepositories';
+
+const AiSetupDataConsent = HookOrDefault({
+  hookName: 'component:ai-setup-data-consent',
+  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+});
 
 interface ProjectSeerProps {
   project: Project;
@@ -70,9 +80,7 @@ export const autofixAutomatingTuningField = {
     },
     {
       value: 'super_low',
-      label: (
-        <SeerSelectLabel>{t('Only Super Highly Actionable Issues')}</SeerSelectLabel>
-      ),
+      label: <SeerSelectLabel>{t('Only the Most Actionable Issues')}</SeerSelectLabel>,
       details: t(
         'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
       ),
@@ -106,6 +114,7 @@ export const autofixAutomatingTuningField = {
   ],
   saveOnBlur: true,
   saveMessage: t('Automatic Seer settings updated'),
+  visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
 function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
@@ -167,6 +176,9 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
+    visible: ({model}) =>
+      model?.getValue('seerScannerAutomation') === true &&
+      model?.getValue('autofixAutomationTuning') !== 'off',
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -197,49 +209,32 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
       >
-        {({model}) => {
-          const seerScannerAutomation = model.getValue('seerScannerAutomation');
-          const autofixAutomationTuning = model.getValue('autofixAutomationTuning');
-          const showWarning =
-            seerScannerAutomation === false && autofixAutomationTuning !== 'off';
-          return (
-            <JsonForm
-              forms={seerFormGroups}
-              disabled={!canWriteProject}
-              renderHeader={() => (
-                <Fragment>
-                  <Alert type="info" system>
-                    {tct(
-                      "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
-                      {
-                        link: (
-                          <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />
-                        ),
-                        spendlink: (
-                          <Link
-                            to={getPricingDocsLinkForEventType(
-                              DataCategoryExact.SEER_AUTOFIX
-                            )}
-                          />
-                        ),
-                        break: <br />,
-                        bulklink: <Link to={`/settings/${organization.slug}/seer`} />,
-                      }
-                    )}
-                  </Alert>
-                  <ProjectPermissionAlert project={project} />
-                  {showWarning && (
-                    <Alert type="warning" system showIcon>
-                      {t(
-                        'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
-                      )}
-                    </Alert>
-                  )}
-                </Fragment>
-              )}
-            />
-          );
-        }}
+        <JsonForm
+          forms={seerFormGroups}
+          disabled={!canWriteProject}
+          renderHeader={() => (
+            <Fragment>
+              <Alert type="info" system>
+                {tct(
+                  "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
+                  {
+                    link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                    spendlink: (
+                      <Link
+                        to={getPricingDocsLinkForEventType(
+                          DataCategoryExact.SEER_AUTOFIX
+                        )}
+                      />
+                    ),
+                    break: <br />,
+                    bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
+                  }
+                )}
+              </Alert>
+              <ProjectPermissionAlert project={project} system />
+            </Fragment>
+          )}
+        />
       </Form>
     </Fragment>
   );
@@ -247,13 +242,61 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
 function ProjectSeer({project}: ProjectSeerProps) {
   const organization = useOrganization();
+  const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
+
+  const needsSetup =
+    !setupAcknowledgement.orgHasAcknowledged ||
+    (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
+
+  if (organization.hideAiFeatures) {
+    return <NoAccess />;
+  }
+
+  if (isLoading) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <Placeholder height="60px" />
+        <br />
+        <Placeholder height="200px" />
+        <br />
+        <Placeholder height="200px" />
+      </Fragment>
+    );
+  }
+
+  if (needsSetup) {
+    return (
+      <Fragment>
+        <SentryDocumentTitle
+          title={t('Project Seer Settings')}
+          projectSlug={project.slug}
+        />
+        <AiSetupDataConsent />
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
       />
-      <SettingsPageHeader title={t('Seer')} />
+      <SettingsPageHeader
+        title={tct('Seer Settings for [projectName]', {
+          projectName: (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(`\`${project.slug}\``),
+              }}
+            />
+          ),
+        })}
+      />
       {organization.features.includes('trigger-autofix-on-issue-summary') && (
         <ProjectSeerGeneralForm project={project} />
       )}

@@ -26,62 +26,62 @@ from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
 organization_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detectors/(?P<detector_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/$",
         OrganizationDetectorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-detector-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/$",
         OrganizationWorkflowIndexEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detectors/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/$",
         OrganizationDetectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/$",
         OrganizationWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>\d+)/group-history/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/group-history/$",
         OrganizationWorkflowGroupHistoryEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-group-history",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/stats$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats$",
         OrganizationWorkflowStatsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-stats",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/data-conditions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/data-conditions/$",
         OrganizationDataConditionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-data-condition-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detector-types/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detector-types/$",
         OrganizationDetectorTypeIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-type-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detector-workflow/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detector-workflow/$",
         OrganizationDetectorWorkflowIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-workflow-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detector-workflow/(?P<detector_workflow_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detector-workflow/(?P<detector_workflow_id>\d+)/$",
         OrganizationDetectorWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-detector-workflow-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/available-actions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/available-actions/$",
         OrganizationAvailableActionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-available-action-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/test-fire-actions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/test-fire-actions/$",
         OrganizationTestFireActionsEndpoint.as_view(),
         name="sentry-api-0-organization-test-fire-actions",
     ),

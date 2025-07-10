@@ -11,6 +11,7 @@ import {
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const theme = ThemeFixture();
 
@@ -236,6 +237,7 @@ describe('Incident Rules Create', () => {
         onDataLoaded={() => {}}
         isQueryValid
         showTotalCount
+        traceItemType={TraceItemDataset.SPANS}
       />
     );
 

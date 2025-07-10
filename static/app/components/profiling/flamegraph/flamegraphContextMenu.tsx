@@ -4,8 +4,8 @@ import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
@@ -608,10 +608,10 @@ function ProfileIdsSubMenu(props: {
           setIsOpen(true);
         }}
       >
-        <Flex w="100%" justify="space-between" align="center">
-          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)}</Flex.Item>
+        <FullWidthFlex justify="space-between" align="center">
+          <div>{t('Appears in %s profiles', props.profileIds.length)}</div>
           <IconChevron direction="right" size="xs" />
-        </Flex>
+        </FullWidthFlex>
       </ProfilingContextMenuItemButton>
       {isOpen &&
         props.subMenuPortalRef &&
@@ -672,3 +672,7 @@ function ProfileIdsSubMenu(props: {
     </Fragment>
   );
 }
+
+const FullWidthFlex = styled(Flex)`
+  width: 100%;
+`;

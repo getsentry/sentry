@@ -1,13 +1,13 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
   type SelectOption,
   type SingleSelectProps,
 } from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import FormField from 'sentry/components/forms/formField';

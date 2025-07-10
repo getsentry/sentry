@@ -1,5 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {Flatten} from 'sentry/utils/types/flatten';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -69,12 +70,14 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
-// TODO: This will be the final field type for eap spans
+// TODO: This will be the final field type for EAP spans
 export enum SpanFields {
   TRANSACTION = 'transaction',
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  ID = 'id',
+  TIMESTAMP = 'timestamp',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
@@ -89,10 +92,24 @@ export enum SpanFields {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
+  NAME = 'span.name',
+  KIND = 'span.kind',
+  STATUS = 'span.status',
+  STATUS_MESSAGE = 'span.status_message',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
   DEVICE_CLASS = 'device.class',
+  SPAN_SYSTEM = 'span.system',
+  SPAN_CATEGORY = 'span.category',
+  GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
+  GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
+  GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
+  GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
+  GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
+  GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
+  GEN_AI_USAGE_TOTAL_COST = 'gen_ai.usage.total_cost',
+  GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
 }
 
 type WebVitalsMeasurements =
@@ -132,12 +149,24 @@ type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
+  | SpanFields.GEN_AI_USAGE_TOTAL_COST
   | DiscoverNumberFields;
 
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | SpanFields.RAW_DOMAIN
-  | 'id'
+  | SpanFields.ID
+  | SpanFields.NAME
+  | SpanFields.KIND
+  | SpanFields.STATUS
+  | SpanFields.STATUS_MESSAGE
+  | SpanFields.GEN_AI_AGENT_NAME
+  | SpanFields.GEN_AI_REQUEST_MODEL
+  | SpanFields.GEN_AI_RESPONSE_MODEL
+  | SpanFields.GEN_AI_TOOL_NAME
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -238,7 +267,7 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores';
 
-export type SpanMetricsResponse = {
+type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -274,9 +303,11 @@ export type SpanMetricsResponse = {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
 
+export type SpanMetricsResponse = Flatten<SpanMetricsResponseRaw>;
+
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
-export type EAPSpanResponse = {
+type EAPSpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -312,6 +343,7 @@ export type EAPSpanResponse = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
+export type EAPSpanResponse = Flatten<EAPSpanResponseRaw>;
 export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
 
 export enum SpanIndexedField {
@@ -343,6 +375,7 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   PROFILEID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
@@ -439,9 +472,9 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
-
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.PROFILEID]: string;
+  [SpanIndexedField.PROFILER_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
@@ -521,7 +554,6 @@ type MetricsFunctions =
   | 'performance_score'
   | 'count_scores'
   | 'opportunity_score'
-  | 'total_opportunity_score'
   | 'p75';
 
 export enum MetricsFields {
@@ -597,7 +629,7 @@ type MetricsStringFields =
   | MetricsFields.TIMESTAMP
   | MetricsFields.DEVICE_CLASS;
 
-export type MetricsResponse = {
+type MetricsResponseRaw = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
@@ -606,10 +638,9 @@ export type MetricsResponse = {
 } & {
   [Property in MetricsStringFields as `${Property}`]: string;
 } & {
-  [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
-} & {
   ['project.id']: number;
 };
+export type MetricsResponse = Flatten<MetricsResponseRaw>;
 
 enum DiscoverFields {
   ID = 'id',
@@ -686,11 +717,13 @@ type DiscoverStringFields =
   | DiscoverFields.PROFILE_ID
   | DiscoverFields.PROJECT;
 
-export type DiscoverResponse = {
+type DiscoverResponseRaw = {
   [Property in DiscoverNumberFields as `${Property}`]: number;
 } & {
   [Property in DiscoverStringFields as `${Property}`]: string;
 };
+
+export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
 
 export type DiscoverProperty = keyof DiscoverResponse;
 

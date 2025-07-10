@@ -91,7 +91,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15
+        assert response.data["numFeedbacksUsed"] == 15
 
     @django_db_all
     @patch(
@@ -122,7 +122,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12
 
     @django_db_all
     @patch(
@@ -151,7 +151,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 10
+        assert response.data["numFeedbacksUsed"] == 10
 
     @django_db_all
     @patch(
@@ -180,7 +180,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -208,7 +208,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.status_code == 200
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 22
+        assert response.data["numFeedbacksUsed"] == 22
 
     @django_db_all
     @patch(
@@ -259,4 +259,56 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 12
+        assert response.data["numFeedbacksUsed"] == 12
+
+    @django_db_all
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    @patch("sentry.api.endpoints.organization_feedback_summary.cache")
+    def test_get_feedback_summary_cache_hit(self, mock_cache, mock_generate_summary):
+        mock_cache.get.return_value = {
+            "summary": "Test cached summary of feedback",
+            "numFeedbacksUsed": 13,
+        }
+
+        for _ in range(15):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test cached summary of feedback"
+        assert response.data["numFeedbacksUsed"] == 13
+
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_not_called()
+
+    @django_db_all
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    @patch("sentry.api.endpoints.organization_feedback_summary.cache")
+    def test_get_feedback_summary_cache_miss(self, mock_cache, mock_generate_summary):
+        mock_cache.get.return_value = None
+
+        for _ in range(15):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["numFeedbacksUsed"] == 15
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_called_once()

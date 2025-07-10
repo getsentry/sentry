@@ -263,7 +263,7 @@ const Label = styled('div')`
 
 const DetailTitle = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
   white-space: nowrap;
@@ -271,7 +271,7 @@ const DetailTitle = styled('div')`
 
 const Amount = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerCategoryBudgetContainer = styled('div')`

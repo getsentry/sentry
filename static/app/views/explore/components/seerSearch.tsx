@@ -2,11 +2,10 @@ import React, {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon, SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,7 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
+import {formatQueryToNaturalLanguage, getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface Visualization {
@@ -42,7 +41,7 @@ interface SeerSearchResults {
 function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
   return (
     <QueryResultsHeader>
-      {loading ? <StyledSeerLoadingIcon /> : <StyledIconSeer />}
+      <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
       <QueryResultsTitle>{title}</QueryResultsTitle>
     </QueryResultsHeader>
   );
@@ -67,9 +66,14 @@ function SeerSearchSkeleton() {
   );
 }
 
-export function SeerSearch() {
+interface SeerSearchProps {
+  initialQuery?: string;
+}
+
+export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
+  const formattedInitialQuery = formatQueryToNaturalLanguage(initialQuery);
   const {setDisplaySeerResults} = useSearchQueryBuilder();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
@@ -153,13 +157,18 @@ export function SeerSearch() {
 
       const {query, visualizations, groupBys, sort, statsPeriod} = result;
 
+      const start = pageFilters.selection.datetime.start?.valueOf();
+      const end = pageFilters.selection.datetime.end?.valueOf();
+
       const selection = {
         ...pageFilters.selection,
         datetime: {
-          start: pageFilters.selection.datetime.start,
-          end: pageFilters.selection.datetime.end,
-          period: statsPeriod,
+          start: start
+            ? new Date(start).toISOString()
+            : pageFilters.selection.datetime.start,
+          end: end ? new Date(end).toISOString() : pageFilters.selection.datetime.end,
           utc: pageFilters.selection.datetime.utc,
+          period: statsPeriod || pageFilters.selection.datetime.period,
         },
       };
       const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
@@ -328,7 +337,7 @@ const SearchInputContainer = styled('div')<{isDropdownOpen: boolean}>`
 `;
 
 const SearchInput = styled(Input)<{isDropdownOpen: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1rem;
   border: none;
   background: transparent;
@@ -402,18 +411,10 @@ const QueryResultsHeader = styled('div')`
 `;
 
 const QueryResultsTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
   margin: 0;
-`;
-
-const StyledIconSeer = styled(SeerIcon)`
-  color: ${p => p.theme.purple300};
-`;
-
-const StyledSeerLoadingIcon = styled(SeerLoadingIcon)`
-  color: ${p => p.theme.purple300};
 `;
 
 const QueryResultItem = styled('div')`
@@ -438,7 +439,7 @@ const NoneOfTheseItem = styled('div')`
   transition: background-color 0.2s ease;
   user-select: none;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

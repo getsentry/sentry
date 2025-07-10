@@ -199,7 +199,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "?field=id&queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-replay-index",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
+            "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/replays/$",
             expected_org_slug=self.organization.slug,
         )
         self._test_endpoint(
@@ -207,7 +207,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "?queryReferrer=devtoolbar&field=id",
             "GET",
             "sentry-api-0-organization-replay-index",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
+            "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/replays/$",
             expected_org_id=self.organization.id,
         )
 
@@ -218,7 +218,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "?queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-group-group-details",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$",
+            "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/$",
             expected_org_slug=self.organization.slug,
         )
 
@@ -229,7 +229,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "?queryReferrer=devtoolbar",
             "POST",
             "sentry-api-0-project-user-reports",
-            r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
+            r"^api/0/projects/(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:user-feedback|user-reports)/$",
             expected_org_slug=self.organization.slug,
             expected_proj_id=self.project.id,
         )

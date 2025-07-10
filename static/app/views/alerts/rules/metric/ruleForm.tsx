@@ -65,7 +65,10 @@ import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -84,6 +87,13 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
+import type {
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
+} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -91,12 +101,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   TimeWindow,
-  type Trigger,
-  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -226,9 +231,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
 
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, ruleEventTypes);
+
     const alertType = getAlertTypeFromAggregateDataset({
       aggregate,
       dataset,
+      eventTypes: ruleEventTypes,
       organization,
     });
 
@@ -263,6 +272,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType,
+      traceItemType,
     };
   }
 
@@ -601,38 +611,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({dataset: _dataset, aggregate, alertType}) => {
-        const dataset = this.checkOnDemandMetricsDataset(
-          name === 'dataset' ? (value as Dataset) : _dataset,
-          this.state.query
-        );
+      this.setState(
+        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
+          const dataset = this.checkOnDemandMetricsDataset(
+            name === 'dataset' ? (value as Dataset) : _dataset,
+            this.state.query
+          );
 
-        if (deprecateTransactionAlerts(organization)) {
+          const eventTypes =
+            name === 'eventTypes' ? (value as EventTypes[]) : _eventTypes;
+
+          if (deprecateTransactionAlerts(organization)) {
+            const newAlertType = getAlertTypeFromAggregateDataset({
+              aggregate: name === 'aggregate' ? (value as string) : aggregate,
+              dataset,
+              organization,
+              eventTypes,
+            });
+
+            return {
+              [name]: value,
+              alertType: newAlertType,
+              dataset,
+            };
+          }
+
           const newAlertType = getAlertTypeFromAggregateDataset({
-            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            aggregate,
             dataset,
+            eventTypes,
             organization,
           });
 
           return {
             [name]: value,
-            alertType: newAlertType,
+            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
             dataset,
           };
         }
-
-        const newAlertType = getAlertTypeFromAggregateDataset({
-          aggregate,
-          dataset,
-          organization,
-        });
-
-        return {
-          [name]: value,
-          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
-          dataset,
-        };
-      });
+      );
     }
   };
 
@@ -787,7 +804,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             timeWindow,
             aggregate,
             // Remove eventTypes as it is no longer required for crash free
-            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            eventTypes: isCrashFreeAlert(dataset) ? undefined : eventTypes,
             dataset,
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
@@ -1189,6 +1206,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       seriesSamplingInfo,
     } = this.state;
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
     if (chartError) {
       return (
         <ErrorChart
@@ -1234,6 +1253,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       theme: this.props.theme,
       confidence,
       seriesSamplingInfo,
+      traceItemType: traceItemType ?? undefined,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1441,6 +1461,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    eventTypes={eventTypes}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}
@@ -1503,7 +1524,7 @@ const Main = styled(Layout.Main)`
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: 0;
 `;
 
@@ -1517,9 +1538,9 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 

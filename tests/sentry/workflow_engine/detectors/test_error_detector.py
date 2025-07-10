@@ -23,7 +23,7 @@ class TestErrorDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": "error",
+            "type": "error",
             "fingerprinting_rules": """message:"hello world 1" -> hw1 title="HW1""",
             "resolve_age": 30,
         }
@@ -56,10 +56,10 @@ class TestErrorDetectorValidator(TestCase):
         )
 
     def test_invalid_detector_type(self):
-        data = {**self.valid_data, "detectorType": "metric_issue"}
+        data = {**self.valid_data, "type": "metric_issue"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("detectorType") == [
+        assert validator.errors.get("type") == [
             ErrorDetail(string="Detector type must be error", code="invalid")
         ]
 

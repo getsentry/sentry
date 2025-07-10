@@ -1,254 +1,143 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import useDrawer from 'sentry/components/globalDrawer';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
-import {IconCode, IconSort} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
-import {IconTool} from 'sentry/icons/iconTool';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
-import {
-  AI_AGENT_NAME_ATTRIBUTE,
-  AI_GENERATION_DESCRIPTIONS,
-  AI_GENERATION_OPS,
-  AI_MODEL_ID_ATTRIBUTE,
-  AI_RUN_DESCRIPTIONS,
-  AI_RUN_OPS,
-  AI_TOOL_CALL_DESCRIPTIONS,
-  AI_TOOL_CALL_OPS,
-  AI_TOOL_NAME_ATTRIBUTE,
-  AI_TOTAL_TOKENS_ATTRIBUTE,
-  mapMissingSpanOp,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {AISpanList} from 'sentry/views/insights/agentMonitoring/components/aiSpanList';
+import {useAITrace} from 'sentry/views/insights/agentMonitoring/hooks/useAITrace';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
+import {useNodeDetailsLink} from 'sentry/views/insights/agentMonitoring/hooks/useNodeDetailsLink';
+import {useUrlTraceDrawer} from 'sentry/views/insights/agentMonitoring/hooks/useUrlTraceDrawer';
+import {getDefaultSelectedNode} from 'sentry/views/insights/agentMonitoring/utils/getDefaultSelectedNode';
+import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
+import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const LEFT_PANEL_WIDTH = 400;
+const RIGHT_PANEL_WIDTH = 400;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
 
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
 }
-type TraceSpanNode = TraceTreeNode<
-  TraceTree.Transaction | TraceTree.EAPSpan | TraceTree.Span
->;
 
-interface UseCompleteTraceResult {
-  error: boolean;
-  isLoading: boolean;
-  nodes: TraceSpanNode[];
-}
-
-function getUniqueKey(node: TraceSpanNode, index: number) {
-  let uniqueKey: string;
-  if (isTransactionNode(node) || isEAPSpanNode(node)) {
-    uniqueKey = node.value?.event_id || `unknown-${index}`;
-  } else if (isSpanNode(node)) {
-    uniqueKey = node.value?.span_id || `unknown-${index}`;
-  } else {
-    uniqueKey = `unknown-${index}`;
-  }
-
-  return uniqueKey;
-}
-
-function isTransactionNodeEquivalent(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> {
-  return isTransactionNode(node) || (isEAPSpanNode(node) && node.value.is_transaction);
-}
-
-function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
-  const [nodes, setNodes] = useState<TraceSpanNode[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const api = useApi();
+const TraceViewDrawer = memo(function TraceViewDrawer({
+  traceSlug,
+  closeDrawer,
+}: {
+  closeDrawer: () => void;
+  traceSlug: string;
+}) {
   const organization = useOrganization();
-  const queryParams = useTraceQueryParams();
-
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const {nodes, isLoading, error} = useAITrace(traceSlug);
+  const [selectedNodeKey, setSelectedNodeKey, removeSelectedNodeParam] =
+    useLocationSyncedState(DrawerUrlParams.SELECTED_SPAN, decodeScalar);
 
   useEffect(() => {
-    if (trace.status !== 'success' || !trace.data || !meta.data) {
-      setError(trace.status === 'error' || meta.status === 'error');
-      setIsLoading(trace.status === 'pending' || meta.status === 'pending' || !meta.data);
-      return;
-    }
-
-    const loadAllSpans = async () => {
-      setIsLoading(true);
-      setError(false);
-      setNodes([]);
-
-      try {
-        const tree = TraceTree.FromTrace(trace.data, {
-          meta: meta.data,
-          replay: null,
-          preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-        });
-
-        tree.build();
-
-        const fetchableTransactions = TraceTree.FindAll(tree.root, node => {
-          return isTransactionNode(node) && node.canFetch && node.value !== null;
-        }).filter((node): node is TraceTreeNode<TraceTree.Transaction> =>
-          isTransactionNode(node)
-        );
-
-        const uniqueTransactions = fetchableTransactions.filter(
-          (node, index, array) =>
-            index === array.findIndex(tx => tx.value.event_id === node.value.event_id)
-        );
-
-        const zoomPromises = uniqueTransactions.map(node =>
-          tree.zoom(node, true, {
-            api,
-            organization,
-            preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-          })
-        );
-
-        await Promise.all(zoomPromises);
-
-        // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = TraceTree.FindAll(tree.root, node => {
-          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-            return false;
-          }
-
-          if (isTransactionNodeEquivalent(node)) {
-            return TraceTree.Find(node, child => getIsAiNode(child)) !== null;
-          }
-
-          return getIsAiNode(node);
-        }) as TraceSpanNode[];
-
-        setNodes(flattenedNodes);
-        setIsLoading(false);
-      } catch (err) {
-        setError(true);
-        setIsLoading(false);
-      }
+    return () => {
+      removeSelectedNodeParam();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
+  }, []);
 
-    loadAllSpans();
-  }, [trace.status, trace.data, meta.data, meta.status, organization, api]);
+  const handleSelectNode = useCallback(
+    (node: AITraceSpanNode) => {
+      const uniqueKey = getNodeId(node);
+      setSelectedNodeKey(uniqueKey);
 
-  return {
-    nodes,
-    isLoading,
-    error,
-  };
-}
+      trackAnalytics('agent-monitoring.drawer.span-select', {
+        organization,
+      });
+    },
+    [setSelectedNodeKey, organization]
+  );
 
-function TraceViewDrawer({traceId}: {traceId: string}) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const location = useLocation();
-  const [selectedNode, setSelectedNode] = useState<TraceSpanNode | undefined>(undefined);
+  const selectedNode =
+    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    getDefaultSelectedNode(nodes);
 
-  let spanId: string | undefined;
-  let targetId: string | undefined;
-  let timestamp: number | undefined;
+  const nodeDetailsLink = useNodeDetailsLink({
+    node: selectedNode,
+    traceSlug,
+    source: TraceViewSources.AGENT_MONITORING,
+  });
 
-  if (selectedNode) {
-    if (isEAPSpanNode(selectedNode)) {
-      spanId = selectedNode.value.event_id;
-      targetId = selectedNode.value.transaction_id;
-      timestamp = selectedNode.value.start_timestamp;
-    }
-    if (isTransactionNode(selectedNode)) {
-      spanId = selectedNode.value.event_id;
-      targetId = selectedNode.value.event_id;
-      timestamp = selectedNode.value.start_timestamp;
-    }
-    if (isSpanNode(selectedNode)) {
-      spanId = selectedNode.value.span_id;
-      timestamp = selectedNode.value.start_timestamp;
-      // Find parent transaction
-      let parent = selectedNode.parent;
-      while (parent && !isTransactionNode(parent)) {
-        parent = parent.parent;
-      }
-      if (parent) {
-        targetId = parent.value.event_id;
-        spanId = selectedNode.value.span_id;
-      }
-    }
-  }
+  const handleViewFullTraceClick = useCallback(() => {
+    trackAnalytics('agent-monitoring.drawer.view-full-trace-click', {
+      organization,
+    });
+    closeDrawer();
+  }, [organization, closeDrawer]);
 
   return (
     <DrawerWrapper>
       <StyledDrawerHeader>
         <HeaderContent>
-          <div />
-          <LinkButton
-            size="xs"
-            to={getTraceDetailsUrl({
-              source: TraceViewSources.AGENT_MONITORING,
-              organization,
-              location,
-              traceSlug: traceId,
-              dateSelection: normalizeDateTimeParams(selection),
-              spanId,
-              timestamp,
-              targetId,
-            })}
-          >
-            {t('View Full Trace')}
+          {t('Abbreviated Trace')}
+          <LinkButton size="xs" onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
+            {t('View in Full Trace')}
           </LinkButton>
         </HeaderContent>
       </StyledDrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-          <AITraceView traceId={traceId} onSelectNode={setSelectedNode} />
+          <AITraceView
+            traceSlug={traceSlug}
+            nodes={nodes}
+            selectedNode={selectedNode}
+            onSelectNode={handleSelectNode}
+            isLoading={isLoading}
+            error={error}
+          />
         </TraceStateProvider>
       </StyledDrawerBody>
     </DrawerWrapper>
   );
-}
+});
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
+  const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
-  const openTraceViewDrawer = (traceId: string) =>
-    openDrawer(() => <TraceViewDrawer traceId={traceId} />, {
-      ariaLabel: t('Abbreviated Trace'),
-      onClose,
-      shouldCloseOnInteractOutside: () => true,
-      drawerWidth: '40%',
-      resizable: true,
+  const openTraceViewDrawer = useCallback(
+    (traceSlug: string) => {
+      trackAnalytics('agent-monitoring.drawer.open', {
+        organization,
+      });
 
-      drawerKey: 'abbreviated-trace-view-drawer',
-    });
+      return openDrawer(
+        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        {
+          ariaLabel: t('Abbreviated Trace'),
+          onClose,
+          shouldCloseOnInteractOutside: () => true,
+          drawerWidth: `${DRAWER_WIDTH}px`,
+          resizable: true,
+          traceSlug,
+          drawerKey: 'abbreviated-trace-view-drawer',
+        }
+      );
+    },
+    [openDrawer, onClose, closeDrawer, organization]
+  );
+
+  useEffect(() => {
+    if (drawerUrlState.trace && !isDrawerOpen) {
+      openTraceViewDrawer(drawerUrlState.trace);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
+  }, []);
 
   return {
     openTraceViewDrawer,
@@ -257,32 +146,22 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
 }
 
 function AITraceView({
-  traceId: traceSlug,
+  traceSlug,
+  nodes,
+  selectedNode,
   onSelectNode,
+  isLoading,
+  error,
 }: {
-  traceId: string;
-  onSelectNode?: (node: TraceSpanNode) => void;
+  error: boolean;
+  isLoading: boolean;
+  nodes: AITraceSpanNode[];
+  onSelectNode: (node: AITraceSpanNode) => void;
+  selectedNode: AITraceSpanNode | undefined;
+  traceSlug: string;
 }) {
   const organization = useOrganization();
-  const {nodes, isLoading, error} = useCompleteTrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
-
-  const handleSelectNode = useCallback(
-    (node: TraceSpanNode, index: number) => {
-      const uniqueKey = getUniqueKey(node, index);
-      setSelectedNodeKey(uniqueKey);
-      onSelectNode?.(node);
-    },
-    [onSelectNode]
-  );
-
-  useEffect(() => {
-    if (nodes.length > 0 && !selectedNodeKey && nodes[0]) {
-      handleSelectNode(nodes[0], 0);
-    }
-  }, [handleSelectNode, nodes, selectedNodeKey]);
-
-  if (isLoading || nodes.length === 0) {
+  if (isLoading) {
     return (
       <LoadingContainer>
         <LoadingIndicator size={32}>{t('Loading trace...')}</LoadingIndicator>
@@ -290,24 +169,22 @@ function AITraceView({
     );
   }
 
+  if (nodes.length === 0) {
+    return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
+  }
+
   if (error) {
     return <div>{t('Failed to load trace')}</div>;
   }
 
-  const selectedNode = selectedNodeKey
-    ? nodes.find((node, index) => getUniqueKey(node, index) === selectedNodeKey) ||
-      nodes[0]
-    : nodes[0];
-
   return (
     <SplitContainer>
       <LeftPanel>
-        <h4>{t('Abbreviated Trace')}</h4>
-
-        <AbbreviatedTrace
+        <SpansHeader>{t('AI Spans')}</SpansHeader>
+        <AISpanList
           nodes={nodes}
-          selectedNodeKey={selectedNodeKey}
-          onSelectNode={handleSelectNode}
+          selectedNodeKey={getNodeId(selectedNode!)}
+          onSelectNode={onSelectNode}
         />
       </LeftPanel>
       <RightPanel>
@@ -326,287 +203,6 @@ function AITraceView({
   );
 }
 
-const TAGS_REGEX = /tags\[(.*?),.*\]/;
-function mapSpanAttributes(
-  spanAttributes: Record<string, string | number | boolean | null>
-) {
-  // Map "tags[gen_ai.request.model,string]" to "gen_ai.request.model"
-  return Object.fromEntries(
-    Object.entries(spanAttributes)
-      .map<[string, string | undefined]>(([key, value]) => {
-        const match = key.match(TAGS_REGEX);
-        if (match?.[1]) {
-          return [match[1], value?.toString()];
-        }
-        return [key, value?.toString()];
-      })
-      .filter((entry): entry is [string, string] => defined(entry[1]))
-  );
-}
-
-const keyToTag = (key: string, type: 'string' | 'number') => {
-  return `tags[${key},${type}]`;
-};
-
-function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) {
-  const spans = useMemo(() => {
-    return nodes.filter(node => isEAPSpanNode(node));
-  }, [nodes]);
-  const spanAttributesRequest = useEAPSpans(
-    {
-      search: `span_id:[${spans.map(span => span.value.event_id).join(',')}]`,
-      fields: [
-        'span_id',
-        keyToTag(AI_MODEL_ID_ATTRIBUTE, 'string'),
-        keyToTag(AI_TOTAL_TOKENS_ATTRIBUTE, 'number'),
-        keyToTag(AI_TOOL_NAME_ATTRIBUTE, 'string'),
-        keyToTag(AI_AGENT_NAME_ATTRIBUTE, 'string'),
-      ] as EAPSpanProperty[],
-      limit: 100,
-    },
-    Referrer.TRACE_DRAWER
-  );
-
-  const spanAttributes = useMemo(() => {
-    return spanAttributesRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.span_id] = mapSpanAttributes(span);
-        return acc;
-      },
-      {} as Record<string, Record<string, string>>
-    );
-  }, [spanAttributesRequest.data]);
-
-  return {data: spanAttributes, isPending: spanAttributesRequest.isPending};
-}
-
-function AbbreviatedTrace({
-  nodes,
-  selectedNodeKey,
-  onSelectNode,
-}: {
-  nodes: TraceSpanNode[];
-  onSelectNode: (node: TraceSpanNode, index: number) => void;
-  selectedNodeKey: string | null;
-}) {
-  const theme = useTheme();
-  const colors = theme.chart.getColorPalette(5);
-  let transactionBounds = {startTime: 0, endTime: 0, duration: 0};
-
-  const getTransactionBounds = (
-    transactionNode: TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan>
-  ) => {
-    if (!transactionNode?.value) return {startTime: 0, endTime: 0, duration: 0};
-
-    const startTime = transactionNode.value.start_timestamp;
-    let endTime = 0;
-    if (isTransactionNode(transactionNode)) {
-      endTime = transactionNode.value.timestamp;
-    } else if (isEAPSpanNode(transactionNode)) {
-      endTime = transactionNode.value.end_timestamp;
-    }
-
-    if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
-
-    return {
-      startTime,
-      endTime,
-      duration: endTime - startTime,
-    };
-  };
-
-  const spanAttributesRequest = useEAPSpanAttributes(nodes);
-
-  return (
-    <TraceListContainer>
-      {nodes.map((node, index) => {
-        const isTransaction = isTransactionNodeEquivalent(node);
-        if (isTransaction) {
-          transactionBounds = getTransactionBounds(node);
-        }
-
-        const uniqueKey = getUniqueKey(node, index);
-        return (
-          <TraceListItem
-            key={uniqueKey}
-            node={node}
-            traceBounds={transactionBounds}
-            onClick={() => onSelectNode(node, index)}
-            isSelected={uniqueKey === selectedNodeKey}
-            colors={colors}
-            isLoadingAttributes={
-              isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
-            }
-            spanAttributes={
-              isEAPSpanNode(node)
-                ? spanAttributesRequest.data[node.value.event_id]
-                : undefined
-            }
-          />
-        );
-      })}
-    </TraceListContainer>
-  );
-}
-
-function TraceListItem({
-  node,
-  onClick,
-  isSelected,
-  traceBounds,
-  colors,
-  spanAttributes = {},
-  isLoadingAttributes = false,
-}: {
-  colors: readonly string[];
-  isSelected: boolean;
-  node: TraceSpanNode;
-  onClick: () => void;
-  spanAttributes: Record<string, string> | undefined;
-  traceBounds: {duration: number; endTime: number; startTime: number};
-  isLoadingAttributes?: boolean;
-}) {
-  const {icon, title, subtitle, color} = getNodeInfo(node, colors, spanAttributes);
-
-  const safeColor = color || colors[0] || '#9ca3af';
-
-  const relativeTiming = calculateRelativeTiming(node, traceBounds);
-
-  return (
-    <ListItemContainer isSelected={isSelected} onClick={onClick}>
-      <ListItemIcon color={safeColor}>{icon}</ListItemIcon>
-      <ListItemContent>
-        <ListItemHeader>
-          <ListItemTitle>{title}</ListItemTitle>
-          {isLoadingAttributes ? (
-            <Placeholder height="12px" width="60px" />
-          ) : (
-            subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>
-          )}
-        </ListItemHeader>
-        <DurationBar color={safeColor} relativeTiming={relativeTiming} />
-      </ListItemContent>
-    </ListItemContainer>
-  );
-}
-
-interface TraceBounds {
-  duration: number;
-  endTime: number;
-  startTime: number;
-}
-
-function calculateRelativeTiming(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  traceBounds: TraceBounds
-): {leftPercent: number; widthPercent: number} {
-  if (!node.value) return {leftPercent: 0, widthPercent: 0};
-
-  let startTime: number, endTime: number;
-
-  if (isTransactionNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.timestamp;
-  } else if (isEAPSpanNode(node)) {
-    startTime = node.value.start_timestamp;
-    endTime = node.value.end_timestamp;
-  } else {
-    return {leftPercent: 0, widthPercent: 0};
-  }
-
-  if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
-
-  const relativeStart =
-    Math.max(0, (startTime - traceBounds.startTime) / traceBounds.duration) * 100;
-  const spanDuration = ((endTime - startTime) / traceBounds.duration) * 100;
-
-  // Minimum width of 2% for very short spans
-  const minWidth = 2;
-  const adjustedWidth = Math.max(spanDuration, minWidth);
-
-  const maxAllowedStart = 100 - adjustedWidth;
-  const adjustedStart = Math.min(relativeStart, maxAllowedStart);
-
-  return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
-}
-
-function getNodeInfo(
-  node: TraceSpanNode,
-  colors: readonly string[],
-  spanAttributes: Record<string, string>
-) {
-  // Default return value
-  const nodeInfo = {
-    icon: <IconCode size="md" />,
-    title: 'Unknown',
-    subtitle: '',
-    color: colors[0],
-  };
-
-  if (isTransactionNode(node)) {
-    nodeInfo.title = node.value.transaction || 'Transaction';
-    nodeInfo.subtitle = node.value['transaction.op'] || '';
-    return nodeInfo;
-  }
-
-  if (!isEAPSpanNode(node) && !isSpanNode(node)) {
-    return nodeInfo;
-  }
-
-  const getNodeAttribute = (key: string) => {
-    if (isEAPSpanNode(node)) {
-      return spanAttributes?.[key];
-    }
-
-    return node.value?.data?.[key];
-  };
-
-  const op = mapMissingSpanOp({
-    op: node.value?.op,
-    description: node.value?.description,
-  });
-
-  if (
-    AI_RUN_OPS.includes(op) ||
-    AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
-    const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
-    const model = getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) || '';
-    nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.title = op;
-    nodeInfo.subtitle = `${agentName}${model ? ` (${model})` : ''}`;
-    nodeInfo.color = colors[1];
-  } else if (
-    AI_GENERATION_OPS.includes(op) ||
-    AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
-    const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
-    nodeInfo.icon = <IconSpeechBubble size="md" />;
-    nodeInfo.title = op;
-    nodeInfo.subtitle = tokens ? ` ${tokens} Tokens` : '';
-    nodeInfo.color = colors[2];
-  } else if (
-    AI_TOOL_CALL_OPS.includes(op) ||
-    AI_TOOL_CALL_DESCRIPTIONS.includes(node.value.description ?? '')
-  ) {
-    nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.title = op || 'gen_ai.toolCall';
-    nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
-    nodeInfo.color = colors[3];
-  } else if (op === 'http.client') {
-    nodeInfo.icon = <IconSort size="md" />;
-    nodeInfo.title = node.value.description || 'HTTP';
-    nodeInfo.color = colors[4];
-  } else {
-    nodeInfo.title = op || 'Span';
-    nodeInfo.subtitle = node.value.description || '';
-  }
-  return nodeInfo;
-}
-
 const StyledDrawerBody = styled(DrawerBody)`
   padding: 0;
   flex: 1;
@@ -623,7 +219,7 @@ const SplitContainer = styled('div')`
 
 const LeftPanel = styled('div')`
   flex: 1;
-  min-width: 300px;
+  min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
@@ -633,96 +229,12 @@ const LeftPanel = styled('div')`
 `;
 
 const RightPanel = styled('div')`
-  min-width: 400px;
+  min-width: ${RIGHT_PANEL_WIDTH}px;
   flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.background};
   overflow-y: auto;
   overflow-x: hidden;
-`;
-
-const TraceListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)};
-  overflow: hidden;
-`;
-
-const ListItemContainer = styled('div')<{isSelected: boolean}>`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
-  background-color: ${p =>
-    p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple200}` : 'none')};
-
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const ListItemIcon = styled('div')<{color: string}>`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
-  color: ${p => p.color};
-`;
-
-const ListItemContent = styled('div')`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ListItemHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.5)};
-`;
-
-const ListItemTitle = styled('div')`
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-`;
-
-const ListItemSubtitle = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-`;
-
-const DurationBar = styled('div')<{
-  color: string;
-  relativeTiming: {leftPercent: number; widthPercent: number};
-}>`
-  width: 100%;
-  height: 4px;
-  background-color: ${p => p.theme.gray200};
-  border-radius: 2px;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: ${p => p.relativeTiming.leftPercent}%;
-    top: 0;
-    height: 100%;
-    width: ${p => p.relativeTiming.widthPercent}%;
-    background-color: ${p => p.color};
-    border-radius: 2px;
-  }
 `;
 
 const DrawerWrapper = styled('div')`
@@ -741,17 +253,18 @@ const LoadingContainer = styled('div')`
 
 const StyledDrawerHeader = styled(DrawerHeader)`
   padding: ${space(1)} ${space(2)};
+  display: flex;
 `;
 
 const HeaderContent = styled('div')`
   display: flex;
-  justify-content: space-between;
+  flex: 1;
   align-items: center;
-  width: 100%;
+  justify-content: space-between;
+`;
 
-  h3 {
-    margin: 0;
-    font-size: ${p => p.theme.fontSizeLarge};
-    font-weight: 600;
-  }
+const SpansHeader = styled('h6')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: bold;
+  margin-bottom: ${space(2)};
 `;

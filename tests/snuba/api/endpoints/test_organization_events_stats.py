@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, DefaultDict, TypedDict
 from unittest import mock
 from uuid import uuid4
 
@@ -18,7 +19,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -1246,7 +1247,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
-class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
+class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -3013,6 +3014,112 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
                 }
 
 
+class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
+    # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.logs = (
+            [
+                self.create_ourlog(
+                    {"body": "zero seconds"},
+                    timestamp=self.day_ago + timedelta(microseconds=i),
+                )
+                for i in range(10)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "five seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=5, microseconds=i),
+                )
+                for i in range(20)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "ten seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=10, microseconds=i),
+                )
+                for i in range(30)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "fifteen seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=15, microseconds=i),
+                )
+                for i in range(40)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "twenty seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=20, microseconds=i),
+                )
+                for i in range(50)
+            ]
+            + [
+                self.create_ourlog(
+                    {"body": "twenty five seconds"},
+                    timestamp=self.day_ago + timedelta(seconds=25, microseconds=i),
+                )
+                for i in range(60)
+            ]
+        )
+        self.store_ourlogs(self.logs)
+
+        self.enabled_features = {
+            "organizations:discover-basic": True,
+            "organizations:ourlogs-enabled": True,
+        }
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    def test_simple_top_events(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "dataset": "ourlogs",
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message"],
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+
+        expected_message_counts_dict: DefaultDict[str, int] = defaultdict(int)
+        for log in self.logs:
+            attr = log.attributes.get("sentry.body")
+            if attr is not None:
+                body = attr.string_value
+                expected_message_counts_dict[body] += 1
+
+        expected_message_counts: list[tuple[str, int]] = sorted(
+            expected_message_counts_dict.items(), key=lambda x: x[1], reverse=True
+        )
+
+        assert set(data.keys()) == {x[0] for x in expected_message_counts[:5]}.union({"Other"})
+
+        for index, (message, count) in enumerate(expected_message_counts[:5]):
+            assert [{"count": count}] in data[message]["data"][0]
+            assert data[message]["order"] == index
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 10}] in other["data"][0]
+
+
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -3373,3 +3480,174 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         data = response.data
         assert response.status_code == 200, response.content
         assert len(data) == 2
+
+
+class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
+    endpoint = "sentry-api-0-organization-events-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.authed_user = self.user
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+        self.user = self.create_user()
+        self.user2 = self.create_user()
+
+        # Store some error events with error_sampling context
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "exception": [{"type": "ValueError", "value": "Something went wrong 1"}],
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "oh my",
+                "type": "error",
+                "exception": [{"type": "ValueError", "value": "Something went wrong 2"}],
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=1)).isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project2.id,
+        )
+        self.wait_for_event_count(self.project.id, 1)
+        self.wait_for_event_count(self.project2.id, 1)
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    @mock.patch("sentry.api.helpers.error_upsampling.options")
+    def test_error_upsampling_with_allowlisted_projects(self, mock_options):
+        # Set up allowlisted projects
+        mock_options.get.return_value = [self.project.id, self.project2.id]
+
+        # Test with count() aggregation
+        response = self.client.get(
+            self.url,
+            data={
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "event.type:error",
+                "project": [self.project.id, self.project2.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2  # Two time buckets
+        assert data[0][1][0]["count"] == 10  # First bucket has 1 event
+        assert data[1][1][0]["count"] == 10  # Second bucket has 1 event
+
+    @mock.patch("sentry.api.helpers.error_upsampling.options")
+    def test_error_upsampling_with_partial_allowlist(self, mock_options):
+        # Set up partial allowlist - only one project is allowlisted
+        mock_options.get.return_value = [self.project.id]
+
+        response = self.client.get(
+            self.url,
+            data={
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "event.type:error",
+                "project": [self.project.id, self.project2.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2  # Two time buckets
+        # Should use regular count() since not all projects are allowlisted
+        assert data[0][1][0]["count"] == 1
+        assert data[1][1][0]["count"] == 1
+
+    @mock.patch("sentry.api.helpers.error_upsampling.options")
+    def test_error_upsampling_with_transaction_events(self, mock_options):
+        # Set up allowlisted projects
+        mock_options.get.return_value = [self.project.id, self.project2.id]
+
+        # Store a transaction event
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "transaction": "/test",
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "type": "transaction",
+                "start_timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,  # must be 32 hex chars
+                        "span_id": "a" * 16,  # must be 16 hex chars
+                        "op": "test",  # operation name, can be any string
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        response = self.client.get(
+            self.url,
+            data={
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "event.type:transaction",
+                "project": [self.project.id, self.project2.id],
+                "dataset": "discover",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2  # Two time buckets
+        # Should use regular count() for transactions
+        assert data[0][1][0]["count"] == 1
+        assert data[1][1][0]["count"] == 0
+
+    @mock.patch("sentry.api.helpers.error_upsampling.options")
+    def test_error_upsampling_with_no_allowlisted_projects(self, mock_options):
+        # Set up no allowlisted projects
+        mock_options.get.return_value = []
+
+        response = self.client.get(
+            self.url,
+            data={
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "event.type:error",
+                "project": [self.project.id, self.project2.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2  # Two time buckets
+        # Should use regular count() since no projects are allowlisted
+        assert data[0][1][0]["count"] == 1
+        assert data[1][1][0]["count"] == 1

@@ -323,10 +323,17 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'mobile-vitals': {
     heading: t('Mobile Vitals'),
-    description: t('Explore mobile app metrics.'),
-    valuePropDescription: '',
-    valuePropPoints: [],
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations to improve key mobile metrics.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),

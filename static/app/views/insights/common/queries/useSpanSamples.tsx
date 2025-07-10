@@ -39,7 +39,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.PROFILEID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanIndexedField.TRACE
 >;
@@ -49,7 +49,7 @@ export type DefaultSpanSampleFields =
   | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.PROFILEID
   | SpanIndexedField.SPAN_SELF_TIME;
 
 export type NonDefaultSpanSampleFields = Exclude<

@@ -9,17 +9,19 @@ import mediumStarDark from 'sentry-images/spot/product-select-star-m-dark.svg';
 import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 import smallStarDark from 'sentry-images/spot/product-select-star-s-dark.svg';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconAdd, IconCheckmark} from 'sentry/icons';
+import {IconAdd, IconCheckmark, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -43,16 +45,33 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [SelectableProduct.SEER]: {
-      icon: <SeerIcon size="lg" color={'pink400'} />,
+      icon: <IconSeer size="lg" color="pink400" />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
-      description: t('Detect and fix issues faster with our AI debugging agent.'),
-      features: [
-        t('Issue scan'),
-        t('Root cause analysis'),
-        t('Solution and code changes'),
-      ],
+      getProductDescription: (includedBudget: string) =>
+        tct(
+          'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
+          {
+            includedBudget,
+          }
+        ),
+      categoryInfo: {
+        [DataCategory.SEER_AUTOFIX]: {
+          perEventNameOverride: 'fix',
+          description: t(
+            'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
+          ),
+          maxEventPriceDigits: 0,
+        },
+        [DataCategory.SEER_SCANNER]: {
+          perEventNameOverride: 'scan',
+          description: t(
+            'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
+          ),
+          maxEventPriceDigits: 3,
+        },
+      },
     },
   };
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
@@ -68,17 +87,20 @@ function ProductSelect({
           return null;
         }
 
-        const cost = formatCurrency(
-          utils.getReservedPriceForReservedBudgetCategory({
-            plan: activePlan,
-            reservedBudgetCategory: productInfo.apiName,
-          })
-        );
+        // how much the customer is paying for the product
+        const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
+          plan: activePlan,
+          reservedBudgetCategory: productInfo.apiName,
+        });
+        const priceInDollars = utils.formatPrice({
+          cents: priceInCents,
+        });
 
+        // how much the customer gets per month for the product
         // if no default budget, then the included budget is how much the customer is paying for the product
-        const includedBudget = productInfo.defaultBudget
-          ? formatCurrency(productInfo.defaultBudget)
-          : cost;
+        const formattedMonthlyBudget = formatCurrency(
+          productInfo.defaultBudget ?? priceInCents
+        );
 
         return (
           <ProductOption
@@ -119,17 +141,49 @@ function ProductSelect({
                       })}
                     </ProductName>
                   </ProductLabel>
-                  <p>{checkoutInfo.description}</p>
+                  <ProductDescription>
+                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                  </ProductDescription>
                 </Column>
-                <Column>
-                  {checkoutInfo.features.map(feature => (
-                    <Feature key={feature}>
-                      <IconCheckmark color={checkoutInfo.color} />
-                      {feature}
-                    </Feature>
-                  ))}
-                </Column>
+                <PriceContainer>
+                  <PriceHeader>{t('Starts At')}</PriceHeader>
+                  <Price>
+                    <Currency>$</Currency>
+                    <Amount>{priceInDollars}</Amount>
+                    <BillingInterval>{`/${billingInterval}`}</BillingInterval>
+                  </Price>
+                </PriceContainer>
               </Row>
+              <Features>
+                {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
+                  const pricingInfo = activePlan.planCategories[category as DataCategory];
+                  const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
+                  return (
+                    <Feature
+                      key={category}
+                      data-test-id={`product-option-feature-${category}`}
+                    >
+                      <FeatureHeader>
+                        <IconContainer>
+                          <IconCheckmark color={checkoutInfo.color} />
+                        </IconContainer>
+                        <span>
+                          {getSingularCategoryName({
+                            plan: activePlan,
+                            category: category as DataCategory,
+                            hadCustomDynamicSampling: false,
+                            title: true,
+                          })}
+                        </span>
+                        {eventPrice && (
+                          <EventPriceTag>{`${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})} / ${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}</EventPriceTag>
+                        )}
+                      </FeatureHeader>
+                      <FeatureDescription>{info.description}</FeatureDescription>
+                    </Feature>
+                  );
+                })}
+              </Features>
               <Row>
                 <StyledButton>
                   <ButtonContent
@@ -150,29 +204,11 @@ function ProductSelect({
                     ) : (
                       <Fragment>
                         <IconAdd />
-                        {tct(' Add for [cost]/[billingInterval]', {
-                          cost,
-                          billingInterval,
-                        })}
+                        {t('Add to plan')}
                       </Fragment>
                     )}
                   </ButtonContent>
                 </StyledButton>
-              </Row>
-              <Row justifyContent="center">
-                <Subtitle>
-                  {tct(
-                    'Includes [includedBudget]/mo of credits for [productName] services. Additional usage is drawn from your [budgetTerm] budget.',
-                    {
-                      includedBudget,
-                      budgetTerm:
-                        activePlan.budgetTerm === 'pay-as-you-go'
-                          ? 'PAYG'
-                          : activePlan.budgetTerm,
-                      productName: toTitleCase(productInfo.productName),
-                    }
-                  )}
-                </Subtitle>
               </Row>
               <IllustrationContainer>
                 <Star1 src={prefersDarkMode ? largeStarDark : largeStarLight} />
@@ -296,11 +332,10 @@ const Column = styled('div')<{alignItems?: string}>`
   align-items: ${p => p.alignItems};
 `;
 
-const Row = styled('div')<{justifyContent?: string}>`
+const Row = styled('div')`
   display: flex;
   gap: ${space(4)};
-  justify-content: ${p => p.justifyContent ?? 'flex-start'};
-  align-items: center;
+  justify-content: space-between;
 `;
 
 const ProductLabel = styled('div')<{productColor: string}>`
@@ -313,15 +348,60 @@ const ProductLabel = styled('div')<{productColor: string}>`
 `;
 
 const ProductName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
-const Subtitle = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const ProductDescription = styled('p')`
+  margin: ${space(0.5)} 0 ${space(2)};
+  font-weight: 600;
+  text-wrap: balance;
+`;
+
+const PriceContainer = styled(Column)`
+  gap: 0px;
+`;
+
+const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  text-align: center;
-  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  text-transform: uppercase;
+  font-weight: bold;
+`;
+
+const Price = styled('div')`
+  display: inline-grid;
+  grid-template-columns: repeat(3, auto);
+  color: ${p => p.theme.textColor};
+`;
+
+const Currency = styled('span')`
+  padding-top: ${space(0.5)};
+`;
+
+const Amount = styled('span')`
+  font-size: 24px;
+  align-self: end;
+`;
+
+const BillingInterval = styled('span')`
+  font-size: ${p => p.theme.fontSize.md};
+  align-self: end;
+  padding-bottom: ${space(0.25)};
+`;
+
+const EventPriceTag = styled(Tag)`
+  display: flex;
+  align-items: center;
+  line-height: normal;
+  width: fit-content;
+  font-weight: normal;
+`;
+
+const IconContainer = styled('div')`
+  margin-right: ${space(1)};
+  display: flex;
+  align-items: center;
 `;
 
 const StyledButton = styled(Button)`
@@ -336,40 +416,45 @@ const ButtonContent = styled('div')<{color: string}>`
   color: ${p => p.color};
 `;
 
-const Feature = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+const Features = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: ${space(2)};
+`;
+
+const Feature = styled(Column)`
+  font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const FeatureHeader = styled(Row)`
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0px;
   align-items: center;
-  align-content: center;
-  svg {
-    flex-shrink: 0;
+
+  > span {
+    margin-right: ${space(0.75)};
+    font-weight: 600;
   }
-  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const FeatureDescription = styled('div')`
+  text-wrap: balance;
+  margin-left: ${space(3)};
+  max-width: unset;
+
+  @media (max-width: 700px) or ((min-width: 1200px) and (max-width: 1300px)) or ((min-width: 1400px) and (max-width: 1500px)) {
+    max-width: 250px;
+  }
 `;
 
 const IllustrationContainer = styled('div')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
     display: block;
     position: absolute;
-    bottom: 84px;
-    right: 12px;
-    height: 175px;
-    width: 200px;
-    overflow: hidden;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-    pointer-events: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    display: block;
-    position: absolute;
-    bottom: 84px;
+    bottom: 0px;
     right: 12px;
     height: 175px;
     width: 200px;

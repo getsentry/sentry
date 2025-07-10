@@ -5,9 +5,9 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {TextArea} from 'sentry/components/core/textarea';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   IconChevron as IconExpandToggle,
@@ -207,7 +207,7 @@ const RepoName = styled('div')`
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;
@@ -231,7 +231,7 @@ const SettingsGroup = styled('div')`
 const BranchInputLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.gray500};
   margin-bottom: ${space(0.5)};
   gap: ${space(0.5)};

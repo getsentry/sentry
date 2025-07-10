@@ -371,7 +371,7 @@ function recordAnalytics(
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
   const currentData = {
-    // TODO(data categories): check if these can be parsed
+    // TODO(data categories): BIL-966
     plan: data.plan,
     errors: data.reservedErrors,
     transactions: data.reservedTransactions,
@@ -395,7 +395,7 @@ function recordAnalytics(
     uptime: subscription.categories.uptime?.reserved || undefined,
   };
 
-  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
@@ -511,7 +511,7 @@ export function getCheckoutAPIData({
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
   const reservedData = {
-    // TODO(data categories): check if these can be parsed
+    // TODO(data categories): BIL-965
     reservedErrors: formatReservedData(formData.reserved.errors),
     reservedTransactions: formatReservedData(formData.reserved.transactions),
     reservedAttachments: formatReservedData(formData.reserved.attachments),
@@ -625,6 +625,15 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
+
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
@@ -632,7 +641,9 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+        }`
       )
     );
   } catch (error) {

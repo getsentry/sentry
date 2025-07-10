@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import useResizable from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
+  NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -51,11 +52,17 @@ export function SecondarySidebar() {
   const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
 
   return (
-    <ResizeWrapper ref={resizableContainerRef} onMouseDown={handleStartResize}>
-      <NavTourElement
-        id={stepId}
-        description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
-        title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
+    <SecondarySidebarWrapper
+      id={stepId}
+      description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
+    >
+      <ResizeWrapper
+        ref={resizableContainerRef}
+        onMouseDown={handleStartResize}
+        {...{
+          [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+        }}
       >
         <AnimatePresence mode="wait" initial={false}>
           <MotionDiv
@@ -77,18 +84,22 @@ export function SecondarySidebar() {
             />
           </MotionDiv>
         </AnimatePresence>
-      </NavTourElement>
-    </ResizeWrapper>
+      </ResizeWrapper>
+    </SecondarySidebarWrapper>
   );
 }
 
-const ResizeWrapper = styled('div')`
-  position: relative;
-  right: 0;
+const SecondarySidebarWrapper = styled(NavTourElement)`
+  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
   border-right: 1px solid
     ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
+  position: relative;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
+  height: 100%;
+`;
+
+const ResizeWrapper = styled('div')`
+  right: 0;
   height: 100%;
   width: ${SECONDARY_SIDEBAR_WIDTH}px;
 `;

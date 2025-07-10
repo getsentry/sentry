@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,18 +16,24 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
-import {useIndexedResourcesQuery} from 'sentry/views/insights/browser/resources/queries/useIndexedResourceQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 type Props = {groupId: string; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
-const {SPAN_GROUP, RAW_DOMAIN, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
-  SpanIndexedField;
+const {
+  SPAN_GROUP,
+  RAW_DOMAIN,
+  SPAN_DESCRIPTION,
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+  SPAN_OP,
+} = SpanFields;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
@@ -39,15 +45,24 @@ function SampleImages({groupId, projectId}: Props) {
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isPending: isLoadingImages} = useIndexedResourcesQuery({
-    queryConditions: [
-      `${SPAN_GROUP}:${groupId}`,
-      ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
-    ],
-    sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
-    limit: 100,
-    referrer: 'api.performance.resources.sample-images',
-  });
+  const {data: imageResources, isPending: isLoadingImages} = useEAPSpans(
+    {
+      fields: [
+        SpanFields.PROJECT,
+        SpanFields.SPAN_GROUP,
+        SpanFields.RAW_DOMAIN,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+      ],
+      limit: 100,
+      sorts: [{field: MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH, kind: 'desc'}],
+      search: [
+        `${SPAN_GROUP}:${groupId}`,
+        ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
+      ].join(' '),
+    },
+    'api.performance.resources.sample-images'
+  );
 
   const uniqueResources = new Set();
 
@@ -81,8 +96,16 @@ function SampleImages({groupId, projectId}: Props) {
   );
 }
 
+type ImageSpan = Pick<
+  EAPSpanResponse,
+  | 'span.group'
+  | 'raw_domain'
+  | 'span.description'
+  | 'measurements.http.response_content_length'
+>;
+
 function SampleImagesChartPanelBody(props: {
-  images: ReturnType<typeof useIndexedResourcesQuery>['data'];
+  images: ImageSpan[];
   isImagesEnabled: boolean;
   isLoadingImages: boolean;
   isSettingsLoading: boolean;
@@ -147,7 +170,7 @@ function SampleImagesChartPanelBody(props: {
             src={src}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
-            size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
+            size={resource[MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]}
             key={resource[SPAN_DESCRIPTION]}
           />
         );
