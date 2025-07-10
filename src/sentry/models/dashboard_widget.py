@@ -262,7 +262,8 @@ class DashboardWidgetQueryOnDemand(Model):
 class DashboardWidgetSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    widget: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    widget = FlexibleForeignKey("sentry.DashboardWidget")
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
 
 @region_silo_model
@@ -286,9 +287,6 @@ class DashboardWidget(Model):
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
     discover_widget_split = BoundedPositiveIntegerField(
         choices=DashboardWidgetTypes.as_choices(), null=True
-    )
-    snapshot = models.OneToOneField(
-        "sentry.DashboardWidgetSnapshot", null=True, on_delete=models.SET_NULL
     )
 
     # The method of which the discover split datasets was decided
