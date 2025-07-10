@@ -487,7 +487,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
 
       const target = generateLinkToEventInTraceView({
-        projectSlug: data.project,
         traceSlug: data.trace,
         timestamp: data.timestamp,
         targetId: data['transaction.span_id'],
