@@ -120,15 +120,6 @@ const TextBlockWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
-
-  && > p,
-  && > h4,
-  && > h5,
-  && > h6 {
-    &:not(:last-child) {
-      margin-bottom: var(--block-spacing);
-    }
-  }
 `;
 
 function CustomBlock(block: Extract<ContentBlock, {type: 'custom'}>) {
