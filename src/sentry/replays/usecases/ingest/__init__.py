@@ -223,15 +223,17 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
     headers, segment_bytes = parse_headers(message.payload_with_headers, message.replay_id)
     segment = decompress_segment(segment_bytes)
 
-    parsed_output = parse_replay_events(message, headers, segment.decompressed)
+    with sentry_sdk.start_span(name="Parse replay event"):
+        replay_event = json.loads(message.replay_event) if message.replay_event else None
+
+    parsed_output = parse_replay_events(
+        message, headers, segment.decompressed, extract_trace_id(replay_event)
+    )
     if parsed_output is not None:
         replay_events, trace_items = parsed_output
     else:
         replay_events = None
         trace_items = []
-
-    with sentry_sdk.start_span(name="Parse replay event"):
-        replay_event = json.loads(message.replay_event) if message.replay_event else None
 
     filename = make_recording_filename(
         RecordingSegmentStorageMeta(
@@ -354,8 +356,8 @@ def parse_replay_events(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
+    trace_id: str | None,
 ):
-    # TODO: Pass the trace_id.
     try:
         return parse_events(
             {
@@ -365,7 +367,7 @@ def parse_replay_events(
                 "replay_id": message.replay_id,
                 "retention_days": message.retention_days,
                 "segment_id": headers["segment_id"],
-                "trace_id": None,
+                "trace_id": trace_id,
             },
             json.loads(segment_bytes),
         )
@@ -378,3 +380,14 @@ def parse_replay_events(
             headers["segment_id"],
         )
         return None
+
+
+def extract_trace_id(replay_event: dict[str, Any] | None) -> str | None:
+    try:
+        if replay_event:
+            trace_ids = replay_event.get("trace_ids", [])
+            return str(trace_ids[0]) if trace_ids and len(trace_ids) == 1 else None
+    except Exception:
+        pass
+
+    return None
