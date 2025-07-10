@@ -445,6 +445,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.FEEDBACK:
             return None  # the log message is processed before this method is called
 
+    return None
+
 
 def make_seer_request(request_data: str) -> bytes:
     # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
