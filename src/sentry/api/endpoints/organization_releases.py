@@ -344,7 +344,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if flatten:
             # NOTE: Do a deeper dive on this. What is this _for_project_id value? Was the author's
             # intent that distinct would return multiple unique rows per project per release?
-            queryset = queryset.filter(projects__id__in=filter_params["project_id"]).distinct()
+            queryset = queryset.distinct().filter(projects__id__in=filter_params["project_id"])
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
         else:
             queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
