@@ -1,6 +1,7 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
@@ -81,7 +82,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
   );
 
   return (
-    <DifferentialFlamegraphLayoutContainer>
+    <Flex flex="1 1 100%">
       <DifferentialFlamegraphGrid layout={layout}>
         <MinimapContainer
           containerHeight={
@@ -110,7 +111,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
           } as any)}
         </DifferentialFlamegraphDrawerContainer>
       </DifferentialFlamegraphGrid>
-    </DifferentialFlamegraphLayoutContainer>
+    </Flex>
   );
 }
 
@@ -131,11 +132,6 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   z-index: 1;
   /* Visually align with the grid */
   transform: translateY(1px);
-`;
-
-const DifferentialFlamegraphLayoutContainer = styled('div')`
-  display: flex;
-  flex: 1 1 100%;
 `;
 
 const DifferentialFlamegraphGrid = styled('div')<{

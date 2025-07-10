@@ -166,7 +166,7 @@ export function FunctionTrendsWidget({
           </EmptyStateWarning>
         )}
         {hasTrends && (
-          <Accordion>
+          <Accordion as="ul" direction="column" flex="1 1 auto">
             {(trendsQuery.data ?? []).map((f, i, l) => {
               return (
                 <FunctionTrendsEntry
