@@ -3,7 +3,7 @@ from sentry import analytics
 
 @analytics.eventclass("eventuser_snuba.query")
 class EventUserSnubaQuery(analytics.Event):
-    project_ids: list
+    project_ids: list[int]
     query: str
     query_try: int
     count_rows_returned: int
