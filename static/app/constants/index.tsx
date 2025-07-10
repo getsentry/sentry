@@ -114,7 +114,7 @@ export const ORG_ROLES: OrgRole[] = [
   },
 ];
 
-export type PermissionChoice = {
+type PermissionChoice = {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
