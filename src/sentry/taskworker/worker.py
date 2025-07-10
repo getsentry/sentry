@@ -178,6 +178,10 @@ class TaskWorker:
                     tags={"processing_pool": self._processing_pool_name},
                 )
             except queue.Full:
+                metrics.incr(
+                    "taskworker.worker.child_tasks.put.full",
+                    tags={"processing_pool": self._processing_pool_name},
+                )
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full",
                     extra={
