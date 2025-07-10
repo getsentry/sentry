@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("manual.issue_assignment")
 class ManualIssueAssignment(analytics.Event):
-    type = "manual.issue_assignment"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("assigned_by", required=False),
-        analytics.Attribute("had_to_deassign", required=False),
-    )
+    organization_id: str
+    project_id: str
+    group_id: str
+    assigned_by: str | None = None
+    had_to_deassign: str | None = None
 
 
 analytics.register(ManualIssueAssignment)

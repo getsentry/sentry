@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.first_event_sent import FirstEventSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -155,12 +156,13 @@ def record_first_event(project, event, **kwargs):
 
     if completed:
         analytics.record(
-            "first_event.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
+            FirstEventSentEvent(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+            )
         )
 
 
