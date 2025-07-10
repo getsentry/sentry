@@ -32,7 +32,7 @@ class SessionBuilderTest(TestCase):
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-    def create_user(self, **kwargs):
+    def create_mock_user(self, **kwargs):
         # Default attributes that should all evaluate to False
         attributes = {
             "has_verified_primary_email": True,
@@ -62,42 +62,47 @@ class SessionBuilderTest(TestCase):
         self.request.user = Mock(**mock_attributes)
         return self.request.user
 
-    # def test_initialize_auth_flags_no_overrides(self):
-    #     """
-    #     Ensure that the session builder does not override flags that are already set.
-    #     """
-    #     expected_flags = {
-    #         "todo_email_verification": False,
-    #         "todo_2fa_verification": False,
-    #         "todo_password_reset": False,
-    #         "todo_2fa_setup": False,
-    #     }
+    def test_initialize_does_not_override_flags(self):
+        """
+        Ensure that the session builder does not override flags that are already set.
+        """
+        expected_flags = {
+            "todo_email_verification": False,
+            "todo_2fa_verification": False,
+            "todo_password_reset": False,
+            "todo_2fa_setup": False,
+        }
 
-    #     # Conditions will usually evaluate flags to all be True,
-    #     self.request.user = self.create_user(
-    #         has_verified_primary_email=Mock(return_value=False),
-    #         has_2fa=Mock(return_value=False),
-    #         is_password_expired=True,
-    #         has_usable_password=Mock(return_value=False),
-    #         has_org_requiring_2fa=Mock(return_value=True),
-    #     )
-    #     self.session_builder.initialize_auth_flags()
+        # Set all flags to False
+        for key, value in expected_flags.items():
+            self.request.session[key] = value
 
-    #     assert self.request.session.data == expected_flags
-    #     assert len(self.request.session.data) == len(expected_flags.keys())
+        # Conditions would usually evaluate flags to all be True,
+        self.request.user = self.create_mock_user(
+            has_verified_primary_email=False,
+            has_2fa=False,
+            is_password_expired=True,
+            has_usable_password=False,
+            has_org_requiring_2fa=True,
+        )
+        self.session_builder.initialize_auth_flags()
 
-    def test_initialize_auth_flags_no_user(self):
+        # Assert that the flags are not overridden
+        assert self.request.session.data == expected_flags
+        assert len(self.request.session.data) == len(expected_flags.keys())
+
+    def test_initialize_no_user(self):
         self.request.user = None
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 
-    def test_initialize_auth_flags_anonymous_user(self):
-        self.create_user(is_anonymous=True)
+    def test_initialize_anonymous_user(self):
+        self.create_mock_user(is_anonymous=True)
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 
-    def test_initialize_auth_flags_all_flags_false(self):
-        self.create_user()
+    def test_initialize_all_flags_false(self):
+        self.create_mock_user()
         self.session_builder.initialize_auth_flags()
 
         expected_flags = {
@@ -110,8 +115,8 @@ class SessionBuilderTest(TestCase):
         assert self.request.session.data == expected_flags
         assert len(self.request.session.data) == len(expected_flags.keys())
 
-    def test_initialize_auth_flags_all_flags_true(self):
-        self.request.user = self.create_user(
+    def test_initialize_all_flags_true(self):
+        self.request.user = self.create_mock_user(
             has_verified_primary_email=False,
             has_2fa=True,
             is_password_expired=True,
@@ -130,12 +135,12 @@ class SessionBuilderTest(TestCase):
         assert self.request.session.data == expected_flags
         assert len(self.request.session.data) == len(expected_flags.keys())
 
-    def test_initialize_auth_flags_todo_password_reset(self):
+    def test_initialize_todo_password_reset(self):
         """
         todo_password_reset has 2 conditions that trigger it.
         """
         # Password is expired and usable
-        self.request.user = self.create_user(
+        self.request.user = self.create_mock_user(
             is_password_expired=True,
             has_usable_password=True,
         )
@@ -148,7 +153,7 @@ class SessionBuilderTest(TestCase):
         self.session_builder = SessionBuilder(self.request)
 
         # Password is not expired and usable
-        self.request.user = self.create_user(
+        self.request.user = self.create_mock_user(
             is_password_expired=False,
             has_usable_password=True,
         )
@@ -160,7 +165,7 @@ class SessionBuilderTest(TestCase):
         self.session_builder = SessionBuilder(self.request)
 
         # Password is not expired and not usable
-        self.request.user = self.create_user(
+        self.request.user = self.create_mock_user(
             is_password_expired=False,
             has_usable_password=False,
         )
