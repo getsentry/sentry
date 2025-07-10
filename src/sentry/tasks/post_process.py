@@ -1011,9 +1011,7 @@ def process_rules(job: PostProcessJob) -> None:
 
     org = job["event"].project.organization
 
-    if only_process_workflows := features.has(
-        "organizations:workflow-engine-single-process-workflows", org
-    ):
+    if features.has("organizations:workflow-engine-single-process-workflows", org):
         # we are only processing through the workflow engine
         return
 
@@ -1041,17 +1039,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        # Determine when to fire rule actions:
-        # - Fire if we're NOT in single processing mode (i.e., we're in dual processing mode)
-        # - OR if we're in dual processing mode but NOT using workflow engine to trigger actions
-        is_dual_processing = not only_process_workflows
-        is_workflow_engine_triggering_actions = features.has(
-            "organizations:workflow-engine-trigger-actions", org
-        )
-
-        should_fire_rule_actions = is_dual_processing or not is_workflow_engine_triggering_actions
-
-        if should_fire_rule_actions:
+        if not features.has("organizations:workflow-engine-trigger-actions", org):
             for callback, futures in callback_and_futures:
                 has_alert = True
                 safe_execute(callback, group_event, futures)
