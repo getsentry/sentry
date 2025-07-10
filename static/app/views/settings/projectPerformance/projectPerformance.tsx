@@ -336,7 +336,9 @@ function ProjectPerformance() {
       name: 'minimumSampleRate',
       type: 'boolean',
       label: retentionPrioritiesLabels.minimumSampleRate,
-      help: t('Use the project sample rate for spans instead of the trace sample rate.'),
+      help: t(
+        'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
+      ),
       getData: getRetentionPrioritiesData,
     },
   ];
