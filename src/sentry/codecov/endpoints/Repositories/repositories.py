@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,6 +31,10 @@ class RepositoriesEndpoint(CodecovEndpoint):
         operation_id="Retrieves repository list for a given owner",
         parameters=[
             PreventParams.OWNER,
+            PreventParams.FIRST,
+            PreventParams.LAST,
+            PreventParams.CURSOR,
+            PreventParams.TERM,
         ],
         request=None,
         responses={
@@ -44,12 +49,35 @@ class RepositoriesEndpoint(CodecovEndpoint):
         Retrieves repository data for a given owner.
         """
 
+        first_param = request.query_params.get("first")
+        last_param = request.query_params.get("last")
+        cursor = request.query_params.get("cursor")
+
+        # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
+        if cursor:
+            cursor = cursor.replace(" ", "+")
+
+        first = int(first_param) if first_param else None
+        last = int(last_param) if last_param else None
+
+        if first and last:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "Cannot specify both `first` and `last`"},
+            )
+
+        if not first and not last:
+            first = MAX_RESULTS_PER_PAGE
+
         variables = {
             "owner": owner,
+            "filters": {"term": request.query_params.get("term")},
             "direction": OrderingDirection.DESC.value,
             "ordering": "COMMIT_DATE",
-            "first": MAX_RESULTS_PER_PAGE,
-            "filters": {"term": request.query_params.get("term")},
+            "first": first,
+            "last": last,
+            "before": cursor if cursor and last else None,
+            "after": cursor if cursor and first else None,
         }
 
         client = CodecovApiClient(git_provider_org=owner)

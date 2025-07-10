@@ -20,6 +20,7 @@ class RepositoriesEndpointTest(APITestCase):
         return reverse(
             self.endpoint,
             kwargs={
+                "organization_id_or_slug": self.organization.slug,
                 "owner": owner,
             },
         )
@@ -72,6 +73,9 @@ class RepositoriesEndpointTest(APITestCase):
             "direction": "DESC",
             "ordering": "COMMIT_DATE",
             "first": 50,
+            "last": None,
+            "after": None,
+            "before": None,
         }
 
         mock_codecov_client_instance.query.assert_called_once()
@@ -120,6 +124,47 @@ class RepositoriesEndpointTest(APITestCase):
             "direction": "DESC",
             "ordering": "COMMIT_DATE",
             "first": 50,
+            "last": None,
+            "after": None,
+            "before": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
+
+    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    def test_get_with_last_parameter(self, mock_codecov_client_class):
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "data": {
+                "owner": {
+                    "repositories": {
+                        "edges": [],
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {"last": "5"}
+        response = self.client.get(url, query_params)
+
+        # Verify the correct variables are passed with last parameter
+        expected_variables = {
+            "owner": "testowner",
+            "filters": {
+                "term": None,
+            },
+            "direction": "DESC",
+            "ordering": "COMMIT_DATE",
+            "first": None,
+            "last": 5,
+            "after": None,
+            "before": None,
         }
 
         call_args = mock_codecov_client_instance.query.call_args

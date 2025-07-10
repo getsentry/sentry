@@ -1,9 +1,12 @@
 query = """query ReposForOwner(
-  $filters: RepositorySetFilters!
   $owner: String!
+  $filters: RepositorySetFilters!
   $ordering: RepositoryOrdering!
   $direction: OrderingDirection!
   $first: Int
+  $after: String
+  $last: Int
+  $before: String
 ) {
   owner(username: $owner) {
     repositories(
@@ -20,6 +23,11 @@ query = """query ReposForOwner(
           defaultBranch
         }
       }
+      pageInfo {
+          endCursor
+          hasNextPage
+      }
+      totalCount
     }
   }
 }"""
