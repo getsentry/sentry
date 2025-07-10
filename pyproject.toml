@@ -88,7 +88,6 @@ module = [
     "confluent_kafka.*",
     "cssselect.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
-    "docker.*",
     "fido2.*",
     "google.auth.*",
     "google.cloud.*",
