@@ -96,6 +96,10 @@ export function MetricDetectorChart({
     };
   }, [series, thresholdMaxValue]);
 
+  const mergedSeries = useMemo(() => {
+    return [...series, ...thresholdSeries];
+  }, [series, thresholdSeries]);
+
   if (isPending) {
     return (
       <ChartContainer>
@@ -122,11 +126,11 @@ export function MetricDetectorChart({
   return (
     <ChartContainer>
       <AreaChart
-        series={[...series, ...thresholdSeries]}
-        height={CHART_HEIGHT}
-        stacked={false}
         isGroupedByDate
         showTimeInTooltip
+        height={CHART_HEIGHT}
+        stacked={false}
+        series={mergedSeries}
         yAxis={{
           min: yAxisBounds.hasThresholds ? yAxisBounds.min : undefined,
           max: yAxisBounds.hasThresholds ? yAxisBounds.max : undefined,
