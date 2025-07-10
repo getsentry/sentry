@@ -1,4 +1,5 @@
 import type {Client} from 'sentry/api';
+import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
@@ -7,14 +8,6 @@ type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
   [key in keyof T]: GeneratorFunction<T[key], Params>;
 };
-
-interface CodeSnippetTab {
-  code: string;
-  label: string;
-  language: string;
-  value: string;
-  filename?: string;
-}
 
 export type Configuration = {
   /**
