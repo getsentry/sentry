@@ -181,7 +181,7 @@ export function ScreenCharts({additionalFilters}: Props) {
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           {t('Invalid selection. Try a different release or date range.')}
         </Alert>
       </Alert.Container>

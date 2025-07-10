@@ -91,21 +91,21 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
 
       if (listOfErrors.length === 0) {
         return (
-          <Alert system type="error" showIcon>
+          <Alert system type="error">
             {ONDEMAND_BUDGET_SAVE_ERROR}
           </Alert>
         );
       }
 
       return (
-        <Alert system type="error" showIcon>
+        <Alert system type="error">
           <ul>{listOfErrors}</ul>
         </Alert>
       );
     }
 
     return (
-      <Alert system type="error" showIcon>
+      <Alert system type="error">
         {/* TODO(TS): Type says error might be an object */}
         {error as React.ReactNode}
       </Alert>

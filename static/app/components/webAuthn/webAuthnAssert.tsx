@@ -192,7 +192,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 function UnsupportedError() {
   return (
     <Container>
-      <Alert type="warning" showIcon>
+      <Alert type="warning">
         {t(
           'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge).'
         )}

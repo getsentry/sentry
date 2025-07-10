@@ -310,11 +310,7 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
+                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
                     <ChildComponent
                       location={location}
                       organization={organization}

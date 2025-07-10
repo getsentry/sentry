@@ -21,7 +21,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
-  showIcon?: boolean;
+  showIcon?: false;
   system?: boolean;
   trailingItems?: React.ReactNode;
 }

@@ -30,7 +30,7 @@ export function FeatureFlagOtherPlatformOnboarding({
       <Wrapper>
         {
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               <Flex gap={space(3)}>
                 {t('Read the docs to learn more about setting up evaluation tracking.')}
                 <LinkButton href={docsUrl} external>

@@ -33,7 +33,7 @@ export default function ReplayBulkDeleteAuditLogTable({
         </SimpleTable.Empty>
       ) : error ? (
         <SimpleTable.Empty>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {t('Sorry, the list could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>

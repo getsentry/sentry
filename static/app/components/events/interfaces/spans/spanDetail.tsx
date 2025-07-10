@@ -300,7 +300,7 @@ function SpanDetail(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
           )}
@@ -326,11 +326,7 @@ function SpanDetail(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert
-          type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'}
-          system
-          showIcon
-        >
+        <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
           <ErrorMessageTitle>
             {tn(
               '%s error event or performance issue is associated with this span.',

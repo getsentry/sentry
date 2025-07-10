@@ -291,7 +291,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted" showIcon>
+            <Alert type="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {

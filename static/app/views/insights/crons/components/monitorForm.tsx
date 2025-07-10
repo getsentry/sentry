@@ -259,7 +259,7 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
           <Alert.Container>
-            <Alert type="warning" showIcon>
+            <Alert type="warning">
               {t(
                 'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
               )}

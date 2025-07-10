@@ -4,7 +4,7 @@ import {tct} from 'sentry/locale';
 
 export default function TracePropagationMessage() {
   return (
-    <Alert type="info" showIcon>
+    <Alert type="info">
       {tct(
         `To see replays for backend errors, ensure that you have set up trace propagation. To learn more, [link:read the docs].`,
         {
