@@ -535,6 +535,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# GA has launched for ourlogs
+register(
+    "ourlogs.ga-launched",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
 #
 # NOTE: Any value below 1.0 will break the product. Do not override in production.
