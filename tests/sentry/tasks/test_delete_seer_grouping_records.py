@@ -117,9 +117,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
-    def test_no_hashes(self, mock_apply_async: MagicMock) -> None:
-        group_ids, _ = self._setup_groups_and_hashes(number_of_groups=5)
-        may_schedule_task_to_delete_hashes_from_seer(group_ids)
+    def test_group_without_hashes(self, mock_apply_async: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+        may_schedule_task_to_delete_hashes_from_seer([group.id])
         mock_apply_async.assert_not_called()
 
     @patch(
