@@ -383,6 +383,7 @@ def parse_replay_events(
 
 
 def extract_trace_id(replay_event: dict[str, Any] | None) -> str | None:
+    """Return the trace-id if only one trace-id was provided."""
     try:
         if replay_event:
             trace_ids = replay_event.get("trace_ids", [])
