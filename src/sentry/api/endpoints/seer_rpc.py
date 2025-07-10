@@ -187,6 +187,51 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+def get_organization_seer_consent_by_org_name(*, org_name: str) -> dict:
+    """
+    Look up organizations by integration name and check if any have seer consent.
+    Returns True if any organization with the given name has either seer acknowledgement
+    or github extension enabled.
+    """
+    from sentry.integrations.services.integration import integration_service
+
+    # Look up GitHub integrations with the given name
+    integrations = integration_service.get_integrations(
+        providers=["github"],
+    )
+
+    # Filter integrations by name
+    matching_integrations = [
+        integration for integration in integrations if integration.name == org_name
+    ]
+
+    # If no integrations found, no consent
+    if not matching_integrations:
+        return {"consent": False}
+
+    # Check each organization for consent
+    for integration in matching_integrations:
+        # Get organization integrations for this integration
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+
+        for org_integration in org_integrations:
+            seer_org_acknowledgement = get_seer_org_acknowledgement(
+                org_id=org_integration.organization_id
+            )
+            github_extension_enabled = org_integration.organization_id in options.get(
+                "github-extension.enabled-orgs"
+            )
+
+            # If any organization has consent, return True
+            if seer_org_acknowledgement or github_extension_enabled:
+                return {"consent": True}
+
+    # No organization has consent
+    return {"consent": False}
+
+
 def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
     field_types = [
         AttributeKey.Type.TYPE_STRING,
@@ -295,6 +340,7 @@ def get_attribute_values(
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
+    "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_error_event_details": get_error_event_details,
