@@ -35,12 +35,13 @@ Sentry is a developer-first error tracking and performance monitoring platform t
 - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
 - [C\#/F\#](https://github.com/getsentry/sentry-dotnet)
 - [C/C++](https://github.com/getsentry/sentry-native)
-- [Dart](https://github.com/getsentry/sentry-dart)
+- [Dart/Flutter](https://github.com/getsentry/sentry-dart)
 - [Perl](https://github.com/getsentry/perl-raven)
 - [Clojure](https://github.com/getsentry/sentry-clj/)
 - [Elixir](https://github.com/getsentry/sentry-elixir)
 - [Unity](https://github.com/getsentry/sentry-unity)
 - [Unreal Engine](https://github.com/getsentry/sentry-unreal)
+- [Godot Engine](https://github.com/getsentry/sentry-godot)
 - [PowerShell](https://github.com/getsentry/sentry-powershell)
 
 # Resources
