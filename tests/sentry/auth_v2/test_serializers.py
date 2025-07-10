@@ -25,6 +25,8 @@ class SessionSerializerTest(TestCase):
             {
                 "todo_email_verification": False,
                 "todo_2fa_verification": True,
+                "todo_password_reset": False,
+                "todo_2fa_setup": False,
                 "_auth_user_id": "123",
                 "session_orgs": ["org1", "org2"],
             }
@@ -36,6 +38,8 @@ class SessionSerializerTest(TestCase):
         assert result == {
             "todoEmailVerification": False,
             "todo2faVerification": True,
+            "todoPasswordReset": False,
+            "todo2faSetup": False,
             "userId": "123",
             "sessionCsrfToken": "csrf_token_value",
             "sessionExpiryDate": EXPIRY_DATE,
@@ -52,6 +56,8 @@ class SessionSerializerTest(TestCase):
         assert result == {
             "todoEmailVerification": None,
             "todo2faVerification": None,
+            "todoPasswordReset": None,
+            "todo2faSetup": None,
             "userId": None,
             "sessionCsrfToken": "csrf_token_value",
             "sessionExpiryDate": EXPIRY_DATE,
