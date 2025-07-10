@@ -23,6 +23,8 @@ markers = [
   "sentry_metrics: test requires access to sentry metrics",
   "symbolicator: test requires access to symbolicator",
   "querybuilder: smoke tests for QueryBuilders",
+  "thread_leak_allowlist: fix needed for a thread leak",
+  "thread_leak_singleton_cleanup: fix needed for a SingletonProducer leak",
 ]
 filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.

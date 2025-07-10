@@ -12,7 +12,6 @@ from django.db import connections
 from sentry.silo.base import SiloMode
 from sentry.testutils import thread_leaks
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
-from sentry.utils.arroyo_producer import SingletonProducer
 
 pytest_plugins = ["sentry.testutils.pytest"]
 
@@ -59,11 +58,8 @@ def unclosed_files():
 
 
 @pytest.fixture(autouse=True)
-def unclosed_threads():
-    with thread_leaks.assert_none():
-        yield
-        # HAX: close all "singleton producers" before checking thread leaks
-        SingletonProducer._shutdown_all()
+def unclosed_threads(request):
+    yield from thread_leaks.check_test(request)
 
 
 @pytest.fixture(autouse=True)

@@ -11,11 +11,17 @@ import sys
 import threading
 import traceback
 from contextlib import contextmanager
+from logging import getLogger
 from traceback import StackSummary
 from typing import Any
 from unittest import mock
 
+import pytest
+
+from sentry.utils.arroyo_producer import SingletonProducer  # HAX
+
 _CWD = os.getcwd() + "/"
+log = getLogger(__name__)
 
 
 def _get_third_party_frame_paths() -> frozenset[str]:
@@ -94,3 +100,25 @@ def assert_none():
         yield
         actual = _threads_to_diffable_str(threading.enumerate())
         assert actual == expected
+
+
+# -- pytest support --
+def check_test(request: pytest.FixtureRequest):
+    if request.node.get_closest_marker("thread_leak_allowlist"):
+        yield
+    else:
+        with assert_none():
+            yield
+            # HAX: close all "singleton producers" before checking thread leaks
+            # FIXME TODO: if request.node.get_closest_marker("thread_leak_singleton_cleanup"):
+            SingletonProducer._shutdown_all()
+
+
+def allowlist(reason: str | None = None, *, issue: int):
+    decorator = pytest.mark.thread_leak_allowlist(reason=reason, issue=issue)
+    return decorator
+
+
+def singleton_cleanup(reason: str | None = None, *, issue: int):
+    decorator = pytest.mark.thread_leak_singleton_cleanup(reason=reason, issue=issue)
+    return decorator
