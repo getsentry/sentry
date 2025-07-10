@@ -184,4 +184,12 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 0,
     feature: 'seer-billing',
   },
+  [DataCategoryExact.LOG_BYTE]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 0,
+    feature: 'logs-billing',
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
