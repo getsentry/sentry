@@ -90,6 +90,9 @@ class ExploreSavedQuery(DefaultFieldsModel):
     # The version of the prebuilt query. If the version found in the explore_saved_queries.py hardcoded list is greater, then the saved
     # query out of date and should be updated..
     prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
+    # This field is to be used for the discover -> explore migration. This contains the reason why any part
+    # of the saved query was changed so we can display our reasonings in the UI
+    changed_reason = models.JSONField(null=True, default=None)
 
     class Meta:
         app_label = "explore"
