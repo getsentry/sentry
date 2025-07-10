@@ -193,6 +193,7 @@ export const initialAutomationBuilderState: AutomationBuilderState = {
       id: '0',
       logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
       conditions: [],
+      actions: [],
     },
   ],
 };
@@ -369,6 +370,7 @@ function addIf(
       {
         id: uuid4(),
         conditions: [],
+        actions: [],
         logicType: DataConditionGroupLogicType.ALL,
       },
     ],
@@ -404,7 +406,6 @@ function addIfCondition(
           {
             id: uuid4(),
             type: conditionType,
-            // comparison: true,
             comparison:
               dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
             conditionResult: true,

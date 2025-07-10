@@ -26,6 +26,11 @@ import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetector
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function getDetectorEnvironment(detector: Detector) {
+  // TODO: Add support for other detector types
+  if (detector.type !== 'metric_issue') {
+    return '<placeholder>';
+  }
+
   return (
     detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')?.queryObj
       ?.snubaQuery.environment ?? t('All environments')
@@ -67,12 +72,16 @@ function AssignToUser({userId}: {userId: string}) {
 }
 
 function DetectorPriorities({detector}: {detector: Detector}) {
-  // TODO: Add support for other detector types
-  if (!('detection_type' in detector.config)) {
+  if (detector.type !== 'metric_issue') {
     return null;
   }
 
-  const detectionType = detector.config?.detection_type || 'static';
+  // TODO: Add support for other detector types
+  if (!('detectionType' in detector.config)) {
+    return null;
+  }
+
+  const detectionType = detector.config?.detectionType || 'static';
 
   // For dynamic detectors, show the automatic priority message
   if (detectionType === 'dynamic') {
@@ -126,11 +135,11 @@ function DetectorPriorities({detector}: {detector: Detector}) {
 
 function DetectorResolve({detector}: {detector: Detector}) {
   // TODO: Add support for other detector types
-  if (!('detection_type' in detector.config)) {
+  if (detector.type !== 'metric_issue') {
     return null;
   }
 
-  const detectionType = detector.config?.detection_type || 'static';
+  const detectionType = detector.config?.detectionType || 'static';
   const conditions = detector.conditionGroup?.conditions || [];
 
   // Get the main condition (first non-OK condition)

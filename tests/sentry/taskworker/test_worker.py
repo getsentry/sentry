@@ -1,10 +1,13 @@
+import base64
 import queue
 import time
 from multiprocessing import Event
 from unittest import mock
 
 import grpc
+import orjson
 import pytest
+import zstandard as zstd
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DISCARD,
     TASK_ACTIVATION_STATUS_COMPLETE,
@@ -18,6 +21,7 @@ from usageaccountant import UsageUnit
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.retry import NoRetriesRemainingError
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
@@ -120,6 +124,30 @@ SCHEDULED_TASK = InflightTaskActivation(
     ),
 )
 
+COMPRESSED_TASK = InflightTaskActivation(
+    host="localhost:50051",
+    receive_timestamp=0,
+    activation=TaskActivation(
+        id="compressed_task_123",
+        taskname="examples.simple_task",
+        namespace="examples",
+        parameters=base64.b64encode(
+            zstd.compress(
+                orjson.dumps(
+                    {
+                        "args": ["test_arg1", "test_arg2"],
+                        "kwargs": {"test_key": "test_value", "number": 42},
+                    }
+                )
+            )
+        ).decode("utf8"),
+        headers={
+            "compression-type": CompressionType.ZSTD.value,
+        },
+        processing_deadline_duration=2,
+    ),
+)
+
 
 @pytest.mark.django_db
 class TestTaskWorker(TestCase):
@@ -213,6 +241,43 @@ class TestTaskWorker(TestCase):
                 if time.time() - start > max_runtime:
                     taskworker.shutdown()
                     raise AssertionError("Timeout waiting for get_task to be called")
+
+            taskworker.shutdown()
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 2
+            assert mock_client.update_task.call_args.args[0].host == "localhost:50051"
+            assert mock_client.update_task.call_args.args[0].task_id == SIMPLE_TASK.activation.id
+            assert (
+                mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
+            )
+            assert mock_client.update_task.call_args.args[1] is None
+
+    @override_options({"taskworker.fetch_next.disabled_pools": ["testing"]})
+    def test_run_once_with_fetch_next_disabled(self) -> None:
+        # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
+        max_runtime = 5
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051",
+            num_brokers=1,
+            max_child_task_count=1,
+            process_type="fork",
+            processing_pool_name="testing",
+        )
+        with mock.patch.object(taskworker, "client") as mock_client:
+            mock_client.update_task.return_value = None
+            mock_client.get_task.return_value = SIMPLE_TASK
+            taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
+
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 2:
+                    break
+                if time.time() - start > max_runtime:
+                    taskworker.shutdown()
+                    raise AssertionError("Timeout waiting for update_task to be called")
 
             taskworker.shutdown()
             assert mock_client.get_task.called
@@ -635,3 +700,28 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
     assert mock_capture.call_count == 1
     assert type(mock_capture.call_args.args[0]) is ProcessingDeadlineExceeded
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.taskworker.workerchild.capture_checkin")
+def test_child_process_decompression(mock_capture_checkin) -> None:
+
+    todo: queue.Queue[InflightTaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(COMPRESSED_TASK)
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == COMPRESSED_TASK.activation.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+    assert mock_capture_checkin.call_count == 0
