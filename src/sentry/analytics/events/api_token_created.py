@@ -1,10 +1,10 @@
 from sentry import analytics
+from sentry.analytics import Event, eventclass
 
 
-class ApiTokenCreated(analytics.Event):
-    type = "api_token.created"
-
-    attributes = (analytics.Attribute("user_id"),)
+@eventclass("api_token.created")
+class ApiTokenCreated(Event):
+    user_id: int
 
 
 analytics.register(ApiTokenCreated)

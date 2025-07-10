@@ -1,13 +1,11 @@
 from sentry import analytics
+from sentry.analytics import Event, eventclass
 
 
-class OrgAuthTokenCreated(analytics.Event):
-    type = "org_auth_token.created"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-    )
+@eventclass("org_auth_token.created")
+class OrgAuthTokenCreated(Event):
+    user_id: int
+    organization_id: int
 
 
 analytics.register(OrgAuthTokenCreated)

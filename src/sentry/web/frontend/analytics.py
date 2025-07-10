@@ -1,19 +1,19 @@
+from packaging.version import Version
+
 from sentry import analytics
+from sentry.analytics import Event, eventclass
 
 
-class JsSdkLoaderRendered(analytics.Event):
-    type = "js_sdk_loader.rendered"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("is_lazy"),
-        analytics.Attribute("has_performance"),
-        analytics.Attribute("has_replay"),
-        analytics.Attribute("has_debug"),
-        analytics.Attribute("sdk_version"),
-        analytics.Attribute("tmpl"),
-    )
+@eventclass("js_sdk_loader.rendered")
+class JsSdkLoaderRendered(Event):
+    organization_id: int
+    project_id: int
+    is_lazy: bool
+    has_performance: bool
+    has_replay: bool
+    has_debug: bool
+    sdk_version: Version | None
+    tmpl: str
 
 
 analytics.register(JsSdkLoaderRendered)

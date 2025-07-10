@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.api_token_deleted import ApiTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -87,7 +88,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         token_to_delete.delete()
         analytics.record(
-            "api_token.deleted",
-            user_id=user_id,
+            ApiTokenDeleted(
+                user_id=user_id,
+            )
         )
         return Response(status=204)

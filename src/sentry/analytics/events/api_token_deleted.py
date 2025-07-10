@@ -1,10 +1,10 @@
 from sentry import analytics
+from sentry.analytics import Event, eventclass
 
 
-class ApiTokenDeleted(analytics.Event):
-    type = "api_token.deleted"
-
-    attributes = (analytics.Attribute("user_id"),)
+@eventclass("api_token.deleted")
+class ApiTokenDeleted(Event):
+    user_id: int
 
 
 analytics.register(ApiTokenDeleted)
