@@ -60,7 +60,7 @@ export function StoryHeader() {
   );
 }
 
-const HeaderGrid = styled('div')`
+export const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: 92px minmax(auto, 820px) auto;
   gap: ${space(1)};
@@ -77,7 +77,7 @@ const HeaderGrid = styled('div')`
   }
 `;
 
-const StyledSentryUiLogo = styled(SentryUiLogo)`
+export const StyledSentryUiLogo = styled(SentryUiLogo)`
   width: 36px;
   height: 36px;
 `;

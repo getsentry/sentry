@@ -21,11 +21,10 @@ const PreviewTitle = styled('h2')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const Box = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
   background: ${p => p.theme.background};
 `;
