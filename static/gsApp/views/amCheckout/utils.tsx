@@ -424,6 +424,7 @@ function recordAnalytics(
     previous_profileDuration: previousData.profileDuration,
     previous_spans: previousData.spans,
     previous_uptime: previousData.uptime,
+    previous_logBytes: previousData.logBytes,
     ...currentData,
   });
 
