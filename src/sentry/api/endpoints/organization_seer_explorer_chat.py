@@ -107,12 +107,8 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         if not run_id:
             return Response({"session": None})
 
-        try:
-            # Call Seer to get the current state
-            response_data = _call_seer_explorer_state(organization, run_id)
-            return Response(response_data)
-        except Exception:
-            return Response({"session": None}, status=500)
+        response_data = _call_seer_explorer_state(organization, run_id)
+        return Response(response_data)
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -155,10 +151,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         if not query:
             return Response({"error": "Query is required"}, status=400)
 
-        try:
-            response_data = _call_seer_explorer_chat(
-                organization, run_id, query, insert_index, message_timestamp
-            )
-            return Response(response_data)
-        except Exception:
-            return Response({"error": "Failed to process chat request"}, status=500)
+        response_data = _call_seer_explorer_chat(
+            organization, run_id, query, insert_index, message_timestamp
+        )
+        return Response(response_data)
