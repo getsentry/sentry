@@ -46,7 +46,7 @@ import {
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import DashboardsOwnedTable, {
   OWNED_CURSOR_KEY,
-} from 'sentry/views/dashboards/manage/tableView/dashboardsOwnedTable';
+} from 'sentry/views/dashboards/manage/tableView/ownedTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
