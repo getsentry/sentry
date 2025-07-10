@@ -9,7 +9,6 @@ from typing import Any, TypeAlias
 
 import sentry_sdk
 from celery import Task
-from django.db.models import F
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -51,6 +50,7 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
@@ -620,15 +620,13 @@ def fire_actions_for_groups(
 
     # Bulk fetch action filters for workflow triggers
     workflows = Workflow.objects.filter(when_condition_group_id__in=all_workflow_triggers)
-    workflow_action_filters = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow__in=workflows
-    ).annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
 
-    # Set up lookups for evaluate_action_filters
-    dcg_to_workflow_id: dict[DataConditionGroup, int] = {
-        condition: condition.workflow_id for condition in workflow_action_filters
+    dcg_to_workflow = {
+        wdcg.condition_group: wdcg.workflow
+        for wdcg in WorkflowDataConditionGroup.objects.select_related(
+            "workflow", "condition_group"
+        ).filter(workflow__in=workflows)
     }
-    workflows_by_id = {workflow.id: workflow for workflow in workflows}
 
     total_actions = 0
     with track_batch_performance(
@@ -665,16 +663,15 @@ def fire_actions_for_groups(
                         event_data.dcg_to_workflow[dcg.id] for dcg in workflow_triggers_for_group
                     }
 
-                    filter_dcg_to_workflow_id: dict[DataConditionGroup, int] = {
-                        dcg: workflow_id
-                        for dcg, workflow_id in dcg_to_workflow_id.items()
-                        if workflow_id in triggered_workflow_ids
+                    filter_dcg_to_workflow: dict[DataConditionGroup, Workflow] = {
+                        dcg: workflow
+                        for dcg, workflow in dcg_to_workflow.items()
+                        if workflow.id in triggered_workflow_ids
                     }
 
                     workflows_actions = evaluate_action_filters(
                         workflow_event_data,
-                        filter_dcg_to_workflow_id,
-                        workflows_by_id,
+                        filter_dcg_to_workflow,
                     )
 
                 filtered_actions = filter_recently_fired_workflow_actions(

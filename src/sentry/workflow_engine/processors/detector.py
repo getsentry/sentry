@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Mapping
+from typing import NamedTuple
 
 import sentry_sdk
 
@@ -60,9 +61,15 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
+class _SplitEvents(NamedTuple):
+    events_with_occurrences: list[tuple[GroupEvent, int]]
+    events_without_occurrences: list[GroupEvent]
+    events_missing_detectors: list[GroupEvent]
+
+
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
-) -> tuple[list[tuple[GroupEvent, int]], list[GroupEvent], list[GroupEvent]]:
+) -> _SplitEvents:
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
@@ -77,15 +84,20 @@ def _split_events_by_occurrence(
         else:
             events_missing_detectors.append(event)
 
-    return events_with_occurrences, events_without_occurrences, events_missing_detectors
+    return _SplitEvents(
+        events_with_occurrences,
+        events_without_occurrences,
+        events_missing_detectors,
+    )
 
 
 def _update_event_detector_map(
-    map: dict[str, Detector],
     detectors: BaseQuerySet[Detector],
     key_event_map: dict[int, list[GroupEvent]],
     detector_key_extractor: Callable[[Detector], int],
 ) -> tuple[dict[str, Detector], set[int]]:
+    result: dict[str, Detector] = {}
+
     # used to track existing keys (detector_id or project_id) to log missing keys
     keys = set()
 
@@ -93,14 +105,18 @@ def _update_event_detector_map(
         key = detector_key_extractor(detector)
         keys.add(key)
         detector_events = key_event_map[key]
-        map.update({event.event_id: detector for event in detector_events})
+        result.update({event.event_id: detector for event in detector_events})
 
-    return map, keys
+    return result, keys
 
 
 def get_detectors_by_groupevents_bulk(
     event_list: list[GroupEvent],
 ) -> Mapping[str, Detector]:
+    """
+    Given a list of GroupEvents, return a mapping of event_id to Detector.
+    """
+
     if not event_list:
         return {}
 
@@ -124,12 +140,12 @@ def get_detectors_by_groupevents_bulk(
 
         if detector_id_to_events:
             detectors = Detector.objects.filter(id__in=list(detector_id_to_events.keys()))
-            result, found_detector_ids = _update_event_detector_map(
-                result,
+            mapping, found_detector_ids = _update_event_detector_map(
                 detectors,
                 key_event_map=detector_id_to_events,
                 detector_key_extractor=_extract_events_lookup_key,
             )
+            result.update(mapping)
 
             missing_detector_ids = set(detector_id_to_events.keys()) - found_detector_ids
 
@@ -150,12 +166,12 @@ def get_detectors_by_groupevents_bulk(
                 project_id__in=project_to_events.keys(),
                 type=events_without_occurrences[0].group.issue_type.slug,  # error type
             )
-            result, projects_with_error_detectors = _update_event_detector_map(
-                result,
+            mapping, projects_with_error_detectors = _update_event_detector_map(
                 detectors,
                 key_event_map=project_to_events,
                 detector_key_extractor=_extract_events_lookup_key,
             )
+            result.update(mapping)
 
             projects_missing_detectors = (
                 set(project_to_events.keys()) - projects_with_error_detectors
