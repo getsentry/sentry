@@ -1,0 +1,203 @@
+---
+alwaysApply: true
+---
+
+# Feature Development Workflow
+
+## 🎯 Overview
+
+This project follows a structured feature development process: **PRFAQ → PRD → Implementation → GTM**. This ensures thoughtful planning, clear requirements, and successful launches.
+
+**CRITICAL:** Always follow this workflow for ALL new features. Never skip phases or start implementation before completing PRFAQ and PRD.
+
+## 📂 Template System
+
+### Location
+```
+.cursor/project/features/
+├── 001-template/          # Master templates
+│   ├── PRFAQ.md          # Problem definition and solution
+│   ├── PRD.md            # Product requirements document
+│   ├── GTM.md            # Go-to-market strategy
+│   └── IMPLEMENTATION.md # Technical implementation and PR description
+├── 002-example-feature/   # EXAMPLE: Completed feature
+│   ├── PRFAQ.md          # ✅ Problem validation
+│   ├── PRD.md            # ✅ Technical requirements
+│   ├── GTM.md            # ✅ Launch strategy
+│   └── IMPLEMENTATION.md # ✅ Technical implementation and PR description
+├── 003-feature-name/      # Next feature
+└── ...
+```
+
+### Naming Convention
+- Use 3-digit zero-padded numbers: `001`, `002`, `003`
+- Follow with descriptive kebab-case name: `booking-system`, `contact-form`
+- Example: `002-online-booking-system`
+
+### Template Files
+- **PRFAQ.md** - Problem definition, customer quotes, goals
+- **PRD.md** - Technical requirements, user stories, success criteria
+- **GTM.md** - Launch strategy, communication plan, success metrics
+- **IMPLEMENTATION.md** - Technical implementation details and PR description
+
+## 🔄 Development Workflow
+
+### Phase 1: Problem Definition (PRFAQ)
+**Goal:** Validate the problem and solution before investing in detailed requirements
+
+**Activities:**
+- [ ] Copy template: `cp -r .cursor/project/features/001-template .cursor/project/features/00X-feature-name`
+- [ ] Complete PRFAQ.md with problem definition and solution validation
+- [ ] Include customer quotes and user reactions
+- [ ] Define qualitative and quantitative goals
+- [ ] List open questions and assumptions
+
+**Success Criteria:**
+- Problem is clearly defined and validated
+- Solution approach is agreed upon
+- Success metrics are identified
+- Stakeholder alignment achieved
+
+### Phase 2: Technical Planning (PRD)
+**Goal:** Define detailed requirements, technical approach, and implementation plan
+
+**Activities:**
+- [ ] Complete PRD.md with technical requirements
+- [ ] Define user stories and acceptance criteria
+- [ ] Plan database schema and API changes
+- [ ] Identify dependencies and risks
+- [ ] Create testing strategy
+
+**Success Criteria:**
+- Technical requirements are comprehensive
+- Implementation approach is validated
+- Dependencies are identified
+- Testing strategy is defined
+
+### Phase 3: Launch Strategy (GTM)
+**Goal:** Plan successful launch with proper communication and success measurement
+
+**Activities:**
+- [ ] Complete GTM.md with launch strategy
+- [ ] Plan communication and training approach
+- [ ] Define success metrics and monitoring
+- [ ] Create risk mitigation plans
+- [ ] Prepare launch readiness checklist
+
+**Success Criteria:**
+- Launch strategy is comprehensive
+- Communication plan is ready
+- Success metrics are measurable
+- Risk mitigation is planned
+
+### Phase 4: Implementation (IMPLEMENTATION)
+**Goal:** Execute technical implementation with comprehensive documentation
+
+**Activities:**
+- [ ] Complete IMPLEMENTATION.md with technical details
+- [ ] Implement database changes and API endpoints
+- [ ] Build frontend components and user interface
+- [ ] Implement testing coverage
+- [ ] Create deployment and monitoring setup
+
+**Success Criteria:**
+- Technical implementation is complete
+- PR description is comprehensive
+- Testing coverage is adequate
+- Deployment is ready
+
+## 📋 Implementation Phase
+
+> 💡 **Remember:** This workflow ensures every feature is properly planned, implemented, and launched. Never skip phases - each one builds on the previous to ensure success. Use completed features as references for quality and thoroughness.
+
+## 🎯 Business Context Considerations
+
+### Business Context
+- **Usage patterns:** Consider peak/off-peak or cyclical usage patterns
+- **User types:** Different user groups with different needs
+- **Operational constraints:** Technical limitations, connectivity, device types
+- **Brand consistency:** Professional and on-brand user experience
+
+### Technical Context
+- **Database considerations:** Handle database sleep states gracefully
+- **Performance:** Consider user device and connection limitations
+- **Mobile-first:** Most users access via mobile devices
+- **Monitoring:** Comprehensive logging for all features
+
+### Feature Integration
+- **Admin portal:** Staff features integrate with existing admin tools
+- **Customer experience:** User-facing features must be intuitive
+- **Business operations:** Consider impact on daily workflows
+- **Analytics:** Track both technical and business metrics
+
+## ✅ Quality Checklist
+
+### PRFAQ Validation
+- [ ] Problem is validated with real stakeholder feedback
+- [ ] Solution approach is technically feasible
+- [ ] Success metrics are specific and measurable
+- [ ] Customer reactions feel authentic and compelling
+
+### PRD Completeness
+- [ ] All functional requirements are clearly defined
+- [ ] Technical approach addresses all major concerns
+- [ ] Database schema and API changes are specified
+- [ ] Testing strategy covers all critical paths
+
+### Implementation Quality
+- [ ] Code follows all project coding standards
+- [ ] Comprehensive monitoring and logging implemented
+- [ ] Performance requirements met for target users
+- [ ] Security requirements satisfied
+
+### GTM Success
+- [ ] Launch executed without major issues
+- [ ] Success metrics achieved within target timeframes
+- [ ] User feedback collected and analyzed
+- [ ] Next iteration planned based on learnings
+
+## 🚀 Success Examples
+
+### Example Feature System
+**Problem:** Manual verification processes were time-consuming and error-prone
+**Solution:** Admin portal system with automatic notifications
+**Results:** 75% reduction in verification time, zero disputes
+
+**Key Learnings:**
+- Staff training is crucial for admin tool adoption
+- Email templates must be tested across multiple clients
+- Performance monitoring prevented issues during peak usage
+- Customer communication improved satisfaction significantly
+
+## 🔍 API Research & Integration Planning
+
+### Critical Lesson: Always Verify API Availability
+**Case Study: API Retirement**
+- **Issue:** Some APIs retire for new businesses or change pricing models
+- **Impact:** Features may need to pivot from automated to manual workflows
+- **Lesson:** Research API availability BEFORE writing technical requirements
+
+### API Integration Checklist
+- [ ] **Verify API availability** for new businesses/developers
+- [ ] **Check API pricing and rate limits** for projected usage
+- [ ] **Review API deprecation timeline** and support policy
+- [ ] **Identify alternative APIs** if primary option unavailable
+- [ ] **Plan fallback workflows** for API failures or limitations
+- [ ] **Document API constraints** in PRD and architecture docs
+
+### Common API Issues to Research
+- **Retirement/Deprecation:** APIs may be discontinued for new users
+- **Pricing Changes:** Free tiers may have usage limits or pricing changes
+- **Rate Limits:** May not support expected traffic volumes
+- **Regional Availability:** API may not be available in all locations
+- **Business Requirements:** May require business verification or minimum revenue
+
+### Alternative Integration Options
+- **Primary Choice:** Comprehensive service with robust API
+- **Secondary Option:** Alternative service with active developer APIs
+- **Fallback Option:** Manual workflows with optimized UX
+- **Hybrid Approach:** Combination of automated and manual processes
+
+## 📋 Implementation Phase
+
+> 💡 **Remember:** This workflow ensures every feature is properly planned, implemented, and launched. Never skip phases - each one builds on the previous to ensure success. Use the completed Payment Confirmation System as a reference for quality and thoroughness.

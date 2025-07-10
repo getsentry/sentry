@@ -1,0 +1,144 @@
+---
+alwaysApply: true
+---
+## 📋 Pattern Checklist
+
+When implementing these patterns, ensure:
+
+### Frontend
+- [ ] API client handles authentication and CSRF tokens
+- [ ] MobX stores use proper observables and actions
+- [ ] Components are wrapped in error boundaries
+- [ ] Hooks properly manage dependencies and cleanup
+- [ ] Forms include validation and error handling
+- [ ] Styling follows the design system
+- [ ] Tests cover success and error scenarios
+
+### Backend
+- [ ] Models include proper validation and constraints
+- [ ] API endpoints handle authentication and permissions
+- [ ] Serializers include all necessary fields
+- [ ] Tasks are idempotent and handle retries
+- [ ] Tests cover all HTTP methods and edge cases
+- [ ] Error handling includes proper logging
+- [ ] Metrics are tracked for monitoring
+
+## 🛠️ Development Environment
+
+### Frontend Development Setup
+
+#### Quick Frontend Development (Recommended)
+```bash
+# Start frontend development server
+pnpm dev-ui                  # Fastest for UI changes
+                            # Access: https://dev.getsentry.net:7999
+                            # Proxies API requests to production
+                            # Login with Sentry.io email/password
+
+# Enable HTTPS (one-time setup)
+pnpm dev-ui --https         # Generates local certificates
+```
+
+**Features:**
+- Hot module replacement (HMR)
+- TypeScript compilation
+- ESLint integration
+- Emotion CSS-in-JS processing
+- Production API data
+- Real authentication
+
+#### Cookie Management for Development
+```bash
+# Install browser extension for session sync
+# Chrome: Cookie Sync Extension
+# Firefox: Cookie Sync Add-on
+```
+
+### Backend Development Setup
+
+#### Backend-Only Development
+```bash
+# Configure once: Edit ~/.sentry/sentry.conf.py
+# Add these lines:
+# STATIC_URL = "https://sentry.io/_static/{version}"
+# STATIC_FRONTEND_APP_URL = "https://sentry.io/_static/dist/"
+
+# Start backend server
+sentry run web              # Access: http://localhost:9001
+                           # Loads frontend from production
+
+# Start background services as needed
+sentry run worker           # Celery workers
+sentry run consumer         # Kafka consumers
+sentry run cron            # Scheduled tasks
+```
+
+#### Full Stack Development
+```bash
+# Only when making coordinated frontend + backend changes
+sentry devserver            # Traditional full development (slower)
+```
+
+### Service Management
+
+#### Required Services
+```bash
+# Start all required services
+sentry devservices up       # Kafka, Redis, PostgreSQL, ClickHouse
+
+# Individual service management
+sentry devservices up kafka redis postgres
+sentry devservices down
+sentry devservices logs kafka
+sentry devservices ps       # Check running services
+```
+
+#### Database Setup
+```bash
+# Initial database setup
+sentry upgrade              # Run migrations
+sentry createuser          # Create superuser account
+
+# Development operations
+sentry shell               # Django shell
+sentry repair              # Fix database issues
+```
+
+### Development Configuration
+
+#### Local Configuration Files
+```python
+# ~/.sentry/sentry.conf.py - Local development config
+import os
+from sentry.conf.server import *
+
+# Database configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'sentry.db.postgres',
+        'NAME': 'sentry',
+        'USER': 'postgres',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+# Redis configuration
+REDIS_URL = 'redis://localhost:6379'
+
+# For backend-only development
+STATIC_URL = "https://sentry.io/_static/{version}"
+STATIC_FRONTEND_APP_URL = "https://sentry.io/_static/dist/"
+
+# Debug settings
+DEBUG = True
+```
+
+#### Environment Variables
+```bash
+# Development environment variables
+export SENTRY_CONF="~/.sentry"
+export SENTRY_ENVIRONMENT="development"
+export SENTRY_DSN="your_development_dsn"
+```

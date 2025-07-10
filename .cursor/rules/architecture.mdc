@@ -1,0 +1,622 @@
+---
+alwaysApply: true
+---
+
+
+# Sentry Monorepo Architecture
+
+## 🏗️ Repository Structure
+
+```
+sentry/
+├── .cursor/                 # AI assistant configuration
+├── src/                     # Python source code
+│   ├── sentry/             # Main Django application
+│   │   ├── api/            # REST API endpoints
+│   │   ├── auth/           # Authentication systems
+│   │   ├── issues/         # Issue management
+│   │   ├── integrations/   # Third-party integrations
+│   │   ├── models/         # Database models
+│   │   ├── templates/      # Django templates
+│   │   └── conf/           # Django configuration
+│   ├── bitfield/           # Custom field types
+│   ├── django_picklefield/ # Django field extensions
+│   └── social_auth/        # Social authentication
+├── static/                 # Frontend React application
+│   ├── app/               # Main React SPA
+│   ├── gsAdmin/           # Admin interface
+│   ├── gsApp/             # Additional app components
+│   ├── fonts/             # Font assets
+│   ├── images/            # Image assets
+│   └── less/              # Legacy styling
+├── tests/                  # Test suite
+│   ├── sentry/            # Backend tests
+│   ├── js/                # Frontend tests
+│   └── fixtures/          # Test data
+├── fixtures/               # Development fixtures
+├── api-docs/              # API documentation generation
+├── config/                # Build and deployment configuration
+├── tools/                 # Development tools and scripts
+└── devservices/           # Development service configuration
+```
+
+## 🎯 Design Principles
+
+### Monorepo Architecture
+- **Backend**: Django REST API with PostgreSQL
+- **Frontend**: React SPA with TypeScript
+- **Build System**: Rspack for modern bundling
+- **State Management**: MobX for reactive state
+- **Styling**: Emotion CSS-in-JS with design system
+
+### Performance & Scalability
+- **Hybrid Cloud**: Multi-silo architecture (Control/Region)
+- **Event Processing**: Relay for high-throughput ingestion
+- **Caching**: Redis clustering for performance
+- **Background Tasks**: Celery for async processing
+- **Database**: PostgreSQL with sharding support
+
+### Monitoring & Observability
+- **Self-Instrumentation**: Uses Sentry SDK for internal monitoring
+- **Performance Tracking**: APM for all critical paths
+- **Error Tracking**: Comprehensive error reporting
+- **Metrics**: Custom metrics and dashboards
+
+## 🏢 Application Architecture
+
+### Backend API (`/src/sentry/`)
+**Purpose:** Django REST API and core business logic
+**Technology:** Django with Python 3.13
+**Database:** PostgreSQL with Redis caching
+
+**Key Components:**
+- REST API endpoints for all functionality
+- Event ingestion and processing pipeline
+- Issue management and grouping
+- User authentication and authorization
+- Third-party integrations (GitHub, Slack, etc.)
+
+### Frontend SPA (`/static/app/`)
+**Purpose:** React single-page application
+**Technology:** React 19 with TypeScript
+**Build:** Rspack with hot module replacement
+
+**Key Features:**
+- Issue dashboard and management
+- Project and organization settings
+- Real-time event stream
+- Performance monitoring UI
+- Admin tools and configuration
+
+### Development Tools
+**Purpose:** Build, test, and deployment automation
+**Technology:** Node.js toolchain with Python scripts
+
+**Key Features:**
+- Rspack-based build system
+- Jest testing framework
+- ESLint and Prettier for code quality
+- API documentation generation
+- Development service orchestration
+
+## 🚀 Development Workflow
+
+### Recommended Development Approach
+
+#### Frontend-Only Changes (Fastest)
+```bash
+# Use when making UI/React changes only
+pnpm dev-ui                  # Proxies API to production
+# Access: https://dev.getsentry.net:7999
+```
+
+**Benefits:**
+- Fastest feedback loop for UI changes
+- No backend setup required
+- Uses production API data
+- Real authentication with Sentry.io credentials
+
+#### Backend-Only Changes
+```bash
+# Configure once: Edit ~/.sentry/sentry.conf.py
+# STATIC_URL = "https://sentry.io/_static/{version}"
+# STATIC_FRONTEND_APP_URL = "https://sentry.io/_static/dist/"
+
+sentry run web              # Backend only, loads frontend from production
+# Access: http://localhost:9001
+```
+
+#### Full Stack Development
+```bash
+# Use when making both frontend and backend changes
+sentry devserver            # Full local development (slower)
+```
+
+### Service Architecture
+
+#### Required Services
+```bash
+# Start all required services
+sentry devservices up       # Kafka, Redis, PostgreSQL, ClickHouse, etc.
+
+# Individual service management
+sentry devservices up kafka redis postgres
+sentry devservices down
+sentry devservices logs kafka
+```
+
+#### Background Services
+```bash
+# Start as needed for full functionality
+sentry run worker           # Celery workers (async task processing)
+sentry run cron            # Scheduled tasks
+sentry run consumer        # Kafka consumers (event ingestion)
+```
+
+### Code Organization
+- **Django Apps** are organized by domain functionality
+- **React Components** follow feature-based organization
+- **API Endpoints** are grouped by resource type
+- **Types** are defined per module with TypeScript
+
+## 🔧 Technology Stack
+
+### Backend Framework
+- **Django** with Django REST Framework
+- **Python 3.13** with async support
+- **PostgreSQL** for primary data storage
+- **Redis** for caching and sessions
+
+### Frontend Framework
+- **React 19** with TypeScript
+- **MobX** for state management
+- **Emotion** for CSS-in-JS styling
+- **React Router** for client-side routing
+
+### Build & Development
+- **Rspack** for fast bundling
+- **Babel** for JavaScript transpilation
+- **TypeScript** for type safety
+- **ESLint & Prettier** for code quality
+
+### Testing & Quality
+- **Jest** for frontend testing
+- **pytest** for backend testing
+- **React Testing Library** for component testing
+- **MyPy** for Python type checking
+
+### Infrastructure
+- **Docker** for development services
+- **Celery** for background task processing
+- **Sentry SDK** for self-monitoring
+- **Relay** for event processing
+
+## 📊 Data Architecture
+
+### Database Schema
+- **PostgreSQL** as primary database
+- **Redis** for caching and real-time features
+- **Hybrid Cloud** multi-silo architecture
+- **Event Storage** via Snuba (ClickHouse)
+
+### API Design
+- **RESTful APIs** with Django REST Framework
+- **WebSocket** connections for real-time updates
+- **GraphQL** for complex queries (select endpoints)
+- **Event Ingestion** via Relay protocol
+
+### Event Processing Pipeline
+- **Relay** for high-throughput event ingestion
+- **Celery** for background processing
+- **Snuba** for event storage and querying
+- **Real-time** updates via WebSocket
+
+## 🔐 Security Architecture
+
+### Authentication & Authorization
+- **Django Authentication** with custom backends
+- **OAuth2** for third-party integrations
+- **API Keys** for programmatic access
+- **Role-Based Access Control** (RBAC)
+
+### Data Protection
+- **Input Validation** with Django forms/serializers
+- **SQL Injection Prevention** with ORM
+- **CSRF Protection** with Django middleware
+- **Rate Limiting** on API endpoints
+
+### Privacy & Compliance
+- **Data Scrubbing** for sensitive information
+- **PII Filtering** in event processing
+- **GDPR Compliance** with data controls
+- **SOC2** security standards
+
+## 📱 Frontend Architecture
+
+### Component Structure
+- **Design System** with reusable components
+- **Feature-Based** organization
+- **TypeScript** for type safety
+- **Emotion** for styled components
+
+### State Management
+- **MobX** for reactive state
+- **Local State** for component-specific data
+- **API State** synchronized with backend
+- **Real-time Updates** via WebSocket
+
+### Performance Optimization
+- **Code Splitting** with dynamic imports
+- **Bundle Optimization** with Rspack
+- **Lazy Loading** for routes and components
+- **Caching** strategies for API responses
+
+## 🚀 Deployment Architecture
+
+### Environment Strategy
+- **Development** - Local with devservices
+- **Staging** - Production-like environment
+- **Production** - Multi-region deployment
+
+### Hybrid Cloud
+- **Control Silo** - Organization and user management
+- **Region Silo** - Event processing and storage
+- **Monolith Mode** - Single-tenant deployments
+
+### Infrastructure
+- **Kubernetes** for container orchestration
+- **Load Balancing** for high availability
+- **Auto-scaling** based on traffic
+- **Monitoring** with comprehensive alerting
+
+---
+
+> 💡 **Note:** This architecture supports both SaaS (sentry.io) and self-hosted deployments, with the hybrid cloud model enabling global scale while maintaining data locality.
+
+## 🔄 Event Processing Flow
+
+### Ingestion Pipeline
+1. **SDK** sends events to Relay
+2. **Relay** processes and forwards to API
+3. **API** validates and queues events
+4. **Celery** workers process events
+5. **Snuba** stores events for querying
+6. **UI** displays processed events
+
+### Real-time Updates
+- **WebSocket** connections for live data
+- **Server-Sent Events** for notifications
+- **Polling** fallback for compatibility
+- **Caching** for performance optimization
+
+## 📈 Performance Characteristics
+
+### Backend Performance
+- **Async Processing** with Celery
+- **Database Optimization** with connection pooling
+- **Caching Strategies** with Redis
+- **Query Optimization** with Django ORM
+
+### Frontend Performance
+- **Bundle Splitting** for optimal loading
+- **Component Optimization** with React.memo
+- **Virtual Scrolling** for large lists
+- **Debouncing** for search and filters
+
+### Monitoring & Metrics
+- **APM Tracking** for all services
+- **Custom Metrics** for business logic
+- **Performance Budgets** for frontend
+- **SLA Monitoring** for critical paths
+
+
+## 🏗️ Data Architecture
+
+# Sentry Monorepo Architecture
+
+## 🏗️ Repository Structure
+
+```
+sentry/
+├── .cursor/                 # AI assistant configuration
+├── src/                     # Python source code
+│   ├── sentry/             # Main Django application
+│   │   ├── api/            # REST API endpoints
+│   │   ├── auth/           # Authentication systems
+│   │   ├── issues/         # Issue management
+│   │   ├── integrations/   # Third-party integrations
+│   │   ├── models/         # Database models
+│   │   ├── templates/      # Django templates
+│   │   └── conf/           # Django configuration
+│   ├── bitfield/           # Custom field types
+│   ├── django_picklefield/ # Django field extensions
+│   └── social_auth/        # Social authentication
+├── static/                 # Frontend React application
+│   ├── app/               # Main React SPA
+│   ├── gsAdmin/           # Admin interface
+│   ├── gsApp/             # Additional app components
+│   ├── fonts/             # Font assets
+│   ├── images/            # Image assets
+│   └── less/              # Legacy styling
+├── tests/                  # Test suite
+│   ├── sentry/            # Backend tests
+│   ├── js/                # Frontend tests
+│   └── fixtures/          # Test data
+├── fixtures/               # Development fixtures
+├── api-docs/              # API documentation generation
+├── config/                # Build and deployment configuration
+├── tools/                 # Development tools and scripts
+└── devservices/           # Development service configuration
+```
+
+## 🎯 Design Principles
+
+### Monorepo Architecture
+- **Backend**: Django REST API with PostgreSQL
+- **Frontend**: React SPA with TypeScript
+- **Build System**: Rspack for modern bundling
+- **State Management**: MobX for reactive state
+- **Styling**: Emotion CSS-in-JS with design system
+
+### Performance & Scalability
+- **Hybrid Cloud**: Multi-silo architecture (Control/Region)
+- **Event Processing**: Relay for high-throughput ingestion
+- **Caching**: Redis clustering for performance
+- **Background Tasks**: Celery for async processing
+- **Database**: PostgreSQL with sharding support
+
+### Monitoring & Observability
+- **Self-Instrumentation**: Uses Sentry SDK for internal monitoring
+- **Performance Tracking**: APM for all critical paths
+- **Error Tracking**: Comprehensive error reporting
+- **Metrics**: Custom metrics and dashboards
+
+## 🏢 Application Architecture
+
+### Backend API (`/src/sentry/`)
+**Purpose:** Django REST API and core business logic
+**Technology:** Django with Python 3.13
+**Database:** PostgreSQL with Redis caching
+
+**Key Components:**
+- REST API endpoints for all functionality
+- Event ingestion and processing pipeline
+- Issue management and grouping
+- User authentication and authorization
+- Third-party integrations (GitHub, Slack, etc.)
+
+### Frontend SPA (`/static/app/`)
+**Purpose:** React single-page application
+**Technology:** React 19 with TypeScript
+**Build:** Rspack with hot module replacement
+
+**Key Features:**
+- Issue dashboard and management
+- Project and organization settings
+- Real-time event stream
+- Performance monitoring UI
+- Admin tools and configuration
+
+### Development Tools
+**Purpose:** Build, test, and deployment automation
+**Technology:** Node.js toolchain with Python scripts
+
+**Key Features:**
+- Rspack-based build system
+- Jest testing framework
+- ESLint and Prettier for code quality
+- API documentation generation
+- Development service orchestration
+
+## 🚀 Development Workflow
+
+### Recommended Development Approach
+
+#### Frontend-Only Changes (Fastest)
+```bash
+# Use when making UI/React changes only
+pnpm dev-ui                  # Proxies API to production
+# Access: https://dev.getsentry.net:7999
+```
+
+**Benefits:**
+- Fastest feedback loop for UI changes
+- No backend setup required
+- Uses production API data
+- Real authentication with Sentry.io credentials
+
+#### Backend-Only Changes
+```bash
+# Configure once: Edit ~/.sentry/sentry.conf.py
+# STATIC_URL = "https://sentry.io/_static/{version}"
+# STATIC_FRONTEND_APP_URL = "https://sentry.io/_static/dist/"
+
+sentry run web              # Backend only, loads frontend from production
+# Access: http://localhost:9001
+```
+
+#### Full Stack Development
+```bash
+# Use when making both frontend and backend changes
+sentry devserver            # Full local development (slower)
+```
+
+### Service Architecture
+
+#### Required Services
+```bash
+# Start all required services
+sentry devservices up       # Kafka, Redis, PostgreSQL, ClickHouse, etc.
+
+# Individual service management
+sentry devservices up kafka redis postgres
+sentry devservices down
+sentry devservices logs kafka
+```
+
+#### Background Services
+```bash
+# Start as needed for full functionality
+sentry run worker           # Celery workers (async task processing)
+sentry run cron            # Scheduled tasks
+sentry run consumer        # Kafka consumers (event ingestion)
+```
+
+### Code Organization
+- **Django Apps** are organized by domain functionality
+- **React Components** follow feature-based organization
+- **API Endpoints** are grouped by resource type
+- **Types** are defined per module with TypeScript
+
+## 🔧 Technology Stack
+
+### Backend Framework
+- **Django** with Django REST Framework
+- **Python 3.13** with async support
+- **PostgreSQL** for primary data storage
+- **Redis** for caching and sessions
+
+### Frontend Framework
+- **React 19** with TypeScript
+- **MobX** for state management
+- **Emotion** for CSS-in-JS styling
+- **React Router** for client-side routing
+
+### Build & Development
+- **Rspack** for fast bundling
+- **Babel** for JavaScript transpilation
+- **TypeScript** for type safety
+- **ESLint & Prettier** for code quality
+
+### Testing & Quality
+- **Jest** for frontend testing
+- **pytest** for backend testing
+- **React Testing Library** for component testing
+- **MyPy** for Python type checking
+
+### Infrastructure
+- **Docker** for development services
+- **Celery** for background task processing
+- **Sentry SDK** for self-monitoring
+- **Relay** for event processing
+
+## 📊 Data Architecture
+
+### Database Schema
+- **PostgreSQL** as primary database
+- **Redis** for caching and real-time features
+- **Hybrid Cloud** multi-silo architecture
+- **Event Storage** via Snuba (ClickHouse)
+
+### API Design
+- **RESTful APIs** with Django REST Framework
+- **WebSocket** connections for real-time updates
+- **GraphQL** for complex queries (select endpoints)
+- **Event Ingestion** via Relay protocol
+
+### Event Processing Pipeline
+- **Relay** for high-throughput event ingestion
+- **Celery** for background processing
+- **Snuba** for event storage and querying
+- **Real-time** updates via WebSocket
+
+## 🔐 Security Architecture
+
+### Authentication & Authorization
+- **Django Authentication** with custom backends
+- **OAuth2** for third-party integrations
+- **API Keys** for programmatic access
+- **Role-Based Access Control** (RBAC)
+
+### Data Protection
+- **Input Validation** with Django forms/serializers
+- **SQL Injection Prevention** with ORM
+- **CSRF Protection** with Django middleware
+- **Rate Limiting** on API endpoints
+
+### Privacy & Compliance
+- **Data Scrubbing** for sensitive information
+- **PII Filtering** in event processing
+- **GDPR Compliance** with data controls
+- **SOC2** security standards
+
+## 📱 Frontend Architecture
+
+### Component Structure
+- **Design System** with reusable components
+- **Feature-Based** organization
+- **TypeScript** for type safety
+- **Emotion** for styled components
+
+### State Management
+- **MobX** for reactive state
+- **Local State** for component-specific data
+- **API State** synchronized with backend
+- **Real-time Updates** via WebSocket
+
+### Performance Optimization
+- **Code Splitting** with dynamic imports
+- **Bundle Optimization** with Rspack
+- **Lazy Loading** for routes and components
+- **Caching** strategies for API responses
+
+## 🚀 Deployment Architecture
+
+### Environment Strategy
+- **Development** - Local with devservices
+- **Staging** - Production-like environment
+- **Production** - Multi-region deployment
+
+### Hybrid Cloud
+- **Control Silo** - Organization and user management
+- **Region Silo** - Event processing and storage
+- **Monolith Mode** - Single-tenant deployments
+
+### Infrastructure
+- **Kubernetes** for container orchestration
+- **Load Balancing** for high availability
+- **Auto-scaling** based on traffic
+- **Monitoring** with comprehensive alerting
+
+---
+
+> 💡 **Note:** This architecture supports both SaaS (sentry.io) and self-hosted deployments, with the hybrid cloud model enabling global scale while maintaining data locality.
+
+## 🔄 Event Processing Flow
+
+### Ingestion Pipeline
+1. **SDK** sends events to Relay
+2. **Relay** processes and forwards to API
+3. **API** validates and queues events
+4. **Celery** workers process events
+5. **Snuba** stores events for querying
+6. **UI** displays processed events
+
+### Real-time Updates
+- **WebSocket** connections for live data
+- **Server-Sent Events** for notifications
+- **Polling** fallback for compatibility
+- **Caching** for performance optimization
+
+## 📈 Performance Characteristics
+
+### Backend Performance
+- **Async Processing** with Celery
+- **Database Optimization** with connection pooling
+- **Caching Strategies** with Redis
+- **Query Optimization** with Django ORM
+
+### Frontend Performance
+- **Bundle Splitting** for optimal loading
+- **Component Optimization** with React.memo
+- **Virtual Scrolling** for large lists
+- **Debouncing** for search and filters
+
+### Monitoring & Metrics
+- **APM Tracking** for all services
+- **Custom Metrics** for business logic
+- **Performance Budgets** for frontend
+- **SLA Monitoring** for critical paths
+
+
+## 🏗️ Data Architecture

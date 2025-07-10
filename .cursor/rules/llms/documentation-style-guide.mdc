@@ -1,0 +1,187 @@
+---
+alwaysApply: true
+---
+# Documentation Style Guide
+
+## 🎯 Purpose
+
+This guide defines writing standards for `.cursor/rules/*.mdc` files in the project template. These files serve as both AI assistant instructions and developer documentation.
+
+## 📋 Structure Requirements
+
+### File Header Format
+```markdown
+# [Feature/Pattern Name]
+
+Brief description of the feature or pattern (1-2 sentences max).
+
+## 🎯 [Section Name]
+```
+
+### Standard Sections
+1. **Overview** - Brief purpose and scope
+2. **When to Use** - Specific scenarios with bullet points
+3. **Implementation Pattern** - Minimal code examples
+4. **Key Conventions** - Project-specific rules
+5. **References** - Links to actual implementation files
+
+### Section Ordering
+- Context first (what and why)
+- Implementation details (how)
+- Examples and patterns
+- Checklists and verification
+
+## ✍️ Writing Standards
+
+### Language Guidelines
+- **Direct language**: "Use X for Y" not "You might consider using X"
+- **Active voice**: "Configure Sentry" not "Sentry should be configured"
+- **Imperative mood**: "Handle errors gracefully" not "Errors should be handled gracefully"
+- **Present tense**: "TypeScript validates" not "TypeScript will validate"
+
+### Content Guidelines
+- **Assume intelligence**: Skip basic programming concepts
+- **Focus on domain-specific patterns**: Not general Next.js or React patterns
+- **Code over prose**: Show implementation patterns, minimize explanation
+- **Concrete examples**: Use actual file paths and real code snippets
+- **Context window optimization**: Every line provides unique value
+
+### Example Transformations
+```markdown
+❌ BAD: "You might want to consider using TypeScript for better type safety"
+✅ GOOD: "Use TypeScript with strict mode for all components"
+
+❌ BAD: "It's generally recommended to handle errors properly"
+✅ GOOD: "Log all errors to Sentry with structured context"
+
+❌ BAD: "This is a common pattern in React applications"
+✅ GOOD: "Business validation follows this pattern"
+```
+
+## 📝 Code Example Standards
+
+### Minimal Examples
+```typescript
+// ✅ GOOD: Focused on the specific pattern
+export function logError(error: Error, context: LogContext) {
+  Sentry.captureException(error, {
+    tags: { component: context.component },
+    extra: context,
+  })
+}
+
+// ❌ BAD: Too much boilerplate
+import React from 'react'
+import { useState, useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
+
+export function SomeComponent() {
+  const [state, setState] = useState(null)
+
+  useEffect(() => {
+    // ... lots of setup code
+  }, [])
+
+  const logError = (error: Error, context: LogContext) => {
+    Sentry.captureException(error, {
+      tags: { component: context.component },
+      extra: context,
+    })
+  }
+
+  return <div>...</div>
+}
+```
+
+### File Path References
+```typescript
+// ✅ GOOD: Specific file paths
+// components/ContactForm.tsx
+// lib/business-hours.ts
+// app/api/contact/route.ts
+
+// ❌ BAD: Generic paths
+// components/Form.tsx
+// utils/helpers.ts
+// api/route.ts
+```
+
+## 🏷️ Formatting Standards
+
+### Headings
+- Use descriptive headings: "Business Hours Validation" not "Validation"
+- Include relevant emoji for visual scanning
+- Keep hierarchy flat (max 3 levels)
+
+### Code Blocks
+- Always include file path comments
+- Use TypeScript unless specifically demonstrating another language
+- Include only relevant code - use `// ...` for omitted sections
+
+### Lists
+- Use bullet points for options or features
+- Use numbered lists for sequential steps
+- Keep items parallel in structure
+
+### Links
+- Use relative paths for internal documentation
+- Include line numbers for code references: `./common-patterns.mdc:45-60`
+- External links should be meaningful: `[Next.js App Router](mdc:https:/nextjs.org/docs/app)`
+
+## 🎯 AI Optimization
+
+### Context Window Efficiency
+- Front-load important information
+- Use progressive disclosure (overview → details)
+- Eliminate redundant information across files
+- Reference other files instead of duplicating content
+
+### Searchability
+- Include relevant keywords naturally
+- Use consistent terminology throughout
+- Tag concepts with clear, searchable phrases
+
+### Actionability
+- Every guideline should be implementable
+- Include verification steps where possible
+- Provide clear success/failure criteria
+
+## 📊 Quality Checklist
+
+Before committing documentation changes:
+
+- [ ] File follows standard structure format
+- [ ] Language is direct and active
+- [ ] Code examples are minimal and focused
+- [ ] File paths are specific and accurate
+- [ ] Content is project-specific
+- [ ] No redundant information across files
+- [ ] Headings are descriptive and scannable
+- [ ] Examples use real project patterns
+- [ ] Checklists are actionable
+- [ ] Links are functional and meaningful
+
+## 🔄 Maintenance
+
+### When to Update
+- Code patterns change significantly
+- New domain-specific features are added
+- External dependencies are updated
+- Documentation becomes outdated
+
+### Review Process
+- Check for consistency across all `.mdc` files
+- Verify code examples still work
+- Update references to moved or renamed files
+- Ensure new patterns are documented
+
+## 📚 References
+
+- [Sentry MCP Documentation Structure](mdc:https:/github.com/getsentry/sentry-mcp/tree/main/.cursor)
+- [Markdown Documentation](mdc:https:/www.markdownguide.org)
+- [Technical Writing Best Practices](mdc:https:/developers.google.com/style)
+
+
+- [Sentry MCP Documentation Structure](mdc:https:/github.com/getsentry/sentry-mcp/tree/main/.cursor)
+- [Markdown Documentation](mdc:https:/www.markdownguide.org)
+- [Technical Writing Best Practices](mdc:https:/developers.google.com/style)

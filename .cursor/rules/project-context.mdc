@@ -1,0 +1,35 @@
+---
+alwaysApply: true
+---
+
+> 💡 **Remember**: This is a high-scale, mission-critical application. Every change should be thoroughly tested and consider performance implications.
+
+## ⚡ Quick Reference
+
+### Key Directories
+- `src/sentry/` - Django application
+- `static/app/` - React frontend
+- `tests/` - Test files
+- `config/` - Configuration files
+
+### Important Commands
+```bash
+# Backend
+python manage.py runserver
+python manage.py test
+python manage.py migrate
+
+# Frontend
+npm run dev
+npm run test
+npm run build
+```
+
+### Common Issues
+- **Database connection errors** - Check PostgreSQL and Redis
+- **Frontend build errors** - Clear node_modules and reinstall
+- **Test failures** - Ensure database is properly set up
+- **Performance issues** - Check query optimization and caching
+- Update validation schemas
+- Modify workflow processes
+- Adapt metrics collection

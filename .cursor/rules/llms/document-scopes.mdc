@@ -1,0 +1,180 @@
+---
+alwaysApply: true
+---
+# Document Scopes
+
+## 🎯 Purpose
+
+This document defines the purpose and scope of each `.cursor/rules/*.mdc` file to prevent overlap and ensure comprehensive coverage.
+
+## 📚 Core Navigation Files
+
+### `cursor.mdc`
+- **Purpose**: Primary navigation and project overview
+- **Scope**: High-level project context, essential commands, critical constraints
+- **Audience**: First point of contact for AI assistants
+- **Content**: Links to detailed guides, not implementation details
+
+### `README.md`
+- **Purpose**: Documentation structure explanation
+- **Scope**: How to use the documentation system
+- **Audience**: Developers and AI assistants
+- **Content**: File organization, usage instructions, design principles
+
+## 🏗️ Architecture & Structure
+
+### `architecture.mdc`
+- **Purpose**: System design and technology decisions
+- **Scope**: Repository structure, technology stack, architectural patterns
+- **Audience**: Developers making structural decisions
+- **Content**: Directory structure, deployment architecture, performance considerations
+- **Excludes**: Implementation details, code examples
+
+### `common-patterns.mdc`
+- **Purpose**: Reusable code patterns and conventions
+- **Scope**: Standard implementations used across the project
+- **Audience**: Developers implementing features
+- **Content**: Code patterns, not business logic or specific features
+- **Excludes**: Domain-specific business rules, one-off implementations
+
+## 🛠️ Implementation Guides
+
+### `coding-guidelines.mdc`
+- **Purpose**: Code quality and style standards
+- **Scope**: TypeScript, Next.js, and database conventions
+- **Audience**: Developers writing code
+- **Content**: Language standards, framework patterns, quality checklists
+- **Excludes**: Business logic, architecture decisions
+
+### `monitoring.mdc`
+- **Purpose**: Observability and error tracking
+- **Scope**: Sentry integration, logging patterns, performance monitoring
+- **Audience**: Developers implementing monitoring
+- **Content**: Logging utilities, error handling, performance tracking
+- **Excludes**: Business metrics, domain-specific analytics
+
+### `testing.mdc` (to be created)
+- **Purpose**: Testing strategies and patterns
+- **Scope**: Unit tests, integration tests, E2E testing
+- **Audience**: Developers writing tests
+- **Content**: Testing frameworks, patterns, CI/CD
+- **Excludes**: Manual testing procedures, business validation
+
+### `deployment.mdc` (to be created)
+- **Purpose**: Deployment processes and environment setup
+- **Scope**: Deployment config, environment variables, CI/CD
+- **Audience**: Developers deploying applications
+- **Content**: Deployment scripts, environment configuration
+- **Excludes**: Local development setup, debugging
+
+## 🏢 Domain-Specific Guides
+
+### `business-logic.mdc`
+- **Purpose**: Domain-specific business rules and operations
+- **Scope**: Business hours, booking system, operational workflows
+- **Audience**: Developers implementing domain features
+- **Content**: Business rules, validation logic, domain-specific patterns
+- **Excludes**: Generic business patterns, non-domain business logic
+
+### `ui-components.mdc` (to be created)
+- **Purpose**: UI component patterns and design system
+- **Scope**: ShadCN/UI integration, custom theming, responsive design
+- **Audience**: Developers building UI components
+- **Content**: Component patterns, styling guidelines, accessibility
+- **Excludes**: Business logic, data fetching
+
+### `database-patterns.mdc` (to be created)
+- **Purpose**: Database schema and data access patterns
+- **Scope**: Database schema, query patterns, data modeling
+- **Audience**: Developers working with data
+- **Content**: Database structure, query optimization, data validation
+- **Excludes**: Business logic, UI concerns
+
+## 🧠 Meta Documentation
+
+### `llms/documentation-style-guide.mdc`
+- **Purpose**: Writing standards for documentation
+- **Scope**: Style guide, formatting rules, quality standards
+- **Audience**: Documentation writers and maintainers
+- **Content**: Writing guidelines, structure requirements, examples
+- **Excludes**: Project-specific content, implementation details
+
+### `llms/document-scopes.mdc` (this file)
+- **Purpose**: Document organization and scope definition
+- **Scope**: File purposes, content boundaries, overlap prevention
+- **Audience**: Documentation maintainers
+- **Content**: Document purposes, scope boundaries, content guidelines
+- **Excludes**: Implementation details, style guidelines
+
+## 🔄 Content Boundaries
+
+### What Goes Where
+
+#### Technical Implementation
+- **`common-patterns.mdc`**: Generic patterns used across features
+- **`coding-guidelines.mdc`**: Quality and style standards
+- **`business-logic.mdc`**: Domain-specific business rules
+
+#### System Architecture
+- **`architecture.mdc`**: High-level system design
+- **`database-patterns.mdc`**: Data layer architecture
+- **`deployment.mdc`**: Infrastructure and deployment
+
+#### Quality Assurance
+- **`monitoring.mdc`**: Observability and error tracking
+- **`testing.mdc`**: Testing strategies and patterns
+
+#### User Experience
+- **`ui-components.mdc`**: Design system and component patterns
+- **`business-logic.mdc`**: User-facing business rules
+
+## 🚫 Overlap Prevention
+
+### Avoid Duplication
+- **Error Handling**: Implementation in `common-patterns.mdc`, monitoring in `monitoring.mdc`
+- **TypeScript**: Standards in `coding-guidelines.mdc`, patterns in `common-patterns.mdc`
+- **Domain Features**: Business logic in `business-logic.mdc`, UI in `ui-components.mdc`
+
+### Cross-References
+- Link to related documents instead of duplicating content
+- Use specific line number references for code examples
+- Update cross-references when files are reorganized
+
+## 📋 Scope Validation
+
+### Questions to Ask
+1. **Is this content specific to the project domain?** → Domain-specific guides
+2. **Is this a reusable pattern?** → Common patterns
+3. **Is this about code quality?** → Coding guidelines
+4. **Is this about system design?** → Architecture
+5. **Is this about observability?** → Monitoring
+6. **Is this about documentation?** → Meta documentation
+
+### Content Audit Checklist
+- [ ] Content matches document's defined purpose
+- [ ] No significant overlap with other documents
+- [ ] Cross-references are used instead of duplication
+- [ ] Scope boundaries are respected
+- [ ] Content is at appropriate level of detail
+- [ ] Document serves its intended audience
+
+## 🎯 Success Metrics
+
+### Well-Scoped Documentation
+- AI assistants can find relevant information quickly
+- Developers know where to look for specific topics
+- No conflicting information across documents
+- Clear boundaries between document purposes
+- Easy to maintain and update
+
+### Signs of Scope Problems
+- Information duplicated across multiple files
+- Difficulty finding specific information
+- Conflicting guidance in different documents
+- Documents becoming too long or unfocused
+- Frequent cross-references to the same content
+
+- Difficulty finding specific information
+- Conflicting guidance in different documents
+- Documents becoming too long or unfocused
+- Frequent cross-references to the same content
