@@ -18,6 +18,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -39,6 +40,7 @@ interface MetricDetectorChartProps {
    * The dataset to use for the chart
    */
   dataset: DetectorDataset;
+  detectionType: MetricDetectorConfig['detectionType'];
   /**
    * The environment filter
    */
@@ -57,44 +59,30 @@ interface MetricDetectorChartProps {
   query: string;
 }
 
-function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
-  return {
-    seriesName: 'Threshold Line',
-    type: 'line',
-    markLine: MarkLine({
-      silent: true,
-      lineStyle: {color: lineColor, type: 'dashed', width: 1},
-      data: [{yAxis: threshold}],
-      label: {
-        show: false,
-      },
-    }),
-    data: [],
-  };
+function createThresholdMarkLine(lineColor: string, threshold: number) {
+  return MarkLine({
+    silent: true,
+    lineStyle: {color: lineColor, type: 'dashed', width: 1},
+    data: [{yAxis: threshold}],
+    label: {
+      show: false,
+    },
+  });
 }
 
-function createThresholdAreaSeries(
-  areaColor: string,
-  threshold: number,
-  isAbove: boolean
-): AreaChartSeries {
+function createThresholdMarkArea(areaColor: string, threshold: number, isAbove: boolean) {
   // Highlight the "safe" area - opposite of the alert condition
   const yAxis = isAbove
     ? [{yAxis: 'min'}, {yAxis: threshold}]
     : [{yAxis: threshold}, {yAxis: 'max'}];
 
-  return {
-    seriesName: 'Threshold Area',
-    type: 'line',
-    markArea: MarkArea({
-      silent: true,
-      itemStyle: {
-        color: color(areaColor).alpha(0.1).rgb().string(),
-      },
-      data: [yAxis as any],
-    }),
-    data: [],
-  };
+  return MarkArea({
+    silent: true,
+    itemStyle: {
+      color: color(areaColor).alpha(0.1).rgb().string(),
+    },
+    data: [yAxis as any],
+  });
 }
 
 /**
@@ -114,9 +102,41 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
       priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
       type: condition.type,
     }))
-    .sort((a, b) => a.value - b.value); // Sort by threshold value
+    .sort((a, b) => a.value - b.value);
 
   return {thresholds};
+}
+
+function useThresholdSeries(conditions: Array<Omit<DataCondition, 'id'>>) {
+  const theme = useTheme();
+
+  return useMemo((): {maxValue: number; series: AreaChartSeries[]} => {
+    const {thresholds} = extractThresholdsFromConditions(conditions);
+    const series = thresholds.map((threshold): AreaChartSeries => {
+      const isAbove = threshold.type === DataConditionType.GREATER;
+      const lineColor =
+        threshold.priority === DetectorPriorityLevel.HIGH
+          ? theme.red300
+          : theme.yellow300;
+      const areaColor = lineColor;
+
+      return {
+        // This name isn't actually shown in the chart and just contains our markLine and markArea
+        seriesName: 'Threshold Line',
+        type: 'line',
+        markLine: createThresholdMarkLine(lineColor, threshold.value),
+        markArea: createThresholdMarkArea(areaColor, threshold.value, isAbove),
+        data: [],
+      };
+    });
+
+    /**
+     * Helps set the y-axis bounds to ensure all thresholds are visible
+     */
+    const maxValue = Math.max(...thresholds.map(threshold => threshold.value));
+
+    return {series, maxValue};
+  }, [conditions, theme]);
 }
 
 type UseMetricDetectorSeriesProps = Pick<
@@ -168,8 +188,6 @@ export function MetricDetectorChart({
   projectId,
   conditions,
 }: MetricDetectorChartProps) {
-  const theme = useTheme();
-
   const {series, isPending, isError} = useMetricDetectorSeries({
     dataset,
     aggregate,
@@ -179,19 +197,17 @@ export function MetricDetectorChart({
     projectId,
   });
 
-  // Extract thresholds from condition group
-  const {thresholds} = extractThresholdsFromConditions(conditions);
+  const {series: thresholdSeries, maxValue: thresholdMaxValue} =
+    useThresholdSeries(conditions);
 
   // Calculate y-axis bounds to ensure all thresholds are visible
   const yAxisBounds = useMemo(() => {
-    const thresholdValues = thresholds.map(threshold => threshold.value);
-
     // Get series data bounds
     const seriesData = series[0]?.data || [];
     const seriesValues = seriesData.map(point => point.value).filter(val => !isNaN(val));
 
     // Calculate bounds including thresholds
-    const allValues = [...seriesValues, ...thresholdValues];
+    const allValues = [...seriesValues, thresholdMaxValue];
     const min = allValues.length > 0 ? Math.min(...allValues) : 0;
     const max = allValues.length > 0 ? Math.max(...allValues) : 0;
 
@@ -203,35 +219,9 @@ export function MetricDetectorChart({
     return {
       min: Math.round(paddedMin),
       max: Math.round(paddedMax),
-      hasThresholds: thresholdValues.length > 0,
+      hasThresholds: thresholdMaxValue > 0,
     };
-  }, [series, thresholds]);
-
-  // Create threshold series
-  const thresholdSeries = useMemo(() => {
-    const additionalSeries: AreaChartSeries[] = [];
-
-    thresholds.forEach(threshold => {
-      const isAbove = threshold.type === DataConditionType.GREATER;
-
-      // Determine color based on priority level
-      const lineColor =
-        threshold.priority === DetectorPriorityLevel.HIGH
-          ? theme.red300
-          : theme.yellow300;
-      const areaColor = lineColor;
-
-      // Add threshold line
-      additionalSeries.push(createThresholdSeries(lineColor, threshold.value));
-
-      // Add threshold area - highlight the area that triggers the alert
-      additionalSeries.push(
-        createThresholdAreaSeries(areaColor, threshold.value, isAbove)
-      );
-    });
-
-    return additionalSeries;
-  }, [thresholds, theme]);
+  }, [series, thresholdMaxValue]);
 
   if (isPending) {
     return (

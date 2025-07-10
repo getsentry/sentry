@@ -31,6 +31,7 @@ export function MetricDetectorPreviewChart() {
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(
@@ -53,6 +54,7 @@ export function MetricDetectorPreviewChart() {
       environment={environment}
       projectId={projectId}
       conditions={conditions}
+      detectionType={kind}
     />
   );
 }
