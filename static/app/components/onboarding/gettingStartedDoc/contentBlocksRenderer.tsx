@@ -61,9 +61,12 @@ function renderBlocks(
     if (!block) {
       return null;
     }
-    const Renderer = renderer[block.type] as any;
-    // The types of the renderer object already ensure that the block type is valid
-    return <Renderer {...block} key={index} />;
+    // Need to cast here as ts bugs out on the return type and does not allow assigning the key prop
+    const RendererComponent = renderer[block.type] as (
+      block: ContentBlock
+    ) => React.ReactNode;
+
+    return <RendererComponent {...block} key={String(index)} />;
   });
 }
 
