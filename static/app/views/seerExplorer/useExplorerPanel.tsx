@@ -38,28 +38,3 @@ export function useExplorerPanel() {
     toggleExplorerPanel: _toggleExplorerPanel,
   };
 }
-
-/**
- * Function to open explorer panel from anywhere in the app
- */
-export function openExplorerPanel() {
-  globalExplorerPanelState = true;
-  globalSetExplorerPanelState?.(true);
-}
-
-/**
- * Function to close explorer panel from anywhere in the app
- */
-export function closeExplorerPanel() {
-  globalExplorerPanelState = false;
-  globalSetExplorerPanelState?.(false);
-}
-
-/**
- * Function to toggle explorer panel from anywhere in the app
- */
-export function toggleExplorerPanel() {
-  const newState = !globalExplorerPanelState;
-  globalExplorerPanelState = newState;
-  globalSetExplorerPanelState?.(newState);
-}

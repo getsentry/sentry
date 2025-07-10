@@ -29,21 +29,33 @@ describe('useBlockNavigation', () => {
     },
   ];
 
-  const createMockElement = () => ({
-    scrollIntoView: jest.fn(),
-  });
+  const createMockElement = () => {
+    const mockScrollIntoView = jest.fn();
+    return {
+      scrollIntoView: mockScrollIntoView,
+    } as unknown as HTMLDivElement;
+  };
 
-  const createMockTextarea = () => ({
-    focus: jest.fn(),
-    scrollIntoView: jest.fn(),
-  });
+  const createMockTextarea = () => {
+    const mockFocus = jest.fn();
+    const mockScrollIntoView = jest.fn();
+    return {
+      focus: mockFocus,
+      scrollIntoView: mockScrollIntoView,
+    } as unknown as HTMLTextAreaElement;
+  };
+
+  const mockElement1 = createMockElement();
+  const mockElement2 = createMockElement();
+  const mockElement3 = createMockElement();
+  const mockTextarea = createMockTextarea();
 
   const defaultProps = {
     isOpen: true,
     focusedBlockIndex: -1,
     blocks: mockBlocks,
-    blockRefs: {current: [createMockElement(), createMockElement(), createMockElement()]},
-    textareaRef: {current: createMockTextarea()},
+    blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
+    textareaRef: {current: mockTextarea},
     setFocusedBlockIndex: jest.fn(),
     onDeleteFromIndex: jest.fn(),
   };
@@ -51,15 +63,11 @@ describe('useBlockNavigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset all mock methods
-    defaultProps.blockRefs.current.forEach(el => {
-      if (el) {
-        el.scrollIntoView.mockClear();
-      }
-    });
-    if (defaultProps.textareaRef.current) {
-      defaultProps.textareaRef.current.focus.mockClear();
-      defaultProps.textareaRef.current.scrollIntoView.mockClear();
-    }
+    (mockElement1.scrollIntoView as jest.Mock).mockClear();
+    (mockElement2.scrollIntoView as jest.Mock).mockClear();
+    (mockElement3.scrollIntoView as jest.Mock).mockClear();
+    (mockTextarea.focus as jest.Mock).mockClear();
+    (mockTextarea.scrollIntoView as jest.Mock).mockClear();
     defaultProps.setFocusedBlockIndex.mockClear();
     defaultProps.onDeleteFromIndex?.mockClear();
   });
@@ -235,7 +243,7 @@ describe('useBlockNavigation', () => {
     });
 
     it('handles single block navigation', () => {
-      const singleBlock = [mockBlocks[0]];
+      const singleBlock: Block[] = [mockBlocks[0]!];
       const props = {
         ...defaultProps,
         blocks: singleBlock,
