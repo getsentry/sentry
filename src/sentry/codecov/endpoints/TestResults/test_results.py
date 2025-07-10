@@ -41,6 +41,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             PreventParams.FIRST,
             PreventParams.LAST,
             PreventParams.CURSOR,
+            PreventParams.TERM,
         ],
         request=None,
         responses={
@@ -95,7 +96,7 @@ class TestResultsEndpoint(CodecovEndpoint):
                     request.query_params.get("interval", MeasurementInterval.INTERVAL_30_DAY.value)
                 ),
                 "flags": None,
-                "term": None,
+                "term": request.query_params.get("term"),
                 "test_suites": None,
             },
             "ordering": {
