@@ -327,6 +327,14 @@ class IssueAlertMigratorTest(TestCase):
         detector = Detector.objects.get(project_id=self.project.id)
         assert detector == project_detector
 
+    def test_run__detector_lookup_exists(self):
+        AlertRuleDetector.objects.create(
+            detector=self.create_detector(project=self.project),
+            rule_id=self.issue_alert.id,
+        )
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id).workflow
+
     def test_run__with_conditions(self):
         issue_alert = self.create_project_rule(
             condition_data=self.conditions,
