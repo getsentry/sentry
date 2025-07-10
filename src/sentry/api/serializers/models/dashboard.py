@@ -7,7 +7,6 @@ from typing import Any, NotRequired, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -359,9 +358,6 @@ class DashboardDetailsModelSerializer(Serializer):
 
         # TODO: The logic for obtaining these filters will be moved to the Dashboard model.
         if obj.filters is not None:
-            if obj.filters.get("all_projects"):
-                data["projects"] = list(ALL_ACCESS_PROJECTS)
-
             for tl_key in ("environment", "period", "utc"):
                 if obj.filters.get(tl_key) is not None:
                     data[tl_key] = obj.filters[tl_key]
