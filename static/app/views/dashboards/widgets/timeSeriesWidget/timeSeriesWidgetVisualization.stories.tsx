@@ -923,6 +923,15 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           default. The legend will always include an entry for every plottable, even if
           some plottables have the same alias, as you can see in the second example.
         </p>
+        <p>
+          By default, <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> creates
+          legend labels using all information from the <code>TimeSeries</code> object,
+          including the <code>yAxis</code> and the <code>groupBy</code>. In the first two
+          examples, the label uses the <code>yAxis</code> property. In the third example,
+          each <code>TimeSeries</code> has a <code>groupBy</code> property, so the{' '}
+          <code>yAxis</code> property is not shown in the label. The best way to override
+          this is by using the <code>alias</code> of a plottable.
+        </p>
 
         <code>{JSON.stringify(legendSelection)}</code>
 
@@ -942,6 +951,40 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               plottables={[
                 new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
                 new Area(sampleDurationTimeSeriesP50, {alias: 'Duration'}),
+              ]}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  yAxis: 'span.duration()',
+                  groupBy: [
+                    {
+                      key: 'release',
+                      value: 'proj@v0.6.2',
+                    },
+                    {
+                      key: 'env',
+                      value: 'production',
+                    },
+                  ],
+                }),
+                new Line({
+                  ...sampleDurationTimeSeriesP50,
+                  yAxis: 'span.duration()',
+                  groupBy: [
+                    {
+                      key: 'release',
+                      value: 'proj@v0.6.1',
+                    },
+                    {
+                      key: 'env',
+                      value: 'production',
+                    },
+                  ],
+                }),
               ]}
             />
           </MediumWidget>
