@@ -89,6 +89,19 @@ class TestAction(TestCase):
             with pytest.raises(Exception, match="Handler failed"):
                 self.action.trigger(self.mock_event, self.mock_detector)
 
+    @patch("sentry.utils.metrics.incr")
+    def test_trigger_metrics(self, mock_incr):
+        mock_handler = Mock(spec=ActionHandler)
+
+        with patch.object(self.action, "get_handler", return_value=mock_handler):
+            self.action.trigger(self.mock_event, self.mock_detector)
+
+            mock_handler.execute.assert_called_once()
+            mock_incr.assert_called_once_with(
+                "workflow_engine.action.trigger",
+                tags={"action_type": self.action.type, "detector_type": self.mock_detector.type},
+            )
+
     def test_config_schema(self):
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
