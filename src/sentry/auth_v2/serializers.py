@@ -12,9 +12,12 @@ from sentry.users.services.user.model import RpcUser
 
 class SessionSerializerResponse(TypedDict, total=False):
     # Flags to control the authentication flow on frontend.
-    # NOTE(dlee): Keep the keys sorted in order of importance!! Maintaining the control flow hierarchy on the serializer is good context for future engineers.
+    # Keep the keys sorted in order of importance!!
+    # Maintaining the hierarchy is good context for future engineers.
     todoEmailVerification: bool | None
     todo2faVerification: bool | None
+    todoPasswordReset: bool | None
+    todo2faSetup: bool | None
 
     userId: str | None
     sessionCsrfToken: str | None
@@ -45,6 +48,8 @@ class SessionSerializer(Serializer):
             # NOTE(dlee): Keep the keys sorted in order of importance!! Maintaining the control flow hierarchy on the serializer is good context for future engineers.
             "todoEmailVerification": session.get("todo_email_verification"),
             "todo2faVerification": session.get("todo_2fa_verification"),
+            "todoPasswordReset": session.get("todo_password_reset"),
+            "todo2faSetup": session.get("todo_2fa_setup"),
             # Post-authenticated session data
             "userId": session.get("_auth_user_id"),
             "sessionCsrfToken": obj.META.get("CSRF_COOKIE"),
