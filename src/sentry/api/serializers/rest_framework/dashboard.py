@@ -25,6 +25,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
+    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
@@ -858,6 +859,18 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             DashboardWidgetTypes.TRANSACTION_LIKE,
         ]:
             self._check_query_cardinality(new_queries)
+
+        if widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE:
+            self.create_snapshot(widget)
+        elif hasattr(widget, "snapshot"):
+            widget.snapshot.delete()
+
+    def create_snapshot(self, widget_data, widget):
+        snapshot = DashboardWidgetSnapshot.objects.create(
+            widget=widget_data,
+        )
+        widget.snapshot = snapshot
+        widget.save()
 
     def _check_query_cardinality(self, new_queries: Sequence[DashboardWidgetQuery]):
         organization = self.context["organization"]
