@@ -3,6 +3,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocksRenderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
@@ -64,6 +65,7 @@ export function Step({
   title,
   type,
   configurations,
+  content,
   additionalInfo,
   description,
   onOptionalToggleClick,
@@ -71,10 +73,14 @@ export function Step({
   trailingItems,
   codeHeader,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & OnboardingStep) {
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> & OnboardingStep) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
-  const config = (
+  const config = content ? (
+    <ContentWrapper>
+      <ContentBlocksRenderer contentBlocks={content} />
+    </ContentWrapper>
+  ) : (
     <ContentWrapper>
       {description && <Description>{description}</Description>}
 

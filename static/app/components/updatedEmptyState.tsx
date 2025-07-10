@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocksRenderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
@@ -182,20 +183,27 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 const title = step?.title ?? StepTitles[step?.type ?? 'install'];
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <div>
-                      {step?.description ? (
-                        <DescriptionWrapper>{step.description}</DescriptionWrapper>
-                      ) : null}
-                      {step?.configurations?.map((configuration, configIndex) => (
-                        <ConfigurationRenderer
-                          key={configIndex}
-                          configuration={configuration}
-                        />
-                      ))}
-                      {step?.additionalInfo ? (
-                        <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
-                      ) : null}
-                    </div>
+                    {step?.content ? (
+                      <ContentBlocksRenderer
+                        contentBlocks={step.content}
+                        spacing={space(1)}
+                      />
+                    ) : (
+                      <div>
+                        {step?.description ? (
+                          <DescriptionWrapper>{step.description}</DescriptionWrapper>
+                        ) : null}
+                        {step?.configurations?.map((configuration, configIndex) => (
+                          <ConfigurationRenderer
+                            key={configIndex}
+                            configuration={configuration}
+                          />
+                        ))}
+                        {step?.additionalInfo ? (
+                          <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
+                        ) : null}
+                      </div>
+                    )}
                     {index === steps.length - 1 ? (
                       <FirstEventIndicator
                         organization={organization}
@@ -338,7 +346,7 @@ const IndicatorWrapper = styled('div')`
 `;
 
 const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const DescriptionWrapper = styled('div')`
