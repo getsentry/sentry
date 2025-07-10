@@ -8,11 +8,13 @@ import {IconGithub, IconLink} from 'sentry/icons';
 import {ThemeSwitcher} from 'sentry/stories/theme';
 import {H1, HeaderGrid} from 'sentry/stories/view/storyHeader';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function NotifHeader() {
+  const location = useLocation();
   return (
     <HeaderGrid>
-      <Link to="/stories">
+      <Link to={location.pathname}>
         <Title>
           <SentryNotificationsLogo /> Notifications
         </Title>

@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {NotifEmptyState} from 'sentry/debug/notifs/components/notifEmptyState';
 import {NotifHeader} from 'sentry/debug/notifs/components/notifHeader';
 import {NotifSidebar} from 'sentry/debug/notifs/components/notifSidebar';
 import {notificationCategories} from 'sentry/debug/notifs/data';
@@ -34,11 +36,17 @@ export default function NotifIndex() {
             <NotifSidebar />
           </SidebarContainer>
           <BodyContainer>
-            <SourceTitle>{selectedSource?.label}</SourceTitle>
-            <EmailPreview />
-            <SlackPreview />
-            <DiscordPreview />
-            <TeamsPreview />
+            {selectedSource ? (
+              <Fragment>
+                <SourceTitle>{selectedSource.label}</SourceTitle>
+                <EmailPreview />
+                <SlackPreview />
+                <DiscordPreview />
+                <TeamsPreview />
+              </Fragment>
+            ) : (
+              <NotifEmptyState />
+            )}
           </BodyContainer>
         </Layout>
       </OrganizationContainer>
@@ -53,12 +61,12 @@ const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  padding: ${space(2)};
 `;
 
 const SourceTitle = styled('h2')`
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.tokens.graphics.success};
   text-decoration-thickness: 2px;
-  padding: ${space(2)};
   margin: 0;
 `;
