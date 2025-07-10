@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -293,15 +294,16 @@ def sync_status_inbound(
             )
 
             analytics.record(
-                "issue.resolved",
-                project_id=group.project.id,
-                default_user_id="Sentry Jira",
-                organization_id=organization_id,
-                group_id=group.id,
-                resolution_type="with_third_party_app",
-                provider=provider.key,
-                issue_type=group.issue_type.slug,
-                issue_category=group.issue_category.name.lower(),
+                IssueResolvedEvent(
+                    project_id=group.project.id,
+                    default_user_id="Sentry Jira",
+                    organization_id=organization_id,
+                    group_id=group.id,
+                    resolution_type="with_third_party_app",
+                    provider=provider.key,
+                    issue_type=group.issue_type.slug,
+                    issue_category=group.issue_category.name.lower(),
+                )
             )
 
     elif action == ResolveSyncAction.UNRESOLVE:
