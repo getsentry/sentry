@@ -153,7 +153,7 @@ const missingUserMisery = tct(
   }
 );
 const userAgentLocking = t(
-  'This OS locks newer versions to the this version in the user-agent HTTP header. The exact OS version is unknown.'
+  'This OS locks newer versions to this version in the user-agent HTTP header. The exact OS version is unknown.'
 );
 
 export function nullableValue(value: string | null): string | React.ReactElement {
@@ -334,11 +334,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <OverflowContainer>
+            <Container>
               <ExternalLink href={value} data-test-id="group-tag-url">
                 {value}
               </ExternalLink>
-            </OverflowContainer>
+            </Container>
           </Tooltip>
         );
       }
@@ -346,7 +346,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (value && typeof value === 'string') {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <OverflowContainer>{nullableValue(value)}</OverflowContainer>
+            <Container>{nullableValue(value)}</Container>
           </Tooltip>
         );
       }
@@ -481,12 +481,16 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (typeof id !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
+
+      if (!data.trace) {
+        return <Container>{getShortEventId(id)}</Container>;
+      }
+
       const target = generateLinkToEventInTraceView({
         projectSlug: data.project,
         traceSlug: data.trace,
         timestamp: data.timestamp,
         targetId: data['transaction.span_id'],
-        eventId: undefined,
         organization,
         location,
         spanId: id,
@@ -515,28 +519,48 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const value = data['span.description'];
       const op: string = data['span.op'];
+      const projectId =
+        typeof data.project_id === 'number'
+          ? data.project_id
+          : parseInt(data.project_id, 10) || -1;
+      const spanGroup: string | undefined = data['span.group'];
 
-      if (!op || !(op === ModuleName.DB || op === ModuleName.RESOURCE)) {
+      if (op === ModuleName.DB) {
         return (
-          <Tooltip
-            title={value}
-            containerDisplayMode="block"
-            showOnlyOnOverflow
-            maxWidth={400}
-          >
-            <OverflowContainer>
-              {isUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </OverflowContainer>
-          </Tooltip>
+          <SpanDescriptionCell
+            description={value}
+            moduleName={op}
+            projectId={projectId}
+            group={spanGroup}
+          />
         );
       }
-
-      // TODO: Figure this out
-      return <SpanDescriptionCell description={value} moduleName={op} projectId={-1} />;
+      if (op === ModuleName.RESOURCE) {
+        return (
+          <SpanDescriptionCell
+            description={value}
+            moduleName={op}
+            projectId={projectId}
+            group={spanGroup}
+          />
+        );
+      }
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
     },
   },
   trace: {
@@ -1256,12 +1280,6 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
-`;
-
-// Use this for fields that may be extremely wide
-export const OverflowContainer = styled('div')`
-  max-width: 1000px;
-  ${p => p.theme.overflowEllipsis};
 `;
 
 /**

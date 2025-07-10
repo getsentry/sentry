@@ -66,5 +66,5 @@ export const UserIcon = styled(IconUser)`
 export const IconContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
-  width: max-content;
+  width: 100%;
 `;
