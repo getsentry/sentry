@@ -345,7 +345,7 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS) {
+  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
     return getAttachmentsWithUnit(events).replace(' ', '');
   }
 
@@ -381,6 +381,7 @@ function recordAnalytics(
     spans: data.reservedSpans,
     profileDuration: data.reservedProfileDuration,
     uptime: data.reservedUptime,
+    logs: data.reservedLogByte,
   };
 
   const previousData = {

@@ -39,6 +39,7 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
   // TODO(data categories): BIL-965
   reservedAttachments?: number;
   reservedErrors?: number;
+  reservedLogByte?: number;
   reservedMonitorSeats?: number;
   reservedProfileDuration?: number;
   reservedReplays?: number;
