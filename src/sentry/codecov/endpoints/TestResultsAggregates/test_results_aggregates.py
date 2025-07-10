@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
-from sentry.apidocs.parameters import PreventParams
+from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.TestResultsAggregates.query import query
@@ -27,8 +27,9 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve aggregated test result metrics for repository and owner",
+        operation_id="Retrieve aggregated test result metrics for repository, owner, and organization",
         parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
             PreventParams.INTERVAL,
@@ -41,7 +42,9 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
+    def get(
+        self, request: Request, organization_id_or_slug: str, owner: str, repository: str, **kwargs
+    ) -> Response:
         """
         Retrieves aggregated test result metrics for a given repository and owner.
         Also accepts a query parameter to specify the time period for the metrics.
