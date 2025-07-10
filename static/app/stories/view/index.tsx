@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -10,10 +9,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
-import {StoryHero} from './storyHero';
-import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
+import {useStoriesLoader} from './useStoriesLoader';
 
 export default function Stories() {
   useStoryRedirect();
@@ -34,27 +33,20 @@ export default function Stories() {
   const story = useStoriesLoader({files: storyFiles});
 
   if (!location.query.name) {
-    const index = story.data?.at(0);
-    if (index) {
-      const {frontmatter = {}, default: Content} = index.exports;
-      return (
-        <RouteAnalyticsContextProvider>
-          <OrganizationContainer>
-            <Layout style={{gridTemplateColumns: 'auto'}}>
-              <HeaderContainer>
-                <StoryHeader />
-              </HeaderContainer>
-              <StoryMainContainer
-                style={{gridTemplateColumns: '1fr minmax(auto, 360px)'}}
-              >
-                <StoryHero frontmatter={frontmatter} />
-                <Content />
-              </StoryMainContainer>
-            </Layout>
-          </OrganizationContainer>
-        </RouteAnalyticsContextProvider>
-      );
-    }
+    return (
+      <RouteAnalyticsContextProvider>
+        <OrganizationContainer>
+          <Layout style={{gridTemplateColumns: 'auto'}}>
+            <HeaderContainer>
+              <StoryHeader />
+            </HeaderContainer>
+            <StoryMainContainer style={{gridColumn: '1 / -1'}}>
+              <StoryLanding />
+            </StoryMainContainer>
+          </Layout>
+        </OrganizationContainer>
+      </RouteAnalyticsContextProvider>
+    );
   }
 
   return (
