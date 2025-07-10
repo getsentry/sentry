@@ -2,7 +2,7 @@ import type {Key} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
-import {Item} from '@react-stately/collections';
+import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
@@ -21,6 +21,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
 
+interface StorySection {
+  key: string;
+  label: string;
+  options: StoryTreeNode[];
+}
+
+function isStorySection(item: StoryTreeNode | StorySection): item is StorySection {
+  return 'options' in item;
+}
+
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const {foundations, core, shared} = useStoryBookFilesByCategory();
@@ -31,10 +41,35 @@ export function StorySearch() {
 
   useHotkeys(storiesSearchHotkeys);
 
-  const sectionedItems: StoryTreeNode[] = useMemo(
-    () => [...foundations, ...core, ...shared],
-    [foundations, core, shared]
-  );
+  const sectionedItems = useMemo(() => {
+    const sections: StorySection[] = [];
+
+    if (foundations.length > 0) {
+      sections.push({
+        key: 'foundations',
+        label: 'Foundations',
+        options: foundations,
+      });
+    }
+
+    if (core.length > 0) {
+      sections.push({
+        key: 'core',
+        label: 'Core',
+        options: core,
+      });
+    }
+
+    if (shared.length > 0) {
+      sections.push({
+        key: 'shared',
+        label: 'Shared',
+        options: shared,
+      });
+    }
+
+    return sections;
+  }, [foundations, core, shared]);
 
   return (
     <SearchComboBox
@@ -43,13 +78,29 @@ export function StorySearch() {
       inputRef={inputRef}
       defaultItems={sectionedItems}
     >
-      {item => (
-        <Item
-          key={item.filesystemPath}
-          textValue={item.label}
-          {...({label: item.label, hideCheck: true} as any)}
-        />
-      )}
+      {item => {
+        if (isStorySection(item)) {
+          return (
+            <Section key={item.key} title={item.label}>
+              {item.options.map(storyItem => (
+                <Item
+                  key={storyItem.filesystemPath}
+                  textValue={storyItem.label}
+                  {...({label: storyItem.label, hideCheck: true} as any)}
+                />
+              ))}
+            </Section>
+          );
+        }
+
+        return (
+          <Item
+            key={item.filesystemPath}
+            textValue={item.label}
+            {...({label: item.label, hideCheck: true} as any)}
+          />
+        );
+      }}
     </SearchComboBox>
   );
 }
@@ -72,10 +123,12 @@ function SearchInput(
   );
 }
 
+type SearchComboBoxItem<T extends StoryTreeNode> = T | StorySection;
+
 interface SearchComboBoxProps<T extends StoryTreeNode>
-  extends Omit<AriaComboBoxProps<T>, 'children'> {
-  children: CollectionChildren<T>;
-  defaultItems: T[];
+  extends Omit<AriaComboBoxProps<SearchComboBoxItem<T>>, 'children'> {
+  children: CollectionChildren<SearchComboBoxItem<T>>;
+  defaultItems: Array<SearchComboBoxItem<T>>;
   inputRef: React.RefObject<HTMLInputElement | null>;
   description?: string | null;
   label?: string;
@@ -111,7 +164,9 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
     onSelectionChange: handleSelectionChange,
   });
 
-  const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(
+  const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<
+    SearchComboBoxItem<T>
+  >(
     {
       ...props,
       inputRef,
