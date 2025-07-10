@@ -252,15 +252,13 @@ function Sidebar() {
   );
 
   const feedback = hasOrganization && (
-    <Feature features="user-feedback-ui" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconMegaphone />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/feedback/`}
-        id="feedback"
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconMegaphone />}
+      label={t('User Feedback')}
+      to={`/organizations/${organization.slug}/feedback/`}
+      id="feedback"
+    />
   );
 
   const alerts = hasOrganization && (
