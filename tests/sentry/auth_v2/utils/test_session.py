@@ -33,13 +33,6 @@ class MockSession(SessionBase):
 
 
 class SessionSerializerTest(TestCase):
-
-    class MockSession(SessionBase):
-        """Mock session class for testing."""
-
-        def get_expiry_date(self, **kwargs):
-            return EXPIRY_DATE
-
     def setUp(self):
         self.serializer = SessionSerializer()
 
