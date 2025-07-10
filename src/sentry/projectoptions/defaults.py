@@ -193,6 +193,9 @@ register(
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 
+# Dynamic sampling minimum sample rate
+register(key="sentry:dynamic_sampling_minimum_sample_rate", default=False)
+
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
