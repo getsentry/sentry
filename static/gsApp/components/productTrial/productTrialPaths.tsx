@@ -43,6 +43,10 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.TRANSACTIONS,
     categories: [DataCategory.TRANSACTIONS],
   },
+  '/explore/logs/': {
+    product: DataCategory.LOG_BYTE,
+    categories: [DataCategory.LOG_BYTE],
+  },
 };
 
 const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
