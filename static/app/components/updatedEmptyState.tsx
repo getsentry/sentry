@@ -12,7 +12,10 @@ import {
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  Configuration,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
@@ -40,6 +43,34 @@ export function SetupTitle({project}: {project: Project}) {
         ),
       })}
     </BodyTitle>
+  );
+}
+
+function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
+  const subConfigurations = configuration.configurations ?? [];
+
+  return (
+    <ConfigurationWrapper>
+      {configuration.description && (
+        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+      )}
+      {typeof configuration.code === 'string' ||
+      (Array.isArray(configuration.code) && configuration.code.length > 0) ? (
+        Array.isArray(configuration.code) ? (
+          <TabbedCodeSnippet tabs={configuration.code} />
+        ) : (
+          <OnboardingCodeSnippet language={configuration.language}>
+            {configuration.code}
+          </OnboardingCodeSnippet>
+        )
+      ) : null}
+      {subConfigurations.map((subConfiguration, index) => (
+        <ConfigurationRenderer key={index} configuration={subConfiguration} />
+      ))}
+      {configuration.additionalInfo && (
+        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
+      )}
+    </ConfigurationWrapper>
   );
 }
 
@@ -152,30 +183,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
                     <div>
-                      {step?.description ?? (
-                        <DescriptionWrapper>{step?.description}</DescriptionWrapper>
-                      )}
+                      {step?.description ? (
+                        <DescriptionWrapper>{step.description}</DescriptionWrapper>
+                      ) : null}
                       {step?.configurations?.map((configuration, configIndex) => (
-                        <div key={configIndex}>
-                          <DescriptionWrapper>
-                            {configuration.description}
-                          </DescriptionWrapper>
-                          <CodeSnippetWrapper>
-                            {configuration.code ? (
-                              Array.isArray(configuration.code) ? (
-                                <TabbedCodeSnippet tabs={configuration.code} />
-                              ) : (
-                                <OnboardingCodeSnippet language={configuration.language}>
-                                  {configuration.code}
-                                </OnboardingCodeSnippet>
-                              )
-                            ) : null}
-                          </CodeSnippetWrapper>
-                        </div>
+                        <ConfigurationRenderer
+                          key={configIndex}
+                          configuration={configuration}
+                        />
                       ))}
-                      {step?.additionalInfo && (
-                        <DescriptionWrapper>{step?.additionalInfo}</DescriptionWrapper>
-                      )}
+                      {step?.additionalInfo ? (
+                        <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
+                      ) : null}
                     </div>
                     {index === steps.length - 1 ? (
                       <FirstEventIndicator
@@ -318,12 +337,16 @@ const IndicatorWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const CodeSnippetWrapper = styled('div')`
+const ConfigurationWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const AdditionalInfo = styled(DescriptionWrapper)`
+  margin-top: ${space(2)};
 `;
 
 const FirstEventWrapper = styled('div')`
