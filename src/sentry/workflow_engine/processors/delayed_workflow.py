@@ -39,6 +39,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    GroupValues,
     QueryFilter,
     QueryResult,
     slow_condition_query_handler_registry,
@@ -61,6 +62,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -422,9 +424,21 @@ def get_condition_group_results(
     condition_group_results = {}
     current_time = timezone.now()
 
+    all_group_ids: set[GroupId] = set()
+    # bulk gather groups and fetch them
+    for time_and_groups in queries_to_groups.values():
+        all_group_ids.update(time_and_groups.group_ids)
+
+    all_groups: list[GroupValues] = list(
+        Group.objects.filter(id__in=all_group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+    )
+
     for unique_condition, time_and_groups in queries_to_groups.items():
         handler = unique_condition.handler()
         group_ids = time_and_groups.group_ids
+        groups_to_query = [group for group in all_groups if group["id"] in group_ids]
         time = time_and_groups.timestamp or current_time
 
         _, duration = handler.intervals[unique_condition.interval]
@@ -437,7 +451,7 @@ def get_condition_group_results(
 
         result = handler.get_rate_bulk(
             duration=duration,
-            group_ids=group_ids,
+            groups=groups_to_query,
             environment_id=unique_condition.environment_id,
             current_time=time,
             comparison_interval=comparison_interval,
@@ -646,7 +660,16 @@ def fire_actions_for_groups(
                     organization,
                 ):
                     for action in filtered_actions:
-                        action.trigger(workflow_event_data, detector)
+                        if features.has(
+                            "organizations:workflow-engine-action-trigger-async",
+                            organization,
+                        ):
+                            task_params = build_trigger_action_task_params(
+                                action, detector, workflow_event_data
+                            )
+                            trigger_action.delay(**task_params)
+                        else:
+                            action.trigger(workflow_event_data, detector)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",

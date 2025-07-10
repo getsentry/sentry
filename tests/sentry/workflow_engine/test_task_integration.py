@@ -41,10 +41,10 @@ class IssuePlatformIntegrationTests(TestCase):
             detector_id=self.detector.id,
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             _process_message(message)
 
-            mock_incr.assert_called_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_workflow.activity_update",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
@@ -64,9 +64,9 @@ class IssuePlatformIntegrationTests(TestCase):
             detector_id=self.detector.id,
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             update_status(self.group, message)
-            mock_incr.assert_called_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_workflow.activity_update",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )

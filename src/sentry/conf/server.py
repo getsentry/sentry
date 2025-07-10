@@ -853,6 +853,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
     "sentry.demo_mode.tasks",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
 )
 
 # Enable split queue routing
@@ -1023,6 +1025,7 @@ CELERY_QUEUES_REGION = [
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
     Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
+    Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
 from celery.schedules import crontab
@@ -1516,6 +1519,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -3441,25 +3446,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-# Specifies the list of django apps to include in the lockfile. If Falsey then include
-# all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "explore",
-    "feedback",
-    "flags",
-    "hybridcloud",
-    "insights",
-    "monitors",
-    "nodestore",
-    "notifications",
-    "preprod",
-    "replays",
-    "sentry",
-    "social_auth",
-    "tempest",
-    "uptime",
-    "workflow_engine",
-)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
