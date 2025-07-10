@@ -228,6 +228,23 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   isModule: 'unknown',
 };
 
+const minimizer = [
+  new rspack.LightningCssMinimizerRspackPlugin(),
+  new rspack.SwcJsMinimizerRspackPlugin({
+    minimizerOptions: {
+      compress: {
+        // We are turning off these 3 minifier options because it has caused
+        // unexpected behaviour. See the following issues for more details.
+        // - https://github.com/swc-project/swc/issues/10822
+        // - https://github.com/swc-project/swc/issues/10824
+        reduce_vars: false,
+        inline: 0,
+        collapse_vars: false,
+      },
+    },
+  }),
+];
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -532,10 +549,7 @@ const appConfig: Configuration = {
     },
 
     // This only runs in production mode
-    minimizer: [
-      new rspack.LightningCssMinimizerRspackPlugin(),
-      new rspack.SwcJsMinimizerRspackPlugin(),
-    ],
+    minimizer,
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
@@ -769,6 +783,7 @@ if (IS_UI_DEV_ONLY) {
   };
   appConfig.optimization = {
     runtimeChunk: 'single',
+    minimizer,
   };
 }
 
