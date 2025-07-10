@@ -189,7 +189,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 10_000,
-    freeEventsMultiple: 0,
+    freeEventsMultiple: 1,
     feature: 'logs-billing',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
