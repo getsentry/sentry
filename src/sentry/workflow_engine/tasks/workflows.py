@@ -1,10 +1,7 @@
 from django.db import router, transaction
-from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
-from sentry import features, nodestore
-from sentry.eventstore.models import Event, GroupEvent
+from sentry import features
 from sentry.eventstream.base import GroupState
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -15,9 +12,9 @@ from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
+from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -111,33 +108,6 @@ def workflow_status_update_handler(
         )
 
 
-def _should_retry_nodestore_fetch(attempt: int, e: Exception) -> bool:
-    return not attempt > 3 and (
-        # ServiceUnavailable and DeadlineExceeded are generally retriable;
-        # we also include RetryError because the nodestore interface doesn't let
-        # us specify a timeout to BigTable and the default is 5s; see c5e2b40.
-        isinstance(e, (ServiceUnavailable, RetryError, DeadlineExceeded))
-    )
-
-
-def fetch_event(event_id: str, project_id: int) -> Event | None:
-    """
-    Fetch a single Event, with retries.
-    """
-    node_id = Event.generate_node_id(project_id, event_id)
-    fetch_retry_policy = ConditionalRetryPolicy(
-        _should_retry_nodestore_fetch, exponential_delay(1.00)
-    )
-    data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
-    if data is None:
-        return None
-    return Event(
-        event_id=event_id,
-        project_id=project_id,
-        data=data,
-    )
-
-
 @instrumented_task(
     name="sentry.workflow_engine.tasks.process_workflows_event",
     queue="workflow_engine.process_workflows",
@@ -167,21 +137,15 @@ def process_workflows_event(
     has_escalated: bool,
     **kwargs,
 ) -> None:
-    event = fetch_event(event_id, project_id)
-    if event is None:
-        logger.error("Event not found", extra={"event_id": event_id, "project_id": project_id})
-        return
 
-    occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    group = Group.objects.get(id=group_id)
-    group_event = GroupEvent.from_event(event, group)
-    group_event.occurrence = occurrence
-    event_data = WorkflowEventData(
+    event_data = build_workflow_event_data_from_event(
+        project_id=project_id,
+        event_id=event_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        group_state=group_state,
         has_reappeared=has_reappeared,
         has_escalated=has_escalated,
-        group_state=group_state,
-        event=group_event,
-        group=group,
     )
     process_workflows(event_data)
 
