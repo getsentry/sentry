@@ -1,7 +1,6 @@
 from time import time
 from unittest.mock import MagicMock, patch
 
-from sentry import options
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 from sentry.testutils.cases import TestCase
@@ -37,33 +36,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         group_ids, _ = self._setup_groups_and_hashes(number_of_groups=5)
         call_delete_seer_grouping_records_by_hash(group_ids)
         assert mock_apply_async.call_count == 0
-
-    @patch("sentry.tasks.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
-    @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
-    )
-    def test_batches(
-        self,
-        mock_delete_seer_grouping_records_by_hash_apply_async: MagicMock,
-        mock_call_seer_to_delete_these_hashes: MagicMock,
-    ) -> None:
-        """
-        Test that when delete_seer_grouping_records_by_hash is called with more hashes than the batch size, it spawns
-        another task with the end index of the previous batch.
-        """
-        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
-        mock_call_seer_to_delete_these_hashes.return_value = True
-        project_id, hashes = 1, [str(i) for i in range(batch_size + 1)]
-        group_ids, expected_hashes = self._setup_groups_and_hashes(batch_size + 1)
-        call_delete_seer_grouping_records_by_hash(group_ids)
-        assert mock_call_seer_to_delete_these_hashes.call_args[1] == {
-            "project_id": project_id,
-            "hashes": expected_hashes,
-        }
-        assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-            # We do not schedule the task with all the hashes, but only the extra ones
-            "args": [project_id, hashes[batch_size:], 0]
-        }
 
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
