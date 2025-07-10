@@ -103,7 +103,8 @@ export const Text = styled((props: TextProps) => {
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
-  display: ${p => (p.ellipsis ? 'inline-block' : undefined)};
+  display: ${p =>
+    p.ellipsis ? (p.as === 'span' ? 'inline-block' : 'block') : undefined};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => (p.bold ? p.theme.fontWeight.bold : undefined)};
@@ -148,6 +149,7 @@ export const Heading = styled((props: HeadingProps) => {
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
+  display: ${p => (p.ellipsis ? 'inline-block' : undefined)};
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
