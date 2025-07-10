@@ -208,10 +208,12 @@ class _Widget(TypedDict):
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
     projects: list[int]
+    environment: list[str]
+    filters: DashboardFilters
 
 
 class DashboardFiltersMixin:
-    def get_filters(self, obj: Dashboard) -> dict[str, Any]:
+    def get_filters(self, obj: Dashboard) -> tuple[dict[str, Any], DashboardFilters]:
         from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 
         dashboard_filters = obj.get_filters()
@@ -240,7 +242,10 @@ class DashboardFiltersMixin:
             if dashboard_filters.get(camel_to_snake_case(filter_key)):
                 tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
 
-        return page_filters, tag_filters
+        return page_filters, {
+            "release": tag_filters.get("release", []),
+            "releaseId": tag_filters.get("releaseId", []),
+        }
 
 
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
@@ -267,6 +272,8 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
                 "widget_preview": [],
                 "created_by": {},
                 "projects": [],
+                "environment": [],
+                "filters": {},
             }
         )
         for widget in widgets:
@@ -388,7 +395,8 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
-            **page_filters,
+            "projects": page_filters.get("projects", []),
+            "environment": page_filters.get("environment", []),
         }
 
         return data
