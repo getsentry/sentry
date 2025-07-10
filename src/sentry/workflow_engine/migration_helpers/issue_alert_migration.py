@@ -276,6 +276,8 @@ class IssueAlertMigrator:
             workflow = Workflow(**kwargs)
             workflow.full_clean(exclude=["when_condition_group"])
             workflow.validate_config(workflow.config_schema)
+            if AlertRuleWorkflow.objects.filter(rule_id=self.rule.id).exists():
+                raise Exception("Issue alert already migrated")
         else:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
