@@ -63,22 +63,24 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
 class _SplitEvents(NamedTuple):
     events_with_occurrences: list[tuple[GroupEvent, int]]
-    events_without_occurrences: list[GroupEvent]
+    error_events: list[GroupEvent]
     events_missing_detectors: list[GroupEvent]
 
 
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
 ) -> _SplitEvents:
+    from sentry.grouping.grouptype import ErrorGroupType
+
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
-    events_without_occurrences: list[GroupEvent] = []  # only error events don't have occurrences
+    error_events: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
 
     for event in event_list:
         issue_occurrence = event.occurrence
-
         if issue_occurrence is None:
-            events_without_occurrences.append(event)
+            assert event.group.issue_type.slug == ErrorGroupType.slug
+            error_events.append(event)
         elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
             events_with_occurrences.append((event, detector_id))
         else:
@@ -86,12 +88,12 @@ def _split_events_by_occurrence(
 
     return _SplitEvents(
         events_with_occurrences,
-        events_without_occurrences,
+        error_events,
         events_missing_detectors,
     )
 
 
-def _update_event_detector_map(
+def _create_event_detector_map(
     detectors: BaseQuerySet[Detector],
     key_event_map: dict[int, list[GroupEvent]],
     detector_key_extractor: Callable[[Detector], int],
@@ -116,6 +118,7 @@ def get_detectors_by_groupevents_bulk(
     """
     Given a list of GroupEvents, return a mapping of event_id to Detector.
     """
+    from sentry.grouping.grouptype import ErrorGroupType
 
     if not event_list:
         return {}
@@ -123,8 +126,8 @@ def get_detectors_by_groupevents_bulk(
     result: dict[str, Detector] = {}
 
     # Separate events by whether they have occurrences or not
-    events_with_occurrences, events_without_occurrences, events_missing_detectors = (
-        _split_events_by_occurrence(event_list)
+    events_with_occurrences, error_events, events_missing_detectors = _split_events_by_occurrence(
+        event_list
     )
 
     # Fetch detectors for events with occurrences (by detector_id)
@@ -140,7 +143,7 @@ def get_detectors_by_groupevents_bulk(
 
         if detector_id_to_events:
             detectors = Detector.objects.filter(id__in=list(detector_id_to_events.keys()))
-            mapping, found_detector_ids = _update_event_detector_map(
+            mapping, found_detector_ids = _create_event_detector_map(
                 detectors,
                 key_event_map=detector_id_to_events,
                 detector_key_extractor=_extract_events_lookup_key,
@@ -151,31 +154,28 @@ def get_detectors_by_groupevents_bulk(
 
     # Fetch detectors for events without occurrences (by project_id)
     projects_missing_detectors = set()
-    if events_without_occurrences:
+    if error_events:
         # Group events by project_id
         project_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
 
-        for event in events_without_occurrences:
+        for event in error_events:
             project_to_events[event.project_id].append(event)
 
         def _extract_events_lookup_key(detector: Detector) -> int:
             return detector.project_id
 
-        if project_to_events:
-            detectors = Detector.objects.filter(
-                project_id__in=project_to_events.keys(),
-                type=events_without_occurrences[0].group.issue_type.slug,  # error type
-            )
-            mapping, projects_with_error_detectors = _update_event_detector_map(
-                detectors,
-                key_event_map=project_to_events,
-                detector_key_extractor=_extract_events_lookup_key,
-            )
-            result.update(mapping)
+        detectors = Detector.objects.filter(
+            project_id__in=project_to_events.keys(),
+            type=ErrorGroupType.slug,
+        )
+        mapping, projects_with_error_detectors = _create_event_detector_map(
+            detectors,
+            key_event_map=project_to_events,
+            detector_key_extractor=_extract_events_lookup_key,
+        )
+        result.update(mapping)
 
-            projects_missing_detectors = (
-                set(project_to_events.keys()) - projects_with_error_detectors
-            )
+        projects_missing_detectors = set(project_to_events.keys()) - projects_with_error_detectors
 
     # Log all missing detectors
     if missing_detector_ids or projects_missing_detectors or events_missing_detectors:
