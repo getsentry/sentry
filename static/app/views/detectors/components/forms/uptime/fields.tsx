@@ -70,6 +70,11 @@ export function uptimeFormDataToEndpointPayload(
 export function uptimeSavedDetectorToFormData(
   detector: Detector
 ): UptimeDetectorFormData {
+  if (detector.type !== 'uptime_domain_failure') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   const dataSource = detector.dataSources?.[0];
   const environment = 'environment' in detector.config ? detector.config.environment : '';
 
