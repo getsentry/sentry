@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -30,34 +30,30 @@ export function TestSearchBar({testCount}: TestSearchBarProps) {
   const count = testCount > 999 ? `${(testCount / 1000).toFixed(1)}K` : testCount;
   const searchTitle = `${testTitle} (${count})`;
 
-  const handleSearchChangeRef = useRef<((newValue: string) => void) | null>(null);
+  const handleSearchChange = useMemo(
+    () =>
+      debounce((newValue: string) => {
+        setSearchParams(prev => {
+          const currentParams = Object.fromEntries(prev.entries());
+
+          if (newValue) {
+            currentParams.term = newValue;
+          } else {
+            delete currentParams.term;
+          }
+
+          return currentParams;
+        });
+      }, 500),
+    [setSearchParams]
+  );
 
   useEffect(() => {
-    const debounced = debounce((newValue: string) => {
-      setSearchParams(prev => {
-        const currentParams = Object.fromEntries(prev.entries());
-
-        if (newValue) {
-          currentParams.term = newValue;
-        } else {
-          delete currentParams.term;
-        }
-
-        return currentParams;
-      });
-    }, 500);
-
-    handleSearchChangeRef.current = debounced;
-
-    // Create a use effect to cancel debounce fn on unmount to avoid memory leaks
+    // Create a use effect to cancel handleSearchChange fn on unmount to avoid memory leaks
     return () => {
-      debounced.cancel();
+      handleSearchChange.cancel();
     };
-  }, [setSearchParams]);
-
-  const handleSearchChange = (value: string) => {
-    handleSearchChangeRef.current?.(value);
-  };
+  }, [handleSearchChange]);
 
   return (
     <Container>
