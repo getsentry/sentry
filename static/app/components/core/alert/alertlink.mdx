@@ -3,7 +3,7 @@ title: AlertLink
 description: AlertLink creates a clickable alert that can navigate to internal pages, external URLs, or trigger custom actions.
 source: 'sentry/components/core/alert/alertLink'
 resources:
-  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3040-309&p=f&t=CK6htZbJiMwIuIPr-0
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/alertLink.tsx
   a11y:
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
@@ -18,7 +18,7 @@ prev:
 ---
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {IconMail, IconChevron} from 'sentry/icons';
+import {IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 import types from '!!type-loader!sentry/components/core/alert/alertLink';
@@ -107,6 +107,7 @@ Use the `href` prop for external URLs. The `openInNewTab` prop controls whether 
 Use the `onClick` prop for custom actions that don't involve navigation.
 
 <Storybook.Demo>
+  {/* eslint-disable-next-line no-alert */}
   <AlertLink onClick={() => alert('Custom action triggered!')}>
     Trigger Custom Action
   </AlertLink>
@@ -154,6 +155,7 @@ When displaying multiple AlertLinks, use `AlertLink.Container` to manage consist
     <AlertLink type="warning" href="https://docs.sentry.io" openInNewTab>
       Second alert link
     </AlertLink>
+    {/* eslint-disable-next-line no-alert */}
     <AlertLink type="success" onClick={() => alert('Third action!')}>
       Third alert link
     </AlertLink>
