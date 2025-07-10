@@ -60,7 +60,7 @@ const BodyContainer = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(3)};
   padding: ${space(2)};
 `;
 
