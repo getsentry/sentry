@@ -111,7 +111,7 @@ class DiscoverSavedQuery(Model):
     # This field is used for the discover transactions -> explore migration.
     # Migrated discover transactions queries will have this reference along with DISCOVER_TRANSACTIONS as the dataset
     # in the ExploreSavedQuery.
-    explore_query = models.OneToOneField(
+    explore_query = FlexibleForeignKey(
         "explore.ExploreSavedQuery", null=True, on_delete=models.SET_NULL
     )
 
