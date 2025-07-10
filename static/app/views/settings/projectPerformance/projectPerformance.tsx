@@ -26,6 +26,7 @@ import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -299,49 +300,54 @@ function ProjectPerformance() {
     };
   };
 
-  const retentionPrioritiesFormFields: Field[] = [
-    {
-      name: 'boostLatestRelease',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostLatestRelease,
-      help: t(
-        'Captures more transactions for your new releases as they are being adopted'
-      ),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'boostEnvironments',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostEnvironments,
-      help: t(
-        'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
-      ),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'boostLowVolumeTransactions',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-      help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'ignoreHealthChecks',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.ignoreHealthChecks,
-      help: t('Captures fewer of your health checks transactions'),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'minimumSampleRate',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.minimumSampleRate,
-      help: t(
-        'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
-      ),
-      getData: getRetentionPrioritiesData,
-    },
-  ];
+  function getRetentionPrioritiesFormFields(): Field[] {
+    const fields = [
+      {
+        name: 'boostLatestRelease',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLatestRelease,
+        help: t(
+          'Captures more transactions for your new releases as they are being adopted'
+        ),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostEnvironments',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostEnvironments,
+        help: t(
+          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+        ),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'ignoreHealthChecks',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.ignoreHealthChecks,
+        help: t('Captures fewer of your health checks transactions'),
+        getData: getRetentionPrioritiesData,
+      },
+    ];
+    if (hasDynamicSamplingCustomFeature(organization)) {
+      fields.push({
+        name: 'minimumSampleRate',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.minimumSampleRate,
+        help: t(
+          'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
+        ),
+        getData: getRetentionPrioritiesData,
+      });
+    }
+    return fields;
+  }
 
   const performanceIssueDetectorAdminFieldMapping: Record<string, Field> = {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
@@ -1058,7 +1064,7 @@ function ProjectPerformance() {
             {({hasAccess}) => (
               <JsonForm
                 title={t('Sampling Priorities')}
-                fields={retentionPrioritiesFormFields}
+                fields={getRetentionPrioritiesFormFields()}
                 disabled={!hasAccess}
                 renderFooter={() => (
                   <Actions>
