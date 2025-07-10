@@ -29,7 +29,8 @@ def get_activity_notifiers(project):
     queue="activity.notify",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=notifications_tasks, processing_deadline_duration=60
+        namespace=notifications_tasks,
+        processing_deadline_duration=120,
     ),
 )
 def send_activity_notifications(activity_id: int) -> None:

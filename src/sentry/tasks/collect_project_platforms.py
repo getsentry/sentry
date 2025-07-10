@@ -31,6 +31,7 @@ def paginate_project_ids(paginate):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def collect_project_platforms(paginate=1000, **kwargs):
