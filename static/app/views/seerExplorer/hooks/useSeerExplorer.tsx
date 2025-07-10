@@ -32,8 +32,8 @@ export const makeSeerExplorerQueryKey = (
   orgSlug: string,
   runId?: string
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/`,
-  {query: runId ? {run_id: runId} : {}},
+  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  {},
 ];
 
 const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
@@ -162,11 +162,10 @@ export const useSeerExplorer = () => {
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/`,
+          `/organizations/${orgSlug}/seer/explorer-chat/${currentRunId ? `${currentRunId}/` : ''}`,
           {
             method: 'POST',
             data: {
-              run_id: currentRunId,
               query,
               insert_index: calculatedInsertIndex,
               message_timestamp: timestamp,
