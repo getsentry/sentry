@@ -178,10 +178,10 @@ class Task(Generic[P, R]):
                 )
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
-        compression_rollout_rate = options.get("taskworker.enable_compression.rollout")
         if self.compression_type == CompressionType.ZSTD:
             # TODO(taskworker): Nesting this conditional avoids django_db fixtures in tests.
             # Once we have rolled out compression safely, we can remove this conditional.
+            compression_rollout_rate = options.get("taskworker.enable_compression.rollout")
             if compression_rollout_rate and compression_rollout_rate > random.random():
                 # Worker uses this header to determine if the parameters are decompressed
                 headers["compression-type"] = CompressionType.ZSTD.value
