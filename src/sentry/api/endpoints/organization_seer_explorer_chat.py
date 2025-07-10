@@ -3,7 +3,6 @@ from __future__ import annotations
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -128,9 +127,6 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         - session_id: The session ID.
         """
         user = request.user
-        if user is None:
-            user = AnonymousUser()
-
         if not features.has(
             "organizations:gen-ai-features", organization, actor=user
         ) or not features.has("organizations:seer-explorer", organization, actor=user):
