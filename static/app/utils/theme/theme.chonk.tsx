@@ -1222,7 +1222,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(1.3).toString(),
+    neutral: color(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
