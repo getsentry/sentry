@@ -64,7 +64,7 @@ def eventclass(
         # set the Event subclass `type` attribute, if it is set to anything
         if isinstance(event_name_or_class, str):
             cls.type = event_name_or_class
-        return cast(type[Event], dataclass(kw_only=True)(cls))
+        return cast(type[Event], dataclass(kw_only=True, eq=False)(cls))
 
     # for using without parenthesis, wrap the passed class
     if isinstance(event_name_or_class, type) and issubclass(event_name_or_class, Event):
@@ -75,7 +75,7 @@ def eventclass(
 
 
 # unfortunately we cannot directly use `eventclass` here, as it is making a typecheck to Event
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, eq=False)
 class Event:
     """
     Base class for custom analytics Events.
@@ -116,6 +116,18 @@ class Event:
                 if f.name not in ("type", "uuid_", "datetime_")
             }
         )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Event):
+            return False
+
+        self_values = self.serialize()
+        other_values = other.serialize()
+
+        self_values.pop("uuid")
+        other_values.pop("uuid")
+
+        return self_values == other_values
 
 
 def serialize_event(event: Event) -> dict[str, Any]:
