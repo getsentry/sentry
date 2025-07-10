@@ -29,7 +29,7 @@ from sentry.integrations.base import (
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import ResolveSyncAction
-from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -1268,24 +1268,26 @@ class JiraServerIntegration(IssueSyncIntegration):
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
-                    "jira.assignee-not-found",
+                    "jira_server.assignee-not-found",
                     extra=logging_context,
                 )
-                raise IntegrationError("Failed to assign user to Jira Server issue")
+                raise IntegrationSyncTargetNotFound("No matching Jira Server user found")
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
         except ApiUnauthorized:
             logger.info(
-                "jira.user-assignment-unauthorized",
+                "jira_server.user-assignment-unauthorized",
                 extra={
                     **logging_context,
                 },
             )
-            raise IntegrationError("Insufficient permissions to assign user to Jira Server issue")
+            raise IntegrationInstallationConfigurationError(
+                "Insufficient permissions to assign user to Jira Server issue"
+            )
         except ApiError as e:
             logger.info(
-                "jira.user-assignment-request-error",
+                "jira_server.user-assignment-request-error",
                 extra={
                     **logging_context,
                     "error": str(e),
