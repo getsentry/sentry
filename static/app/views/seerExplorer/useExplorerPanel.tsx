@@ -1,34 +1,18 @@
 import {useCallback, useState} from 'react';
 
-// Global state for explorer panel
-let globalExplorerPanelState = false;
-let globalSetExplorerPanelState: ((isOpen: boolean) => void) | null = null;
-
-/**
- * Hook to manage the global explorer panel state
- */
 export function useExplorerPanel() {
-  const [isOpen, setIsOpen] = useState(globalExplorerPanelState);
-
-  // Register this hook instance as the global state setter
-  if (!globalSetExplorerPanelState) {
-    globalSetExplorerPanelState = setIsOpen;
-  }
+  const [isOpen, setIsOpen] = useState(false);
 
   const _openExplorerPanel = useCallback(() => {
-    globalExplorerPanelState = true;
-    globalSetExplorerPanelState?.(true);
+    setIsOpen(true);
   }, []);
 
   const _closeExplorerPanel = useCallback(() => {
-    globalExplorerPanelState = false;
-    globalSetExplorerPanelState?.(false);
+    setIsOpen(false);
   }, []);
 
   const _toggleExplorerPanel = useCallback(() => {
-    const newState = !globalExplorerPanelState;
-    globalExplorerPanelState = newState;
-    globalSetExplorerPanelState?.(newState);
+    setIsOpen(prev => !prev);
   }, []);
 
   return {
