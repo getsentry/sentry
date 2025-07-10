@@ -639,29 +639,10 @@ const lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-    blue100: '#553DB8',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-    pink100: '#962963',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-    red100: '#A80033',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-    yellow100: '#C9A30A',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
-    green100: '#00BF4D',
   },
 };
 
@@ -741,29 +722,10 @@ const darkColors: typeof lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-    blue100: '#07050F',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-    pink100: '#0D0609',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-    red100: '#1A0007',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-    yellow100: '#0A0800',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
-    green100: '#000A04',
   },
 };
 
@@ -939,9 +901,9 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: colors.chonk.blue200,
-  activeHover: colors.chonk.blue300,
-  activeText: tokens.content.accent,
+  active: tokens.component.link.accent.active,
+  activeHover: tokens.component.link.accent.hover,
+  activeText: tokens.component.link.accent.default,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -998,12 +960,6 @@ const generateAliases = (
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.chonk.blue300,
-  tagBar: colors.gray200,
 
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
@@ -1182,7 +1138,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
  */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...formTheme,
@@ -1261,7 +1217,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
  */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...formTheme,
