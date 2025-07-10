@@ -1,0 +1,180 @@
+---
+title: AlertLink
+description: AlertLink creates a clickable alert that can navigate to internal pages, external URLs, or trigger custom actions.
+source: 'sentry/components/core/alert/alertLink'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/alertLink.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Link Practices: https://www.w3.org/WAI/ARIA/apg/patterns/link/
+next:
+  link: '?name=app%2Fcomponents%2Fcore%2Fbutton%2Findex.mdx'
+  label: Button
+prev:
+  link: '?name=app%2Fcomponents%2Fcore%2Falert%2Findex.stories.tsx'
+  label: Alert
+---
+
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {IconMail, IconChevron} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/alert/alertLink';
+
+export {types};
+
+To create a basic alert link, wrap content in an `<AlertLink>` and provide navigation props.
+
+```jsx
+<AlertLink to="/settings">Go to Settings</AlertLink>
+```
+
+### Alert Types
+
+AlertLink supports all alert types: `info` (default), `success`, `warning`, `error`, and `muted`.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink type="info" to="/settings">
+      Info alert link
+    </AlertLink>
+    <AlertLink type="success" to="/settings">
+      Success alert link
+    </AlertLink>
+    <AlertLink type="warning" to="/settings">
+      Warning alert link
+    </AlertLink>
+    <AlertLink type="error" to="/settings">
+      Error alert link
+    </AlertLink>
+    <AlertLink type="muted" to="/settings">
+      Muted alert link
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink type="info" to="/settings">
+  Info alert link
+</AlertLink>
+<AlertLink type="success" to="/settings">
+  Success alert link
+</AlertLink>
+<AlertLink type="warning" to="/settings">
+  Warning alert link
+</AlertLink>
+<AlertLink type="error" to="/settings">
+  Error alert link
+</AlertLink>
+<AlertLink type="muted" to="/settings">
+  Muted alert link
+</AlertLink>
+```
+
+### Link Types
+
+AlertLink supports three types of navigation: internal routing, external URLs, and custom click handlers.
+
+#### Internal Links
+
+Use the `to` prop for internal navigation within the application.
+
+<Storybook.Demo>
+  <AlertLink to="/settings">Go to Settings</AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Go to Settings</AlertLink>
+```
+
+#### External Links
+
+Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
+
+<Storybook.Demo>
+  <AlertLink href="https://docs.sentry.io" openInNewTab>
+    Read the Documentation
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink href="https://docs.sentry.io" openInNewTab>
+  Read the Documentation
+</AlertLink>
+```
+
+#### Custom Click Handlers
+
+Use the `onClick` prop for custom actions that don't involve navigation.
+
+<Storybook.Demo>
+  <AlertLink onClick={() => alert('Custom action triggered!')}>
+    Trigger Custom Action
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink onClick={() => alert('Custom action triggered!')}>
+  Trigger Custom Action
+</AlertLink>
+```
+
+### Trailing Items
+
+By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink to="/settings">Default trailing chevron</AlertLink>
+    <AlertLink to="/settings" trailingItems={<IconMail />}>
+      Custom trailing icon
+    </AlertLink>
+    <AlertLink to="/settings" trailingItems={null}>
+      No trailing items
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Default trailing chevron</AlertLink>
+<AlertLink to="/settings" trailingItems={<IconMail />}>
+  Custom trailing icon
+</AlertLink>
+<AlertLink to="/settings" trailingItems={null}>
+  No trailing items
+</AlertLink>
+```
+
+### Container
+
+When displaying multiple AlertLinks, use `AlertLink.Container` to manage consistent spacing.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink type="info" to="/settings">
+      First alert link
+    </AlertLink>
+    <AlertLink type="warning" href="https://docs.sentry.io" openInNewTab>
+      Second alert link
+    </AlertLink>
+    <AlertLink type="success" onClick={() => alert('Third action!')}>
+      Third alert link
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink.Container>
+  <AlertLink type="info" to="/settings">
+    First alert link
+  </AlertLink>
+  <AlertLink type="warning" href="https://docs.sentry.io" openInNewTab>
+    Second alert link
+  </AlertLink>
+  <AlertLink type="success" onClick={() => alert('Third action!')}>
+    Third alert link
+  </AlertLink>
+</AlertLink.Container>
+```
+
+### Accessibility
+
+To meet WCAG 2.2 AA compliance, `<AlertLink>` automatically meets the [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard) and [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible) success criteria.
+
+Developers should ensure that their implementations follow the [WAI-ARIA Link Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/link/) and provide clear, descriptive link text that indicates the purpose and destination of the link.
