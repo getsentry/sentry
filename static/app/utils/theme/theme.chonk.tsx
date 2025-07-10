@@ -639,24 +639,10 @@ const lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
   },
 };
 
@@ -736,24 +722,10 @@ const darkColors: typeof lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
   },
 };
 
@@ -929,9 +901,9 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: colors.chonk.blue200,
-  activeHover: colors.chonk.blue300,
-  activeText: tokens.content.accent,
+  active: tokens.component.link.accent.active,
+  activeHover: tokens.component.link.accent.hover,
+  activeText: tokens.component.link.accent.default,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -988,12 +960,6 @@ const generateAliases = (
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.chonk.blue300,
-  tagBar: colors.gray200,
 
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {

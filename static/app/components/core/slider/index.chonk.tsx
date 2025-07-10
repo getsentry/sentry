@@ -93,7 +93,7 @@ const StepMark = chonkStyled('span')<{filled?: boolean}>`
     width: 2px;
     border-radius: ${p => p.theme.radius.lg};
     background: ${p =>
-      p.filled ? p.theme.colors.chonk.blue300 : p.theme.colors.surface100};
+      p.filled ? p.theme.colors.chonk.blue400 : p.theme.colors.surface100};
   }
 `;
 
@@ -156,8 +156,8 @@ const StyledSlider = chonkStyled('input')`
       min-width: calc(${p => p.theme.radius['2xs']} * 6);
       width: var(--p, 50%);
       height: 4px;
-      background: ${p => p.theme.colors.chonk.blue300};
-      border: 1px solid ${p => p.theme.colors.chonk.blue300};
+      background: ${p => p.theme.colors.chonk.blue400};
+      border: 1px solid ${p => p.theme.colors.chonk.blue400};
       border-radius: ${p => p.theme.radius['2xs']};
     }
 
@@ -240,7 +240,7 @@ const SliderLabel = chonkStyled('span')`
   padding-inline: ${space(0.5)};
   width: min-content;
   text-align: center;
-  background: ${p => p.theme.colors.chonk.blue300};
+  background: ${p => p.theme.colors.chonk.blue400};
   border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
   color: ${p => p.theme.white};
   border-radius: ${p => p.theme.radius['2xs']};

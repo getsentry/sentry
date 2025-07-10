@@ -415,12 +415,6 @@ const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.purple200,
-  tagBar: colors.gray200,
-
-  /**
    * Search filter "token" background
    */
   searchTokenBackground: {
