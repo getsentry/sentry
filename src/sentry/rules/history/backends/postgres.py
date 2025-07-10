@@ -7,11 +7,17 @@ from typing import TYPE_CHECKING, TypedDict, cast
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
+from sentry import features
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import CursorResult
+from sentry.workflow_engine.endpoints.serializers import (
+    fetch_workflow_groups_paginated,
+    fetch_workflow_hourly_stats,
+)
+from sentry.workflow_engine.models import AlertRuleWorkflow
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
@@ -64,6 +70,12 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[Group]:
+        if features.has(
+            "organizations:workflow-engine-single-process-workflows", rule.project.organization
+        ):
+            workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+            return fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
+
         filtered_history = RuleFireHistory.objects.filter(
             rule=rule,
             date_added__gte=start,
@@ -92,6 +104,12 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
+        if features.has(
+            "organizations:workflow-engine-single-process-workflows", rule.project.organization
+        ):
+            workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+            return fetch_workflow_hourly_stats(workflow, start, end)
+
         start = start.replace(tzinfo=timezone.utc)
         end = end.replace(tzinfo=timezone.utc)
         qs = (

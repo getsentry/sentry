@@ -6,7 +6,11 @@ from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.endpoints.serializers import WorkflowGroupHistory
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -194,6 +198,42 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_workflow_engine_single_processing(self):
+        rule = self.create_project_rule()
+        for i in range(3):
+            RuleFireHistory.objects.create(
+                project=rule.project,
+                rule=rule,
+                group=self.group,
+                date_added=before_now(days=i + 1),
+            )
+
+        workflow = IssueAlertMigrator(rule).run()
+        for i in range(3):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                event_id=str(i),
+            )
+            wfh.update(date_added=before_now(days=i + 1, hours=i + 1))
+
+        self.run_test(
+            rule,
+            before_now(days=3),
+            before_now(days=0),
+            [
+                # the WorkflowGroupHistory dataclass has an extra "detector" field that won't be used in the existing FE
+                WorkflowGroupHistory(
+                    group=self.group,
+                    count=2,
+                    last_triggered=before_now(days=1, hours=1),
+                    event_id="0",
+                    detector=None,
+                )
+            ],
+        )
+
 
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
@@ -232,3 +272,30 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         results = self.backend.fetch_rule_hourly_stats(rule_2, before_now(hours=24), before_now())
         assert len(results) == 24
         assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_workflow_engine_single_processing(self):
+        rule = self.create_project_rule()
+
+        for i in range(3):
+            for _ in range(i + 1):
+                RuleFireHistory.objects.create(
+                    project=rule.project,
+                    rule=rule,
+                    group=self.group,
+                    date_added=before_now(hours=i + 1),
+                )
+
+        workflow = IssueAlertMigrator(rule).run()
+
+        for i in range(3):
+            for _ in range(3 - i):
+                wfh = WorkflowFireHistory.objects.create(
+                    workflow=workflow,
+                    group=self.group,
+                )
+                wfh.update(date_added=before_now(hours=i + 1))
+
+        results = self.backend.fetch_rule_hourly_stats(rule, before_now(hours=24), before_now())
+        assert len(results) == 24
+        assert [r.count for r in results[-5:]] == [0, 1, 2, 3, 0]
