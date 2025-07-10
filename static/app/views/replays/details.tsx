@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FullViewport from 'sentry/components/layouts/fullViewport';
@@ -15,6 +16,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
@@ -56,16 +58,27 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
+  const content = (
+    <Fragment>
+      <Header>
+        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        <ReplayDetailsHeaderActions readerResult={readerResult} />
+        <ReplayDetailsUserBadge readerResult={readerResult} />
+        <ReplayDetailsMetadata readerResult={readerResult} />
+      </Header>
+      <ReplayDetailsPage readerResult={readerResult} />
+    </Fragment>
+  );
   return (
     <SentryDocumentTitle title={title}>
       <FullViewport>
-        <Header>
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-          <ReplayDetailsHeaderActions readerResult={readerResult} />
-          <ReplayDetailsUserBadge readerResult={readerResult} />
-          <ReplayDetailsMetadata readerResult={readerResult} />
-        </Header>
-        <ReplayDetailsPage readerResult={readerResult} />
+        {replay ? (
+          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+            {content}
+          </ReplayDetailsProviders>
+        ) : (
+          content
+        )}
       </FullViewport>
     </SentryDocumentTitle>
   );
@@ -74,7 +87,7 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }

@@ -3,7 +3,6 @@ from unittest.mock import PropertyMock, patch
 import pytest
 
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
@@ -16,9 +15,8 @@ class TestValidator(TestCase):
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
-        install = app_service.get_many(filter=dict(installation_ids=[self.install.id]))[0]
         self.validator = Validator(
-            install=install,
+            install=self.install,
             client_id=self.client_id,
             user=self.user,
         )

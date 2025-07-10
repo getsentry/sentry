@@ -9,6 +9,7 @@ from rest_framework import status
 
 from sentry import options
 from sentry.api.exceptions import SentryAPIException
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.utils import jwt
 
 GitProviderId: TypeAlias = str
@@ -23,7 +24,7 @@ class GitProvider(StrEnum):
     for now.
     """
 
-    GitHub = "github"
+    GitHub = IntegrationProviderSlug.GITHUB
 
 
 logger = logging.getLogger(__name__)
@@ -60,14 +61,13 @@ class CodecovApiClient:
 
     def __init__(
         self,
-        git_provider_user: GitProviderId,
+        git_provider_org: GitProviderId,
         git_provider: GitProvider = GitProvider.GitHub,
     ):
         """
         Creates a `CodecovApiClient`.
 
-        :param git_provider_user: The ID of the current Sentry user's linked git
-           provider account, according to the git provider.
+        :param git_provider_org: The organization slug for the git provider.
         :param git_provider: The git provider that the above user's account is
            hosted on.
         """
@@ -78,11 +78,11 @@ class CodecovApiClient:
         self.base_url = settings.CODECOV_API_BASE_URL
         self.signing_secret = signing_secret
         self.custom_claims = {
-            "g_u": git_provider_user,
+            "g_o": git_provider_org,
             "g_p": git_provider,
         }
 
-    def get(self, endpoint: str, params=None, headers=None) -> requests.Response | None:
+    def get(self, endpoint: str, params=None, headers=None) -> requests.Response:
         """
         Makes a GET request to the specified endpoint of the configured Codecov
         API host with the provided params and headers.
@@ -105,7 +105,7 @@ class CodecovApiClient:
 
         return response
 
-    def post(self, endpoint: str, data=None, headers=None) -> requests.Response | None:
+    def post(self, endpoint: str, data=None, json=None, headers=None) -> requests.Response:
         """
         Makes a POST request to the specified endpoint of the configured Codecov
         API host with the provided data and headers.
@@ -120,7 +120,9 @@ class CodecovApiClient:
         headers.update(jwt.authorization_header(token))
         url = f"{self.base_url}{endpoint}"
         try:
-            response = requests.post(url, data=data, headers=headers, timeout=TIMEOUT_SECONDS)
+            response = requests.post(
+                url, data=data, json=json, headers=headers, timeout=TIMEOUT_SECONDS
+            )
         except Exception:
             logger.exception("Error when making POST request")
             raise
@@ -129,7 +131,7 @@ class CodecovApiClient:
 
     def query(
         self, query: str, variables: dict, provider: GitProvider = GitProvider.GitHub
-    ) -> requests.Response | None:
+    ) -> requests.Response:
         """
         Convenience method for making a GraphQL query to the Codecov API, using the post method of this client.
         This method is used to make GraphQL queries to the Codecov API. Adds headers similar to what's done in Gazebo,
@@ -142,16 +144,16 @@ class CodecovApiClient:
         :return: The response from the Codecov API.
         """
 
-        data = {
+        json = {
             "query": query,
             "variables": variables,
         }
 
         return self.post(
             f"/graphql/sentry/{provider.value}",
-            data=data,
+            json=json,
             headers={
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
                 "Token-Type": f"{provider.value}-token",
             },

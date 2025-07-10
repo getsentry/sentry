@@ -14,7 +14,7 @@ def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:
 
 
 # To keep logs reasonable, we only report up to this many individual iteration times.
-_MAX_ITERATIONS_LOGGED = 200
+_MAX_ITERATIONS_LOGGED = 20
 
 
 # NOTE: You should be using Sentry's built-in performance tracking instead of this.
@@ -93,8 +93,9 @@ class BatchPerformanceTracker:
             }
             if self._failure_key:
                 extra["failure_key"] = self._failure_key
-            if len(self._iteration_durations) > _MAX_ITERATIONS_LOGGED:
-                extra["durations_truncated"] = True
+            durations_truncated = max(0, len(self._iteration_durations) - _MAX_ITERATIONS_LOGGED)
+            if durations_truncated > 0:
+                extra["durations_truncated"] = durations_truncated
             self._logger.info(
                 self._name,
                 extra=extra,
@@ -125,3 +126,23 @@ def track_batch_performance(
         yield tracker
     finally:
         tracker.finalize()
+
+
+@contextmanager
+def log_if_slow(
+    logger: logging.Logger,
+    name: str,
+    extra: Mapping[str, Any],
+    *,
+    threshold_seconds: float,
+) -> Generator[None]:
+    """
+    Context manager that logs a message if the block takes longer than the threshold.
+    """
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        duration = time.time() - start_time
+        if duration >= threshold_seconds:
+            logger.info(name, extra=extra)

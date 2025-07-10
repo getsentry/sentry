@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
@@ -76,7 +77,9 @@ export type IssueAlertNotificationProps = {
   shouldRenderSetupButton: boolean;
 };
 
-export function useCreateNotificationAction() {
+export function useCreateNotificationAction({
+  actions: defaultActions,
+}: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
   const organization = useOrganization();
   const createProjectRules = useCreateProjectRules();
 
@@ -110,6 +113,40 @@ export function useCreateNotificationAction() {
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
 
   useEffect(() => {
+    // Initializes form state based on the first default action and available integrations.
+    // Sets provider, integration, selected actions, and channel if present.
+    const firstAction = defaultActions?.[0];
+    if (!firstAction) {
+      return;
+    }
+
+    const matchedProviderKey = Object.keys(providerDetails).find(
+      key =>
+        providerDetails[key as keyof typeof providerDetails].action === firstAction.id
+    );
+
+    const matchedIntegration = matchedProviderKey
+      ? providersToIntegrations[matchedProviderKey]?.[0]
+      : undefined;
+
+    setProvider(matchedProviderKey);
+    setIntegration(matchedIntegration);
+
+    setShouldRenderSetupButton(!matchedIntegration);
+
+    const newActions =
+      firstAction.id === IssueAlertActionType.NOTIFY_EMAIL
+        ? [MultipleCheckboxOptions.EMAIL]
+        : [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION];
+
+    setActions(newActions);
+
+    if (firstAction.channel) {
+      setChannel(firstAction.channel);
+    }
+  }, [defaultActions, providersToIntegrations]);
+
+  useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
       const firstProvider = providerKeys[0];
@@ -120,15 +157,6 @@ export function useCreateNotificationAction() {
     }
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
 
-  type Props = {
-    actionMatch: string | undefined;
-    conditions: Array<{id: string; interval: string; value: string}> | undefined;
-    frequency: number | undefined;
-    name: string | undefined;
-    projectSlug: string;
-    shouldCreateRule: boolean | undefined;
-  };
-
   const createNotificationAction = useCallback(
     ({
       shouldCreateRule,
@@ -137,7 +165,7 @@ export function useCreateNotificationAction() {
       conditions,
       actionMatch,
       frequency,
-    }: Props) => {
+    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );

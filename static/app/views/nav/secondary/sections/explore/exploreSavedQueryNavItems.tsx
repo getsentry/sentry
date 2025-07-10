@@ -2,8 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -128,7 +128,6 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
   padding-right: ${space(0.5)};
   position: relative;
-  gap: 0;
 
   :not(:hover) {
     [data-drag-icon] {
@@ -175,7 +174,6 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const TruncatedTitle = styled('div')`

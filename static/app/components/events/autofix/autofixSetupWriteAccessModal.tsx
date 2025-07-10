@@ -46,7 +46,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   if (canCreatePullRequests) {
     return (
       <DoneWrapper>
-        <DoneIcon color="success" size="xxl" isCircled />
+        <DoneIcon color="success" size="2xl" isCircled />
         <p>{t("You've successfully configured write access!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}
@@ -139,7 +139,7 @@ const DoneWrapper = styled('div')`
   justify-content: center;
   flex-direction: column;
   padding: 40px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const DoneIcon = styled(IconCheckmark)`

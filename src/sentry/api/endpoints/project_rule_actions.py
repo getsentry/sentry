@@ -71,14 +71,20 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
         rule = Rule(id=-1, project=project, data=data, label=data.get("name"))
 
+        # Cast to GroupEvent rather than Event to match expected types
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True
         )
 
-        if features.has("organizations:workflow-engine-test-notifications", project.organization):
-            return self.execute_future_on_test_event_workflow_engine(test_event, rule)
+        group_event = GroupEvent.from_event(
+            event=test_event,
+            group=test_event.group,
+        )
 
-        return self.execute_future_on_test_event(test_event, rule)
+        if features.has("organizations:workflow-engine-test-notifications", project.organization):
+            return self.execute_future_on_test_event_workflow_engine(group_event, rule)
+
+        return self.execute_future_on_test_event(group_event, rule)
 
     def execute_future_on_test_event(
         self,
@@ -159,7 +165,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
         event_data = WorkflowEventData(
             event=test_event,
-            workflow_id=workflow.id,
+            group=test_event.group,
         )
 
         for action_blob in actions:
@@ -168,6 +174,8 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     [action_blob], skip_failures=False
                 )[0]
                 action.id = -1
+                # Annotate the action with the workflow id
+                setattr(action, "workflow_id", workflow.id)
             except Exception as e:
                 action_exceptions.append(str(e))
                 sentry_sdk.capture_exception(e)

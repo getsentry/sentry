@@ -63,6 +63,7 @@ const initialRouterConfig = {
   routes: [
     '/organizations/:orgId/issues/',
     '/organizations/:orgId/issues/searches/:searchId/',
+    '/organizations/:orgId/issues/views/:viewId/',
   ],
   location: {
     pathname: '/organizations/org-slug/issues/',
@@ -1504,7 +1505,7 @@ describe('IssueList', function () {
       // ?new=true should be removed
       expect(testRouter.location.query.new).toBeUndefined();
 
-      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(fetchDataMock).toHaveBeenCalled();
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });

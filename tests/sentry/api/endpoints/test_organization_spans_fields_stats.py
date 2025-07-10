@@ -21,9 +21,17 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         if query and "type" not in query.keys():
             query["type"] = "string"
 
+        if query and "sampling" not in query.keys():
+            query["sampling"] = "HIGHEST_ACCURACY"
+
         with self.feature(features):
             response = self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                    },
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -109,11 +117,11 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
 
         # set max_buckets smaller than the number of values, so we can test if max_buckets is respected
         response = self.do_request(query={"max_buckets": max_buckets - 1})
+
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"][0][
             "buckets"
         ]
-
         assert len(distributions) == max_buckets - 1
 
     def test_distribution_values(self):

@@ -30,7 +30,6 @@ import {
   TRACE_VIEW_MOBILE_VITALS,
   TRACE_VIEW_WEB_VITALS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
@@ -40,8 +39,7 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, rootEventResults, logs: undefined});
-  const hasTraceTabsUi = useHasTraceTabsUI();
+  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
@@ -59,18 +57,6 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     isEAPTrace && tree.vital_types.has('mobile')
       ? getMobileVitalsFromRootEventResults(rootEventResults.data)
       : Array.from(tree.vitals.values()).flat();
-
-  if (!hasTraceTabsUi) {
-    return (
-      <VitalMetersContainer>
-        {vitalsToDisplay.map(vitalKey => {
-          const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
-
-          return <VitalPill key={vitalKey} vitalDetails={vitalDetails} vital={vital} />;
-        })}
-      </VitalMetersContainer>
-    );
-  }
 
   const primaryVitalsCount = getPrimaryVitalsCount(
     vitalsToDisplay,
@@ -104,17 +90,10 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   );
 
   return (
-    <VitalMetersContainer hasTraceTabsUi={hasTraceTabsUi}>
+    <VitalMetersContainer>
       {primaryVitals.map(vitalKey => {
         const {vitalDetails, vital} = getVitalInfo(vitalKey, collectedVitals);
-        return (
-          <VitalPill
-            key={vitalKey}
-            vitalDetails={vitalDetails}
-            vital={vital}
-            hasTraceTabsUi={hasTraceTabsUi}
-          />
-        );
+        return <VitalPill key={vitalKey} vitalDetails={vitalDetails} vital={vital} />;
       })}
       {secondaryVitals.length > 0 && (
         <Tooltip showUnderline title={tooltipTitle}>
@@ -130,10 +109,9 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
 type VitalPillProps = {
   vital: TraceTree.CollectedVital | undefined;
   vitalDetails: VitalDetails;
-  hasTraceTabsUi?: boolean;
 };
 
-function VitalPill({vital, vitalDetails, hasTraceTabsUi}: VitalPillProps) {
+function VitalPill({vital, vitalDetails}: VitalPillProps) {
   const status = vital?.score === undefined ? 'none' : scoreToStatus(vital.score);
 
   const formattedMeterValueText = getFormattedValue(vital, vitalDetails);
@@ -160,23 +138,20 @@ function VitalPill({vital, vitalDetails, hasTraceTabsUi}: VitalPillProps) {
   );
 
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
-  const statusText =
-    status === 'none' || hasTraceTabsUi ? '' : ` (${STATUS_TEXT[status]})`;
   return (
-    <VitalPillContainer hasTraceTabsUi={hasTraceTabsUi}>
+    <VitalPillContainer>
       <Tooltip title={toolTipTitle}>
-        <VitalPillName status={status}>{`${acronym}${statusText}`}</VitalPillName>
+        <VitalPillName status={status}>{`${acronym}`}</VitalPillName>
       </Tooltip>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
 }
 
-const VitalPillContainer = styled('div')<{hasTraceTabsUi?: boolean}>`
+const VitalPillContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  flex-grow: ${p => (p.hasTraceTabsUi ? 0 : 1)};
-  max-width: ${p => (p.hasTraceTabsUi ? 'auto' : '20%')};
+  max-width: 'auto';
   height: 28px;
 `;
 
@@ -198,8 +173,8 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
@@ -223,21 +198,21 @@ const VitalPillValue = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
-const VitalMetersContainer = styled('div')<{hasTraceTabsUi?: boolean}>`
+const VitalMetersContainer = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-items: baseline;
   gap: ${space(1)};
-  width: ${p => (p.hasTraceTabsUi ? 'auto' : '100%')};
+  width: 'auto';
 `;
 
 const SecondaryVitalsCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`
@@ -260,11 +235,11 @@ function getPrimaryVitalsCount(
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.xxlarge, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
     if (type === 'web') {
       return totalCount;
     }

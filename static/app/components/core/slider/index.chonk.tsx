@@ -1,5 +1,6 @@
 import {type CSSProperties, useState} from 'react';
 
+import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
@@ -74,7 +75,7 @@ const StepsContainer = chonkStyled('div')`
     right: 0;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.xl};
+    border-radius: ${p => p.theme.radius.lg};
     background: ${p => p.theme.colors.surface100};
   }
 `;
@@ -90,9 +91,9 @@ const StepMark = chonkStyled('span')<{filled?: boolean}>`
     position: absolute;
     height: 12px;
     width: 2px;
-    border-radius: ${p => p.theme.radius.xl};
+    border-radius: ${p => p.theme.radius.lg};
     background: ${p =>
-      p.filled ? p.theme.colors.chonk.blue300 : p.theme.colors.surface100};
+      p.filled ? p.theme.colors.chonk.blue400 : p.theme.colors.surface100};
   }
 `;
 
@@ -124,7 +125,7 @@ const StyledSlider = chonkStyled('input')`
     width: 100%;
     height: 16px;
     background: transparent;
-    border-radius: ${p => p.theme.radius.nano};
+    border-radius: ${p => p.theme.radius['2xs']};
     transition: box-shadow 0.1s;
     box-shadow:
       0 0 0 8px transparent,
@@ -152,12 +153,12 @@ const StyledSlider = chonkStyled('input')`
       position: absolute;
       inset: 0;
       margin: auto 0;
-      min-width: calc(${p => p.theme.radius.micro} * 6);
+      min-width: calc(${p => p.theme.radius['2xs']} * 6);
       width: var(--p, 50%);
       height: 4px;
-      background: ${p => p.theme.colors.chonk.blue300};
-      border: 1px solid ${p => p.theme.colors.chonk.blue300};
-      border-radius: ${p => p.theme.radius.micro};
+      background: ${p => p.theme.colors.chonk.blue400};
+      border: 1px solid ${p => p.theme.colors.chonk.blue400};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     /* Chrome styling */
@@ -166,7 +167,7 @@ const StyledSlider = chonkStyled('input')`
       height: 4px;
       background: ${p => p.theme.colors.surface100};
       border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius.micro};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     &::-webkit-slider-thumb {
@@ -174,8 +175,8 @@ const StyledSlider = chonkStyled('input')`
       width: 16px;
       height: 16px;
       background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
       border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 10;
@@ -187,7 +188,7 @@ const StyledSlider = chonkStyled('input')`
       height: 4px;
       background: ${p => p.theme.colors.surface100};
       border: 1px solid ${p => p.theme.colors.surface100};
-      border-radius: ${p => p.theme.radius.micro};
+      border-radius: ${p => p.theme.radius['2xs']};
     }
 
     &::-moz-range-thumb {
@@ -195,8 +196,8 @@ const StyledSlider = chonkStyled('input')`
       width: 16px;
       height: 16px;
       background: ${p => p.theme.colors.white};
-      border: 1px solid ${p => p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+      border-bottom: 2px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
       border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 1;
@@ -215,7 +216,7 @@ const SliderOutput = chonkStyled('output')`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     position: absolute;
     height: 24px;
     width: calc(100% - 16px);
@@ -239,10 +240,10 @@ const SliderLabel = chonkStyled('span')`
   padding-inline: ${space(0.5)};
   width: min-content;
   text-align: center;
-  background: ${p => p.theme.colors.chonk.blue300};
-  border: 1px solid ${p => p.theme.colors.chonk.blue100};
+  background: ${p => p.theme.colors.chonk.blue400};
+  border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
   color: ${p => p.theme.white};
-  border-radius: ${p => p.theme.radius.micro};
+  border-radius: ${p => p.theme.radius['2xs']};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 

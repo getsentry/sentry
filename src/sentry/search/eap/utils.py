@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
@@ -108,11 +108,10 @@ def transform_column_to_expression(column: Column) -> Expression:
 
 def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorageConfig:
     if sampling_mode is None:
-        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY)
+        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_NORMAL)
     if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:
-        sampling_mode = cast(SAMPLING_MODES, sampling_mode)
         return DownsampledStorageConfig(mode=SAMPLING_MODE_MAP[sampling_mode])
 
 

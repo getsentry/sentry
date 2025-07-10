@@ -1,24 +1,20 @@
 import logging
-from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
-from sentry.search.events.fields import is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
+from sentry.snuba.discover import zerofill
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -47,6 +43,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -54,6 +51,7 @@ def run_table_query(
         rpc_dataset_common.TableQuery(
             query_string=query_string,
             selected_columns=selected_columns,
+            equations=equations,
             orderby=orderby,
             offset=offset,
             limit=limit,
@@ -151,48 +149,6 @@ def run_timeseries_query(
 
 
 @sentry_sdk.trace
-def build_top_event_conditions(
-    resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
-) -> Any:
-    conditions = []
-    other_conditions = []
-    for event in top_events["data"]:
-        row_conditions = []
-        other_row_conditions = []
-        for key in groupby_columns:
-            if key == "project.id":
-                value = resolver.params.project_slug_map[
-                    event.get("project", event.get("project.slug"))
-                ]
-            else:
-                value = event[key]
-            resolved_term, context = resolver.resolve_term(
-                SearchFilter(
-                    key=SearchKey(name=key),
-                    operator="=",
-                    value=SearchValue(raw_value=value, use_raw_value=True),
-                )
-            )
-            if resolved_term is not None:
-                row_conditions.append(resolved_term)
-            other_term, context = resolver.resolve_term(
-                SearchFilter(
-                    key=SearchKey(name=key),
-                    operator="!=",
-                    value=SearchValue(raw_value=value, use_raw_value=True),
-                )
-            )
-            if other_term is not None:
-                other_row_conditions.append(other_term)
-        conditions.append(TraceItemFilter(and_filter=AndFilter(filters=row_conditions)))
-        other_conditions.append(TraceItemFilter(or_filter=OrFilter(filters=other_row_conditions)))
-    return (
-        TraceItemFilter(or_filter=OrFilter(filters=conditions)),
-        TraceItemFilter(and_filter=AndFilter(filters=other_conditions)),
-    )
-
-
-@sentry_sdk.trace
 def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -203,152 +159,21 @@ def run_top_events_timeseries_query(
     referrer: str,
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
 ) -> Any:
-    """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
-    functions that both would call
-    This is because at time of writing, the query construction is very straightforward, if that changes perhaps we can
-    change this"""
-    """Make a table query first to get what we need to filter by"""
-    rpc_dataset_common.validate_granularity(params)
-
-    # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
-    # For TopN queries, we want table and timeseries data to match.
-    # Here, we want to run the table request the the VCCs. SnubaParams has
-    # a property `is_timeseries_request` which resolves to true if granularity_secs is set.
-    # `is_timeseries_request` is used to evaluate if VCCs should be used.
-    # Unset granularity_secs, so this gets treated as a table request with
-    # the correct VCC.
-    table_query_params = params.copy()
-    table_query_params.granularity_secs = None
-    table_search_resolver = get_resolver(params=table_query_params, config=config)
-
-    top_events = run_table_query(
-        table_query_params,
-        query_string,
-        raw_groupby + y_axes,
-        orderby,
-        0,
-        limit,
-        referrer,
-        config,
-        sampling_mode,
-        table_search_resolver,
-    )
-    if len(top_events["data"]) == 0:
-        return {}
-
-    search_resolver = get_resolver(params=params, config=config)
-    # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
-    groupby_columns = [col for col in raw_groupby if not is_function(col)]
-    groupby_columns_without_project = [
-        col if col not in ["project", "project.name"] else "project.id" for col in groupby_columns
-    ]
-    top_conditions, other_conditions = build_top_event_conditions(
-        search_resolver, top_events, groupby_columns_without_project
-    )
-    """Make the query"""
-    rpc_request, aggregates, groupbys = rpc_dataset_common.get_timeseries_query(
-        search_resolver,
-        params,
-        query_string,
-        y_axes,
-        groupby_columns_without_project,
-        referrer,
+    return rpc_dataset_common.run_top_events_timeseries_query(
+        get_resolver=get_resolver,
+        params=params,
+        query_string=query_string,
+        y_axes=y_axes,
+        raw_groupby=raw_groupby,
+        orderby=orderby,
+        limit=limit,
+        referrer=referrer,
+        config=config,
         sampling_mode=sampling_mode,
-        extra_conditions=top_conditions,
+        equations=equations,
     )
-    other_request, other_aggregates, other_groupbys = rpc_dataset_common.get_timeseries_query(
-        search_resolver,
-        params,
-        query_string,
-        y_axes,
-        [],  # in the other series, we want eveything in a single group, so the group by
-        referrer,
-        sampling_mode=sampling_mode,
-        extra_conditions=other_conditions,
-    )
-
-    """Run the query"""
-    rpc_response, other_response = snuba_rpc.timeseries_rpc([rpc_request, other_request])
-
-    """Process the results"""
-    map_result_key_to_timeseries = defaultdict(list)
-
-    final_meta: EventsMeta = EventsMeta(
-        fields={},
-        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-    )
-    for resolved_field in aggregates + groupbys:
-        final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
-
-    for timeseries in rpc_response.result_timeseries:
-        groupby_attributes = timeseries.group_by_attributes
-        remapped_groupby = {}
-        # Remap internal attrs back to public ones
-        for col in groupby_columns:
-            if col in ["project", "project.slug"]:
-                resolved_groupby, _ = search_resolver.resolve_attribute("project.id")
-                remapped_groupby[col] = params.project_id_map[
-                    int(groupby_attributes[resolved_groupby.internal_name])
-                ]
-            else:
-                resolved_groupby, context = search_resolver.resolve_attribute(col)
-
-                # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
-                # Since timeseries run the query with the original column, we need to map
-                # them correctly so they map the table result. We need to map both the column name
-                # and the values.
-                if context is not None:
-                    resolved_groupby = search_resolver.map_context_to_original_column(context)
-
-                groupby_value = groupby_attributes[resolved_groupby.internal_name]
-                if context is not None:
-                    groupby_value = context.constructor(params).value_map[groupby_value]
-                    groupby_attributes[resolved_groupby.internal_name] = groupby_value
-
-                remapped_groupby[col] = groupby_value
-
-        result_key = create_result_key(remapped_groupby, groupby_columns, {})
-        map_result_key_to_timeseries[result_key].append(timeseries)
-    final_result = {}
-    # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
-    for index, row in enumerate(top_events["data"]):
-        result_key = create_result_key(row, groupby_columns, {})
-        result_groupby = create_groupby_dict(row, groupby_columns, {})
-        result = rpc_dataset_common.process_timeseries_list(
-            map_result_key_to_timeseries[result_key]
-        )
-        final_result[result_key] = SnubaTSResult(
-            {
-                "data": result.timeseries,
-                "groupby": result_groupby,
-                "processed_timeseries": result,
-                "is_other": False,
-                "order": index,
-                "meta": final_meta,
-            },
-            params.start,
-            params.end,
-            params.granularity_secs,
-        )
-    if other_response.result_timeseries:
-        result = rpc_dataset_common.process_timeseries_list(
-            [timeseries for timeseries in other_response.result_timeseries]
-        )
-        final_result[OTHER_KEY] = SnubaTSResult(
-            {
-                "data": result.timeseries,
-                "processed_timeseries": result,
-                "order": limit,
-                "meta": final_meta,
-                "groupby": None,
-                "is_other": True,
-            },
-            params.start,
-            params.end,
-            params.granularity_secs,
-        )
-    return final_result
 
 
 @sentry_sdk.trace
@@ -362,6 +187,7 @@ def run_trace_query(
         "parent_span",
         "description",
         "span.op",
+        "span.name",
         "is_transaction",
         "transaction.span_id",
         "transaction.event_id",

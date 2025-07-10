@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import Form from 'sentry/components/forms/form';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
+import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 
 export default Storybook.story('Form Controls', story => {
   story('PriorityControl', () => (
@@ -15,8 +16,8 @@ export default Storybook.story('Form Controls', story => {
       </p>
 
       <Form hideFooter>
-        <Flex column gap={space(2)}>
-          <PriorityControl name="priority" />
+        <Flex direction="column" gap={space(2)}>
+          <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
         </Flex>
       </Form>
     </Fragment>

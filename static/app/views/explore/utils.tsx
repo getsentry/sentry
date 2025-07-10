@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -13,23 +15,35 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  RawGroupBy,
+  RawVisualize,
+  SavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -38,6 +52,7 @@ export function getExploreUrl({
   selection,
   interval,
   mode,
+  aggregateField,
   visualize,
   query,
   groupBy,
@@ -45,18 +60,21 @@ export function getExploreUrl({
   field,
   id,
   title,
+  referrer,
 }: {
   organization: Organization;
-  visualize: BaseVisualize[];
+  aggregateField?: Array<GroupBy | BaseVisualize>;
   field?: string[];
   groupBy?: string[];
   id?: number;
   interval?: string;
   mode?: Mode;
   query?: string;
+  referrer?: string;
   selection?: PageFilters;
   sort?: string;
   title?: string;
+  visualize?: BaseVisualize[];
 }) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -69,13 +87,15 @@ export function getExploreUrl({
     interval,
     mode,
     query,
-    visualize: visualize.map(v => JSON.stringify(v)),
+    aggregateField: aggregateField?.map(v => JSON.stringify(v)),
+    visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
     sort,
     field,
     utc,
     id,
     title,
+    referrer,
   };
 
   return (
@@ -97,13 +117,25 @@ export function getExploreUrlFromSavedQueryUrl({
     return getExploreMultiQueryUrl({
       organization,
       ...savedQuery,
-      queries: savedQuery.query.map(q => ({
-        ...q,
-        chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
-        yAxes: q.visualize[0]?.yAxes ?? [],
-        groupBys: q.groupby,
-        sortBys: decodeSorts(q.orderby),
-      })),
+      queries: savedQuery.query.map(q => {
+        const groupBys: string[] | undefined =
+          q.aggregateField
+            ?.filter<RawGroupBy>(isGroupBy)
+            ?.map(groupBy => groupBy.groupBy) ?? q.groupby;
+        const visualize: RawVisualize | undefined =
+          q.aggregateField?.find<RawVisualize>(isRawVisualize) ?? q.visualize?.[0];
+        const chartType: ChartType | undefined = isChartType(visualize?.chartType)
+          ? visualize.chartType
+          : undefined;
+
+        return {
+          ...q,
+          chartType,
+          yAxes: (visualize?.yAxes ?? []).slice(),
+          groupBys: groupBys ?? [],
+          sortBys: decodeSorts(q.orderby),
+        };
+      }),
       title: savedQuery.name,
       selection: {
         datetime: {
@@ -216,12 +248,14 @@ export function combineConfidenceForSeries(
 export function viewSamplesTarget({
   location,
   query,
+  fields,
   groupBys,
   visualizes,
   sorts,
   row,
   projects,
 }: {
+  fields: string[];
   groupBys: string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
@@ -251,36 +285,33 @@ export function viewSamplesTarget({
     }
   }
 
-  // all group bys will be used as columns
-  const fields = groupBys.filter(Boolean);
-  const seenFields = new Set(fields);
+  const newFields = [...fields];
+  const seenFields = new Set(newFields);
 
   // add all the arguments of the visualizations as columns
   for (const visualize of visualizes) {
-    for (const yAxis of visualize.yAxes) {
-      const parsedFunction = parseFunction(yAxis);
-      if (!parsedFunction?.arguments[0]) {
-        continue;
-      }
-      const field = parsedFunction.arguments[0];
-      if (seenFields.has(field)) {
-        continue;
-      }
-      fields.push(field);
-      seenFields.add(field);
+    const parsedFunction = parseFunction(visualize.yAxis);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
     }
+    const field = parsedFunction.arguments[0];
+    if (seenFields.has(field)) {
+      continue;
+    }
+    newFields.push(field);
+    seenFields.add(field);
   }
 
   // fall back, force timestamp to be a column so we
   // always have at least 1 column
-  if (fields.length === 0) {
-    fields.push('timestamp');
+  if (newFields.length === 0) {
+    newFields.push('timestamp');
     seenFields.add('timestamp');
   }
 
   // fall back, sort the last column present
   let sortBy: Sort = {
-    field: fields[fields.length - 1]!,
+    field: newFields[newFields.length - 1]!,
     kind: 'desc' as const,
   };
 
@@ -295,7 +326,7 @@ export function viewSamplesTarget({
     // on the odd chance that this sorted column was not added
     // already, make sure to add it
     if (!seenFields.has(field)) {
-      fields.push(field);
+      newFields.push(field);
     }
 
     sortBy = {
@@ -307,9 +338,9 @@ export function viewSamplesTarget({
 
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
-    fields,
+    fields: newFields,
     query: search.formatString(),
-    sortBys: [sortBy],
+    sampleSortBys: [sortBy],
   });
 }
 
@@ -384,7 +415,10 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (organization.features.includes('performance-trace-explorer')) {
+  if (
+    organization.features.includes('performance-trace-explorer') ||
+    organization.features.includes('visibility-explore-view')
+  ) {
     return 'traces';
   }
 
@@ -393,7 +427,7 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   if (organization.features.includes('discover-basic')) {
-    return 'discover';
+    return 'discover/homepage';
   }
 
   if (organization.features.includes('performance-profiling')) {
@@ -413,7 +447,7 @@ export function computeVisualizeSampleTotals(
   isTopN: boolean
 ) {
   return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const dedupedYAxes = [visualize.yAxis];
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
@@ -574,4 +608,86 @@ function isSimpleFilter(
 
 function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
+}
+
+export function formatQueryToNaturalLanguage(query: string): string {
+  if (!query.trim()) return '';
+  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const formattedTokens = tokens.map(formatToken);
+
+  return formattedTokens.reduce((result, token, index) => {
+    if (index === 0) return token;
+
+    const prevToken = formattedTokens[index - 1];
+    if (!prevToken) return `${result}, ${token}`;
+
+    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
+    const prevIsLogicalOp =
+      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
+
+    if (isLogicalOp || prevIsLogicalOp) {
+      return `${result} ${token}`;
+    }
+
+    return `${result}, ${token}`;
+  }, '');
+}
+
+function formatToken(token: string): string {
+  const isNegated = token.startsWith('!') && token.includes(':');
+  const actualToken = isNegated ? token.slice(1) : token;
+
+  const operators = [
+    [':>=', 'greater than or equal to'],
+    [':<=', 'less than or equal to'],
+    [':!=', 'not'],
+    [':>', 'greater than'],
+    [':<', 'less than'],
+    ['>=', 'greater than or equal to'],
+    ['<=', 'less than or equal to'],
+    ['!=', 'not'],
+    ['!:', 'not'],
+    ['>', 'greater than'],
+    ['<', 'less than'],
+    [':', ''],
+  ] as const;
+
+  for (const [op, desc] of operators) {
+    if (actualToken.includes(op)) {
+      const [key, value] = actualToken.split(op);
+      const cleanKey = key?.trim() || '';
+      const cleanVal = value?.trim() || '';
+
+      const negation = isNegated ? 'not ' : '';
+      const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
+
+      return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
+    }
+  }
+
+  return token;
+}
+
+export function prettifyAggregation(aggregation: string): string | null {
+  if (isEquation(aggregation)) {
+    const expression = new Expression(stripEquationPrefix(aggregation));
+    return expression.tokens
+      .map(token => {
+        if (isTokenFunction(token)) {
+          const func = parseFunction(token.text);
+          if (func) {
+            return prettifyParsedFunction(func);
+          }
+        }
+        return token.text;
+      })
+      .join(' ');
+  }
+
+  const func = parseFunction(aggregation);
+  if (func) {
+    return prettifyParsedFunction(func);
+  }
+
+  return null;
 }

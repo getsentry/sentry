@@ -56,7 +56,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -92,25 +92,24 @@ profile_chunks_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
-    if compressed_profile:
-        try:
-            res = msgpack.unpackb(
-                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
-            )
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
-            return res
-        except Exception as e:
-            logger.exception("Failed to decompress compressed profile", extra={"error": e})
-            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
-            raise
-
-    # not compressed
-    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+def decode_payload(encoded: str) -> dict[str, Any]:
+    try:
+        res = msgpack.unpackb(zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False)
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+        return res
+    except Exception as e:
+        logger.exception("Failed to decompress compressed profile", extra={"error": e})
+        metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+        raise
 
 
 def encode_payload(message: dict[str, Any]) -> str:
-    return b64encode(msgpack.packb(message)).decode("utf-8")
+    return b64encode(
+        zlib.compress(
+            msgpack.packb(message),
+            level=1,
+        )
+    ).decode("utf-8")
 
 
 @instrumented_task(
@@ -137,14 +136,13 @@ def process_profile_task(
     profile: Profile | None = None,
     payload: str | None = None,
     sampled: bool = True,
-    compressed_profile: bool = False,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        message_dict = decode_payload(payload, compressed_profile)
+        message_dict = decode_payload(payload)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -177,44 +175,8 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
-    if sampled:
-        if features.has("organizations:profiling-sdks", organization):
-            try:
-                event_type = determine_profile_type(profile)
-                sdk_name, sdk_version = determine_client_sdk(profile, event_type)
-
-                ProjectSDK.update_with_newest_version_or_create(
-                    project=project,
-                    event_type=event_type,
-                    sdk_name=sdk_name,
-                    sdk_version=sdk_version,
-                )
-
-                # Check to see if the data is coming from an deprecated SDK
-                # and drop it if needed
-                if is_sdk_deprecated(event_type, sdk_name, sdk_version):
-                    if features.has("organizations:profiling-deprecate-sdks", organization):
-                        category = (
-                            DataCategory.PROFILE_CHUNK
-                            if event_type == EventType.PROFILE_CHUNK
-                            else DataCategory.PROFILE
-                        )
-                        _track_outcome(
-                            profile=profile,
-                            project=project,
-                            outcome=Outcome.FILTERED,
-                            categories=[category],
-                            reason="deprecated sdk",
-                        )
-                        return
-            except UnableToAcquireLock:
-                # unable to acquire the lock means another event is trying to
-                # update the version so we can skip the update from this event
-                pass
-            except (UnknownClientSDKException, UnknownProfileTypeException):
-                pass
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+    if sampled and _is_deprecated(profile, project, organization):
+        return
 
     profile_context = {
         "organization_id": profile["organization_id"],
@@ -239,9 +201,9 @@ def process_profile_task(
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
-        set_span_data("profile.samples", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
     else:
@@ -267,9 +229,9 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if "version" in profile:
-        set_span_data("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames.processed", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if options.get("profiling.stack_trace_rules.enabled"):
         try:
@@ -323,6 +285,62 @@ def process_profile_task(
                 categories=[DataCategory.PROFILE_INDEXED],
                 reason="sampled",
             )
+
+
+def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
+    if not features.has("organizations:profiling-sdks", organization):
+        return False
+
+    try:
+        event_type = determine_profile_type(profile)
+    except UnknownProfileTypeException:
+        # unsure what the profile type is but this should never happen
+        # if it does happen, we should let it through because we're probably
+        # not handling something correctly
+        return False
+
+    category = (
+        DataCategory.PROFILE_CHUNK
+        if event_type == EventType.PROFILE_CHUNK
+        else DataCategory.PROFILE
+    )
+
+    try:
+        sdk_name, sdk_version = determine_client_sdk(profile, event_type)
+    except UnknownClientSDKException:
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+        return True
+
+    try:
+        ProjectSDK.update_with_newest_version_or_create(
+            project=project,
+            event_type=event_type,
+            sdk_name=sdk_name,
+            sdk_version=sdk_version,
+        )
+    except UnableToAcquireLock:
+        # unable to acquire the lock means another event is trying to
+        # update the version so we can skip the update from this event
+        return False
+
+    if not is_sdk_deprecated(event_type, sdk_name, sdk_version):
+        return False
+
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.FILTERED,
+        categories=[category],
+        reason="deprecated sdk",
+    )
+
+    return features.has("organizations:profiling-deprecate-sdks", organization)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -386,7 +404,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-                set_span_data(
+                set_span_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )
@@ -1301,6 +1319,11 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # dict directly to the PyO3 module to avoid json serialization/deserialization
             with sentry_sdk.start_span(op="json.dumps"):
                 json_profile = json.dumps(profile)
+                metrics.distribution(
+                    "profiling.profile.payload.size",
+                    len(json_profile),
+                    tags={"type": "chunk", "platform": profile["platform"]},
+                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
@@ -1316,11 +1339,12 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
                 )
-                payload = build_chunk_functions_kafka_message(chunk, functions)
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
-                )
-                profile_functions_producer.produce(topic, payload)
+                if functions is not None and len(functions) > 0:
+                    payload = build_chunk_functions_kafka_message(chunk, functions)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                    )
+                    profile_functions_producer.produce(topic, payload)
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1355,7 +1379,7 @@ def build_chunk_functions_kafka_message(
     chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
 ) -> KafkaPayload:
     data = {
-        "environment": chunk.get_environment(),
+        "environment": chunk.get_environment() or "",
         "functions": [
             {
                 "fingerprint": f.get_fingerprint(),
@@ -1371,7 +1395,7 @@ def build_chunk_functions_kafka_message(
         "platform": chunk.get_platform(),
         "project_id": chunk.get_project_id(),
         "received": int(chunk.get_received()),
-        "release": chunk.get_release(),
+        "release": chunk.get_release() or "",
         "retention_days": chunk.get_retention_days(),
         "timestamp": int(chunk.start_timestamp()),
         "start_timestamp": chunk.start_timestamp(),

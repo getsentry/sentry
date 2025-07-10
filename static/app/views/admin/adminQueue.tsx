@@ -75,7 +75,7 @@ export default function AdminQueue() {
   return (
     <div>
       <Header>
-        <h3>t{'Queue Overview'}</h3>
+        <h3>{t('Queue Overview')}</h3>
 
         <ButtonBar merged>
           {TIME_WINDOWS.map(r => (
@@ -103,11 +103,11 @@ export default function AdminQueue() {
         </PanelBody>
       </Panel>
 
-      <h3>t{'Task Details'}</h3>
+      <h3>{t('Task Details')}</h3>
 
       <div>
         <div className="m-b-1">
-          <label>t{'Show details for task:'}</label>
+          <label>{t('Show details for task:')}</label>
           <Select
             name="task"
             onChange={({value}: any) => changeTask(value)}

@@ -34,6 +34,7 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
   const {key, name} = column;
 
   const alignment = RIGHT_ALIGNED_FIELDS.has(key) ? 'right' : 'left';
+  const enableToggle = key === 'testName';
 
   return (
     <SortableHeader
@@ -41,6 +42,7 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
       sort={sort}
       fieldName={key}
       label={name}
+      enableToggle={enableToggle}
       {...(key === 'flakeRate' && {
         tooltip: <FlakyTestsTooltip />,
       })}
@@ -50,5 +52,5 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
 
 const StyledDateRange = styled('span')`
   text-transform: lowercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

@@ -89,6 +89,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 

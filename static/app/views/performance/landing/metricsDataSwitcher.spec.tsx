@@ -39,7 +39,6 @@ function WrappedComponent({
         selection={eventView.getPageFilters()}
         onboardingProject={undefined}
         handleSearch={() => {}}
-        handleTrendsClick={() => {}}
         setError={() => {}}
         withStaticFilters={withStaticFilters}
       />

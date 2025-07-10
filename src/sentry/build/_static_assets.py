@@ -22,10 +22,9 @@ def _build_static_assets() -> None:
         if ret:
             raise SystemExit(ret)
 
-    _cmd("yarn", "install", "--production", "--frozen-lockfile", "--quiet")
-    _cmd("yarn", "tsc", "-p", "config/tsconfig.build.json")
-    _cmd("yarn", "build-production")
-    _cmd("yarn", "build-chartcuterie-config")
+    _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only")
+    _cmd("pnpm", "run", "build-production")
+    _cmd("pnpm", "run", "build-chartcuterie-config")
 
 
 def main() -> int:

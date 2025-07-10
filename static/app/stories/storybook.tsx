@@ -1,11 +1,7 @@
 import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-import {APIReference} from './apiReference';
-import * as StorybookLayout from './layout';
+import * as Storybook from './';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -36,12 +32,12 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   return function RenderStory() {
     return (
       <Fragment>
-        <StoryTitle>{title}</StoryTitle>
+        <Storybook.Title>{title}</Storybook.Title>
         {stories.map(({name, render}, i) => (
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <APIReference key={i} types={documentation} />
+          <Storybook.APIReference key={i} types={documentation} />
         ))}
       </Fragment>
     );
@@ -53,26 +49,9 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   const isOneChild = Children.count(children) === 1;
 
   return (
-    <StorySection>
-      <StoryTitle>{props.name}</StoryTitle>
-      {isOneChild ? (
-        children
-      ) : (
-        <StorybookLayout.SideBySide>{children}</StorybookLayout.SideBySide>
-      )}
-    </StorySection>
+    <Storybook.Section>
+      <Storybook.Title>{props.name}</Storybook.Title>
+      {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
+    </Storybook.Section>
   );
 }
-
-const StorySection = styled('section')`
-  margin-top: ${space(4)};
-
-  & > p {
-    margin: ${space(3)} 0;
-  }
-`;
-
-const StoryTitle = styled('h3')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  scroll-margin-top: ${space(2)};
-`;

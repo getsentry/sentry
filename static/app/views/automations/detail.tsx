@@ -1,10 +1,11 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -22,7 +23,9 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useUserFromId from 'sentry/utils/useUserFromId';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
+import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
@@ -39,6 +42,8 @@ export default function AutomationDetail() {
     isError,
     refetch,
   } = useAutomationQuery(params.automationId);
+
+  const {data: createdByUser} = useUserFromId({id: Number(automation?.createdBy)});
 
   const detectorsQuery = useDetectorQueriesByIds(automation?.detectorIds || []);
   const detectors = detectorsQuery
@@ -65,10 +70,14 @@ export default function AutomationDetail() {
           <DetailLayout>
             <DetailLayout.Main>
               <Section title={t('History')}>
-                <AutomationHistoryList history={[]} />
+                <ErrorBoundary mini>
+                  <AutomationHistoryList history={[]} />
+                </ErrorBoundary>
               </Section>
               <Section title={t('Connected Monitors')}>
-                <ConnectedMonitorsList monitors={detectors} />
+                <ErrorBoundary mini>
+                  <ConnectedMonitorsList monitors={detectors} />
+                </ErrorBoundary>
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
@@ -92,18 +101,31 @@ export default function AutomationDetail() {
                   frequency: getDuration((automation.config.frequency || 0) * 60),
                 })}
               </Section>
+              <Section title={t('Conditions')}>
+                <ErrorBoundary mini>
+                  <ConditionsPanel
+                    triggers={automation.triggers}
+                    actionFilters={automation.actionFilters}
+                  />
+                </ErrorBoundary>
+              </Section>
               <Section title={t('Details')}>
-                <KeyValueTable>
-                  <KeyValueTableRow
-                    keyName={t('Date created')}
-                    value={<DateTime date={automation.dateCreated} dateOnly year />}
-                  />
-                  <KeyValueTableRow keyName={t('Created by')} value="placeholder" />
-                  <KeyValueTableRow
-                    keyName={t('Last modified')}
-                    value={<TimeSince date={automation.dateUpdated} />}
-                  />
-                </KeyValueTable>
+                <ErrorBoundary mini>
+                  <KeyValueTable>
+                    <KeyValueTableRow
+                      keyName={t('Date created')}
+                      value={<DateTime date={automation.dateCreated} dateOnly year />}
+                    />
+                    <KeyValueTableRow
+                      keyName={t('Created by')}
+                      value={createdByUser?.name || createdByUser?.email || t('Unknown')}
+                    />
+                    <KeyValueTableRow
+                      keyName={t('Last modified')}
+                      value={<TimeSince date={automation.dateUpdated} />}
+                    />
+                  </KeyValueTable>
+                </ErrorBoundary>
               </Section>
             </DetailLayout.Sidebar>
           </DetailLayout>

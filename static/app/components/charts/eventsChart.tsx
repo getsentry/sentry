@@ -274,7 +274,7 @@ class Chart extends Component<ChartProps, State> {
     const chartColors = timeseriesData.length
       ? (colors?.slice(0, series.length) ??
         this.props.theme.chart
-          .getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0))
+          .getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0))
           .slice())
       : undefined;
     if (chartColors?.length && hasOther) {

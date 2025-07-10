@@ -425,24 +425,21 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "process-spans": {
         "topic": Topic.INGEST_SPANS,
+        "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
         "click_options": [
-            click.Option(
-                ["--max-flush-segments", "max_flush_segments"],
-                type=int,
-                default=100,
-                help="The number of segments to download from redis at once. Defaults to 100.",
-            ),
-            click.Option(
-                ["--max-memory-percentage", "max_memory_percentage"],
-                default=1.0,
-                help="Maximum memory usage of the Redis cluster in % (0.0-1.0) before the consumer backpressures.",
-            ),
             *multiprocessing_options(default_max_batch_size=100),
+            click.Option(
+                ["--flusher-processes", "flusher_processes"],
+                default=1,
+                type=int,
+                help="Maximum number of processes for the span flusher. Defaults to 1.",
+            ),
         ],
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": [
             click.Option(
@@ -476,6 +473,9 @@ def get_stream_processor(
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
+    kafka_slice_id: int | None = None,
+    shutdown_strategy_before_consumer: bool = False,
+    add_global_tags: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -497,7 +497,7 @@ def get_stream_processor(
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
 
-    topic_defn = get_topic_definition(consumer_topic)
+    topic_defn = get_topic_definition(consumer_topic, kafka_slice_id=kafka_slice_id)
     real_topic = topic_defn["real_topic_name"]
     cluster_from_config = topic_defn["cluster"]
 
@@ -588,6 +588,9 @@ def get_stream_processor(
             stale_threshold_sec, strategy_factory
         )
 
+    if add_global_tags:
+        strategy_factory = MinPartitionMetricTagWrapper(strategy_factory)
+
     if healthcheck_file_path is not None:
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
@@ -622,6 +625,7 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
+        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 
@@ -641,6 +645,27 @@ class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
         rv = self.inner.create_with_partitions(commit, partitions)
 
         return ValidateSchema(self.topic, self.enforce_schema, rv)
+
+
+class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
+    """
+    A wrapper that tracks the minimum partition index being processed by the consumer
+    and adds it as a global metric tag. This helps with monitoring partition distribution
+    and debugging partition-specific issues.
+    """
+
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        from sentry.metrics.middleware import add_global_tags
+
+        # Update the min_partition global tag based on current partition assignment
+        if partitions:
+            min_partition = min(p.index for p in partitions)
+            add_global_tags(min_partition=str(min_partition))
+
+        return self.inner.create_with_partitions(commit, partitions)
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):

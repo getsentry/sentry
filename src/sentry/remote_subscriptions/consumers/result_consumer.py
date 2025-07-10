@@ -37,11 +37,15 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
     def subscription_model(self) -> type[U]:
         pass
 
-    def __call__(self, result: T):
+    def __call__(self, identifier: str, result: T):
         try:
             # TODO: Handle subscription not existing - we should remove the subscription from
             # the remote system in that case.
-            self.handle_result(self.get_subscription(result), result)
+            with sentry_sdk.start_transaction(
+                name=f"monitors.{identifier}.result_consumer.ResultProcessor",
+                op="result_processor.handle_result",
+            ):
+                self.handle_result(self.get_subscription(result), result)
         except Exception:
             logger.exception("Failed to process message result")
 
@@ -257,7 +261,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     ):
         result = self.decode_payload(topic, message.payload)
         if result is not None:
-            result_processor(result)
+            result_processor(self.identifier, result)
 
     def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
         """
@@ -286,4 +290,4 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         Process a group of related messages serially.
         """
         for item in items:
-            self.result_processor(item)
+            self.result_processor(self.identifier, item)

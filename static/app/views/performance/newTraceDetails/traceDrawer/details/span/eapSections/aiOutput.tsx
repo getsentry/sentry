@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,14 +15,6 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-function tryParseJson(value: any) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
-
 export function AIOutputSection({
   node,
   attributes,
@@ -38,15 +29,27 @@ export function AIOutputSection({
     return null;
   }
 
-  const responseText = getTraceNodeAttribute('ai.response.text', node, event, attributes);
+  const responseText = getTraceNodeAttribute(
+    'gen_ai.response.text',
+    node,
+    event,
+    attributes
+  );
   const toolCalls = getTraceNodeAttribute(
-    'ai.response.toolCalls',
+    'gen_ai.response.tool_calls',
+    node,
+    event,
+    attributes
+  );
+  const toolOutput = getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
+  const responseObject = getTraceNodeAttribute(
+    'gen_ai.response.object',
     node,
     event,
     attributes
   );
 
-  if (!responseText && !toolCalls) {
+  if (!responseText && !responseObject && !toolCalls && !toolOutput) {
     return null;
   }
 
@@ -62,8 +65,19 @@ export function AIOutputSection({
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
           <TraceDrawerComponents.MultilineText>
-            {responseText}
+            {responseText.trim()}
           </TraceDrawerComponents.MultilineText>
+        </Fragment>
+      )}
+      {responseObject && (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Response Object')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <TraceDrawerComponents.MultilineJSON
+            value={responseObject}
+            maxDefaultDepth={2}
+          />
         </Fragment>
       )}
       {toolCalls && (
@@ -71,15 +85,12 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineText>
-            <StructuredData
-              value={tryParseJson(toolCalls)}
-              maxDefaultDepth={2}
-              withAnnotatedText
-            />
-          </TraceDrawerComponents.MultilineText>
+          <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
         </Fragment>
       )}
+      {toolOutput ? (
+        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
+      ) : null}
     </FoldSection>
   );
 }

@@ -185,10 +185,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert data["event_action"] == "trigger"
         assert (
-            data["payload"]["summary"]
-            == f"[{self.project_rule.label}]: {group_event.occurrence.issue_title}"
+            data["payload"]["summary"] == f"[{self.project_rule.label}]: {occurrence.issue_title}"
         )
-        assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
+        assert data["payload"]["custom_details"]["title"] == occurrence.issue_title
 
     @responses.activate
     def test_truncates_summary(self):

@@ -37,9 +37,13 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
-from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
+from sentry.integrations.types import (
+    EventLifecycleOutcome,
+    IntegrationProviderSlug,
+    IntegrationResponse,
+)
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -184,7 +188,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     }
     authentication_classes = ()
     permission_classes = ()
-    provider = PROVIDER
+    provider = IntegrationProviderSlug.MSTEAMS.value
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -490,17 +494,24 @@ class MsTeamsWebhookEndpoint(Endpoint):
         with MessagingInteractionEvent(
             interaction_type, MsTeamsMessagingSpec()
         ).capture() as lifecycle:
-            response = client.put(
-                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-                params={"id": group.id},
-                data=action_data,
-                user=user_service.get_user(user_id=identity.user_id),
-                auth=event_write_key,
-            )
-            if response.status_code == 403:
-                lifecycle.record_halt(response)
-            elif response.status_code >= 400:
-                lifecycle.record_failure(response)
+            try:
+                response = client.put(
+                    path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                    params={"id": group.id},
+                    data=action_data,
+                    user=user_service.get_user(user_id=identity.user_id),
+                    auth=event_write_key,
+                )
+            except client.ApiError as e:
+                if e.status_code == 403:
+                    lifecycle.record_halt(e)
+                # If the user hasn't configured their releases properly, we recieve errors like:
+                # sentry.api.client.ApiError: status=400 body={'statusDetails': {'inNextRelease': [xxx])]}}"
+                # We can mark these as halt
+                elif e.status_code == 400 and e.body.get("statusDetails", {}).get("inNextRelease"):
+                    lifecycle.record_halt(e)
+                elif e.status_code >= 400:
+                    lifecycle.record_failure(e)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
@@ -547,7 +558,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        idp = identity_service.get_provider(provider_type="msteams", provider_ext_id=team_id)
+        idp = identity_service.get_provider(
+            provider_type=IntegrationProviderSlug.MSTEAMS.value, provider_ext_id=team_id
+        )
         if idp is None:
             logger.info(
                 "msteams.action.invalid-team-id",

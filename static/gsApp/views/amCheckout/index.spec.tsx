@@ -4,7 +4,10 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   act,
   render,
@@ -1000,6 +1003,90 @@ describe('AM2 Checkout', function () {
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
   });
 
+  it('does not skip step 1 for business plan pre-backfill', async function () {
+    const launchOrg = OrganizationFixture({features: ['seer-billing']});
+    const am2BizSubscription = SubscriptionFixture({
+      organization: launchOrg,
+      plan: 'am2_business',
+      planTier: 'am2',
+      categories: {
+        errors: MetricHistoryFixture({reserved: 100_000}),
+        transactions: MetricHistoryFixture({reserved: 20_000_000}),
+        attachments: MetricHistoryFixture({reserved: 1}),
+        monitorSeats: MetricHistoryFixture({reserved: 1}),
+        profileDuration: MetricHistoryFixture({reserved: 1}),
+        replays: MetricHistoryFixture({reserved: 10_000}),
+      },
+      onDemandMaxSpend: 2000,
+    });
+
+    SubscriptionStore.set(launchOrg.slug, am2BizSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: launchOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
+    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+  });
+
+  it('skips step 1 for business plan with seer', async function () {
+    const seerOrg = OrganizationFixture({features: ['seer-billing']});
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization: seerOrg,
+      planTier: 'am2',
+      plan: 'am2_business',
+    });
+
+    SubscriptionStore.set(organization.slug, seerSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: seerOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+  });
+
+  it('does not skip step 1 for business plan without seer', async function () {
+    const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
+    const nonSeerSubscription = SubscriptionFixture({
+      organization: nonSeerOrg,
+      planTier: 'am2',
+      plan: 'am2_business',
+    });
+
+    SubscriptionStore.set(organization.slug, nonSeerSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: nonSeerOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
+    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+  });
+
   it('test business bundle standard checkout', async function () {
     const am2BizSubscription = SubscriptionFixture({
       organization,
@@ -1438,6 +1525,49 @@ describe('AM3 Checkout', function () {
         data: {tier: PlanTier.AM3},
       })
     );
+  });
+
+  it('renders banner for self-serve partners', async function () {
+    const contractPeriodEnd = moment();
+    const sub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        isActive: true,
+        externalId: 'foo',
+        partnership: {
+          id: 'XX',
+          displayName: 'BAR',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    act(() => SubscriptionStore.set(organization.slug, sub));
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    expect(
+      screen.getByText('Billing handled externally through BAR')
+    ).toBeInTheDocument();
   });
 
   it('renders for VC partners', async function () {

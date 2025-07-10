@@ -22,7 +22,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
@@ -39,7 +39,7 @@ def add_comparison_to_event(event, average_columns, request: Request):
             group_to_span_map[group].append(span)
 
     # Nothing to add comparisons to
-    set_span_data("query.groups", len(group_to_span_map))
+    set_span_attribute("query.groups", len(group_to_span_map))
     if len(group_to_span_map) == 0:
         return
 
@@ -77,7 +77,7 @@ def add_comparison_to_event(event, average_columns, request: Request):
                 ),
             )
         )
-        set_span_data("query.groups_found", len(result["data"]))
+        set_span_attribute("query.groups_found", len(result["data"]))
         for row in result["data"]:
             group = row["span.group"]
             for span in group_to_span_map[group]:

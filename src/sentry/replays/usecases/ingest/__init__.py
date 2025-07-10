@@ -8,8 +8,6 @@ from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
-import sentry_sdk.scope
-from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
@@ -23,9 +21,6 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_replay_actions
-from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
-from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
@@ -42,8 +37,6 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
-CACHE_TIMEOUT = 3600
-COMMIT_FREQUENCY_SEC = 1
 LOG_SAMPLE_RATE = 0.01
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -55,27 +48,8 @@ class DropSilently(Exception):
     pass
 
 
-class ReplayRecordingSegment(TypedDict):
-    id: str  # a uuid that individualy identifies a recording segment
-    chunks: int  # the number of chunks for this segment
-
-
 class RecordingSegmentHeaders(TypedDict):
     segment_id: int
-
-
-class RecordingSegmentMessage(TypedDict):
-    retention_days: int
-    org_id: int
-    project_id: int
-    replay_id: str  # the uuid of the encompassing replay event
-    key_id: int | None
-    received: int
-    replay_recording: ReplayRecordingSegment
-
-
-class MissingRecordingSegmentHeaders(ValueError):
-    pass
 
 
 @dataclasses.dataclass
@@ -89,29 +63,6 @@ class RecordingIngestMessage:
     payload_with_headers: bytes
     replay_event: bytes | None
     replay_video: bytes | None
-
-
-def ingest_recording(message_bytes: bytes) -> None:
-    """Ingest non-chunked recording messages."""
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
-            name="replays.consumer.process_recording",
-            op="replays.consumer",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
-        ):
-            try:
-                message = parse_recording_message(message_bytes)
-                _ingest_recording_separated_io_compute(message)
-            except DropSilently:
-                # The message couldn't be parsed for whatever reason. We shouldn't block the consumer
-                # so we ignore it.
-                pass
 
 
 def _track_initial_segment_event(
@@ -136,10 +87,6 @@ def _track_initial_segment_event(
     )
 
 
-def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
-    return f"{project_id}:{replay_id}:{segment_id}"
-
-
 def _report_size_metrics(
     size_compressed: int | None = None, size_uncompressed: int | None = None
 ) -> None:
@@ -150,49 +97,6 @@ def _report_size_metrics(
     if size_uncompressed:
         metrics.distribution(
             "replays.usecases.ingest.size_uncompressed", size_uncompressed, unit="byte"
-        )
-
-
-@sentry_sdk.trace
-def recording_post_processor(
-    message: RecordingIngestMessage,
-    headers: RecordingSegmentHeaders,
-    segment_bytes: bytes,
-    replay_event_bytes: bytes | None,
-) -> None:
-    try:
-        segment, replay_event = parse_segment_and_replay_data(segment_bytes, replay_event_bytes)
-
-        actions_event = try_get_replay_actions(message, segment, replay_event)
-        if actions_event:
-            emit_replay_actions(actions_event)
-
-        # Log canvas mutations to bigquery.
-        log_canvas_size_old(
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            segment,
-        )
-
-        # Log # of rrweb events to bigquery.
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "rrweb_event_count",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "replay_id": message.replay_id,
-                "size": len(segment),
-            },
-        )
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
-            message.org_id,
-            message.project_id,
-            message.replay_id,
-            headers["segment_id"],
         )
 
 
@@ -250,31 +154,6 @@ def decompress_segment(segment: bytes) -> Segment:
 
 
 @sentry_sdk.trace
-def parse_segment_and_replay_data(segment: bytes, replay_event: bytes | None) -> tuple[Any, Any]:
-    parsed_segment_data = json.loads(segment)
-    parsed_replay_event = json.loads(replay_event) if replay_event else None
-    return parsed_segment_data, parsed_replay_event
-
-
-@sentry_sdk.trace
-def try_get_replay_actions(
-    message: RecordingIngestMessage,
-    parsed_segment_data: Any,
-    parsed_replay_event: Any | None,
-) -> ReplayActionsEvent | None:
-    project = Project.objects.get_from_cache(id=message.project_id)
-
-    return parse_replay_actions(
-        project=project,
-        replay_id=message.replay_id,
-        retention_days=message.retention_days,
-        segment_data=parsed_segment_data,
-        replay_event=parsed_replay_event,
-        org_id=message.org_id,
-    )
-
-
-@sentry_sdk.trace
 def emit_replay_events(
     event_meta: ParsedEventMeta,
     org_id: int,
@@ -312,14 +191,6 @@ def emit_replay_events(
 
 class CouldNotFindProject(DropSilently):
     pass
-
-
-@sentry_sdk.trace
-def _ingest_recording_separated_io_compute(message: RecordingIngestMessage) -> None:
-    """Ingest recording messages."""
-    processed_recording = process_recording_message(message)
-    commit_recording_message(processed_recording)
-    track_recording_metadata(processed_recording)
 
 
 @dataclasses.dataclass

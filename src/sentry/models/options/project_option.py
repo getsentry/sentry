@@ -66,6 +66,7 @@ OPTION_KEYS = frozenset(
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",
         "sentry:autofix_automation_tuning",
+        "sentry:seer_scanner_automation",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -179,7 +180,7 @@ class ProjectOption(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = PickledObjectField(null=True)
 
     objects: ClassVar[ProjectOptionManager] = ProjectOptionManager()
 

@@ -386,8 +386,7 @@ class BaseQueryBuilder:
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
-                # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
-                condition = self.format_search_filter(cast(event_search.SearchFilter, term))
+                condition = self.format_search_filter(term)
                 if condition:
                     where_conditions.append(condition)
 
@@ -403,10 +402,7 @@ class BaseQueryBuilder:
         having_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.AggregateFilter):
-                # I have no idea why but mypy thinks this is AggregateFilter | AggregateFilter, which is incompatible with AggregateFilter...
-                condition = self.convert_aggregate_filter_to_condition(
-                    cast(event_search.AggregateFilter, term)
-                )
+                condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)
 
@@ -535,11 +531,10 @@ class BaseQueryBuilder:
 
         where, having = [], []
 
-        # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
         if isinstance(term, event_search.SearchFilter):
-            where = self.resolve_where([cast(event_search.SearchFilter, term)])
+            where = self.resolve_where([term])
         elif isinstance(term, event_search.AggregateFilter):
-            having = self.resolve_having([cast(event_search.AggregateFilter, term)])
+            having = self.resolve_having([term])
 
         return where, having
 
@@ -1281,6 +1276,41 @@ class BaseQueryBuilder:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
+
+        strs = search_filter.value.split_wildcards()
+        if strs is not None:
+            # If we have a mixture of wildcards and non-wildcards in a [] set, we must
+            # group them into their own sets to apply the appropriate operators, and
+            # then 'OR' them together.
+            # It's also the case that queries can look like 'foo:[A*]', meaning a single
+            # wildcard in a set.  Handle that case as well.
+            (non_wildcards, wildcards) = strs
+            if len(wildcards) > 0:
+                operator = "="
+                if search_filter.operator == "NOT IN":
+                    operator = "!="
+                filters = [
+                    self.default_filter_converter(
+                        event_search.SearchFilter(
+                            search_filter.key, operator, event_search.SearchValue(wc)
+                        )
+                    )
+                    for wc in wildcards
+                ]
+
+                if len(non_wildcards) > 0:
+                    lhs = self.default_filter_converter(
+                        event_search.SearchFilter(
+                            search_filter.key,
+                            search_filter.operator,
+                            event_search.SearchValue(non_wildcards),
+                        )
+                    )
+                    filters.append(lhs)
+                if len(filters) > 1:
+                    return Or(filters)
+                else:
+                    return filters[0]
 
         # Some fields aren't valid queries
         if name in constants.SKIP_FILTER_RESOLUTION:

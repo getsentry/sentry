@@ -1,0 +1,39 @@
+---
+created: '2025-06-18T22:47:54.773053+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "028157fe357e4592e39eacb32eafa2db"
+    contributing component: chained-exception
+    component:
+      app*
+        chained-exception*
+          exception*
+            type*
+              "InnermostException"
+            value*
+              "Whoops"
+          exception*
+            type*
+              "InnerException"
+            value*
+              "Nope"

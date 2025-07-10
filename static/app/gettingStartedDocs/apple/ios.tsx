@@ -1,13 +1,13 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -20,7 +20,8 @@ import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWiz
 
 export enum InstallationMode {
   AUTO = 'auto',
-  MANUAL = 'manual',
+  MANUAL_SWIFT = 'manual-swift',
+  MANUAL_OBJECTIVE_C = 'manual-objective-c',
 }
 
 const platformOptions = {
@@ -32,8 +33,12 @@ const platformOptions = {
         value: InstallationMode.AUTO,
       },
       {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
+        label: t('Manual (Swift)'),
+        value: InstallationMode.MANUAL_SWIFT,
+      },
+      {
+        label: t('Manual (Objective-C)'),
+        value: InstallationMode.MANUAL_OBJECTIVE_C,
       },
     ],
     defaultValue: InstallationMode.AUTO,
@@ -46,6 +51,11 @@ type Params = DocsParams<PlatformOptions>;
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
 
+const isManualSwift = (params: Params) =>
+  params.platformOptions.installationMode === InstallationMode.MANUAL_SWIFT;
+
+const selectedLanguage = (params: Params) => (isManualSwift(params) ? 'swift' : 'objc');
+
 const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
@@ -53,7 +63,7 @@ const getManualInstallSnippet = (params: Params) => `
   '8.49.0'
 )}"),`;
 
-const getConfigurationSnippet = (params: Params) => `
+const getConfigurationSnippetSwift = (params: Params) => `
 import Sentry
 
 // ....
@@ -108,6 +118,58 @@ func application(_ application: UIApplication,
     return true
 }`;
 
+const getConfigurationSnippetObjectiveC = (params: Params) => `
+@import Sentry;
+
+// ....
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
+        options.dsn = "${params.dsn.public}";
+        options.debug = YES; // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = YES;${
+          params.isPerformanceSelected
+            ? `
+
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+        // We recommend adjusting this value in production.
+        options.tracesSampleRate = @1.0;`
+            : ''
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
+            ? `
+
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+        // We recommend adjusting this value in production.
+        options.tracesSampleRate = @1.0;`
+            : params.isProfilingSelected &&
+                params.profilingOptions?.defaultProfilingMode === 'continuous'
+              ? `
+
+        // Configure the profiler to start profiling when there is an active root span
+        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+        [options setConfigureProfiling:^(SentryProfileOptions * _Nonnull profiling) {
+              profiling.lifecycle = SentryProfileLifecycleTrace;
+              profiling.sessionSampleRate = 1.0;
+        }];`
+              : ''
+        }${
+          params.isReplaySelected
+            ? `
+
+        // Record Session Replays for 100% of Errors and 10% of Sessions
+        options.sessionReplay.onErrorSampleRate = 1.0;
+        options.sessionReplay.sessionSampleRate = 0.1;`
+            : ''
+        }
+    }];
+    return YES;
+}`;
+
 const getConfigurationSnippetSwiftUi = (params: Params) => `
 import Sentry
 
@@ -160,15 +222,37 @@ struct SwiftUIApp: App {
     }
 }`;
 
-const getVerifySnippet = () => `
-let button = UIButton(type: .roundedRect)
-button.frame = CGRect(x: 20, y: 50, width: 100, height: 30)
-button.setTitle("Break the world", for: [])
-button.addTarget(self, action: #selector(self.breakTheWorld(_:)), for: .touchUpInside)
-view.addSubview(button)
+const getVerifySnippet = (params: Params) =>
+  isManualSwift(params)
+    ? `
+enum MyCustomError: Error {
+    case myFirstIssue
+}
 
-@IBAction func breakTheWorld(_ sender: AnyObject) {
-    fatalError("Break the world")
+func thisFunctionThrows() throws {
+    throw MyCustomError.myFirstIssue
+}
+
+func verifySentrySDK() {
+    do {
+        try thisFunctionThrows()
+    } catch {
+        SentrySDK.capture(error: error)
+    }
+}`
+    : `
+- (void)thisFunctionReturnsAnError:(NSError **)error {
+    *error = [NSError errorWithDomain:@"com.example.myapp"
+                                 code:1001
+                             userInfo:@{
+      NSLocalizedDescriptionKey: @"Something went wrong."
+    }];
+}
+
+- (void)verifySentrySDK {
+    NSError *error = nil;
+    [self thisFunctionReturnsAnError:&error];
+    [SentrySDK captureError:error];
 }`;
 
 const getReplaySetupSnippet = (params: Params) => `
@@ -314,28 +398,35 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 )}
               </p>
             ),
-            configurations: [
-              {
-                language: 'swift',
-                code: getConfigurationSnippet(params),
-              },
-              {
-                description: (
-                  <p>
-                    {tct(
-                      "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
-                      {
-                        initializer: (
-                          <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
-                        ),
-                      }
-                    )}
-                  </p>
-                ),
-                language: 'swift',
-                code: getConfigurationSnippetSwiftUi(params),
-              },
-            ],
+            configurations: isManualSwift(params)
+              ? [
+                  {
+                    language: 'swift',
+                    code: getConfigurationSnippetSwift(params),
+                  },
+                  {
+                    description: (
+                      <p>
+                        {tct(
+                          "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
+                          {
+                            initializer: (
+                              <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
+                            ),
+                          }
+                        )}
+                      </p>
+                    ),
+                    language: 'swift',
+                    code: getConfigurationSnippetSwiftUi(params),
+                  },
+                ]
+              : [
+                  {
+                    language: 'objc',
+                    code: getConfigurationSnippetObjectiveC(params),
+                  },
+                ],
           },
         ],
   verify: params =>
@@ -354,17 +445,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: (
               <p>
                 {tct(
-                  'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can add it to your main [viewController: ViewController].',
+                  'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can call [verifySentrySDK: verifySentrySDK()] from where you want to test it.',
                   {
-                    viewController: <code />,
+                    verifySentrySDK: <code />,
                   }
                 )}
               </p>
             ),
             configurations: [
               {
-                language: 'swift',
-                code: getVerifySnippet(),
+                language: selectedLanguage(params),
+                code: getVerifySnippet(params),
               },
             ],
           },

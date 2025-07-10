@@ -20,7 +20,8 @@ def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
     body: bytes,
-    timeout: int | None = None,
+    timeout: int | float | None = None,
+    retries: int | None = None,
     metric_tags: dict[str, Any] | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
@@ -32,9 +33,11 @@ def make_signed_seer_api_request(
 
     auth_headers = sign_with_seer_secret(body)
 
-    timeout_options: dict[str, Any] = {}
+    options: dict[str, Any] = {}
     if timeout:
-        timeout_options["timeout"] = timeout
+        options["timeout"] = timeout
+    if retries is not None:
+        options["retries"] = retries
 
     with metrics.timer(
         "seer.request_to_seer",
@@ -46,7 +49,7 @@ def make_signed_seer_api_request(
             parsed.path,
             body=body,
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
-            **timeout_options,
+            **options,
         )
 
 

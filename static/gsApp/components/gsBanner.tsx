@@ -47,6 +47,7 @@ import {
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -54,7 +55,6 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
-  PlanTier,
   type Promotion,
   type PromotionClaimed,
   type Subscription,
@@ -135,7 +135,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Footer>
         <ZendeskLink
           subject="Account Suspension"
-          className="btn btn-primary"
+          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
           source="account-suspension"
         >
           {t('Contact Support')}
@@ -710,8 +710,6 @@ class GSBanner extends Component<Props, State> {
             checkResults[`${snakeCase(c.plural)}_warning_alert`]!
           )
         ),
-        // TODO(data categories): We don't need to check every EventType for product trials,
-        // only the ones that are supported for product trials.
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
             checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
@@ -1051,28 +1049,12 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILE_DURATION_UI,
       categories: [DataCategory.PROFILE_DURATION_UI],
     },
-    // TODO(Seer): add in-product links for Seer categories
   };
 
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
-    if (subscription.planTier === PlanTier.AM3) {
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
-        product: DataCategory.SPANS,
-        categories: [DataCategory.SPANS],
-      };
-      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
-        product: DataCategory.PROFILES,
-        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
-      };
-    }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
 
+    const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
     }

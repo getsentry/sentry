@@ -49,7 +49,7 @@ class CreateAuditEntryTest(TestCase):
         req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
@@ -60,7 +60,7 @@ class CreateAuditEntryTest(TestCase):
         org = self.create_organization()
 
         req = fake_http_request(self.create_user())
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
 
         assert entry.actor == req.user
         assert entry.actor_key is None
@@ -222,6 +222,7 @@ class CreateAuditEntryTest(TestCase):
                 organization=self.organization,
                 target_object=self.project.id,
                 event=audit_log.get_event_id("PROJECT_ADD"),
+                data={"thing": "to True"},
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -369,6 +370,7 @@ class CreateAuditEntryTest(TestCase):
             organization=self.org,
             target_object=self.project.id,
             event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
+            data={"thing": "to True"},
         )
         audit_log_event = audit_log.get(entry.event)
 
@@ -501,16 +503,30 @@ class CreateAuditEntryTest(TestCase):
         entry3 = create_audit_entry(
             request=self.req,
             organization=self.project.organization,
+            target_object=self.integration.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            data={"provider": "github", "name": "config"},
+        )
+        audit_log_event3 = audit_log.get(entry3.event)
+
+        assert ("edited the config for the github integration") in audit_log_event3.render(entry3)
+        assert entry3.actor == self.user
+        assert entry3.target_object == self.integration.id
+        assert entry3.event == audit_log.get_event_id("INTEGRATION_EDIT")
+
+        entry4 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
             target_object=self.project.id,
             event=audit_log.get_event_id("INTEGRATION_REMOVE"),
             data={"integration": "webhooks", "project": project.slug},
         )
-        audit_log_event3 = audit_log.get(entry3.event)
+        audit_log_event4 = audit_log.get(entry4.event)
 
-        assert ("disable") in audit_log_event3.render(entry3)
-        assert entry3.actor == self.user
-        assert entry3.target_object == self.project.id
-        assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")
+        assert ("disable") in audit_log_event4.render(entry4)
+        assert entry4.actor == self.user
+        assert entry4.target_object == self.project.id
+        assert entry4.event == audit_log.get_event_id("INTEGRATION_REMOVE")
 
     def test_create_system_audit_entry(self):
         entry = create_system_audit_entry(

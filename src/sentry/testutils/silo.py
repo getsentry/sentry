@@ -11,7 +11,7 @@ import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, overload
 from unittest import TestCase
 
 import pytest
@@ -155,6 +155,16 @@ class SiloModeTestDecorator:
 
     def __init__(self, *silo_modes: SiloMode) -> None:
         self.silo_modes = frozenset(silo_modes)
+
+    @overload
+    def __call__[T: (type[Any], Callable[..., Any])](self, decorated_obj: T) -> T: ...
+
+    @overload
+    def __call__[
+        T: (type[Any], Callable[..., Any])
+    ](self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False) -> Callable[
+        [T], T
+    ]: ...
 
     def __call__(
         self,
@@ -509,7 +519,7 @@ def validate_protected_queries(queries: Sequence[Mapping[str, str | None]]) -> N
                     "operation that generates this query with the `unguarded_write()` ",
                     "context manager to resolve this failure. For example:",
                     "",
-                    "with unguarded_write(using=router.db_for_write(OrganizationMembership):",
+                    "with unguarded_write(using=router.db_for_write(OrganizationMembership)):",
                     "    member.delete()",
                     "",
                     "Query logs:",

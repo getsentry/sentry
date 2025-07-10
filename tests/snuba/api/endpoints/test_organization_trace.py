@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from uuid import uuid4
 
 from django.urls import reverse
@@ -158,10 +157,38 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["project_slug"] == self.gen1_project.slug
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
-        assert (
-            error_event["start_timestamp"]
-            == datetime.fromtimestamp(error_data["timestamp"]).astimezone().isoformat()
+        assert error_event["start_timestamp"] == error_data["timestamp"]
+
+    def test_with_errors_data_with_overlapping_span_id(self):
+        self.load_trace(is_eap=True)
+        _, start = self.get_start_end_from_day_ago(123)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
         )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error_2 = self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        assert len(data[0]["errors"]) == 2
+        error_event_1 = data[0]["errors"][0]
+        error_event_2 = data[0]["errors"][1]
+        assert error_event_1["event_id"] in [error.event_id, error_2.event_id]
+        assert error_event_2["event_id"] in [error.event_id, error_2.event_id]
+        assert error_event_1["event_id"] != error_event_2["event_id"]
 
     def test_with_performance_issues(self):
         self.load_trace(is_eap=True)

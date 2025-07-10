@@ -31,7 +31,9 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -54,6 +56,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -137,6 +140,10 @@ class PullRequestFile:
     patch: str
 
 
+ISSUE_TITLE_MAX_LENGTH = 50
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "* ‼️ [**{title}**]({url}){environment}\n"
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -189,8 +196,9 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
-            except ApiRetryError as e:
+            except (ApiRetryError, ApiHostError) as e:
                 # Ignore retry errors for GitLab
+                # Ignore host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
@@ -223,6 +231,20 @@ class CommitContextIntegration(ABC):
         except NotImplementedError:
             return
 
+        if not OrganizationOption.objects.get_value(
+            organization=project.organization,
+            key=pr_comment_workflow.organization_option_key,
+            default=True,
+        ):
+            return
+
+        repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
+        group = Group.objects.get_from_cache(id=group_id)
+        if not (
+            group.level is not logging.INFO and repo_query.exists()
+        ):  # Don't comment on info level issues
+            return
+
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
@@ -230,35 +252,13 @@ class CommitContextIntegration(ABC):
             project=project,
             commit=commit,
         ).capture() as lifecycle:
-            if not OrganizationOption.objects.get_value(
-                organization=project.organization,
-                key=pr_comment_workflow.organization_option_key,
-                default=True,
-            ):
-                # TODO: remove logger in favor of the log recorded in  lifecycle.record_halt
-                logger.info(
-                    _pr_comment_log(integration_name=self.integration_name, suffix="disabled"),
-                    extra={"organization_id": project.organization_id},
-                )
-                lifecycle.record_halt(CommitContextHaltReason.PR_BOT_DISABLED)
-                return
-
-            repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
-            group = Group.objects.get_from_cache(id=group_id)
-            if not (
-                group.level is not logging.INFO and repo_query.exists()
-            ):  # Don't comment on info level issues
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name, suffix="incorrect_repo_config"
-                    ),
-                    extra={"organization_id": project.organization_id},
-                )
-                lifecycle.record_halt(CommitContextHaltReason.INCORRECT_REPO_CONFIG)
-                return
-
             repo: Repository = repo_query.get()
-            lifecycle.add_extra("repository_id", repo.id)
+            lifecycle.add_extras(
+                {
+                    "repository_id": repo.id,
+                    "group_id": group_id,
+                }
+            )
 
             logger.info(
                 _pr_comment_log(
@@ -266,7 +266,7 @@ class CommitContextIntegration(ABC):
                 ),
                 extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
             )
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
 
@@ -282,19 +282,11 @@ class CommitContextIntegration(ABC):
                 return
 
             if merge_commit_sha is None:
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name,
-                        suffix="queue_comment_workflow.commit_not_in_default_branch",
-                    ),
-                    extra={
-                        "organization_id": commit.organization_id,
-                        "repository_id": repo.id,
-                        "commit_sha": commit.key,
-                    },
-                )
+                lifecycle.add_extra("commit_sha", commit.key)
                 lifecycle.record_halt(CommitContextHaltReason.COMMIT_NOT_IN_DEFAULT_BRANCH)
                 return
+
+            lifecycle.add_extra("merge_commit_sha", merge_commit_sha)
 
             pr_query = PullRequest.objects.filter(
                 organization_id=commit.organization_id,
@@ -302,17 +294,6 @@ class CommitContextIntegration(ABC):
                 merge_commit_sha=merge_commit_sha,
             )
             if not pr_query.exists():
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name,
-                        suffix="queue_comment_workflow.missing_pr",
-                    ),
-                    extra={
-                        "organization_id": commit.organization_id,
-                        "repository_id": repo.id,
-                        "commit_sha": commit.key,
-                    },
-                )
                 lifecycle.record_halt(CommitContextHaltReason.MISSING_PR)
                 return
 
@@ -595,6 +576,37 @@ class PRCommentWorkflow(ABC):
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
 
+    @staticmethod
+    def _truncate_title(title: str, max_length: int = ISSUE_TITLE_MAX_LENGTH) -> str:
+        """Truncate title if it's too long and add ellipsis."""
+        if len(title) <= max_length:
+            return title
+        return title[:max_length].rstrip() + "..."
+
+    def get_environment_info(self, issue: Group) -> str:
+        try:
+            recommended_event = issue.get_recommended_event()
+            if recommended_event:
+                environment = recommended_event.get_environment()
+                if environment and environment.name:
+                    return f" in `{environment.name}`"
+        except Exception as e:
+            # If anything goes wrong, just continue without environment info
+            logger.info(
+                "get_environment_info.no-environment",
+                extra={"issue_id": issue.id, "error": e},
+            )
+        return ""
+
+    @staticmethod
+    def get_merged_pr_single_issue_template(title: str, url: str, environment: str) -> str:
+        truncated_title = PRCommentWorkflow._truncate_title(title)
+        return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+            title=truncated_title,
+            url=url,
+            environment=environment,
+        )
+
 
 class OpenPRCommentWorkflow(ABC):
     def __init__(self, integration: CommitContextIntegration):
@@ -661,21 +673,28 @@ class OpenPRCommentWorkflow(ABC):
         self, projects: list[Project], sentry_filenames: list[str], function_names: list[str]
     ) -> list[dict[str, Any]]:
         """
-        Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+        Given a list of projects, filenames reverse-codemapped into filenames in Sentry,
         and function names representing the list of functions changed in a PR file, return a
         sublist of the top 5 recent unhandled issues ordered by event count.
         """
         if not len(projects):
+            logger.info(
+                "open_pr_comment.no_projects",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
-        patch_parsers = PATCH_PARSERS
-        # NOTE: if we are testing beta patch parsers, add check here
+        patch_parsers = get_patch_parsers_for_organization(projects[0].organization)
 
         # fetches the appropriate parser for formatting the snuba query given the file extension
         # the extension is never replaced in reverse codemapping
         language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
 
         if not language_parser:
+            logger.info(
+                "open_pr_comment.no_language_parser",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
         group_ids = list(
@@ -688,6 +707,13 @@ class OpenPRCommentWorkflow(ABC):
             .order_by("-times_seen")
             .values_list("id", flat=True)
         )[:OPEN_PR_MAX_RECENT_ISSUES]
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.length_of_group_ids",
+                extra={"group_ids_length": len(group_ids)},
+            )
+
         project_ids = [p.id for p in projects]
 
         multi_if = language_parser.generate_multi_if(function_names)
@@ -787,6 +813,12 @@ class OpenPRCommentWorkflow(ABC):
             tenant_ids={"organization_id": projects[0].organization_id},
             query=query,
         )
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.snuba_query",
+                extra={"query": request.to_dict()["query"]},
+            )
 
         try:
             return raw_snql_query(request, referrer=self.referrer.value)["data"]

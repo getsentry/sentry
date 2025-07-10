@@ -160,12 +160,15 @@ export function OrganizationAuthTokensIndex({
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Fragment>
-          <SentryDocumentTitle title={t('Auth Tokens')} orgSlug={organization.slug} />
-          <SettingsPageHeader title={t('Auth Tokens')} action={createNewToken} />
+          <SentryDocumentTitle
+            title={t('Organization Tokens')}
+            orgSlug={organization.slug}
+          />
+          <SettingsPageHeader title={t('Organization Tokens')} action={createNewToken} />
 
           <TextBlock>
             {t(
-              'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+              'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
             )}
           </TextBlock>
           <TextBlock>
@@ -183,13 +186,13 @@ export function OrganizationAuthTokensIndex({
             loader={
               isError ? (
                 <LoadingError
-                  message={t('Failed to load auth tokens for the organization.')}
+                  message={t('Failed to load organization tokens.')}
                   onRetry={refetchTokenList}
                 />
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
+            headers={[t('Token'), t('Created'), t('Last access'), '']}
           >
             {!isError && !isPending && !!tokenList?.length && (
               <TokenList
@@ -213,7 +216,7 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
 export default withOrganization(OrganizationAuthTokensIndex);
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),

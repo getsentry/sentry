@@ -17,7 +17,7 @@ export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
   if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
-    return getUserOrgNavigationConfiguration({organization: incomingOrganization});
+    return getUserOrgNavigationConfiguration();
   }
 
   return [
@@ -138,14 +138,6 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
-          badge: () => (
-            <FeatureBadge
-              type="beta"
-              tooltipProps={{
-                title: t('This feature is currently in open beta and may change'),
-              }}
-            />
-          ),
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
@@ -162,8 +154,8 @@ export function getOrganizationNavigationConfiguration({
       items: [
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
-          title: t('Auth Tokens'),
-          description: t('Manage organization auth tokens'),
+          title: t('Organization Tokens'),
+          description: t('Manage organization tokens'),
           id: 'auth-tokens',
         },
         {

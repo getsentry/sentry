@@ -13,6 +13,7 @@ import {OnboardingTasksFixture} from 'getsentry-test/fixtures/onboardingTasks';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -1100,7 +1101,18 @@ describe('Customer Details', function () {
   });
 
   it('renders correct sections', async function () {
-    setUpMocks(organization);
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: 'am3',
+    });
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        id: '0',
+        reservedBudget: 0,
+      }),
+    ];
+    setUpMocks(organization, subscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
@@ -1139,6 +1151,9 @@ describe('Customer Details', function () {
     expect(screen.getByRole('option', {name: /Gift errors/})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Gift transactions/})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Gift attachments/})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Gift to reserved budget/})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Change Plan/})).toBeInTheDocument();
     expect(
       screen.getByRole('option', {name: /Start Enterprise Trial/})
@@ -3434,7 +3449,6 @@ describe('Customer Details', function () {
     it('shows gift budget action when org has reserved budgets', async function () {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
-        hasReservedBudgets: true,
       });
       setUpMocks(organization, am3Sub);
 
@@ -3458,7 +3472,6 @@ describe('Customer Details', function () {
     it('hides gift budget action when org has no reserved budgets', async function () {
       const nonDsSub = SubscriptionFixture({
         organization,
-        hasReservedBudgets: false,
       });
       setUpMocks(organization, nonDsSub);
 
@@ -3482,7 +3495,6 @@ describe('Customer Details', function () {
     it('can open modal and gift budget', async function () {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
-        hasReservedBudgets: true,
       });
       setUpMocks(organization, am3Sub);
 

@@ -9,6 +9,7 @@ import mapValues from 'lodash/mapValues';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -23,7 +24,6 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -311,6 +311,45 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function getSQLQueryRowFromEvidence(querySpan: Span) {
+  // Mongo query is sanitized and not helpful to display
+  if (querySpan.description?.toUpperCase().includes('SELECT')) {
+    return makeRow(t('Query'), getSpanEvidenceValue(querySpan));
+  }
+  return null;
+}
+
+function DBQueryInjectionVulnerabilityEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const formattedVulnerableParameters = evidenceData.vulnerableParameters?.map(
+    (param: string[]) => {
+      if (typeof param[1] === 'object') {
+        return `${param[0]}: ${JSON.stringify(param[1])}`;
+      }
+      return `${param[0]}: ${param[1]}`;
+    }
+  );
+
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, organization, location, projectSlug),
+          getSQLQueryRowFromEvidence(offendingSpans[0]!),
+          makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
+          makeRow(t('Request URL'), evidenceData.requestUrl),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -330,6 +369,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -505,7 +545,6 @@ const makeTransactionNameRow = (
 
   const eventDetailsLocation = generateLinkToEventInTraceView({
     traceSlug,
-    projectSlug: projectSlug ?? '',
     eventId: event.eventID,
     timestamp: event.endTimestamp ?? '',
     location,
@@ -559,7 +598,7 @@ function getSpanEvidenceValue(span: Span | null) {
     return span.op;
   }
 
-  if (span.op === 'db' && span.description) {
+  if (span.op && span.op.startsWith('db') && span.description) {
     return (
       <NoPaddingClippedBox clipHeight={200}>
         <StyledCodeSnippet language="sql">

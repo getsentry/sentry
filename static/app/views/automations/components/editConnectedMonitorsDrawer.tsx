@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {IconAdd} from 'sentry/icons';

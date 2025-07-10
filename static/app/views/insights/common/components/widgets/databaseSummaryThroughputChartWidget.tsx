@@ -4,6 +4,8 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
+import {Referrer} from 'sentry/views/insights/database/referrers';
+import {FIELD_ALIASES} from 'sentry/views/insights/database/settings';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export default function DatabaseSummaryThroughputChartWidget(
@@ -14,6 +16,7 @@ export default function DatabaseSummaryThroughputChartWidget(
     'span.group': groupId,
   };
   const search = MutableSearch.fromQueryObject(filters);
+  const referrer = Referrer.SUMMARY_THROUGHPUT_CHART;
 
   const {isPending, data, error} = useSpanMetricsSeries(
     {
@@ -22,13 +25,14 @@ export default function DatabaseSummaryThroughputChartWidget(
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
     },
-    'api.starfish.span-summary-page-metrics-chart'
+    referrer
   );
 
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      aliases={FIELD_ALIASES}
+      queryInfo={{search, referrer}}
       id="databaseSummaryThroughputChartWidget"
       title={getThroughputChartTitle('db')}
       series={[data['epm()']]}

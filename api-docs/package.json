@@ -2,10 +2,12 @@
   "name": "@sentry-internal/api-docs",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Sentry API docs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "openapi-examples-validator": "openapi-examples-validator"
   },
   "author": "sentry.io",
   "license": "UNLICENSED",
@@ -19,9 +21,5 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
     "@types/json-diff": "^0.7.0"
-  },
-  "volta": {
-    "node": "22.11.0",
-    "yarn": "1.22.22"
   }
 }

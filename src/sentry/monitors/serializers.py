@@ -159,6 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
+    isUpserting: bool
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -245,6 +246,7 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
+            "isUpserting": obj.is_upserting,
             "name": obj.name,
             "slug": obj.slug,
             "config": config,

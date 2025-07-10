@@ -1097,32 +1097,6 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
-    def test_cap_secondary_grouping_expiry(self):
-        now = time()
-
-        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
-        assert response.status_code == 400
-
-        expiry = int(now + 3600 * 24 * 1)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        expiry = int(now + 3600 * 24 * 89)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        # Larger timestamps are capped to 91 days:
-        expiry = int(now + 3600 * 24 * 365)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        expiry = response.data["secondaryGroupingExpiry"]
-        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
-
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
@@ -1306,6 +1280,22 @@ class ProjectUpdateTest(APITestCase):
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
         assert self.project.get_option("sentry:target_sample_rate") == 0.1
+
+    def test_no_setting_grouping_configs(self):
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, groupingConfig="some config", status_code=400
+        )
+        assert "Grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingConfig="another config", status_code=400
+        )
+        assert "Secondary grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=12311121, status_code=400
+        )
+        assert "Secondary grouping expiry cannot be manually set" in response.text
 
 
 class CopyProjectSettingsTest(APITestCase):
@@ -1945,7 +1935,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
     def test_autofix_automation_tuning(self):
         # Test without feature flag - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, autofixAutomationTuning="low", status_code=400
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off", status_code=400
         )
         assert (
             "trigger-autofix-on-issue-summary feature enabled"
@@ -1974,3 +1964,38 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
             assert resp.data["autofixAutomationTuning"] == "off"
+
+    def test_seer_scanner_automation(self):
+        # Test without feature flag - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, seerScannerAutomation=False, status_code=400
+        )
+        assert (
+            "trigger-autofix-on-issue-summary feature enabled"
+            in resp.data["seerScannerAutomation"][0]
+        )
+        assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
+
+        # Test with feature flag but invalid value - should fail
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_error_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
+            )
+            assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
+            assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
+
+        # Test with feature flag and valid value - should succeed
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation=False
+            )
+            assert self.project.get_option("sentry:seer_scanner_automation") is False
+            assert resp.data["seerScannerAutomation"] is False
+
+        # Test setting back to on
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation=True
+            )
+            assert self.project.get_option("sentry:seer_scanner_automation") is True
+            assert resp.data["seerScannerAutomation"] is True

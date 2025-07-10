@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -221,13 +221,11 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-left: ${space(0.5)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
-  gap: 0;
 
   /* Hide the project icon on hover in favor of the drag handle */
   :hover {
@@ -244,7 +242,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
 `;
 
 const BoldTooltipText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
@@ -269,7 +267,6 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const GrabHandleWrapper = styled(motion.div)`

@@ -9,4 +9,5 @@ export interface TabListItemProps extends ItemProps<any> {
   to?: LocationDescriptor;
 }
 
-export const Item = _Item as (props: TabListItemProps) => React.JSX.Element;
+export const TabListItem = _Item as (props: TabListItemProps) => React.JSX.Element;
+export const TabPanelItem = _Item as (props: ItemProps<any>) => React.JSX.Element;

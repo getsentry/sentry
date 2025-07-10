@@ -60,7 +60,9 @@ class GSBillingNavigationConfig extends Component<Props> {
       {
         path: `${prefix}/seer/`,
         title: t('Seer Automation'),
-        show: () => organization.features.includes('trigger-autofix-on-issue-summary'),
+        show: () =>
+          organization.features.includes('trigger-autofix-on-issue-summary') &&
+          !organization.hideAiFeatures,
         id: 'seer',
       },
       {

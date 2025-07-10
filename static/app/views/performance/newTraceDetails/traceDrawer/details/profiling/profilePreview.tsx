@@ -11,6 +11,7 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -25,37 +26,37 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isMissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
-  event: Readonly<EventTransaction>;
-  node: TraceTreeNode<TraceTree.Span> | MissingInstrumentationNode;
+  event: Readonly<EventTransaction> | null;
+  node: MissingInstrumentationNode;
+  profileID: string | undefined;
+  profilerID: string | undefined;
+  project: Project | undefined;
 }
 
-export function ProfilePreview({event, node}: SpanProfileProps) {
-  const {projects} = useProjects();
+export function ProfilePreview({
+  project,
+  profileID,
+  profilerID,
+  event,
+  node,
+}: SpanProfileProps) {
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
-  const project = useMemo(
-    () => projects.find(p => p.id === event.projectID),
-    [projects, event]
-  );
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const spanThreadId = useMemo(() => {
-    const value = isMissingInstrumentationNode(node)
-      ? (node.previous.value ?? node.next.value ?? null)
-      : (node.value ?? null);
+    const value = node.previous.value ?? node.next.value ?? null;
     return 'data' in value ? value.data?.['thread.id'] : null;
   }, [node]);
 
@@ -74,7 +75,9 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    return (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
+    return isEAPSpanNode(node.previous)
+      ? (TraceTree.ParentEAPTransaction(node)?.profiles?.length ?? 0) > 0
+      : (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
   }, [node]);
 
   const flamegraph = useMemo(() => {
@@ -86,9 +89,8 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   }, [transactionHasProfile, profile]);
 
   const target = useMemo(() => {
-    if (defined(event?.projectSlug)) {
-      const profileContext = event.contexts.profile ?? {};
-      if (defined(profileContext.profile_id)) {
+    if (defined(project?.slug)) {
+      if (defined(profileID)) {
         // we want to try to go straight to the same config view as the preview
         const query = canvasView?.configView
           ? {
@@ -102,21 +104,21 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
           : undefined;
         return generateProfileFlamechartRouteWithQuery({
           organization,
-          projectSlug: event.projectSlug,
-          profileId: profileContext.profile_id,
+          projectSlug: project.slug,
+          profileId: profileID,
           query,
         });
       }
 
-      if (defined(event) && defined(profileContext.profiler_id)) {
+      if (defined(event) && defined(profilerID)) {
         const query = {
           eventId: event.id,
           tid: spanThreadId,
         };
         return generateContinuousProfileFlamechartRouteWithQuery({
           organization,
-          projectSlug: event.projectSlug,
-          profilerId: profileContext.profiler_id,
+          projectSlug: project.slug,
+          profilerId: profilerID,
           start: new Date(event.startTimestamp * 1000).toISOString(),
           end: new Date(event.endTimestamp * 1000).toISOString(),
           query,
@@ -125,7 +127,15 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
     }
 
     return undefined;
-  }, [canvasView, event, organization, spanThreadId]);
+  }, [
+    canvasView,
+    event,
+    organization,
+    spanThreadId,
+    profileID,
+    profilerID,
+    project?.slug,
+  ]);
 
   // The most recent profile formats should contain a timestamp indicating
   // the beginning of the profile. This timestamp can be after the start
@@ -136,13 +146,15 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   // If the profile does not contain a timestamp, we fall back to using the
   // start timestamp on the transaction. This won't be as accurate but it's
   // the next best thing.
-  const startTimestamp = profile?.timestamp ?? event.startTimestamp;
-  const relativeStartTimestamp = transactionHasProfile
-    ? node.value.start_timestamp - startTimestamp
-    : 0;
-  const relativeStopTimestamp = transactionHasProfile
-    ? node.value.timestamp - startTimestamp
-    : flamegraph.configSpace.width;
+  const startTimestamp = profile?.timestamp ?? event?.startTimestamp;
+  const relativeStartTimestamp =
+    transactionHasProfile && defined(startTimestamp)
+      ? node.value.start_timestamp - startTimestamp
+      : 0;
+  const relativeStopTimestamp =
+    transactionHasProfile && defined(startTimestamp)
+      ? node.value.timestamp - startTimestamp
+      : flamegraph.configSpace.width;
 
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
@@ -194,7 +206,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   // The event's platform is more accurate than the project
   // so use that first and fall back to the project's platform
   const docsLink =
-    getProfilingDocsForPlatform(event.platform) ??
+    getProfilingDocsForPlatform(event?.platform) ??
     (project && getProfilingDocsForPlatform(project.platform));
 
   // This project has received a profile before so they've already
@@ -214,7 +226,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;
@@ -306,7 +318,7 @@ const LegendItem = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

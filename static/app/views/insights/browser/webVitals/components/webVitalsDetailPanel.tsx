@@ -1,17 +1,16 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import ExternalLink from 'sentry/components/links/externalLink';
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
-} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -24,7 +23,6 @@ import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/c
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
@@ -120,20 +118,6 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       })
       .slice(0, MAX_ROWS);
   }, [data, projectScoresData, webVital, useEap]);
-
-  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({browserTypes, subregions});
-
-  const webVitalData: LineChartSeries = {
-    data:
-      !isTimeseriesLoading && webVital
-        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-    seriesName: webVital ?? '',
-  };
 
   useEffect(() => {
     if (webVital !== null) {
@@ -261,7 +245,13 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
           />
         )}
         <ChartContainer>
-          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+          {webVital && (
+            <WebVitalStatusLineChart
+              webVital={webVital}
+              browserTypes={browserTypes}
+              subregions={subregions}
+            />
+          )}
         </ChartContainer>
 
         <TableContainer>

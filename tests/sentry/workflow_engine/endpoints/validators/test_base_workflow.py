@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ValidationError
 
 from sentry.testutils.cases import TestCase
@@ -13,6 +14,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from tests.sentry.workflow_engine.test_base import MockActionHandler
 
@@ -106,7 +108,7 @@ class TestWorkflowValidatorCreate(TestCase):
     def setUp(self):
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": self.make_request(user=self.user),
         }
 
         self.valid_data = {
@@ -133,6 +135,7 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.enabled == self.valid_data["enabled"]
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
+        assert workflow.created_by_id == self.user.id
 
     def test_create__validate_triggers_empty(self):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
@@ -236,6 +239,86 @@ class TestWorkflowValidatorCreate(TestCase):
         # check the action / condition group
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
+
+    def test_create__exceeds_workflow_limit(self):
+        REGULAR_LIMIT = 2
+        with self.settings(MAX_WORKFLOWS_PER_ORG=REGULAR_LIMIT):
+            # Create first workflow - should succeed
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+            validator.is_valid(raise_exception=True)
+            workflow = validator.create(validator.validated_data)
+            assert workflow.id is not None
+
+            # Create second workflow - should succeed
+            self.valid_data["name"] = "test2"
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+            validator.is_valid(raise_exception=True)
+            workflow = validator.create(validator.validated_data)
+            assert workflow.id is not None
+
+            # Try to create third workflow - should fail
+            self.valid_data["name"] = "test3"
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+            validator.is_valid(raise_exception=True)
+            with pytest.raises(ValidationError) as excinfo:
+                validator.create(validator.validated_data)
+            assert excinfo.value.detail == [
+                ErrorDetail(
+                    string=f"You may not exceed {REGULAR_LIMIT} workflows per organization.",
+                    code="invalid",
+                )
+            ]
+
+    def test_create__exceeds_more_workflow_limit(self):
+        REGULAR_LIMIT = 2
+        MORE_LIMIT = 4
+        with self.settings(
+            MAX_WORKFLOWS_PER_ORG=REGULAR_LIMIT, MAX_MORE_WORKFLOWS_PER_ORG=MORE_LIMIT
+        ):
+            # First verify regular limit is enforced without the feature flag
+            # Create first REGULAR_LIMIT workflows - should succeed
+            for i in range(REGULAR_LIMIT):
+                self.valid_data["name"] = f"test{i}"
+                validator = WorkflowValidator(data=self.valid_data, context=self.context)
+                validator.is_valid(raise_exception=True)
+                workflow = validator.create(validator.validated_data)
+                assert workflow.id is not None
+
+            # Try to create workflow beyond regular limit - should fail
+            self.valid_data["name"] = f"test{REGULAR_LIMIT}"
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+            validator.is_valid(raise_exception=True)
+            with pytest.raises(ValidationError) as excinfo:
+                validator.create(validator.validated_data)
+            assert excinfo.value.detail == [
+                ErrorDetail(
+                    string=f"You may not exceed {REGULAR_LIMIT} workflows per organization.",
+                    code="invalid",
+                )
+            ]
+
+            # Now enable the feature flag and verify higher limit
+            with self.feature("organizations:more-workflows"):
+                # Create workflows up to MORE_LIMIT - should succeed
+                for i in range(REGULAR_LIMIT, MORE_LIMIT):
+                    self.valid_data["name"] = f"test{i}"
+                    validator = WorkflowValidator(data=self.valid_data, context=self.context)
+                    validator.is_valid(raise_exception=True)
+                    workflow = validator.create(validator.validated_data)
+                    assert workflow.id is not None
+
+                # Try to create workflow beyond more limit - should fail
+                self.valid_data["name"] = f"test{MORE_LIMIT}"
+                validator = WorkflowValidator(data=self.valid_data, context=self.context)
+                validator.is_valid(raise_exception=True)
+                with pytest.raises(ValidationError) as excinfo:
+                    validator.create(validator.validated_data)
+                assert excinfo.value.detail == [
+                    ErrorDetail(
+                        string=f"You may not exceed {MORE_LIMIT} workflows per organization.",
+                        code="invalid",
+                    )
+                ]
 
 
 class TestWorkflowValidatorUpdate(TestCase):
@@ -361,9 +444,9 @@ class TestWorkflowValidatorUpdate(TestCase):
                     {
                         "type": Action.Type.SLACK,
                         "config": {
-                            "target_identifier": "foo",
-                            "target_display": "bar",
-                            "target_type": 0,
+                            "targetIdentifier": "bar",
+                            "targetDisplay": "baz",
+                            "targetType": 0,
                         },
                         "data": {},
                         "integrationId": 1,
@@ -382,6 +465,26 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.workflow.refresh_from_db()
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 2
+        new_action_filter = (
+            WorkflowDataConditionGroup.objects.filter(workflow=self.workflow)
+            .order_by("-date_added")
+            .first()
+        )
+
+        assert new_action_filter is not None
+        assert new_action_filter.condition_group is not None
+
+        new_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=[new_action_filter.condition_group.id]
+        )
+
+        assert new_actions.count() == 1
+        assert new_actions[0].type == Action.Type.SLACK
+        assert new_actions[0].config == {
+            "target_identifier": "bar",
+            "target_display": "baz",
+            "target_type": 0,
+        }
 
     def test_update__remove_one_filter(self):
         # Configuration for the test
@@ -465,9 +568,9 @@ class TestWorkflowValidatorUpdate(TestCase):
             {
                 "type": Action.Type.SLACK,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_display": "bar",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetDisplay": "bar",
+                    "targetType": 0,
                 },
                 "data": {},
                 "integrationId": 1,
@@ -495,8 +598,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetType": 0,
                 },
                 "data": {},
             }

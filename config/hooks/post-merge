@@ -13,7 +13,7 @@ git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upst
 
 grep_pattern="requirements-dev-frozen.txt|migrations"
 if [[ "$SENTRY_DEVENV_SKIP_FRONTEND" != "1" ]]; then
-  grep_pattern+="|yarn.lock"
+  grep_pattern+="|pnpm-lock.yaml"
 fi
 
 if grep -E --quiet "$grep_pattern" "$files_changed_upstream"; then

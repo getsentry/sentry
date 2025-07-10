@@ -11,11 +11,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_events_stats import (
-    ALLOWED_EVENTS_STATS_REFERRERS,
-    METRICS_ENHANCED_REFERRERS,
-    SENTRY_BACKEND_REFERRERS,
-)
+from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -34,7 +30,7 @@ from sentry.snuba import (
     uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.utils import DATASET_LABELS
 from sentry.utils.snuba import SnubaTSResult
 
@@ -214,11 +210,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
         referrer = request.GET.get("referrer")
-        referrer = (
-            referrer
-            if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
-            else Referrer.API_ORGANIZATION_EVENT_STATS.value
-        )
+        # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+        if request.auth:
+            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+        elif referrer is None or not referrer:
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        elif not is_valid_referrer(referrer):
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
         query_source = self.get_request_querysource(request, referrer)
 
         batch_features = self.get_features(organization, request)
@@ -236,8 +234,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_rpc:
-                return spans_rpc.run_top_events_timeseries_query(
+            if dataset in {spans_rpc, ourlogs}:
+                return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
@@ -248,8 +246,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                        in request.GET,
                     ),
                     sampling_mode=snuba_params.sampling_mode,
+                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -279,6 +280,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 config=SearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET,
                 ),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,

@@ -1,26 +1,29 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {uuid4} from '@sentry/core';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {
   type Action,
   ActionGroup,
   type ActionHandler,
+  ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   ActionNodeContext,
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 interface ActionNodeListProps {
   actions: Action[];
-  group: string;
-  onAddRow: (actionId: string, actionHandler: ActionHandler) => void;
+  conditionGroupId: string;
+  onAddRow: (actionHandler: ActionHandler) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
   updateAction: (id: string, params: Record<string, any>) => void;
@@ -31,8 +34,32 @@ interface Option {
   value: ActionHandler;
 }
 
+function getActionHandler(
+  action: Action,
+  availableActions: ActionHandler[]
+): ActionHandler | undefined {
+  if (action.type === ActionType.SENTRY_APP) {
+    return availableActions.find(handler => {
+      if (handler.type !== ActionType.SENTRY_APP) {
+        return false;
+      }
+      const {sentry_app_identifier, target_identifier} = action.config;
+      const sentryApp = handler.sentryApp;
+
+      const isMatchingAppId =
+        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID &&
+        target_identifier === sentryApp?.id;
+      const isMatchingInstallationUuid =
+        sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
+        target_identifier === sentryApp?.installationUuid;
+      return isMatchingAppId || isMatchingInstallationUuid;
+    });
+  }
+  return availableActions.find(handler => handler.type === action.type);
+}
+
 export default function ActionNodeList({
-  group,
+  conditionGroupId,
   placeholder,
   actions,
   onAddRow,
@@ -40,9 +67,7 @@ export default function ActionNodeList({
   updateAction,
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
-  const [actionHandlerMap, setActionHandlerMap] = useState<Record<string, ActionHandler>>(
-    {}
-  );
+  const {errors, removeError} = useAutomationBuilderErrorContext();
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -88,22 +113,24 @@ export default function ActionNodeList({
   return (
     <Fragment>
       {actions.map(action => {
-        const handler = actionHandlerMap[action.id];
+        const handler = getActionHandler(action, availableActions);
         if (!handler) {
           return null;
         }
+        const error = errors?.[action.id];
         return (
           <AutomationBuilderRow
-            key={`${group}.action.${action.id}`}
+            key={`actionFilters.${conditionGroupId}.action.${action.id}`}
             onDelete={() => {
               onDeleteRow(action.id);
-              setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
             }}
+            hasError={!!error}
+            errorMessage={error}
           >
             <ActionNodeContext.Provider
               value={{
                 action,
-                actionId: `${group}.action.${action.id}`,
+                actionId: `actionFilters.${conditionGroupId}.action.${action.id}`,
                 onUpdate: newAction => updateAction(action.id, newAction),
                 handler,
               }}
@@ -114,18 +141,20 @@ export default function ActionNodeList({
         );
       })}
       <StyledSelectControl
+        aria-label={t('Add action')}
         options={options}
         onChange={(obj: any) => {
-          const actionId = uuid4();
-          onAddRow(actionId, obj.value);
-          setActionHandlerMap(currActionHandlerMap => ({
-            ...currActionHandlerMap,
-            [actionId]: obj.value,
-          }));
+          onAddRow(obj.value);
+          removeError(conditionGroupId);
         }}
         placeholder={placeholder}
         value={null}
       />
+      {errors[conditionGroupId] && (
+        <Alert type="error" showIcon>
+          {errors[conditionGroupId]}
+        </Alert>
+      )}
     </Fragment>
   );
 }
@@ -134,8 +163,8 @@ function Node() {
   const {action} = useActionNodeContext();
   const node = actionNodesMap.get(action.type);
 
-  const component = node?.action;
-  return component ? component : node?.label;
+  const Component = node?.action;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

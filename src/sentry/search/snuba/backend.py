@@ -256,7 +256,8 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
     Converts float thresholds for the Seer fixability score into a query of ranges:
     - "low" -> [0.0, low threshold]
     - "medium" -> (low threshold, high threshold]
-    - "high" -> (high threshold, 1.0]
+    - "high" -> (high threshold, super high threshold]
+    - "super_high" -> (super high threshold, 1.0]
     """
     query = Q()
 
@@ -274,6 +275,11 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
         elif val == FixabilityScoreThresholds.HIGH.value:
             query |= Q(
                 seer_fixability_score__gt=FixabilityScoreThresholds.HIGH.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.SUPER_HIGH.value,
+            )
+        elif val == FixabilityScoreThresholds.SUPER_HIGH.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.SUPER_HIGH.value,
                 seer_fixability_score__lte=1.0,
             )
 

@@ -1,4 +1,5 @@
 import {useParams} from 'sentry/utils/useParams';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {
   useResourceSummarySeries,
@@ -14,18 +15,20 @@ export default function ResourceSummaryDurationChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {groupId} = useParams();
+  const referrer = Referrer.RESOURCE_SUMMARY_DURATION_CHART;
 
   const {search, enabled} = useResourceSummarySeriesSearch(groupId);
   const {data, isPending, error} = useResourceSummarySeries({
     search,
     enabled,
     pageFilters: props.pageFilters,
+    referrer,
   });
 
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search, referrer}}
       id="resourceSummaryDurationChartWidget"
       title={getDurationChartTitle('resource')}
       series={[data?.[`avg(${SPAN_SELF_TIME})`]]}

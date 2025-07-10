@@ -6,3 +6,4 @@ tests/relay_integration/**/*
 fixtures/profiles/embedded.js
 fixtures/artifact_bundle_debug_ids/**/*
 fixtures/artifact_bundle_duplicated_debug_ids/**/*
+pnpm-lock.yaml

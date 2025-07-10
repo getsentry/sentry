@@ -95,6 +95,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         type=str,
         description="The name of environments to filter by.",
     )
+    EVENT_ID = OpenApiParameter(
+        name="event_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The event ID to look up.",
+    )
 
     @staticmethod
     def member_id(description: str) -> OpenApiParameter:
@@ -443,6 +450,14 @@ Available fields are:
 Prefix with `-` to sort in descending order.
         """,
     )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+        many=True,
+    )
 
 
 class WorkflowParams:
@@ -479,6 +494,14 @@ Available fields are:
 
 Prefix with `-` to sort in descending order.
     """,
+    )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+        many=True,
     )
 
 
@@ -1006,5 +1029,96 @@ Available fields are:
 - `mostPopular`
 - `recentlyViewed`
 - `myqueries`
+        """,
+    )
+
+
+class PreventParams:
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="path",
+        required=True,
+        type=str,
+        description="The owner of the repository.",
+    )
+    REPOSITORY = OpenApiParameter(
+        name="repository",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the repository.",
+    )
+    INTERVAL = OpenApiParameter(
+        name="interval",
+        location="query",
+        required=False,
+        type=str,
+        description="""The time interval to search for results by.
+
+Available fields are:
+- `INTERVAL_30_DAY`
+- `INTERVAL_7_DAY`
+- `INTERVAL_1_DAY`
+""",
+    )
+    BRANCH = OpenApiParameter(
+        name="branch",
+        location="query",
+        required=False,
+        type=str,
+        description="""The branch to search for results by. If not specified, the default is `main`.
+        """,
+    )
+    TEST_RESULTS_FILTER_BY = OpenApiParameter(
+        name="filterBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""An optional field to filter by, which will constrain the results to only include tests that match the filter.
+
+Available fields are:
+- `FLAKY_TESTS`
+- `FAILED_TESTS`
+- `SLOWEST_TESTS`
+- `SKIPPED_TESTS`
+        """,
+    )
+    TEST_RESULTS_SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        for descending order.
+
+Available fields are:
+- `AVG_DURATION`
+- `FLAKE_RATE`
+- `FAILURE_RATE`
+- `COMMITS_WHERE_FAIL`
+- `UPDATED_AT`
+        """,
+    )
+    FIRST = OpenApiParameter(
+        name="first",
+        location="query",
+        required=False,
+        type=int,
+        default=20,
+        description="""The number of results to return from the start of the list.""",
+    )
+    LAST = OpenApiParameter(
+        name="last",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of results to return from the end of the list.""",
+    )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        required=False,
+        type=str,
+        description="""The cursor to start the query from. Will return results after the cursor if used with `first` or before the cursor if used with `last`.
         """,
     )

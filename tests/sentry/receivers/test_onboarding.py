@@ -43,7 +43,7 @@ pytestmark = [requires_snuba]
 
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_integration(self, provider, external_id=9999):
+    def _create_integration(self, provider: str, external_id: int = 9999):
         return self.create_provider_integration(
             provider=provider,
             name="test",
@@ -320,7 +320,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_integration_added(self):
         integration_added.send(
-            integration_id=self.create_integration("slack", 1234).id,
+            integration_id=self._create_integration("slack", 1234).id,
             organization_id=self.organization.id,
             user_id=self.user.id,
             sender=None,
@@ -334,7 +334,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Adding a second integration
         integration_added.send(
-            integration_id=self.create_integration("github", 4567).id,
+            integration_id=self._create_integration("github", 4567).id,
             organization_id=self.organization.id,
             user_id=self.user.id,
             sender=None,
@@ -731,7 +731,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_real_time_notifications_added(self, record_analytics):
-        integration_id = self.create_integration("slack", 123).id
+        integration_id = self._create_integration("slack", 123).id
         integration_added.send(
             integration_id=integration_id,
             organization_id=self.organization.id,
@@ -756,7 +756,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_source_code_management_added(self, record_analytics):
-        integration_id = self.create_integration("github", 123).id
+        integration_id = self._create_integration("github", 123).id
         integration_added.send(
             integration_id=integration_id,
             organization_id=self.organization.id,
@@ -970,7 +970,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Link Sentry to source code
-        github_integration = self.create_integration("github", 1234)
+        github_integration = self._create_integration("github", 1234)
         integration_added.send(
             integration_id=github_integration.id,
             organization_id=self.organization.id,
@@ -1049,7 +1049,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Get real time notifications
-        slack_integration = self.create_integration("slack", 4321)
+        slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
             organization_id=self.organization.id,
@@ -1164,7 +1164,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Link Sentry to source code
-        github_integration = self.create_integration("github", 1234)
+        github_integration = self._create_integration("github", 1234)
         integration_added.send(
             integration_id=github_integration.id,
             organization_id=self.organization.id,
@@ -1176,7 +1176,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_replay_received.send(project=project, sender=None)
 
         # Get real time notifications
-        slack_integration = self.create_integration("slack", 4321)
+        slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
             organization_id=self.organization.id,

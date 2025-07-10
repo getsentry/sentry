@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
-import Link from 'sentry/components/links/link';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -38,28 +38,28 @@ function getEvidenceItem({
   switch (evidenceKey) {
     case KnownEvidence.ENVIRONMENT:
       return (
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Environment')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
         </Flex>
       );
     case KnownEvidence.STATUS_CODE:
       return (
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Status Code')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
         </Flex>
       );
     case KnownEvidence.FAILURE_REASON:
       return (
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Reason')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
         </Flex>
       );
     case KnownEvidence.LAST_SUCCESSFUL_CHECK_IN:
       return (
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
           {moment(evidence.value).isValid() ? (
             <ItemTimeSince date={evidence.value} />
@@ -90,7 +90,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   if (issueTypeConfig.header.occurrenceSummary.downtime) {
     items.push(
-      <Flex column>
+      <Flex direction="column">
         <ItemTitle>{t('Downtime')}</ItemTitle>
         <ItemValue>
           <DowntimeDuration group={group} />
@@ -108,7 +108,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
     if (detectorType === 'metric_alert' && detectorPath) {
       items.push(
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Alert ID')}</ItemTitle>
           <ItemLink to={detectorPath}>{detectorId}</ItemLink>
         </Flex>
@@ -117,7 +117,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
     if (['cron_monitor', 'uptime_monitor'].includes(detectorType ?? '') && detectorPath) {
       items.push(
-        <Flex column>
+        <Flex direction="column">
           <ItemTitle>{t('Monitor ID')}</ItemTitle>
           <ItemLink to={detectorPath}>{detectorId}</ItemLink>
         </Flex>
@@ -154,24 +154,24 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 }
 
 const ItemTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ItemValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
   max-width: 400px;
 `;
 
 const ItemTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ItemLink = styled(Link)`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.subText};

@@ -48,6 +48,7 @@ repos:
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
+        require_serial: true
       - id: mypy
         name: mypy
         entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
@@ -121,10 +122,10 @@ repos:
         entry: ./node_modules/.bin/stylelint --quiet
 
       - id: prettier
-        name: prettier (yaml, ts, tsx, js, jsx, css, mdx, markdown)
+        name: prettier
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
-        entry: ./node_modules/.bin/prettier --log-level=error --write
+        entry: ./node_modules/.bin/prettier --log-level=error --write --experimental-cli --no-cache
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^

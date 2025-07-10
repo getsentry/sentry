@@ -1,12 +1,12 @@
+import type {Compiler, RspackPluginInstance} from '@rspack/core';
 import fs from 'node:fs';
 import path from 'node:path';
-import type {Compiler} from 'webpack';
 
 type Options = {
   basePath: string;
 };
 
-class LastBuiltPlugin {
+class LastBuiltPlugin implements RspackPluginInstance {
   basePath: string;
   isWatchMode: boolean;
 

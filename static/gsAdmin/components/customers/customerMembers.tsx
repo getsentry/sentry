@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconMail} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

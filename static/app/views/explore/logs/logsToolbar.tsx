@@ -1,25 +1,65 @@
-import {useState} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {AggregationKey} from 'sentry/utils/fields';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  useLogsAggregateFunction,
+  useLogsAggregateParam,
+  useLogsGroupBy,
+  useSetLogsPageParams,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
-    textValue: 'count',
+  },
+  {
+    label: t('count unique'),
+    value: AggregationKey.COUNT_UNIQUE,
   },
   {
     label: t('sum'),
     value: AggregationKey.SUM,
-    textValue: 'sum',
   },
-];
+  {
+    label: t('avg'),
+    value: AggregationKey.AVG,
+  },
+  {
+    label: t('p50'),
+    value: AggregationKey.P50,
+  },
+  {
+    label: t('p75'),
+    value: AggregationKey.P75,
+  },
+  {
+    label: t('p90'),
+    value: AggregationKey.P90,
+  },
+  {
+    label: t('p95'),
+    value: AggregationKey.P95,
+  },
+  {
+    label: t('p99'),
+    value: AggregationKey.P99,
+  },
+  {
+    label: t('max'),
+    value: AggregationKey.MAX,
+  },
+  {
+    label: t('min'),
+    value: AggregationKey.MIN,
+  },
+] satisfies Array<{label: string; value: OurLogsAggregate}>;
 
 interface LogsToolbarProps {
   numberTags?: TagCollection;
@@ -27,10 +67,28 @@ interface LogsToolbarProps {
 }
 
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
-  const [selected, setSelected] = useState(TOOLBAR_AGGREGATES[0]!.value);
-  const [groupBy, setGroupBy] = useState('');
-  const [sortBy, setSortBy] = useState(OurLogKnownFieldKey.TIMESTAMP as string);
-  const [sortAscending, setSortAscending] = useState(false);
+  const aggregateFunction = useLogsAggregateFunction();
+  let aggregateParam = useLogsAggregateParam();
+  const groupBy = useLogsGroupBy();
+  const setLogsPageParams = useSetLogsPageParams();
+  const functionArgRef = useRef<HTMLDivElement>(null);
+
+  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+    label: prettifyTagKey(key),
+    value: key,
+  }));
+
+  if (aggregateFunction === AggregationKey.COUNT) {
+    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
+    aggregateParam = 'logs';
+  }
+  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
+    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
+      label: prettifyTagKey(key),
+      value: key,
+    }));
+  }
+
   return (
     <Container>
       <ToolbarItem>
@@ -39,11 +97,32 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
-            onChange={val => setSelected(val.value as AggregationKey)}
-            value={selected}
+            options={LOG_AGGREGATES}
+            onChange={val => {
+              if (val.value === 'count') {
+                setLogsPageParams({
+                  aggregateFn: val.value as string | undefined,
+                  aggregateParam: null,
+                });
+              } else {
+                setLogsPageParams({aggregateFn: val.value as string | undefined});
+                functionArgRef.current?.querySelector('button')?.click();
+              }
+            }}
+            value={aggregateFunction}
           />
-          <Select options={[{label: t('logs'), value: 'logs'}]} value="logs" disabled />
+          <SelectRefWrapper ref={functionArgRef}>
+            <Select
+              options={aggregatableKeys}
+              onChange={val => {
+                if (aggregateFunction !== 'count') {
+                  setLogsPageParams({aggregateParam: val.value as string | undefined});
+                }
+              }}
+              searchable
+              value={aggregateParam}
+            />
+          </SelectRefWrapper>
         </ToolbarSelectRow>
       </ToolbarItem>
       <ToolbarItem>
@@ -60,51 +139,15 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
             ...Object.keys(stringTags ?? {}).map(key => ({
               label: key,
               value: key,
-              textValue: key,
             })),
           ]}
-          onChange={val => setGroupBy(val.value as string)}
+          onChange={val =>
+            setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
+          }
           value={groupBy}
           searchable
           triggerProps={{style: {width: '100%'}}}
         />
-      </ToolbarItem>
-      <ToolbarItem>
-        <SectionHeader>
-          <Label>{t('Sort By')}</Label>
-        </SectionHeader>
-        <ToolbarSelectRow>
-          <Select
-            options={[
-              ...Object.keys(stringTags ?? {}),
-              ...Object.keys(numberTags ?? {}),
-            ].map(key => ({
-              label: key,
-              value: key,
-              textValue: key,
-            }))}
-            onChange={val => setSortBy(val.value as string)}
-            value={sortBy}
-            searchable
-            triggerProps={{style: {width: '100%'}}}
-          />
-          <Select
-            options={[
-              {
-                label: t('asc'),
-                value: 'asc',
-              },
-              {
-                label: t('desc'),
-                value: 'desc',
-              },
-            ]}
-            value={sortAscending ? 'asc' : 'desc'}
-            onChange={val => setSortAscending(val.value === 'asc')}
-            searchable
-            triggerProps={{style: {width: '100%'}}}
-          />
-        </ToolbarSelectRow>
       </ToolbarItem>
     </Container>
   );
@@ -119,7 +162,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.background};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
   }
 `;
@@ -145,13 +188,19 @@ const ToolbarItem = styled('div')`
 
 const ToolbarSelectRow = styled('div')`
   display: grid;
-  grid-template-columns: minmax(90px, auto) auto;
+  grid-template-columns: minmax(90px, auto) 1fr;
+  max-width: 100%;
   gap: ${space(2)};
+`;
+
+const SelectRefWrapper = styled('div')`
+  width: 100%;
+  min-width: 0;
 `;
 
 const Select = styled(CompactSelect)`
   width: 100%;
-  flex-grow: 1;
+  min-width: 0;
 
   > button {
     width: 100%;

@@ -1,6 +1,4 @@
 import logging
-import math
-import time
 from datetime import timedelta
 from uuid import uuid4
 
@@ -56,6 +54,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -131,6 +130,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
+        "seerScannerAutomation",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -223,8 +223,9 @@ E.g. `['release', 'environment']`""",
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
     autofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high", "always"], required=False
+        choices=[item.value for item in AutofixAutomationTuningSettings], required=False
     )
+    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -353,22 +354,15 @@ E.g. `['release', 'environment']`""",
 
         return value
 
+    # TODO: Once these have been in place for a while we can probably remove them
+    def validate_groupingConfig(self, value):
+        raise serializers.ValidationError("Grouping config cannot be manually set.")
+
+    def validate_secondaryGroupingConfig(self, value):
+        raise serializers.ValidationError("Secondary grouping config cannot be manually set.")
+
     def validate_secondaryGroupingExpiry(self, value):
-        if not isinstance(value, (int, float)) or math.isnan(value):
-            raise serializers.ValidationError(
-                f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
-            )
-        now = time.time()
-        if value < now:
-            raise serializers.ValidationError(
-                "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
-            )
-
-        max_expiry_date = now + (91 * 24 * 3600)
-        if value > max_expiry_date:
-            value = max_expiry_date
-
-        return value
+        raise serializers.ValidationError("Secondary grouping expiry cannot be manually set.")
 
     def validate_fingerprintingRules(self, value):
         if not value:
@@ -453,6 +447,17 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not features.has(
@@ -646,9 +651,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("scrubIPAddresses") is not None:
             if project.update_option("sentry:scrub_ip_address", result["scrubIPAddresses"]):
                 changed_proj_settings["sentry:scrub_ip_address"] = result["scrubIPAddresses"]
-        if result.get("groupingConfig") is not None:
-            if project.update_option("sentry:grouping_config", result["groupingConfig"]):
-                changed_proj_settings["sentry:grouping_config"] = result["groupingConfig"]
         if result.get("groupingEnhancements") is not None:
             if project.update_option(
                 "sentry:grouping_enhancements", result["groupingEnhancements"]
@@ -659,20 +661,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("fingerprintingRules") is not None:
             if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
-        if result.get("secondaryGroupingConfig") is not None:
-            if project.update_option(
-                "sentry:secondary_grouping_config", result["secondaryGroupingConfig"]
-            ):
-                changed_proj_settings["sentry:secondary_grouping_config"] = result[
-                    "secondaryGroupingConfig"
-                ]
-        if result.get("secondaryGroupingExpiry") is not None:
-            if project.update_option(
-                "sentry:secondary_grouping_expiry", result["secondaryGroupingExpiry"]
-            ):
-                changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
-                    "secondaryGroupingExpiry"
-                ]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -777,6 +765,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:autofix_automation_tuning"] = result[
                     "autofixAutomationTuning"
+                ]
+        if result.get("seerScannerAutomation") is not None:
+            if project.update_option(
+                "sentry:seer_scanner_automation", result["seerScannerAutomation"]
+            ):
+                changed_proj_settings["sentry:seer_scanner_automation"] = result[
+                    "seerScannerAutomation"
                 ]
 
         if has_elevated_scopes:

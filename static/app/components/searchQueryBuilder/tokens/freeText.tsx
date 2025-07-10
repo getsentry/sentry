@@ -7,7 +7,6 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
@@ -36,6 +35,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -129,12 +129,19 @@ function countPreviousItemsOfType({
   }, 0);
 }
 
-function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusOverride {
+function calculateNextFocusForFilter(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null
+): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
+  const part =
+    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
+      ? 'key'
+      : 'value';
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part: 'value',
+    part,
   };
 }
 
@@ -265,9 +272,10 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilder();
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    filterValue,
-  });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
+    useFilterKeyListBox({
+      filterValue,
+    });
   const sortedFilteredItems = useSortedFilterKeyItems({
     filterValue,
     inputValue,
@@ -384,13 +392,19 @@ function SearchQueryBuilderInputInternal({
         items={items}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
+          if (handleOptionSelected) {
+            handleOptionSelected(option);
+            if (option.type === 'ask-seer') {
+              return;
+            }
+          }
+
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
-            handleSearch(option.value);
             return;
           }
 
@@ -402,10 +416,6 @@ function SearchQueryBuilderInputInternal({
               shouldCommitQuery: true,
             });
             resetInputValue();
-
-            // Because the query does not change until a subsequent render,
-            // we need to do the replacement that is does in the reducer here
-            handleSearch(replaceTokensWithPadding(query, [token], option.value));
             return;
           }
 
@@ -414,6 +424,18 @@ function SearchQueryBuilderInputInternal({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (option.type === 'raw-search-filter-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.textValue,
               focusOverride: calculateNextFocusForInsertedToken(item),
               shouldCommitQuery: true,
             });
@@ -432,7 +454,7 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(state),
+            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -463,6 +485,13 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
+          // if we haven't changed anything, just search
+          if (value.trim() === trimmedTokenValue) {
+            handleSearch(query);
+            return;
+          }
+
+          // Otherwise, commit the query (which will trigger a search)
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
@@ -474,10 +503,6 @@ function SearchQueryBuilderInputInternal({
             shouldCommitQuery: true,
           });
           resetInputValue();
-
-          // Because the query does not change until a subsequent render,
-          // we need to do the replacement that is does in the reducer here
-          handleSearch(replaceTokensWithPadding(query, [token], value));
         }}
         onExit={() => {
           if (inputValue !== token.value.trim()) {
@@ -527,7 +552,10 @@ function SearchQueryBuilderInputInternal({
                     filterValue,
                     getFieldDefinition
                   ),
-                  focusOverride: calculateNextFocusForFilter(state),
+                  focusOverride: calculateNextFocusForFilter(
+                    state,
+                    getFieldDefinition(filterValue)
+                  ),
                   shouldCommitQuery: false,
                 });
                 resetInputValue();
@@ -564,7 +592,10 @@ function SearchQueryBuilderInputInternal({
                 filterKey,
                 getFieldDefinition
               ),
-              focusOverride: calculateNextFocusForFilter(state),
+              focusOverride: calculateNextFocusForFilter(
+                state,
+                getFieldDefinition(filterKey)
+              ),
               shouldCommitQuery: false,
             });
             resetInputValue();

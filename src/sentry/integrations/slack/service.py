@@ -141,7 +141,7 @@ class SlackService:
         }
 
         if activity.group is None:
-            self._logger.info(
+            self._logger.debug(
                 "no group associated on the activity, nothing to do",
                 extra=log_params,
             )
@@ -156,7 +156,8 @@ class SlackService:
         )
 
         if activity.user_id is None and not uptime_resolved_notification:
-            self._logger.info(
+            # This is a machine/system update, so we don't need to send a notification
+            self._logger.debug(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra=log_params,
             )

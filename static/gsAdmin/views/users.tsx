@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
+import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 

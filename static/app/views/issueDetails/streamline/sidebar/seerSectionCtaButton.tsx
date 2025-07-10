@@ -47,9 +47,13 @@ export function SeerSectionCtaButton({
   };
 
   const openButtonRef = useRef<HTMLButtonElement>(null);
+  const isDrawerOpenRef = useRef(false);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
-  const {autofixData} = useAiAutofix(group, event, {isSidebar: true, pollInterval: 1500});
+  const {autofixData} = useAiAutofix(group, event, {
+    isSidebar: !isDrawerOpenRef.current,
+    pollInterval: 1500,
+  });
 
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
@@ -57,7 +61,11 @@ export function SeerSectionCtaButton({
     event,
     buttonRef: openButtonRef,
   });
-  const isDrawerOpenRef = useRef(false);
+
+  // Keep isDrawerOpenRef in sync with the Seer drawer state (based on URL query)
+  useEffect(() => {
+    isDrawerOpenRef.current = !!location.query.seerDrawer;
+  }, [location.query.seerDrawer]);
 
   // Keep track of previous steps to detect state transitions and notify the user
   const prevStepsRef = useRef<AutofixStep[] | null>(null);
@@ -115,25 +123,11 @@ export function SeerSectionCtaButton({
 
   // Update drawer state when opening
   const handleOpenDrawer = () => {
-    isDrawerOpenRef.current = true;
     openSeerDrawer();
   };
 
-  // Listen for drawer close events
-  useEffect(() => {
-    const handleClickOutside = () => {
-      isDrawerOpenRef.current = false;
-    };
-
-    document.addEventListener('click', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-
   const showCtaButton =
-    aiConfig.needsGenAiAcknowledgement ||
+    aiConfig.orgNeedsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
   const isButtonLoading =

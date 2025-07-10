@@ -121,20 +121,20 @@ const Wrapper = styled('div')`
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: ${space(1.5)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-auto-columns: max-content;
   }

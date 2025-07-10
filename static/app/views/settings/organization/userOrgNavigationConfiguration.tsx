@@ -1,18 +1,12 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
-import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
 const userSettingsPathPrefix = '/settings/account';
 
-export function getUserOrgNavigationConfiguration({
-  organization: incomingOrganization,
-}: {
-  organization: Organization;
-}): NavigationSection[] {
+export function getUserOrgNavigationConfiguration(): NavigationSection[] {
   return [
     {
       id: 'settings-account',
@@ -181,7 +175,6 @@ export function getUserOrgNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
-          badge: () => 'beta',
         },
       ],
     },
@@ -191,9 +184,16 @@ export function getUserOrgNavigationConfiguration({
       items: [
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
-          title: t('Auth Tokens'),
-          description: t('Manage organization auth tokens'),
+          title: t('Organization Tokens'),
+          description: t('Manage organization tokens'),
           id: 'auth-tokens',
+        },
+        {
+          path: `${userSettingsPathPrefix}/api/auth-tokens/`,
+          title: t('Personal Tokens'),
+          description: t(
+            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+          ),
         },
         {
           path: `${organizationSettingsPathPrefix}/developer-settings/`,
@@ -201,27 +201,11 @@ export function getUserOrgNavigationConfiguration({
           description: t('Manage custom integrations'),
           id: 'developer-settings',
         },
-      ],
-    },
-    {
-      id: 'settings-api',
-      name: t('API'),
-      items: [
         {
           path: `${userSettingsPathPrefix}/api/applications/`,
           title: t('Applications'),
           description: t('Add and configure OAuth2 applications'),
         },
-        {
-          path: `${userSettingsPathPrefix}/api/auth-tokens/`,
-          title: t('User Auth Tokens'),
-          description: t(
-            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          ),
-        },
-        ...HookStore.get('settings:api-navigation-config').flatMap(cb =>
-          cb(incomingOrganization)
-        ),
       ],
     },
   ];

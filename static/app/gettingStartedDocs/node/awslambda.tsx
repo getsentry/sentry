@@ -1,11 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -16,6 +16,7 @@ import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambdaArnSelector'
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -110,7 +111,6 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ],
       },
       getUploadSourceMapsStep({
-        title: t('Upload Source Maps (Optional)'),
         description: tct(
           'If you want to upload source maps for your Lambda function, you can do so by running the following command and following the instructions. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
           {
@@ -224,6 +224,9 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/aws-serverless',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'aws-serverless',
   }),
   platformOptions,
 };

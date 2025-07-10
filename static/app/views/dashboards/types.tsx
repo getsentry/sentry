@@ -33,6 +33,7 @@ export enum WidgetType {
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
+  LOGS = 'logs',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -68,6 +69,10 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+/**
+ * A widget query is one or more aggregates and a single filter string (conditions.)
+ * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
+ */
 export type WidgetQuery = {
   aggregates: string[];
   columns: string[];
@@ -100,6 +105,8 @@ export type Widget = {
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
+  // Used for table widget column widths, currently is not saved
+  tableWidths?: number[];
   tempId?: string;
   thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
@@ -125,6 +132,7 @@ export type DashboardPermissions = {
  */
 export type DashboardListItem = {
   id: string;
+  projects: number[];
   title: string;
   widgetDisplay: DisplayType[];
   widgetPreview: WidgetPreview[];

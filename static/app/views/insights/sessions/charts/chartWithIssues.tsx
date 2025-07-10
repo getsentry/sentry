@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -33,6 +33,7 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   isPending: boolean;
   plottables: Plottable[];
   series: DiscoverSeries[];
+  hideReleaseLines?: boolean;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
 }
@@ -41,6 +42,7 @@ export default function ChartWithIssues(props: Props) {
   const {
     description,
     error,
+    hideReleaseLines,
     interactiveTitle,
     isPending,
     legendSelection,
@@ -55,7 +57,9 @@ export default function ChartWithIssues(props: Props) {
   });
   const pageFilters = usePageFilters();
 
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection, {
+    enabled: !hideReleaseLines,
+  });
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -138,7 +142,8 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
-                        releases={releases ?? []}
+                        showReleaseAs={hideReleaseLines ? 'none' : 'line'}
+                        releases={releases}
                         plottables={plottables}
                         legendSelection={legendSelection}
                       />

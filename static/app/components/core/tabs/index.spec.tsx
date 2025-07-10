@@ -252,4 +252,28 @@ describe('Tabs', () => {
       'true'
     );
   });
+
+  it('should not allow disabled tabs to be links', () => {
+    render(
+      <Tabs>
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item key={tab.key} to="/#some-link" disabled>
+              {tab.label}
+            </TabList.Item>
+          ))}
+        </TabList>
+        <TabPanels>
+          {TABS.map(tab => (
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+          ))}
+        </TabPanels>
+      </Tabs>
+    );
+
+    TABS.forEach(tab => {
+      const tabEl = screen.getByRole('tab', {name: tab.label});
+      expect(within(tabEl).queryByRole('link', {hidden: true})).not.toBeInTheDocument();
+    });
+  });
 });

@@ -24,7 +24,7 @@ from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +124,11 @@ class MessageProcessor:
             tags_validator=self.__get_tags_validator(),
             schema_validator=self.__get_schema_validator(),
         )
-        set_span_data("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
+        set_span_attribute("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
 
         extracted_strings = batch.extract_strings()
 
-        set_span_data("org_strings.len", len(extracted_strings))
+        set_span_attribute("org_strings.len", len(extracted_strings))
 
         with metrics.timer("metrics_consumer.bulk_record"), sentry_sdk.start_span(op="bulk_record"):
             record_result = self._indexer.bulk_record(extracted_strings)
@@ -138,6 +138,6 @@ class MessageProcessor:
 
         results = batch.reconstruct_messages(mapping, bulk_record_meta)
 
-        set_span_data("new_messages.len", len(results.data))
+        set_span_attribute("new_messages.len", len(results.data))
 
         return results

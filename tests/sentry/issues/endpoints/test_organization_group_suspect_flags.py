@@ -56,8 +56,35 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.json() == {
             "data": [
-                {"flag": "key", "score": 2.7622287114272543, "baseline_percent": 0.5},
-                {"flag": "other", "score": 0.0, "baseline_percent": 0.0},
+                {
+                    "flag": "key",
+                    "score": 0.01634056054997356,
+                    "baseline_percent": 0.5,
+                    "distribution": {
+                        "baseline": {
+                            "false": 1,
+                            "true": 1,
+                        },
+                        "outliers": {
+                            "true": 1,
+                        },
+                    },
+                    "is_filtered": True,
+                },
+                {
+                    "flag": "other",
+                    "score": 0.016181914331041776,
+                    "baseline_percent": 0,
+                    "distribution": {
+                        "baseline": {
+                            "false": 2,
+                        },
+                        "outliers": {
+                            "false": 1,
+                        },
+                    },
+                    "is_filtered": True,
+                },
             ]
         }
 

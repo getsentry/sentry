@@ -130,7 +130,12 @@ describe('eventDisplay', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:mock-id/`,
       method: 'GET',
-      body: EventFixture({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
+      body: EventFixture({
+        tags: [{key: 'mock-tag', value: 'mock-value'}],
+        contexts: {
+          trace: {trace_id: 'trace-id'},
+        },
+      }),
     });
 
     render(
@@ -146,7 +151,10 @@ describe('eventDisplay', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Full Event Details'})
-    ).toHaveAttribute('href', '/organizations/org-slug/insights/backend/project-slug:1/');
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
+    );
   });
 
   it('allows for pagination if there are more events loaded', async () => {

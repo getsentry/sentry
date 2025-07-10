@@ -3,8 +3,9 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
@@ -168,7 +169,7 @@ function UserOverview({
         )}
         <h6>Auth Tokens</h6>
         {tokens.length ? (
-          <ApiTokenList>
+          <PanelTable headers={['Token', 'Created On', 'Scopes', '']}>
             {tokens.map(token => (
               <ApiTokenRow
                 key={token.id}
@@ -179,7 +180,7 @@ function UserOverview({
                 }
               />
             ))}
-          </ApiTokenList>
+          </PanelTable>
         ) : (
           <p>
             <em>
@@ -198,7 +199,3 @@ const ButtonWrapper = styled('div')`
 `;
 
 export default UserOverview;
-
-const ApiTokenList = styled('div')`
-  flex-direction: column;
-`;

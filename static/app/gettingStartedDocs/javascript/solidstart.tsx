@@ -5,12 +5,13 @@ import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/bui
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -30,6 +31,7 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -379,8 +381,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Upload Source Maps'),
+    getUploadSourceMapsStep({
       description: tct(
         'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
         {
@@ -389,7 +390,8 @@ const onboarding: OnboardingConfig = {
           ),
         }
       ),
-    },
+      ...params,
+    }),
   ],
   verify: () => [
     {
@@ -531,8 +533,9 @@ const docs: Docs = {
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   crashReportOnboarding,
-  profilingOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;

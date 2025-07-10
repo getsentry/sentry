@@ -24,7 +24,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         return conditions
 
     def update_or_create_condition(self, condition_data: dict[str, Any]) -> DataCondition:
-        validator = BaseDataConditionValidator(data=condition_data)
+        validator = BaseDataConditionValidator()
         condition_id = condition_data.get("id")
 
         if condition_id:
@@ -35,7 +35,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
 
             condition = validator.update(condition, condition_data)
         else:
-            condition = validator.create(**condition_data)
+            condition = validator.create(condition_data)
 
         return condition
 
@@ -68,7 +68,6 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
             for condition in validated_data["conditions"]:
                 if not condition.get("condition_group_id"):
                     condition["condition_group_id"] = condition_group.id
-
                 condition_validator = BaseDataConditionValidator()
                 condition_validator.create(condition)
 

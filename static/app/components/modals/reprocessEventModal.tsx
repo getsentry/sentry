@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
   groupId: Group['id'];
@@ -30,7 +31,7 @@ export function ReprocessingEventModal({
 
   function handleSuccess() {
     closeModal();
-    window.location.reload();
+    testableWindowLocation.reload();
   }
 
   return (
@@ -116,11 +117,11 @@ export function ReprocessingEventModal({
 }
 
 const Introduction = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StyledList = styled(List)`
   gap: ${space(1)};
   margin-bottom: ${space(4)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

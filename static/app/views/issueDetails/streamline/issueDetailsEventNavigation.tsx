@@ -48,7 +48,7 @@ export function IssueDetailsEventNavigation({
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
 
   // Reset shouldPreload when the groupId changes
@@ -115,61 +115,59 @@ export function IssueDetailsEventNavigation({
 
   const grayText = css`
     color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
+    font-weight: ${theme.fontWeight.normal};
   `;
 
   return (
     <Fragment>
       <Navigation>
-        <Tooltip title={t('Previous Event')} skipWrapper>
-          <LinkButton
-            aria-label={t('Previous Event')}
-            borderless
-            size="xs"
-            icon={<IconChevron direction="left" />}
-            disabled={!defined(event?.previousEventID)}
-            analyticsEventKey="issue_details.previous_event_clicked"
-            analyticsEventName="Issue Details: Previous Event Clicked"
-            to={{
-              pathname: `${baseEventsPath}${event?.previousEventID}/`,
-              query: {...location.query, referrer: 'previous-event'},
-            }}
-            preventScrollReset
-            css={grayText}
-            onMouseEnter={handleHoverPagination(
-              'previous',
-              defined(event?.previousEventID)
-            )}
-            onClick={() => {
-              // Assume they will continue to paginate
-              setShouldPreload({next: true, previous: true});
-            }}
-          />
-        </Tooltip>
-        <Tooltip title={t('Next Event')} skipWrapper>
-          <LinkButton
-            aria-label={t('Next Event')}
-            borderless
-            size="xs"
-            icon={<IconChevron direction="right" />}
-            disabled={!defined(event?.nextEventID)}
-            analyticsEventKey="issue_details.next_event_clicked"
-            analyticsEventName="Issue Details: Next Event Clicked"
-            to={{
-              pathname: `${baseEventsPath}${event?.nextEventID}/`,
-              query: {...location.query, referrer: 'next-event'},
-            }}
-            preventScrollReset
-            css={grayText}
-            onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
-            onClick={() => {
-              // Assume they will continue to paginate
-              setShouldPreload({next: true, previous: true});
-            }}
-          />
-        </Tooltip>
+        <LinkButton
+          aria-label={t('Previous Event')}
+          title={t('Previous Event')}
+          borderless
+          size="xs"
+          icon={<IconChevron direction="left" />}
+          disabled={!defined(event?.previousEventID)}
+          analyticsEventKey="issue_details.previous_event_clicked"
+          analyticsEventName="Issue Details: Previous Event Clicked"
+          to={{
+            pathname: `${baseEventsPath}${event?.previousEventID}/`,
+            query: {...location.query, referrer: 'previous-event'},
+          }}
+          preventScrollReset
+          css={grayText}
+          onMouseEnter={handleHoverPagination(
+            'previous',
+            defined(event?.previousEventID)
+          )}
+          onClick={() => {
+            // Assume they will continue to paginate
+            setShouldPreload({next: true, previous: true});
+          }}
+        />
+        <LinkButton
+          aria-label={t('Next Event')}
+          title={t('Next Event')}
+          borderless
+          size="xs"
+          icon={<IconChevron direction="right" />}
+          disabled={!defined(event?.nextEventID)}
+          analyticsEventKey="issue_details.next_event_clicked"
+          analyticsEventName="Issue Details: Next Event Clicked"
+          to={{
+            pathname: `${baseEventsPath}${event?.nextEventID}/`,
+            query: {...location.query, referrer: 'next-event'},
+          }}
+          preventScrollReset
+          css={grayText}
+          onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
+          onClick={() => {
+            // Assume they will continue to paginate
+            setShouldPreload({next: true, previous: true});
+          }}
+        />
       </Navigation>
-      <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
+      <Tabs value={selectedOption} disableOverflow onChange={onTabChange} size="xs">
         <TabList hideBorder variant="floating">
           {EventNavOrder.map(label => {
             const eventPath =

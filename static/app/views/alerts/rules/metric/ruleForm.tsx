@@ -57,6 +57,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -64,11 +65,15 @@ import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -82,6 +87,13 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
+import type {
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
+} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -89,12 +101,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
-  type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   TimeWindow,
-  type Trigger,
-  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -177,7 +184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      ['span_metrics', 'eap_metrics'].includes(alertType)
+      isEapAlertType(alertType)
         ? query
         : query
           ? `(${query}) AND (${eventTypeFilter})`
@@ -199,7 +206,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -223,6 +230,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
+
+    const ruleEventTypes = eventTypes ?? rule.eventTypes ?? [];
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, ruleEventTypes);
+
+    const alertType = getAlertTypeFromAggregateDataset({
+      aggregate,
+      dataset,
+      eventTypes: ruleEventTypes,
+      organization,
+    });
 
     return {
       ...super.getDefaultState(),
@@ -254,7 +271,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      alertType,
+      traceItemType,
     };
   }
 
@@ -546,7 +564,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
     const {timeWindow, chartError} = this.state;
     if (chartError) {
       this.setState({chartError: false, chartErrorMessage: undefined});
@@ -593,23 +611,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({dataset: _dataset, aggregate, alertType}) => {
-        const dataset = this.checkOnDemandMetricsDataset(
-          name === 'dataset' ? (value as Dataset) : _dataset,
-          this.state.query
-        );
+      this.setState(
+        ({dataset: _dataset, aggregate, alertType, eventTypes: _eventTypes}) => {
+          const dataset = this.checkOnDemandMetricsDataset(
+            name === 'dataset' ? (value as Dataset) : _dataset,
+            this.state.query
+          );
 
-        const newAlertType = getAlertTypeFromAggregateDataset({
-          aggregate,
-          dataset,
-        });
+          const eventTypes =
+            name === 'eventTypes' ? (value as EventTypes[]) : _eventTypes;
 
-        return {
-          [name]: value,
-          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
-          dataset,
-        };
-      });
+          if (deprecateTransactionAlerts(organization)) {
+            const newAlertType = getAlertTypeFromAggregateDataset({
+              aggregate: name === 'aggregate' ? (value as string) : aggregate,
+              dataset,
+              organization,
+              eventTypes,
+            });
+
+            return {
+              [name]: value,
+              alertType: newAlertType,
+              dataset,
+            };
+          }
+
+          const newAlertType = getAlertTypeFromAggregateDataset({
+            aggregate,
+            dataset,
+            eventTypes,
+            organization,
+          });
+
+          return {
+            [name]: value,
+            alertType: alertType === newAlertType ? alertType : 'custom_transactions',
+            dataset,
+          };
+        }
+      );
     }
   };
 
@@ -764,7 +804,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             timeWindow,
             aggregate,
             // Remove eventTypes as it is no longer required for crash free
-            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            eventTypes: isCrashFreeAlert(dataset) ? undefined : eventTypes,
             dataset,
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
@@ -1018,7 +1058,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
-    if (this.state.alertType === 'eap_metrics') {
+    if (isEapAlertType(this.state.alertType)) {
       this.handleEAPMetricsAlertDataset(data);
     }
   };
@@ -1030,21 +1070,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
-  TimeWindowsAreConsistent() {
-    const {currentData, historicalData, timeWindow} = this.state;
-    const currentDataPoint1 = currentData[1];
-    const currentDataPoint0 = currentData[0];
-    if (!currentDataPoint0 || !currentDataPoint1) {
-      return false;
-    }
-    const historicalDataPoint1 = historicalData[1];
-    const historicalDataPoint0 = historicalData[0];
-    if (!historicalDataPoint0 || !historicalDataPoint1) {
-      return false;
-    }
-
-    const currentTimeWindow = (currentDataPoint1[0] - currentDataPoint0[0]) / 60;
-    const historicalTimeWindow = (historicalDataPoint1[0] - historicalDataPoint0[0]) / 60;
+  timeWindowsAreConsistent() {
+    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
+    const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
   }
 
@@ -1054,7 +1083,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
       currentData.length === 0 ||
-      historicalData.length === 0
+      historicalData.length === 0 ||
+      !this.timeWindowsAreConsistent()
     ) {
       return;
     }
@@ -1096,10 +1126,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      // don't set the anomalies if historical and current data have incorrect time windows
-      if (!this.TimeWindowsAreConsistent()) {
-        this.setState({anomalies});
-      }
+      this.setState({anomalies});
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
@@ -1179,6 +1206,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       seriesSamplingInfo,
     } = this.state;
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
     if (chartError) {
       return (
         <ErrorChart
@@ -1194,7 +1223,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
 
     const func = parseFunction(aggregate);
-    if (func && alertType === 'eap_metrics') {
+    if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
     }
 
@@ -1224,10 +1253,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       theme: this.props.theme,
       confidence,
       seriesSamplingInfo,
+      traceItemType: traceItemType ?? undefined,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'eap_metrics') {
+    if (isEapAlertType(alertType)) {
       formattedQuery = '';
     }
 
@@ -1431,6 +1461,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     router={router}
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
+                    eventTypes={eventTypes}
                   />
                   <AlertListItem>{t('Set thresholds')}</AlertListItem>
                   {thresholdTypeForm(formDisabled)}
@@ -1468,13 +1499,32 @@ function formatStatsToHistoricalDataset(
     : [];
 }
 
+function getTimeWindowFromDataset(
+  data: ReturnType<typeof formatStatsToHistoricalDataset>,
+  defaultWindow: TimeWindow
+): number {
+  for (let i = 0; i < data.length; i++) {
+    const [timestampA] = data[i] ?? [];
+    const [timestampB] = data[i + 1] ?? [];
+    if (!timestampA || !timestampB) {
+      break;
+    }
+    // ignore duplicate timestamps
+    if (timestampA === timestampB) {
+      continue;
+    }
+    return Math.abs(timestampB - timestampA) / 60;
+  }
+  return defaultWindow;
+}
+
 const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-top: 0;
 `;
 
@@ -1488,9 +1538,9 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 

@@ -9,14 +9,15 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import ProgressRing from 'sentry/components/progressRing';
 import {
   IconCheckmark,
@@ -35,6 +36,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
@@ -154,7 +156,7 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   };
   projectId: string;
   sourceResolutionResults: FrameSourceMapDebuggerData;
-  orgSlug?: string;
+  organization?: Organization;
 }
 
 export const projectPlatformToDocsMap: Record<string, string> = {
@@ -211,6 +213,7 @@ export function getSourceMapsDocLinks(platform: string) {
       legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
       sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
       bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
+      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
     };
   }
 
@@ -240,7 +243,7 @@ export function getSourceMapsDocLinks(platform: string) {
     )
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/cli/`,
-    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c341c7679d84bc0fdb05335ebe150c2ca6469e1d/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L16)
+    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/db4ea29ed330b69bf95b526c7dd988a1dda5e542/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L22)
     hostingPublicly: [
       'node',
       'aws-lambda',
@@ -253,6 +256,12 @@ export function getSourceMapsDocLinks(platform: string) {
       'hono',
       'koa',
       'nestjs',
+      'nextjs',
+      'astro',
+      'nuxt',
+      'remix',
+      'solidstart',
+      'sveltekit',
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
@@ -262,10 +271,9 @@ export function getSourceMapsDocLinks(platform: string) {
 
 function SentryWizardCallout({
   analyticsParams,
-  orgSlug = 'example-org',
-  projectSlug = 'example-project',
-}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'> & {
-  orgSlug?: string;
+  organization,
+  projectSlug,
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
   projectSlug?: string;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -273,7 +281,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {t(
-          "Firstly, have you already run the Sentry Wizard with `sourcemaps` in your project's terminal? It's the easiest way to get source maps set up:"
+          "Have you already run the Sentry Wizard with `sourcemaps` in your project's terminal? It's the easiest way to get source maps set up:"
         )}
       </WizardInstructionParagraph>
       <InstructionCodeSnippet
@@ -292,7 +300,11 @@ function SentryWizardCallout({
           );
         }}
       >
-        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
+        {getSourceMapsWizardSnippet({
+          isSelfHosted,
+          organization,
+          projectSlug,
+        })}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -319,7 +331,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'Ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               docLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
@@ -352,7 +364,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'Ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               docLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
@@ -389,7 +401,7 @@ function MetaFrameworkConfigInfo({
       <Fragment>
         <p>
           {tct(
-            'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            'If you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
             {
               vitePluginLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
@@ -431,7 +443,7 @@ function MetaFrameworkConfigInfo({
     <Fragment>
       <p>
         {tct(
-          'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
+          'Make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
           {
             docLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
@@ -482,7 +494,7 @@ export function SourceMapsDebuggerModal({
   Footer,
   sourceResolutionResults,
   analyticsParams,
-  orgSlug,
+  organization,
   projectId,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
@@ -583,6 +595,13 @@ export function SourceMapsDebuggerModal({
           </div>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
+          <h6>{t('Latest Sentry Tools')}</h6>
+          <p>
+            {t(
+              'Keep your Sentry tools up to date to avoid issues with source map uploads and ensure full compatibility.'
+            )}
+          </p>
+          <h6>{t('Source Maps Setup')}</h6>
           {isReactNativeSDK({
             sdkName: sourceResolutionResults.sdkName,
           }) ? (
@@ -599,27 +618,22 @@ export function SourceMapsDebuggerModal({
           ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
             <MetaFrameworkConfigInfo
               framework={platform}
-              orgSlug={orgSlug}
+              orgSlug={organization?.slug}
               projectSlug={project?.slug}
             />
           ) : (
             <SentryWizardCallout
               analyticsParams={analyticsParams}
-              orgSlug={orgSlug}
+              organization={organization}
               projectSlug={project?.slug}
             />
           )}
+          <h6>{t('Troubleshooting Checklist')}</h6>
           {!hideAllTabs && (
             <p>
-              {isReactNativeSDK({
-                sdkName: sourceResolutionResults.sdkName,
-              })
-                ? t(
-                    "After confirming your setup is correct, let's go through a quick checklist to help you troubleshoot your source maps further. There are a few ways to configure them:"
-                  )
-                : t(
-                    "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-                  )}
+              {t(
+                "Now, let's go through a quick checklist to help you troubleshoot your source maps further. There are a few ways to configure them:"
+              )}
             </p>
           )}
           <Tabs<'debug-ids' | 'release' | 'fetching'>
@@ -700,7 +714,7 @@ export function SourceMapsDebuggerModal({
                           }
                         )
                       : tct(
-                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                          "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
                           {
                             link: sourceMapsDocLinks.debugIds ? (
                               <ExternalLink href={sourceMapsDocLinks.debugIds} />
@@ -738,12 +752,14 @@ export function SourceMapsDebuggerModal({
                   <UploadedSourceFileWithCorrectDebugIdChecklistItem
                     shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
                     sourceResolutionResults={sourceResolutionResults}
+                    projectSlug={project?.slug}
                   />
                   <UploadedSourceMapWithCorrectDebugIdChecklistItem
                     shouldValidate={
                       sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
                     }
                     sourceResolutionResults={sourceResolutionResults}
+                    projectSlug={project?.slug}
                   />
                 </CheckList>
                 {sourceResolutionResults.debugIdProgressPercent === 1 ? (
@@ -767,7 +783,7 @@ export function SourceMapsDebuggerModal({
                           }
                         )
                       : t(
-                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                          "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
                           {
                             link: (
                               <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
@@ -1255,12 +1271,58 @@ function HasDebugIdChecklistItem({
   );
 }
 
+function DebugIdMismatchMessage({
+  debugId,
+  projectSlug,
+}: {
+  debugId: string | null;
+  projectSlug?: string;
+}) {
+  // At this point debugId is always defined. The types need to be fixed
+  if (!debugId) {
+    return (
+      <Fragment>
+        {t(
+          "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID"
+        )}
+      </Fragment>
+    );
+  }
+
+  return tct(
+    "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+    {
+      debugId: projectSlug ? (
+        <LinkButton
+          to={{
+            pathname: `/settings/projects/${projectSlug}/source-maps/`,
+            query: {
+              query: debugId,
+            },
+          }}
+          icon={<IconOpen />}
+          aria-label={t('View source map Debug ID %(debugId)s in project settings', {
+            debugId,
+          })}
+          size="xs"
+        >
+          {debugId}
+        </LinkButton>
+      ) : (
+        <MonoBlock>{debugId}</MonoBlock>
+      ),
+    }
+  );
+}
+
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
@@ -1281,21 +1343,16 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('No Source File With Matching Debug ID')}</h6>
           <p>
-            {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
-              {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
-              }
-            )}
+            <DebugIdMismatchMessage
+              projectSlug={projectSlug}
+              debugId={sourceResolutionResults.stackFrameDebugId}
+            />
           </p>
           <p>
             {t(
               'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
             )}
           </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1322,9 +1379,11 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
@@ -1345,21 +1404,16 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('No Source Map With Matching Debug ID')}</h6>
           <p>
-            {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
-              {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
-              }
-            )}
+            <DebugIdMismatchMessage
+              projectSlug={projectSlug}
+              debugId={sourceResolutionResults.stackFrameDebugId}
+            />
           </p>
           <p>
             {t(
               'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
             )}
           </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
         <SourceMapStepNotRequiredNote />
       </CheckListItem>
@@ -1979,7 +2033,7 @@ const ListItemTitleWrapper = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p =>
     ({
       none: p.theme.subText,
@@ -2010,8 +2064,8 @@ const MonoBlock = styled('code')`
   background: ${p => p.theme.gray100};
   border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
 `;
 
@@ -2048,7 +2102,10 @@ const DebuggerSectionContainer = styled('div')`
   gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+    font-size: ${p => p.theme.fontSize.xl};
+  }
+  h6 {
+    font-size: 1rem;
   }
   && {
     > * {

@@ -60,12 +60,9 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <Tooltip
-            title={t('This user has asked to join your organization.')}
-            skipWrapper
-          >
-            <JoinRequestIndicator>{t('Join request')}</JoinRequestIndicator>
-          </Tooltip>
+          <Tag title={t('This user has asked to join your organization.')}>
+            {t('Join request')}
+          </Tag>
         )}
       </div>
 
@@ -158,10 +155,6 @@ function InviteRequestRow({
   );
 }
 
-const JoinRequestIndicator = styled(Tag)`
-  text-transform: uppercase;
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
@@ -170,7 +163,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const UserName = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   overflow: hidden;
   text-overflow: ellipsis;
 `;
