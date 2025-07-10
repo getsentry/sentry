@@ -116,6 +116,9 @@ export const Text = styled((props: TextProps) => {
       .filter(Boolean)
       .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
+
+  text-box-edge: cap alphabetic;
+  text-box-trim: both;
 `;
 
 interface HeadingProps extends Omit<TextProps, 'as'> {
@@ -161,6 +164,9 @@ export const Heading = styled((props: HeadingProps) => {
       .filter(Boolean)
       .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
+
+  text-box-edge: cap alphabetic;
+  text-box-trim: both;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
