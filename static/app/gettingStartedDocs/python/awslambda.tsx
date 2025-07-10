@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
+  type StepProps,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
   type Docs,
   type DocsParams,
   type OnboardingConfig,
-  type OnboardingStep,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
@@ -69,7 +71,7 @@ sentry_sdk.init(
   ],
 )`;
 
-const installStep = (): OnboardingStep => ({
+const installStep = (): StepProps => ({
   type: StepType.INSTALL,
   description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
     code: <code />,
@@ -77,7 +79,7 @@ const installStep = (): OnboardingStep => ({
   configurations: getPythonInstallConfig(),
 });
 
-const configureStep = (params: Params): OnboardingStep => ({
+const configureStep = (params: Params): StepProps => ({
   type: StepType.CONFIGURE,
   description: t('You can use the AWS Lambda integration for the Python SDK like this:'),
   configurations: [

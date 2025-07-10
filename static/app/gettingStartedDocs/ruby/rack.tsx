@@ -1,10 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';

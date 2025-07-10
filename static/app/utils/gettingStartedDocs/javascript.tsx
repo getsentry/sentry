@@ -1,11 +1,13 @@
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
-  type BasePlatformOptions,
   type Configuration,
-  type DocsParams,
-  type OnboardingConfig,
   StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  BasePlatformOptions,
+  DocsParams,
+  OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 

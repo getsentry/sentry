@@ -4,12 +4,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,

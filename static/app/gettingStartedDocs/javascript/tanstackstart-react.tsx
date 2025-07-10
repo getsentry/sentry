@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
   type DocsParams,

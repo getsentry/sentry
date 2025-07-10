@@ -1,14 +1,14 @@
 import type React from 'react';
 import {Fragment} from 'react';
 
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import type {
-  DocsParams,
-  OnboardingStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type StepProps,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export function getProfilingDocumentHeaderConfigurationStep(): OnboardingStep {
+export function getProfilingDocumentHeaderConfigurationStep(): StepProps {
   return {
     title: 'Add Document-Policy: js-profiling header',
     description: (
