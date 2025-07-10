@@ -151,6 +151,7 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     // TODO: only provide the values that we're interested in
     ...rest,
   };
