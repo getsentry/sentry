@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 
 import {Link} from 'sentry/components/core/link';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,

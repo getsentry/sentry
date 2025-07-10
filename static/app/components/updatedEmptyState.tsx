@@ -7,8 +7,10 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  OnboardingCodeSnippet,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';

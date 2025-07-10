@@ -1,10 +1,10 @@
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
