@@ -81,7 +81,11 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
     }
   }
 
-  return <Alert type="info">{getAlertInfoMessage()}</Alert>;
+  return (
+    <Alert type="info" showIcon={false}>
+      {getAlertInfoMessage()}
+    </Alert>
+  );
 }
 
 export default ReprocessAlert;

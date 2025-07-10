@@ -45,7 +45,7 @@ export function CronsOnDemandStepWarning({
 
   return (
     <Alert.Container>
-      <Alert type="warning" showIcon>
+      <Alert type="warning">
         {tct(
           "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using $[currentUsageDollars] of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your [budgetType] budget.",
           {

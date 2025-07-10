@@ -82,7 +82,7 @@ function PerformanceSetupBanner({
   if (projectsWithOnboardingChecklist.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           {tct(
             "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
             {

@@ -81,7 +81,7 @@ function AiContent() {
   if (!organization.features.includes('replay-ai-summaries')) {
     return (
       <SummaryContainer>
-        <Alert type="info">
+        <Alert type="info" showIcon={false}>
           {t('Replay AI summary is not available for this organization.')}
         </Alert>
       </SummaryContainer>
@@ -91,7 +91,9 @@ function AiContent() {
   if (replayRecord?.project_id && !project) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('Project not found. Unable to load AI summary.')}
+        </Alert>
       </SummaryContainer>
     );
   }
@@ -107,7 +109,9 @@ function AiContent() {
   if (isError) {
     return (
       <SummaryContainer>
-        <Alert type="error">{t('Failed to load AI summary')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('Failed to load AI summary')}
+        </Alert>
       </SummaryContainer>
     );
   }
@@ -115,7 +119,9 @@ function AiContent() {
   if (!summaryData) {
     return (
       <SummaryContainer>
-        <Alert type="info">{t('No summary available for this replay.')}</Alert>
+        <Alert type="info" showIcon={false}>
+          {t('No summary available for this replay.')}
+        </Alert>
       </SummaryContainer>
     );
   }

@@ -53,7 +53,9 @@ export function ChapterList({summaryData}: Props) {
   if (!chapterData.length) {
     return (
       <EmptyContainer>
-        <Alert type="info">{t('No chapters available for this replay.')}</Alert>
+        <Alert type="info" showIcon={false}>
+          {t('No chapters available for this replay.')}
+        </Alert>
       </EmptyContainer>
     );
   }

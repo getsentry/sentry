@@ -7,7 +7,7 @@ import {Alert} from 'sentry/components/core/alert';
 // @TODO(jonasbadalic): What is a panel alert, how does it differ from an alert and why do we need it?
 const PanelAlert = styled((props: Omit<AlertProps, 'system' | 'showIcon'>) => (
   <Alert.Container>
-    <Alert {...props} showIcon system />
+    <Alert {...props} system />
   </Alert.Container>
 ))`
   margin: 0 0 1px 0;

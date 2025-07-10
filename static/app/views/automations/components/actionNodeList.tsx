@@ -150,11 +150,7 @@ export default function ActionNodeList({
         placeholder={placeholder}
         value={null}
       />
-      {errors[conditionGroupId] && (
-        <Alert type="error" showIcon>
-          {errors[conditionGroupId]}
-        </Alert>
-      )}
+      {errors[conditionGroupId] && <Alert type="error">{errors[conditionGroupId]}</Alert>}
     </Fragment>
   );
 }

@@ -581,9 +581,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
-          {error}
-        </Alert>
+        <Alert type="error">{error}</Alert>
       </Alert.Container>
     );
   }
@@ -600,7 +598,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -611,7 +609,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {

@@ -259,7 +259,7 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
           <Alert.Container>
-            <Alert type="warning" showIcon>
+            <Alert type="warning">
               {t(
                 'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
               )}
@@ -321,7 +321,7 @@ function MonitorForm({
         </ListItemSubText>
         <InputGroup noPadding>
           {monitor !== undefined && (
-            <Alert type="info">
+            <Alert type="info" showIcon={false}>
               {t(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}

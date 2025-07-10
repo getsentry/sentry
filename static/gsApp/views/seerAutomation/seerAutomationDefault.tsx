@@ -58,7 +58,7 @@ export function SeerAutomationDefault() {
         disabled={!canWrite}
         renderHeader={() => (
           <React.Fragment>
-            <Alert type="info" system>
+            <Alert type="info" system showIcon={false}>
               {t(
                 'Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis.'
               )}

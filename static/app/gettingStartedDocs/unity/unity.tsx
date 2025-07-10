@@ -39,7 +39,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Alert type="info">
+        <Alert type="info" showIcon={false}>
           {tct(
             'The Unity SDK now supports line numbers for IL2CPP. The feature is currently in beta, but you can enable it at [code:Tools -> Sentry -> Advanced -> IL2CPP] line numbers. To learn more check out our [link:docs].',
             {

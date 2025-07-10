@@ -399,7 +399,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         'Agent Monitoring is currently in beta with support for [openai:OpenAI Agents SDK] and [vercelai:Vercel AI SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {

@@ -171,7 +171,6 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <Alert.Container>
               <Alert
                 type="muted"
-                showIcon
                 trailingItems={
                   <StatusToggleButton
                     uptimeRule={uptimeRule}

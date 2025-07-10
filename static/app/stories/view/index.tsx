@@ -48,7 +48,7 @@ export default function Stories() {
           ) : story.isError ? (
             <VerticalScroll>
               <Alert.Container>
-                <Alert type="error" showIcon>
+                <Alert type="error">
                   <strong>{story.error.name}:</strong> {story.error.message}
                 </Alert>
               </Alert.Container>

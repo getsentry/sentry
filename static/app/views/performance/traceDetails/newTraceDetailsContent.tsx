@@ -251,7 +251,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceShape.NO_ROOT:
         warning = (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
                 {t(
                   'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -264,7 +264,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceShape.BROKEN_SUBTRACES:
         warning = (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
                 {t(
                   'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -277,7 +277,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceShape.MULTIPLE_ROOTS:
         warning = (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
                 {t('Multiple root transactions have been found with this trace ID.')}
               </ExternalLink>
@@ -288,7 +288,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceShape.ONLY_ERRORS:
         warning = (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {tct(
                 "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
                 {

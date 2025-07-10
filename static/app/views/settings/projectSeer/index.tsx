@@ -214,7 +214,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           disabled={!canWriteProject}
           renderHeader={() => (
             <Fragment>
-              <Alert type="info" system>
+              <Alert type="info" system showIcon={false}>
                 {tct(
                   "Choose how Seer automates analysis of incoming issues. Automated scans and fixes are charged at the [link:standard billing rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.[break][break]You can also [bulklink:configure automation for other projects].",
                   {

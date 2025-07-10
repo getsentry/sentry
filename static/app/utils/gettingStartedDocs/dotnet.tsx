@@ -75,7 +75,7 @@ export const getDotnetProfilingOnboarding = ({
   getInstallSnippetPackageManager: (params: DocsParams) => string;
 }): OnboardingConfig => ({
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       <div>
         {t(
           'Sentry profiling for .NET is available in Alpha on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0 as well).'

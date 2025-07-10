@@ -64,7 +64,7 @@ export default function ReplayTable({
         onSortClick={onSortClick}
       >
         <SimpleTable.Empty>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {t('Sorry, the list of replays could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>

@@ -148,7 +148,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error" showIcon>
+              <Alert type="error">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -264,9 +264,7 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('This release could not be found.')}
-          </Alert>
+          <Alert type="error">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );

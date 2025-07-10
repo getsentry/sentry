@@ -186,7 +186,7 @@ export default function DataConditionNodeList({
       {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
         conflictingConditionIds.length > 0) ||
         conflictingConditionIds.length > 1) && (
-        <Alert type="error" showIcon>
+        <Alert type="error">
           {t(
             'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
           )}

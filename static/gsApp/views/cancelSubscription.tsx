@@ -151,9 +151,7 @@ function CancelSubscriptionForm() {
   if (!canCancelPlan) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
-          {t('Your plan is not eligible to be cancelled.')}
-        </Alert>
+        <Alert type="error">{t('Your plan is not eligible to be cancelled.')}</Alert>
       </Alert.Container>
     );
   }
@@ -162,7 +160,7 @@ function CancelSubscriptionForm() {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {tct(
               `Upon cancellation your account will be downgraded to a free plan which is limited to a single user.
             Your account currently has [count] [teamMembers: other team member(s)] using Sentry that would lose
@@ -191,7 +189,7 @@ function CancelSubscriptionForm() {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           {tct(
             `Your organization is currently subscribed to the [planName] plan on a [interval] contract.
              Cancelling your subscription will downgrade your account to a free plan at the end

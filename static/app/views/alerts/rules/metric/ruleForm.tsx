@@ -1460,7 +1460,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning" showIcon>
+                      <Alert type="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {
