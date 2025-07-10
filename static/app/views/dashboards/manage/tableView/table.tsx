@@ -105,7 +105,7 @@ export function DashboardTable({
               <SavedEntityTable.CellEnvironments environments={[]} />
             </SavedEntityTable.Cell>
             {/* TODO: DAIN-716 Add release filter as tokens */}
-            <SavedEntityTable.Cell data-column="filter">{'-'}</SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="filter">{'\u2014'}</SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="num-widgets">
               {dashboard.widgetPreview.length}
             </SavedEntityTable.Cell>
@@ -119,7 +119,7 @@ export function DashboardTable({
               ) : null}
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="last-viewed">
-              <SavedEntityTable.CellTimeSince date={null} />{' '}
+              <SavedEntityTable.CellTimeSince date={null} />
               {/* TODO: DAIN-713 Add last viewed after it is exposed in the API */}
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created">
