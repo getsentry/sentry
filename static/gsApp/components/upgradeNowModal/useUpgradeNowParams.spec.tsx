@@ -61,6 +61,7 @@ describe('useUpgradeNowParams', () => {
           reservedUptime: 1,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
+          reservedLogByte: undefined,
         },
       })
     );

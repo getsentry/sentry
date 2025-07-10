@@ -23,7 +23,7 @@ const mockReservations: Reservations = {
   reservedUptime: 1,
   reservedProfileDuration: 0,
   reservedProfileDurationUI: 0,
-  reservedLogByte: 0,
+  reservedLogByte: undefined,
 };
 
 const mockPreview = PreviewDataFixture({});
