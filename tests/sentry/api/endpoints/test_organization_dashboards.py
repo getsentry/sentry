@@ -46,6 +46,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             widget_displays.append(DashboardWidgetDisplayTypes.get_type_name(widget.display_type))
 
         assert data["widgetDisplay"] == widget_displays
+
+        if dashboard.projects.count() > 0:
+            assert data.get("projects") == list(dashboard.projects.values_list("id", flat=True))
+        if dashboard.filters:
+            if dashboard.filters.get("all_projects"):
+                assert data.get("projects") == [-1]
+
         assert "widgets" not in data
 
     def test_get(self):
@@ -717,6 +724,19 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
         assert values == ["General", "Initial dashboard"]
+
+    def test_get_with_filters(self):
+        Dashboard.objects.create(
+            title="Dashboard with all projects filters",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            filters={"all_projects": True},
+        )
+        response = self.client.get(self.url, data={"query": "Dashboard with all projects filters"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Dashboard with all projects filters"
+        assert response.data[0].get("projects") == [-1]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})

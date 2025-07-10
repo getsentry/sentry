@@ -7,7 +7,7 @@ from typing import Any, NotRequired, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -274,6 +274,9 @@ class DashboardListSerializer(Serializer):
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
             result[dashboard]["projects"] = list(dashboard.projects.values_list("id", flat=True))
+
+            if dashboard.filters and dashboard.filters.get("all_projects"):
+                result[dashboard]["projects"] = [ALL_ACCESS_PROJECT_ID]
 
         return result
 
