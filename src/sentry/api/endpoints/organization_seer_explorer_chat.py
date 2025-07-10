@@ -95,7 +95,9 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         },
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization, run_id: str | None = None
+    ) -> Response:
         """
         Get the current state of a Seer Explorer session.
         """
@@ -113,19 +115,20 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
 
-        run_id = request.GET.get("run_id")
         if not run_id:
             return Response({"session": None}, status=404)
 
         response_data = _call_seer_explorer_state(organization, run_id)
         return Response(response_data)
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization, run_id: str | None = None
+    ) -> Response:
         """
         Start a new chat session or continue an existing one.
 
         Parameters:
-        - session_id: Optional session ID to continue an existing session.
+        - run_id: Optional session ID to continue an existing session (from URL or request body).
         - query: The user's query.
         - insert_index: Optional index to insert the message at.
 
@@ -151,7 +154,6 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         except orjson.JSONDecodeError:
             return Response({"error": "Invalid JSON"}, status=400)
 
-        run_id = data.get("run_id")
         query = data.get("query")
         insert_index = data.get("insert_index")
         message_timestamp = data.get("message_timestamp")
