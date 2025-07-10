@@ -1,13 +1,10 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app.token_exchanged")
 class SentryAppTokenExchangedEvent(analytics.Event):
-    type = "sentry_app.token_exchanged"
-
-    attributes = (
-        analytics.Attribute("sentry_app_installation_id"),
-        analytics.Attribute("exchange_type"),
-    )
+    sentry_app_installation_id: str
+    exchange_type: str
 
 
 analytics.register(SentryAppTokenExchangedEvent)

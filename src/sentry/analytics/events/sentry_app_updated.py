@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app.updated")
 class SentryAppUpdatedEvent(analytics.Event):
-    type = "sentry_app.updated"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("sentry_app"),
-        analytics.Attribute("created_alert_rule_ui_component", type=bool, required=False),
-    )
+    user_id: str
+    organization_id: str
+    sentry_app: str
+    created_alert_rule_ui_component: bool | None = None
 
 
 analytics.register(SentryAppUpdatedEvent)
