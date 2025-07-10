@@ -824,7 +824,7 @@ class OpenPRCommentWorkflow(ABC):
             return raw_snql_query(request, referrer=self.referrer.value)["data"]
         except Exception:
             logger.exception(
-                "open_pr_comment.snuba_query_error",
+                "github.open_pr_comment.snuba_query_error",
                 extra={"query": request.to_dict()["query"]},
             )
             return []
