@@ -378,6 +378,7 @@ class GroupManager(BaseManager["Group"]):
         group_id = None
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)
+
         if event:
             group_id = event.group_id
 
