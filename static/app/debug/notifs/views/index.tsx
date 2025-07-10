@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {NotifHeader} from 'sentry/debug/notifs/components/notifHeader';
 import {NotifSidebar} from 'sentry/debug/notifs/components/notifSidebar';
+import {notificationCategories} from 'sentry/debug/notifs/data';
 import {DiscordPreview} from 'sentry/debug/notifs/previews/discordPreview';
 import {EmailPreview} from 'sentry/debug/notifs/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifs/previews/slackPreview';
@@ -9,10 +10,19 @@ import {TeamsPreview} from 'sentry/debug/notifs/previews/teamsPreview';
 import {HeaderContainer, Layout} from 'sentry/stories/view';
 import {SidebarContainer} from 'sentry/stories/view/storySidebar';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 export default function NotifIndex() {
+  const location = useLocation();
+  const notificationSources = notificationCategories.flatMap(
+    category => category.sources
+  );
+  const selectedSource = notificationSources.find(
+    source => location.query.source === source.value
+  );
+
   return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
@@ -24,6 +34,7 @@ export default function NotifIndex() {
             <NotifSidebar />
           </SidebarContainer>
           <BodyContainer>
+            <SourceTitle>{selectedSource?.label}</SourceTitle>
             <EmailPreview />
             <SlackPreview />
             <DiscordPreview />
@@ -42,4 +53,12 @@ const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+`;
+
+const SourceTitle = styled('h2')`
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.tokens.graphics.success};
+  text-decoration-thickness: 2px;
+  padding: ${space(2)};
+  margin: 0;
 `;

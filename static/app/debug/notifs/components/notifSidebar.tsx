@@ -14,16 +14,16 @@ export function NotifSidebar() {
           <nav>
             <StoryList>
               {category.sources.map(source => (
-                <li key={source}>
+                <li key={source.value}>
                   <NotificationLink
                     to={
-                      location.query.source === source
+                      location.query.source === source.value
                         ? {query: {...location.query, source: undefined}}
-                        : {query: {...location.query, source}}
+                        : {query: {...location.query, source: source.value}}
                     }
-                    active={location.query.source === source}
+                    active={location.query.source === source.value}
                   >
-                    {source}
+                    {source.label}
                   </NotificationLink>
                 </li>
               ))}
