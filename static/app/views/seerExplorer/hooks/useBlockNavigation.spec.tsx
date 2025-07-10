@@ -53,12 +53,12 @@ describe('useBlockNavigation', () => {
     // Reset all mock methods
     defaultProps.blockRefs.current.forEach(el => {
       if (el) {
-        (el.scrollIntoView as jest.Mock).mockClear();
+        el.scrollIntoView.mockClear();
       }
     });
     if (defaultProps.textareaRef.current) {
-      (defaultProps.textareaRef.current.focus as jest.Mock).mockClear();
-      (defaultProps.textareaRef.current.scrollIntoView as jest.Mock).mockClear();
+      defaultProps.textareaRef.current.focus.mockClear();
+      defaultProps.textareaRef.current.scrollIntoView.mockClear();
     }
     defaultProps.setFocusedBlockIndex.mockClear();
     defaultProps.onDeleteFromIndex?.mockClear();
