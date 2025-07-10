@@ -1,4 +1,8 @@
-export type NotificationSource = string;
+export interface NotificationSource {
+  category: Omit<NotificationCategory, 'sources'>;
+  label: string;
+  value: string;
+}
 
 export interface NotificationCategory {
   label: string;

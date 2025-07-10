@@ -6,43 +6,142 @@ export const notificationCategories: NotificationCategory[] = [
     label: 'Alerts',
     value: 'alerts',
     sources: [
-      'issue-alert-triggered-error',
-      'issue-alert-triggered-performance',
-      'metric-alert-critical',
-      'metric-alert-warning',
-      'metric-alert-resolved',
+      {
+        value: 'issue-alert-triggered-error',
+        label: 'Issue Alert Triggered (Error)',
+        category: {label: 'Alerts', value: 'alerts'},
+      },
+      {
+        value: 'issue-alert-triggered-performance',
+        label: 'Issue Alert Triggered (Performance)',
+        category: {label: 'Alerts', value: 'alerts'},
+      },
+      {
+        value: 'metric-alert-critical',
+        label: 'Metric Alert (Critical)',
+        category: {label: 'Alerts', value: 'alerts'},
+      },
+      {
+        value: 'metric-alert-warning',
+        label: 'Metric Alert (Warning)',
+        category: {label: 'Alerts', value: 'alerts'},
+      },
+      {
+        value: 'metric-alert-resolved',
+        label: 'Metric Alert (Resolved)',
+        category: {label: 'Alerts', value: 'alerts'},
+      },
     ],
   },
   {
     label: 'Workflow',
     value: 'workflow',
     sources: [
-      'issue-assigned',
-      'issue-archived',
-      'issue-resolved',
-      'issue-resolved-in-release',
-      'issue-resolved-in-commit',
+      {
+        value: 'issue-assigned',
+        label: 'Issue Assigned',
+        category: {label: 'Workflow', value: 'workflow'},
+      },
+      {
+        value: 'issue-archived',
+        label: 'Issue Archived',
+        category: {label: 'Workflow', value: 'workflow'},
+      },
+      {
+        value: 'issue-resolved',
+        label: 'Issue Resolved',
+        category: {label: 'Workflow', value: 'workflow'},
+      },
+      {
+        value: 'issue-resolved-in-release',
+        label: 'Issue Resolved in Release',
+        category: {label: 'Workflow', value: 'workflow'},
+      },
+      {
+        value: 'issue-resolved-in-commit',
+        label: 'Issue Resolved in Commit',
+        category: {label: 'Workflow', value: 'workflow'},
+      },
     ],
   },
-  {label: 'Deploys', value: 'deploy', sources: ['deploy-created']},
+  {
+    label: 'Deploys',
+    value: 'deploy',
+    sources: [
+      {
+        value: 'deploy-created',
+        label: 'Deploy Created',
+        category: {label: 'Deploys', value: 'deploy'},
+      },
+    ],
+  },
   {
     label: 'Nudges',
     value: 'approval',
-    sources: ['member-request', 'integration-request'],
+    sources: [
+      {
+        value: 'member-request',
+        label: 'Member Request',
+        category: {label: 'Nudges', value: 'approval'},
+      },
+      {
+        value: 'integration-request',
+        label: 'Integration Request',
+        category: {label: 'Nudges', value: 'approval'},
+      },
+    ],
   },
   {
     label: 'Spend',
     value: 'quota',
-    sources: ['quota-exceeded', 'quota-warning', 'billing-error'],
+    sources: [
+      {
+        value: 'quota-exceeded',
+        label: 'Quota Exceeded',
+        category: {label: 'Spend', value: 'quota'},
+      },
+      {
+        value: 'quota-warning',
+        label: 'Quota Warning',
+        category: {label: 'Spend', value: 'quota'},
+      },
+      {
+        value: 'billing-error',
+        label: 'Billing Error',
+        category: {label: 'Spend', value: 'quota'},
+      },
+    ],
   },
   {
     label: 'Weekly Reports',
     value: 'reports',
-    sources: ['daily-report', 'weekly-report'],
+    sources: [
+      {
+        value: 'daily-report',
+        label: 'Daily Report',
+        category: {label: 'Weekly Reports', value: 'reports'},
+      },
+      {
+        value: 'weekly-report',
+        label: 'Weekly Report',
+        category: {label: 'Weekly Reports', value: 'reports'},
+      },
+    ],
   },
   {
     label: 'Spike Protection',
     value: 'spike-protection',
-    sources: ['spike-protection-triggered', 'spike-protection-resolved'],
+    sources: [
+      {
+        value: 'spike-protection-triggered',
+        label: 'Spike Protection Triggered',
+        category: {label: 'Spike Protection', value: 'spike-protection'},
+      },
+      {
+        value: 'spike-protection-resolved',
+        label: 'Spike Protection Resolved',
+        category: {label: 'Spike Protection', value: 'spike-protection'},
+      },
+    ],
   },
 ];

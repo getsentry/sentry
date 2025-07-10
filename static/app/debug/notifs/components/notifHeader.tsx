@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {NotifSearch} from 'sentry/debug/notifs/components/notifSearch';
 import {IconGithub, IconLink} from 'sentry/icons';
 import {ThemeSwitcher} from 'sentry/stories/theme';
 import {H1, HeaderGrid} from 'sentry/stories/view/storyHeader';
@@ -16,7 +17,7 @@ export function NotifHeader() {
           <SentryNotificationsLogo /> Notifications
         </Title>
       </Link>
-      <input type="text" placeholder="Search" />
+      <NotifSearch />
       <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
         <LinkButton
           size="xs"
