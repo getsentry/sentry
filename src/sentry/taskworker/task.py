@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
 import datetime
+import random
+import time
 from collections.abc import Callable, Collection, Mapping, MutableMapping
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
@@ -8,6 +11,7 @@ from uuid import uuid4
 
 import orjson
 import sentry_sdk
+import zstandard as zstd
 from django.conf import settings
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -17,8 +21,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
+from sentry import options
+from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.taskworker.registry import TaskNamespace
@@ -39,6 +45,7 @@ class Task(Generic[P, R]):
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
         wait_for_delivery: bool = False,
+        compression_type: CompressionType = CompressionType.PLAINTEXT,
     ):
         self.name = name
         self._func = func
@@ -58,6 +65,7 @@ class Task(Generic[P, R]):
         self._retry = retry
         self.at_most_once = at_most_once
         self.wait_for_delivery = wait_for_delivery
+        self.compression_type = compression_type
         update_wrapper(self, func)
 
     @property
@@ -169,12 +177,41 @@ class Task(Generic[P, R]):
                     f"The `{key}` header value is of type {type(value)}"
                 )
 
+        parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
+        if self.compression_type == CompressionType.ZSTD:
+            # TODO(taskworker): Nesting this conditional avoids django_db fixtures in tests.
+            # Once we have rolled out compression safely, we can remove this conditional.
+            compression_rollout_rate = options.get("taskworker.enable_compression.rollout")
+            if compression_rollout_rate and compression_rollout_rate > random.random():
+                # Worker uses this header to determine if the parameters are decompressed
+                headers["compression-type"] = CompressionType.ZSTD.value
+                start_time = time.perf_counter()
+                parameters_data = zstd.compress(parameters_json)
+                # Compressed data is binary and needs base64 encoding for transport
+                parameters_str = base64.b64encode(parameters_data).decode("utf8")
+                end_time = time.perf_counter()
+
+                metrics.distribution(
+                    "taskworker.producer.compressed_parameters_size",
+                    len(parameters_str),
+                    tags={"namespace": self._namespace.name, "taskname": self.name},
+                )
+                metrics.distribution(
+                    "taskworker.producer.compression_time",
+                    end_time - start_time,
+                    tags={"namespace": self._namespace.name, "taskname": self.name},
+                )
+            else:
+                parameters_str = parameters_json.decode("utf8")
+        else:
+            parameters_str = parameters_json.decode("utf8")
+
         return TaskActivation(
             id=uuid4().hex,
             namespace=self._namespace.name,
             taskname=self.name,
             headers=headers,
-            parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
+            parameters=parameters_str,
             retry_state=self._create_retry_state(),
             received_at=received_at,
             processing_deadline_duration=processing_deadline,
