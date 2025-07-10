@@ -158,7 +158,7 @@ export default function DataConditionNodeList({
             <AutomationBuilderRow
               key={`${group}.conditions.${condition.id}`}
               onDelete={() => onDeleteRowHandler(condition)}
-              isConflicting={conflictingConditionIds.includes(condition.id)}
+              hasError={conflictingConditionIds.includes(condition.id)}
             >
               <DataConditionNodeContext.Provider
                 value={{

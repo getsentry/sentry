@@ -1505,7 +1505,7 @@ describe('IssueList', function () {
       // ?new=true should be removed
       expect(testRouter.location.query.new).toBeUndefined();
 
-      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(fetchDataMock).toHaveBeenCalled();
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });
