@@ -49,7 +49,7 @@ export const retentionPrioritiesLabels = {
   boostEnvironments: t('Prioritize dev environments'),
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
-  minimumSampleRate: t('Override trace sample rate'),
+  minimumSampleRate: t('Always use project sample rate'),
 };
 
 export const allowedDurationValues: number[] = [
@@ -336,9 +336,7 @@ function ProjectPerformance() {
       name: 'minimumSampleRate',
       type: 'boolean',
       label: retentionPrioritiesLabels.minimumSampleRate,
-      help: t(
-        'Sample incoming traces with the project sample rate instead of the trace sample rate'
-      ),
+      help: t('Use the project sample rate for spans instead of the trace sample rate.'),
       getData: getRetentionPrioritiesData,
     },
   ];
