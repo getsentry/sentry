@@ -57,13 +57,15 @@ Also removed the unused `get_organization_id_from_token` function since it's no 
 
 ## Benefits
 
-- **Fairer Resource Allocation**: Users can't exhaust the rate limit for an entire organization
-- **Better User Experience**: One user's heavy usage doesn't impact other users in the same organization
-- **Improved Security**: Limits the impact of compromised user accounts
-- **Scalability**: Rate limits scale with user count rather than organization size
+- **Fairer Resource Allocation**: Individual integrations can't exhaust the rate limit for all integrations in an organization
+- **Better Integration Isolation**: One integration's heavy usage doesn't impact other integrations in the same organization
+- **Improved Security**: Limits the impact of compromised integration tokens
+- **Scalability**: Rate limits scale with integration count rather than organization size
 
-## Risks and Considerations
+## Impact
 
-- **Backward Compatibility**: Ensure existing integrations continue to work
-- **Anonymous/System Actions**: Need fallback mechanisms for non-user-initiated actions
-- **Rate Limit Tuning**: May need to adjust limits based on per-user vs per-organization usage patterns
+This change affects how API tokens for Sentry apps (integrations) are rate-limited:
+- **Before**: All integrations in an organization shared the same rate limit pool (`category = "org"`)
+- **After**: Each integration gets its own rate limit based on the user ID associated with the token (`category = "user"`)
+
+The change is minimal and focused - it only modifies the rate limiting categorization logic, not any specific rate limit values or configurations.
