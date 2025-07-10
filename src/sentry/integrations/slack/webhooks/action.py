@@ -31,6 +31,11 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.analytics import (
+    IntegrationSlackLinkIdentity,
+    SlackIntegrationAssign,
+    SlackIntegrationStatus,
+)
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
@@ -287,7 +292,7 @@ class SlackActionEndpoint(Endpoint):
             },
             request,
         )
-        analytics.record("integrations.slack.assign", actor_id=user.id)
+        analytics.record(SlackIntegrationAssign(actor_id=user.id))
 
     def on_status(
         self,
@@ -320,11 +325,12 @@ class SlackActionEndpoint(Endpoint):
         update_group(group, user, status, request)
 
         analytics.record(
-            "integrations.slack.status",
-            organization_id=group.project.organization.id,
-            status=status["status"],
-            resolve_type=resolve_type,
-            user_id=user.id,
+            SlackIntegrationStatus(
+                organization_id=group.project.organization.id,
+                status=status["status"],
+                resolve_type=resolve_type,
+                user_id=user.id,
+            )
         )
 
     def _handle_group_actions(
@@ -521,9 +527,10 @@ class SlackActionEndpoint(Endpoint):
         )
         if len(organization_integrations) > 0:
             analytics.record(
-                "integrations.slack.chart_unfurl_action",
-                organization_id=organization_integrations[0].id,
-                action=action,
+                IntegrationSlackLinkIdentity(
+                    organization_id=organization_integrations[0].id,
+                    action=action,
+                )
             )
         payload = {"delete_original": "true"}
         try:

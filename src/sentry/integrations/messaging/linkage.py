@@ -20,6 +20,7 @@ from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.slack.analytics import IntegrationIdentityLinked
 from sentry.integrations.types import (
     ExternalProviderEnum,
     ExternalProviders,
@@ -29,7 +30,9 @@ from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
+from sentry.notifications.notifications.integration_nudge import (
+    IntegrationNudgeNotification,
+)
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.organizations.services.organization import RpcOrganization
@@ -497,10 +500,11 @@ class LinkTeamView(TeamLinkageView, ABC):
         )
 
         analytics.record(
-            "integrations.identity_linked",
-            provider=self.provider_slug,
-            actor_id=team.id,
-            actor_type="team",
+            IntegrationIdentityLinked(
+                provider=self.provider_slug,
+                actor_id=team.id,
+                actor_type="team",
+            )
         )
 
         if not created:

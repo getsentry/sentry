@@ -20,6 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.slack.analytics import IntegrationIdentityLinked
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 
@@ -107,12 +108,13 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            "integrations.identity_linked",
-            provider=IntegrationProviderSlug.SLACK.value,
-            # Note that prior to circa March 2023 this was user.actor_id. It changed
-            # when actor ids were no longer stable between regions for the same user
-            actor_id=user.id,
-            actor_type="user",
+            IntegrationIdentityLinked(
+                provider=IntegrationProviderSlug.SLACK.value,
+                # Note that prior to circa March 2023 this was user.actor_id. It changed
+                # when actor ids were no longer stable between regions for the same user
+                actor_id=user.id,
+                actor_type="user",
+            )
         )
         return identity
 
