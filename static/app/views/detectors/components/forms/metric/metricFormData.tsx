@@ -10,7 +10,8 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   Detector,
-  DetectorConfig,
+  MetricDetector,
+  MetricDetectorConfig,
   MetricDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
@@ -333,7 +334,7 @@ export function metricDetectorFormDataToEndpointPayload(
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
-  let config: DetectorConfig;
+  let config: MetricDetectorConfig;
   switch (data.kind) {
     case 'percent':
       config = {
@@ -376,7 +377,7 @@ export function metricDetectorFormDataToEndpointPayload(
  * Convert the detector conditions array to the flattened form data
  */
 function processDetectorConditions(
-  detector: Detector
+  detector: MetricDetector
 ): PrioritizeLevelFormData &
   Pick<MetricDetectorFormData, 'conditionValue' | 'conditionType'> {
   // Get conditions from the condition group
@@ -430,6 +431,11 @@ function processDetectorConditions(
 export function metricSavedDetectorToFormData(
   detector: Detector
 ): MetricDetectorFormData {
+  if (detector.type !== 'metric_issue') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   // Get the first data source (assuming metric detectors have one)
   const dataSource = detector.dataSources?.[0];
 
