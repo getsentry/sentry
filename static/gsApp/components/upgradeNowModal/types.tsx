@@ -1,7 +1,7 @@
 export type Reservations = {
   reservedAttachments: number;
   reservedErrors: number;
-  reservedLogByte: number | undefined;
+  reservedLogBytes: number | undefined;
   reservedMonitorSeats: number;
   reservedProfileDuration: number | undefined;
   reservedProfileDurationUI: number | undefined;

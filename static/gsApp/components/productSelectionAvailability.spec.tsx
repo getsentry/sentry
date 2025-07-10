@@ -345,7 +345,7 @@ describe('ProductSelectionAvailability', function () {
         reservedUptime: 0,
         reservedProfileDuration: 0,
         reservedProfileDurationUI: 0,
-        reservedLogByte: 0,
+        reservedLogBytes: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});
