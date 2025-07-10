@@ -7,7 +7,7 @@ from typing import Any, NotRequired, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -275,8 +275,9 @@ class DashboardListSerializer(Serializer):
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
             result[dashboard]["projects"] = list(dashboard.projects.values_list("id", flat=True))
 
-            if dashboard.filters and dashboard.filters.get("all_projects"):
-                result[dashboard]["projects"] = [ALL_ACCESS_PROJECT_ID]
+            filters = dashboard.get_filters()
+            if filters and filters.get("projects"):
+                result[dashboard]["projects"] = filters["projects"]
 
         return result
 
@@ -343,18 +344,20 @@ class DashboardDetailsModelSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 
+        dashboard_filters = obj.get_filters()
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
             "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
             "widgets": attrs["widgets"],
-            "projects": [project.id for project in obj.projects.all()],
+            "projects": dashboard_filters.get("projects", []),
             "filters": {},
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
         }
 
+        # TODO: The logic for obtaining these filters will be moved to the Dashboard model.
         if obj.filters is not None:
             if obj.filters.get("all_projects"):
                 data["projects"] = list(ALL_ACCESS_PROJECTS)
