@@ -6,8 +6,8 @@ from sentry import options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import (
+    call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
-    delete_project_grouping_records,
 )
 from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
 from sentry.silo.base import SiloMode
@@ -124,4 +124,4 @@ def call_seer_delete_project_grouping_records(
         return
 
     logger.info("calling seer delete records by project", extra={"project_id": project_id})
-    delete_project_grouping_records(project_id)
+    call_seer_to_delete_project_grouping_records(project_id)
