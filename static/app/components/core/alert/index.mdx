@@ -34,6 +34,26 @@ To create a basic alert, wrap your message in an `<Alert>` component and specify
 Alerts come in five different types to convey different levels of importance and meaning: `muted`, `info`, `warning`, `success`, and `error`.
 
 <Storybook.Demo>
+  <Alert.Container>
+    <Alert type="muted" showIcon>
+      This is a muted alert for neutral information
+    </Alert>
+    <Alert type="info" showIcon>
+      This is an info alert for general information
+    </Alert>
+    <Alert type="warning" showIcon>
+      This is a warning alert for important notices
+    </Alert>
+    <Alert type="success" showIcon>
+      This is a success alert for positive feedback
+    </Alert>
+    <Alert type="error" showIcon>
+      This is an error alert for critical issues
+    </Alert>
+  </Alert.Container>
+</Storybook.Demo>
+```jsx
+<Alert.Container>
   <Alert type="muted" showIcon>
     This is a muted alert for neutral information
   </Alert>
@@ -49,23 +69,7 @@ Alerts come in five different types to convey different levels of importance and
   <Alert type="error" showIcon>
     This is an error alert for critical issues
   </Alert>
-</Storybook.Demo>
-```jsx
-<Alert type="muted" showIcon>
-  This is a muted alert for neutral information
-</Alert>
-<Alert type="info" showIcon>
-  This is an info alert for general information
-</Alert>
-<Alert type="warning" showIcon>
-  This is a warning alert for important notices
-</Alert>
-<Alert type="success" showIcon>
-  This is a success alert for positive feedback
-</Alert>
-<Alert type="error" showIcon>
-  This is an error alert for critical issues
-</Alert>
+</Alert.Container>
 ```
 
 ### Icons
@@ -73,6 +77,20 @@ Alerts come in five different types to convey different levels of importance and
 By default, alerts display appropriate icons based on their type. You can hide icons by setting `showIcon={false}` or provide custom icons.
 
 <Storybook.Demo>
+  <Alert.Container>
+    <Alert type="info" showIcon>
+      Default info icon
+    </Alert>
+    <Alert type="warning" showIcon={false}>
+      No icon
+    </Alert>
+    <Alert type="success" showIcon icon={<IconAdd />}>
+      Custom add icon
+    </Alert>
+  </Alert.Container>
+</Storybook.Demo>
+```jsx
+<Alert.Container>
   <Alert type="info" showIcon>
     Default info icon
   </Alert>
@@ -82,17 +100,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
   <Alert type="success" showIcon icon={<IconAdd />}>
     Custom add icon
   </Alert>
-</Storybook.Demo>
-```jsx
-<Alert type="info" showIcon>
-  Default info icon
-</Alert>
-<Alert type="warning" showIcon={false}>
-  No icon
-</Alert>
-<Alert type="success" showIcon icon={<IconAdd />}>
-  Custom add icon
-</Alert>
+</Alert.Container>
 ```
 
 ### Expandable Content
@@ -139,6 +147,38 @@ Alerts can contain expandable content to provide additional details without over
 Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
 
 <Storybook.Demo>
+  <Alert.Container>
+    <Alert
+      type="info"
+      showIcon
+      trailingItems={
+        <Button size="xs" priority="primary">
+          Take Action
+        </Button>
+      }
+    >
+      This alert has a trailing action button
+    </Alert>
+    <Alert
+      type="error"
+      showIcon
+      trailingItems={
+        <div>
+          <Button size="xs" priority="danger" icon={<IconDelete />}>
+            Delete
+          </Button>
+          <Button size="xs" priority="muted" icon={<IconEdit />}>
+            Edit
+          </Button>
+        </div>
+      }
+    >
+      This alert has multiple trailing actions
+    </Alert>
+  </Alert.Container>
+</Storybook.Demo>
+```jsx
+<Alert.Container>
   <Alert
     type="info"
     showIcon
@@ -166,36 +206,7 @@ Add interactive elements like buttons or links to the right side of alerts using
   >
     This alert has multiple trailing actions
   </Alert>
-</Storybook.Demo>
-```jsx
-<Alert
-  type="info"
-  showIcon
-  trailingItems={
-    <Button size="xs" priority="primary">
-      Take Action
-    </Button>
-  }
->
-  This alert has a trailing action button
-</Alert>
-
-<Alert
-  type="error"
-  showIcon
-  trailingItems={
-    <div>
-      <Button size="xs" priority="danger" icon={<IconDelete />}>
-        Delete
-      </Button>
-      <Button size="xs" priority="muted" icon={<IconEdit />}>
-        Edit
-      </Button>
-    </div>
-  }
->
-  This alert has multiple trailing actions
-</Alert>
+</Alert.Container>
 ```
 
 ### System Alerts
