@@ -1376,12 +1376,13 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                     )
                     profile_functions_producer.produce(topic, payload)
             if prof.is_sampled():
-                # send profile kafka message
-                payload = build_profile_kafka_message(prof)
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
-                )
-                processed_profiles_producer.produce(topic, payload)
+                # Send profile metadata to Kafka
+                with sentry_sdk.start_span(op="processing", name="send profile kafka message"):
+                    payload = build_profile_kafka_message(prof)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
+                    )
+                    processed_profiles_producer.produce(topic, payload)
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
