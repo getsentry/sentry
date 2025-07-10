@@ -112,7 +112,7 @@ describe('TokensPage', () => {
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
     });
 
-    it('Generates a new token when the regenerate token button is clicked', async () => {
+    it('Creates new token when regenerate token button is clicked after opening the modal and clicking the Generate new token button', async () => {
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />

@@ -39,7 +39,6 @@ describe('TokenRegenerationConfirmationModal', function () {
     const tokenInputs = screen.getAllByRole('textbox');
     expect(tokenInputs).toHaveLength(2);
 
-    // Check that the token values are displayed
     expect(screen.getByDisplayValue('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
     expect(
       screen.getByDisplayValue('91b57316-b1ff-4884-8d55-92b9936a05a3')
@@ -57,7 +56,6 @@ describe('TokenRegenerationConfirmationModal', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
 
-    // Verify modal is closed by checking that the header is no longer present
     await waitFor(() => {
       expect(
         screen.queryByRole('heading', {name: 'Token created'})
@@ -68,7 +66,6 @@ describe('TokenRegenerationConfirmationModal', function () {
   it('has copy functionality for both tokens', function () {
     renderComponent();
 
-    // Check that copy buttons are present (from TextCopyInput component)
     const copyButtons = screen.getAllByRole('button', {name: /copy/i});
     expect(copyButtons).toHaveLength(2);
   });
