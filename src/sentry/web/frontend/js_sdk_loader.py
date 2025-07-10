@@ -198,7 +198,7 @@ class JavaScriptSdkLoader(View):
                     has_performance=loader_config["hasPerformance"],
                     has_replay=loader_config["hasReplay"],
                     has_debug=loader_config["hasDebug"],
-                    sdk_version=sdk_version,
+                    sdk_version=str(sdk_version) if sdk_version else None,
                     tmpl=tmpl,
                 )
             )

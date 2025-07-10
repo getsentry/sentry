@@ -1,5 +1,3 @@
-from packaging.version import Version
-
 from sentry import analytics
 from sentry.analytics import Event, eventclass
 
@@ -12,7 +10,7 @@ class JsSdkLoaderRendered(Event):
     has_performance: bool
     has_replay: bool
     has_debug: bool
-    sdk_version: Version | None
+    sdk_version: str | None
     tmpl: str
 
 
