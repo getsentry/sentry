@@ -125,7 +125,7 @@ export function PageOverviewWebVitalsDetailPanel({
     useSpanSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && (isInp || (isSpansWebVital && useSpansWebVitals)),
+      enabled: Boolean(webVital),
       browserTypes,
       subregions,
     });
@@ -206,11 +206,7 @@ export function PageOverviewWebVitalsDetailPanel({
         {
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
-          'transaction.duration':
-            isInp || (isSpansWebVital && useSpansWebVitals)
-              ? row[SpanIndexedField.SPAN_SELF_TIME]
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                row['transaction.duration'],
+          'transaction.duration': row[SpanIndexedField.SPAN_SELF_TIME],
           timestamp: row.timestamp,
         },
         undefined
@@ -267,13 +263,6 @@ export function PageOverviewWebVitalsDetailPanel({
         );
       }
       return <NoOverflow>{NO_VALUE}</NoOverflow>;
-    }
-    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
-      return (
-        <NoOverflow>
-          <Tooltip title={row[key]}>{row[key]}</Tooltip>
-        </NoOverflow>
-      );
     }
     if (key === 'id') {
       const eventTarget =

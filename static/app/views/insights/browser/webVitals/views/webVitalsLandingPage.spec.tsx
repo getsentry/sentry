@@ -93,7 +93,7 @@ describe('WebVitalsLandingPage', function () {
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
             'count_scores(measurements.score.total)',
-            'total_opportunity_score()',
+            'opportunity_score(measurements.score.total)',
           ],
           query:
             'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',

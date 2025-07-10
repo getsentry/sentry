@@ -50,14 +50,6 @@ export const useTransactionWebVitalsScoresQuery = ({
     if (sort.field === 'avg(measurements.score.total)') {
       sort.field = 'performance_score(measurements.score.total)';
     }
-    if (
-      [
-        'opportunity_score(measurements.score.total)',
-        'total_opportunity_score()',
-      ].includes(sort.field)
-    ) {
-      sort.field = totalOpportunityScoreField;
-    }
   }
 
   const search = new MutableSearch([
