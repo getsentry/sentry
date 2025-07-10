@@ -153,9 +153,10 @@ export function StoryTableOfContents() {
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
   const [activeId, setActiveId] = useActiveSection(entries);
 
+  if (nestedEntries.length === 0) return null;
   return (
     <StoryIndexContainer>
-      <StoryIndexTitle>Contents</StoryIndexTitle>
+      <StoryIndexTitle>On this page</StoryIndexTitle>
       <StoryIndexListContainer>
         <StoryIndexList>
           {nestedEntries.map(entry => (
@@ -256,8 +257,8 @@ const StoryIndexTitle = styled('div')`
   line-height: 1.25;
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-  border-bottom: 2px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0 0 ${space(1)} 0;
   margin: 0 0 ${space(1)} 0;
 `;
