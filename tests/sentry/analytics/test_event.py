@@ -54,6 +54,29 @@ class EventTest(TestCase):
         }
 
     @patch("sentry.analytics.event.uuid1")
+    def test_simple_from_instance(self, mock_uuid1):
+        mock_uuid1.return_value = self.get_mock_uuid()
+
+        result = ExampleEvent.from_instance(
+            None,
+            id="1",  # type: ignore[arg-type]
+            map={"key": "value"},
+            optional=False,
+        )
+        result.datetime_ = datetime(2001, 4, 18, tzinfo=timezone.utc)
+
+        assert result.serialize() == {
+            "data": {
+                "id": 1,
+                "map": {"key": "value"},
+                "optional": False,
+            },
+            "type": "example",
+            "timestamp": 987552000,
+            "uuid": b"AAEC",
+        }
+
+    @patch("sentry.analytics.event.uuid1")
     def test_simple_old_style(self, mock_uuid1):
         mock_uuid1.return_value = self.get_mock_uuid()
 
