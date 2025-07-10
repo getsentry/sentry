@@ -1,13 +1,14 @@
 import orjson
 import responses
 
-from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
+from sentry.integrations.bitbucket.issues import BITBUCKET_MAX_TITLE_LENGTH, ISSUE_TYPES, PRIORITIES
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.strings import truncatechars
 
 pytestmark = [requires_snuba]
 
@@ -236,6 +237,28 @@ class BitbucketIssueTest(APITestCase):
                 "choices": PRIORITIES,
             },
         ]
+
+    @responses.activate
+    def test_get_create_issue_config_with_long_title(self):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/myaccount",
+            json={"values": [{"full_name": "myaccount/repo1"}, {"full_name": "myaccount/repo2"}]},
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "b" * 5000,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        config = installation.get_create_issue_config(event.group, self.user)
+        title_field = next(field for field in config if field["name"] == "title")
+        assert title_field
+        assert title_field["default"] == truncatechars(event.message, BITBUCKET_MAX_TITLE_LENGTH)
+        assert title_field["maxLength"] == BITBUCKET_MAX_TITLE_LENGTH
 
     @responses.activate
     def test_get_create_issue_config_without_group(self):
