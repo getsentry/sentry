@@ -64,7 +64,6 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
-import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -192,8 +191,6 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const organization = useOrganization();
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');

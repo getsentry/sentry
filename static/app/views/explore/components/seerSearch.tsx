@@ -18,6 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {formatQueryToNaturalLanguage, getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -76,14 +77,18 @@ export function SeerSearch({initialQuery = ''}: SeerSearchProps) {
   const [searchQuery, setSearchQuery] = useState(formattedInitialQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
+  const organization = useOrganization();
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const [rawResult, setRawResult] = useState<SeerSearchResults | null>(null);
   const api = useApi();
-  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
   const memberProjects = projects.filter(p => p.isMember);
   const navigate = useNavigate();
+
+  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && isDropdownOpen});
 
   const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {

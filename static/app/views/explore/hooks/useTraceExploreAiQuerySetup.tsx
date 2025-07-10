@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
@@ -13,6 +13,8 @@ interface UseTraceExploreAiQuerySetupArgs {
 export function useTraceExploreAiQuerySetup({
   enableAISearch,
 }: UseTraceExploreAiQuerySetupArgs) {
+  const hasSetupRun = useRef(false);
+
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const client = useApi();
@@ -20,6 +22,8 @@ export function useTraceExploreAiQuerySetup({
   const memberProjects = projects.filter(p => p.isMember);
 
   useEffect(() => {
+    if (!enableAISearch || hasSetupRun.current) return;
+
     const selectedProjects =
       pageFilters.selection.projects &&
       pageFilters.selection.projects.length > 0 &&
@@ -27,7 +31,7 @@ export function useTraceExploreAiQuerySetup({
         ? pageFilters.selection.projects
         : memberProjects.map(p => p.id);
 
-    if (!enableAISearch) return;
+    hasSetupRun.current = true;
 
     (async () => {
       try {
