@@ -23,7 +23,7 @@ from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import spans_indexed, spans_metrics, spans_rpc
+from sentry.snuba import ourlogs, spans_indexed, spans_metrics, spans_rpc
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 
@@ -97,6 +97,17 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=None,
                 )
 
+                return Response({"count": result["data"][0]["count()"]})
+            elif dataset == ourlogs:
+                result = ourlogs.query(
+                    selected_columns=["count()"],
+                    snuba_params=snuba_params,
+                    query=request.query_params.get("query"),
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_ORGANIZATION_EVENTS_META,
+                )
                 return Response({"count": result["data"][0]["count()"]})
             else:
                 result = dataset.query(
