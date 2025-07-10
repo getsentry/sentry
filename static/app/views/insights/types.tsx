@@ -554,7 +554,6 @@ type MetricsFunctions =
   | 'performance_score'
   | 'count_scores'
   | 'opportunity_score'
-  | 'total_opportunity_score'
   | 'p75';
 
 export enum MetricsFields {

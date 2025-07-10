@@ -6,14 +6,16 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
-import {FIELD_ALIASES} from 'sentry/views/insights/browser/webVitals/settings';
+import {
+  DEFAULT_QUERY_FILTER,
+  FIELD_ALIASES,
+} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -34,11 +36,10 @@ export function WebVitalStatusLineChart({
   browserTypes,
   subregions,
 }: Props) {
-  const defaultQuery = useDefaultWebVitalsQuery();
   const webVitalP90 = webVital ? PERFORMANCE_SCORE_P90S[webVital] : 0;
   const webVitalMedian = webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0;
 
-  const search = new MutableSearch(defaultQuery);
+  const search = new MutableSearch(DEFAULT_QUERY_FILTER);
   const referrer = Referrer.WEB_VITAL_STATUS_LINE_CHART;
 
   if (transaction) {
