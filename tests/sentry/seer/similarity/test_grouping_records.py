@@ -189,6 +189,7 @@ def test_delete_grouping_records_by_hash_success(
     )
 
 
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_timeout(
