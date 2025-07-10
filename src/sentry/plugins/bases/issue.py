@@ -5,6 +5,7 @@ from django.conf import settings
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
@@ -201,12 +202,13 @@ class IssueTrackingPlugin(Plugin):
                         )
 
                         analytics.record(
-                            "issue_tracker.used",
-                            user_id=request.user.id,
-                            default_user_id=project.organization.get_default_owner().id,
-                            organization_id=project.organization_id,
-                            project_id=project.id,
-                            issue_tracker=self.slug,
+                            IssueTrackerUsedEvent(
+                                user_id=request.user.id,
+                                default_user_id=project.organization.get_default_owner().id,
+                                organization_id=project.organization_id,
+                                project_id=project.id,
+                                issue_tracker=self.slug,
+                            )
                         )
 
                         return self.redirect(group.get_absolute_url())
