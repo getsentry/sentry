@@ -1,26 +1,27 @@
 import styled from '@emotion/styled';
 
-import {DiscordPreview} from 'sentry/debug/notifs/components/discordPreview';
-import {EmailPreview} from 'sentry/debug/notifs/components/emailPreview';
-import {Header} from 'sentry/debug/notifs/components/header';
-import {Sidebar} from 'sentry/debug/notifs/components/sidebar';
-import {SlackPreview} from 'sentry/debug/notifs/components/slackPreview';
-import {TeamsPreview} from 'sentry/debug/notifs/components/teamsPreview';
+import {NotifHeader} from 'sentry/debug/notifs/components/notifHeader';
+import {NotifSidebar} from 'sentry/debug/notifs/components/notifSidebar';
+import {DiscordPreview} from 'sentry/debug/notifs/previews/discordPreview';
+import {EmailPreview} from 'sentry/debug/notifs/previews/emailPreview';
+import {SlackPreview} from 'sentry/debug/notifs/previews/slackPreview';
+import {TeamsPreview} from 'sentry/debug/notifs/previews/teamsPreview';
+import {HeaderContainer, Layout} from 'sentry/stories/view';
 import {SidebarContainer} from 'sentry/stories/view/storySidebar';
 import {space} from 'sentry/styles/space';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-export default function NotifsIndex() {
+export default function NotifIndex() {
   return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
         <Layout>
           <HeaderContainer>
-            <Header />
+            <NotifHeader />
           </HeaderContainer>
           <SidebarContainer>
-            <Sidebar />
+            <NotifSidebar />
           </SidebarContainer>
           <BodyContainer>
             <EmailPreview />
@@ -33,29 +34,6 @@ export default function NotifsIndex() {
     </RouteAnalyticsContextProvider>
   );
 }
-
-const Layout = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: 256px minmax(auto, 1fr);
-  place-items: stretch;
-  min-height: calc(100dvh - 52px);
-  padding-bottom: ${space(4)};
-  position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
-`;
-
-const HeaderContainer = styled('div')`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: ${p => p.theme.zIndex.header};
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const BodyContainer = styled('div')`
   grid-row: 1;

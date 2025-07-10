@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export function PreviewBox({
+export function NotifPreview({
   title,
   children,
 }: {
