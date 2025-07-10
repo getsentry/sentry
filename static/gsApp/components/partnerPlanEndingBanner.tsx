@@ -99,7 +99,7 @@ const PartnerPlanEndingText = styled('div')`
 `;
 
 const PartnerPlanEndingBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   display: flex;
   gap: ${space(1)};
@@ -113,7 +113,7 @@ const DaysLeftTag = styled(Tag)`
 const IllustrationContainer = styled('img')`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
     pointer-events: none;

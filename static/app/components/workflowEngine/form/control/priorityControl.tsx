@@ -2,23 +2,25 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Flex} from 'sentry/components/container/flex';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {
   DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 const priorities = [
   DetectorPriorityLevel.LOW,
@@ -26,13 +28,18 @@ const priorities = [
   DetectorPriorityLevel.HIGH,
 ] as const;
 
-const DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL: Record<
-  (typeof priorities)[number],
-  PriorityLevel
+const conditionKindAndTypeToLabel: Record<
+  'static' | 'percent',
+  Record<DataConditionType.GREATER | DataConditionType.LESS, string>
 > = {
-  [DetectorPriorityLevel.LOW]: PriorityLevel.LOW,
-  [DetectorPriorityLevel.MEDIUM]: PriorityLevel.MEDIUM,
-  [DetectorPriorityLevel.HIGH]: PriorityLevel.HIGH,
+  static: {
+    [DataConditionType.GREATER]: t('Above'),
+    [DataConditionType.LESS]: t('Below'),
+  },
+  percent: {
+    [DataConditionType.GREATER]: t('higher'),
+    [DataConditionType.LESS]: t('lower'),
+  },
 };
 
 function ThresholdPriority() {
@@ -42,10 +49,16 @@ function ThresholdPriority() {
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+
   return (
     <div>
-      {conditionType === DataConditionType.GREATER ? t('Above') : t('Below')}{' '}
-      {conditionValue === '' ? '0s' : `${conditionValue}s`}
+      {conditionKindAndTypeToLabel.static[conditionType!]}{' '}
+      {conditionValue === '' ? '0' : conditionValue}
+      {thresholdSuffix}
     </div>
   );
 }
@@ -57,10 +70,15 @@ function ChangePriority() {
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+
   return (
     <div>
-      {conditionValue === '' ? '0' : conditionValue}%{' '}
-      {conditionType === DataConditionType.GREATER ? t('higher') : t('lower')}
+      {conditionValue === '' ? '0' : conditionValue}
+      {thresholdSuffix} {conditionKindAndTypeToLabel.percent[conditionType!]}
     </div>
   );
 }
@@ -70,17 +88,27 @@ interface PriorityControlProps {
 }
 
 export default function PriorityControl({minimumPriority}: PriorityControlProps) {
-  // TODO: kind type not yet available from detector types
   const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const initialPriorityLevel = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
   );
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const aggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
+  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+
+  if (detectorKind === 'dynamic') {
+    return null;
+  }
 
   return (
     <Grid>
       <PrioritizeRow
         left={
-          <Flex align="center" column>
+          <Flex align="center" direction="column">
             {!detectorKind || detectorKind === 'static' ? (
               <ThresholdPriority />
             ) : (
@@ -94,18 +122,20 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
-            <SmallNumberField
-              alignRight
-              inline
-              hideLabel
-              flexibleControlStateSize
-              size="sm"
-              suffix="s"
-              placeholder="0"
-              name={METRIC_DETECTOR_FORM_FIELDS.mediumThreshold}
-              data-test-id="priority-control-medium"
-              required
-            />
+            <Flex align="center" gap={space(1)}>
+              <SmallNumberField
+                alignRight
+                inline
+                hideLabel
+                flexibleControlStateSize
+                size="sm"
+                suffix={thresholdSuffix}
+                placeholder="0"
+                name={METRIC_DETECTOR_FORM_FIELDS.mediumThreshold}
+                aria-label={t('Medium threshold')}
+              />
+              <div>{conditionKindAndTypeToLabel[detectorKind][conditionType!]}</div>
+            </Flex>
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
         />
@@ -113,18 +143,20 @@ export default function PriorityControl({minimumPriority}: PriorityControlProps)
       {priorityIsConfigurable(initialPriorityLevel, DetectorPriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
-            <SmallNumberField
-              alignRight
-              inline
-              hideLabel
-              flexibleControlStateSize
-              size="sm"
-              suffix="s"
-              placeholder="0"
-              name={METRIC_DETECTOR_FORM_FIELDS.highThreshold}
-              data-test-id="priority-control-high"
-              required
-            />
+            <Flex align="center" gap={space(1)}>
+              <SmallNumberField
+                alignRight
+                inline
+                hideLabel
+                flexibleControlStateSize
+                size="sm"
+                suffix={thresholdSuffix}
+                placeholder="0"
+                name={METRIC_DETECTOR_FORM_FIELDS.highThreshold}
+                aria-label={t('High threshold')}
+              />
+              <div>{conditionKindAndTypeToLabel[detectorKind][conditionType!]}</div>
+            </Flex>
           }
           right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}
         />
@@ -145,7 +177,7 @@ function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.React
     <Row>
       <Cell>{left}</Cell>
       <IconArrow color="gray300" direction="right" />
-      <Cell>{right}</Cell>
+      <Flex align="center">{right}</Flex>
     </Row>
   );
 }
@@ -223,16 +255,19 @@ const Row = styled('div')`
 const Cell = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: ${space(1)};
 `;
 
 const SmallNumberField = styled(NumberField)`
-  width: 5rem;
+  width: 3.5rem;
   padding: 0;
+  & > div {
+    padding-left: 0;
+  }
 `;
 
 const SecondaryLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

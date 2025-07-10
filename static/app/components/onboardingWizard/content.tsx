@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
@@ -133,7 +133,7 @@ interface SkipConfirmationProps {
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
     <Alert type="info" showIcon>
-      <Flex column gap={space(1)}>
+      <Flex direction="column" gap={space(1)}>
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="space-between" gap={0.5} flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
@@ -610,7 +610,7 @@ const TaskCardWrapper = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
   button {
     visibility: hidden;

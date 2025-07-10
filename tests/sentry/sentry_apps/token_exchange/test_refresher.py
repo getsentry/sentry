@@ -72,9 +72,9 @@ class TestRefresher(TestCase):
             error_msg=SentryAppIntegratorError(message="Token does not belong to the application"),
         )
 
-        # REFRESHER (halt)
+        # APP_CREATE (success) -> WEBHOOK_UPDATE (success) -> TOKEN_EXCHANGE (success) -> REFRESHER (halt)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1

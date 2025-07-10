@@ -7,9 +7,9 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -145,7 +145,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               onToggleStatus={status => handleUpdate({status})}
               size="sm"
               disabled={!canEdit}
-              title={canEdit ? undefined : permissionTooltipText}
+              {...(canEdit ? {} : {title: permissionTooltipText})}
             />
             <LinkButton
               size="sm"

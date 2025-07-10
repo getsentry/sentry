@@ -5,16 +5,11 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
 def test_conf_key() -> None:
     assert TrelloPlugin().conf_key == "trello"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("trello", TrelloPlugin())
 
 
 class TrelloPluginTestBase(PluginTestCase):

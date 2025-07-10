@@ -73,7 +73,9 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
     name="sentry.tasks.check_auth_identities",
     queue="auth.control",
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=auth_control_tasks, processing_deadline_duration=60
+    ),
 )
 def check_auth_identities(
     auth_identity_id: int | None = None,

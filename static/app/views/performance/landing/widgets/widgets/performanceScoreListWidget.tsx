@@ -64,7 +64,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = () => {
-    const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
+    const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
     return (
       <Chart
         stacked

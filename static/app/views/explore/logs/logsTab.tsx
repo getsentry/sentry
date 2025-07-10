@@ -15,7 +15,6 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -38,7 +37,10 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {getIntervalOptionsForPageFilter} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  ChartIntervalUnspecifiedStrategy,
+  useChartInterval,
+} from 'sentry/views/explore/hooks/useChartInterval';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -79,15 +81,15 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
-  const pageFilters = usePageFilters();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const oldLogsSearch = usePrevious(logsSearch);
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
-  const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
-    ?.value;
+  const [interval] = useChartInterval({
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+  });
   const aggregateFunction = useLogsAggregateFunction();
   const aggregate = useLogsAggregate();
   const [sidebarOpen, setSidebarOpen] = useState(
@@ -99,12 +101,16 @@ export function LogsTabContent({
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
+      topEvents: groupBy?.length ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const [tableTab, setTableTab] = useState('logs');
+  const [tableTab, setTableTab] = useState<'aggregates' | 'logs'>(
+    (aggregateFunction && aggregateFunction !== 'count') || groupBy
+      ? 'aggregates'
+      : 'logs'
+  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');

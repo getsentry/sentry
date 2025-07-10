@@ -197,6 +197,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
+            <TextField
+              name="url"
+              label={t('URL')}
+              placeholder={t('The URL to monitor')}
+              flexibleControlStateSize
+              monospace
+              required
+            />
+            <SelectField
+              name="method"
+              label={t('Method')}
+              defaultValue="GET"
+              options={HTTP_METHOD_OPTIONS.map(option => ({
+                value: option,
+                label: option,
+              }))}
+              flexibleControlStateSize
+              required
+            />
             <SelectField
               options={VALID_INTERVALS_SEC.map(value => ({
                 value,
@@ -237,25 +256,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               defaultValue={5_000}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
-              flexibleControlStateSize
-              required
-            />
-            <TextField
-              name="url"
-              label={t('URL')}
-              placeholder={t('The URL to monitor')}
-              flexibleControlStateSize
-              monospace
-              required
-            />
-            <SelectField
-              name="method"
-              label={t('Method')}
-              defaultValue="GET"
-              options={HTTP_METHOD_OPTIONS.map(option => ({
-                value: option,
-                label: option,
-              }))}
               flexibleControlStateSize
               required
             />
@@ -350,8 +350,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 

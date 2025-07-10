@@ -148,11 +148,14 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
         This is used to trigger the `workflow_engine` processing status changes.
         """
-        latest_activity = Activity.objects.filter(
-            group_id=group.id, type=activity_type.value
-        ).order_by("-datetime")
-        for handler in group_status_update_registry.registrations.values():
-            handler(group, status_change, latest_activity[0])
+        latest_activity = (
+            Activity.objects.filter(group_id=group.id, type=activity_type.value)
+            .order_by("-datetime")
+            .first()
+        )
+        if latest_activity is not None:
+            for handler in group_status_update_registry.registrations.values():
+                handler(group, status_change, latest_activity)
 
 
 def get_group_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> Group | None:
@@ -219,6 +222,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "project_id": payload["project_id"],
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
+        "detector_id": payload.get("detector_id", None),
     }
 
     process_occurrence_data(data)

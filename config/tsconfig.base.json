@@ -8,9 +8,6 @@
     // features are supported based on our browser usage configuration in
     // package.json). `target` DOES NOT affect the babel output! [0]
     //
-    // We DO however, use ts-node to build jest, webpack, and a few other
-    // {build,dev}-time tools. Because these are run through node, we can
-    // target what our current version of node supports (see [1])
     //
     // [0]: https://babeljs.io/docs/en/babel-preset-typescript
     // [1]: https://node.green

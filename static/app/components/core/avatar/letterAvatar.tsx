@@ -5,14 +5,11 @@ import styled from '@emotion/styled';
 
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
-import {
-  type BaseAvatarComponentProps,
-  BaseAvatarComponentStyles,
-} from './baseAvatarComponentStyles';
+import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
 
 interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
-    BaseAvatarComponentProps {
+    BaseAvatarStyleProps {
   displayName?: string;
   identifier?: string;
   ref?: React.Ref<SVGSVGElement>;
@@ -42,7 +39,7 @@ export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
 }
 
 const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
-  ${BaseAvatarComponentStyles};
+  ${baseAvatarStyles};
 
   rect {
     fill: ${props =>

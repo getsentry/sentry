@@ -48,7 +48,7 @@ export const TraceDetailHeader = styled('div')`
   gap: ${space(3)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }

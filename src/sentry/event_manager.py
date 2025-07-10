@@ -294,6 +294,32 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     return query[:max_crashreports].count()
 
 
+def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:
+    if tombstone_id is None:
+        return
+    try:
+        from sentry.models.grouptombstone import GroupTombstone
+
+        group_tombstone = GroupTombstone.objects.get(id=tombstone_id)
+        buffer_incr(
+            GroupTombstone,
+            {"times_seen": 1},
+            {"id": tombstone_id},
+            {
+                "last_seen": (
+                    max(event.datetime, group_tombstone.last_seen)
+                    if group_tombstone.last_seen
+                    else event.datetime
+                )
+            },
+        )
+    except GroupTombstone.DoesNotExist:
+        # This can happen due to a race condition with deletion.
+        pass
+    except Exception:
+        logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
+
+
 ProjectsMapping = Mapping[int, Project]
 
 Job = MutableMapping[str, Any]
@@ -510,7 +536,11 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded:
+        except HashDiscarded as e:
+            if features.has("organizations:grouptombstones-hit-counter", project.organization):
+                increment_group_tombstone_hit_counter(
+                    getattr(e, "tombstone_id", None), job["event"]
+                )
             discard_event(job, attachments)
             raise
 
@@ -1730,7 +1760,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 }
             )
 
-        Activity.objects.create_group_activity(
+        activity = Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
@@ -1741,7 +1771,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
         if has_initial_open_period(group):
-            create_open_period(group, date)
+            create_open_period(group, activity.datetime)
 
     return is_regression
 
@@ -2401,7 +2431,6 @@ def save_attachment(
         size=file.size,
         sha1=file.sha1,
         # storage:
-        file_id=file.file_id,
         blob_path=file.blob_path,
     )
 
@@ -2509,6 +2538,7 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.CACHE: "has_insights_caches",
     InsightModules.QUEUE: "has_insights_queues",
     InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
+    InsightModules.AGENTS: "has_insights_agent_monitoring",
 }
 
 

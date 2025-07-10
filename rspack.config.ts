@@ -1,6 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
+import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -16,6 +16,10 @@ import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
+import rehypeExpressiveCode from 'rehype-expressive-code';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
@@ -52,7 +56,13 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
+// React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+// Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
+const ENABLE_SENTRY_TOOLBAR =
+  env.ENABLE_SENTRY_TOOLBAR === undefined
+    ? true
+    : Boolean(JSON.parse(env.ENABLE_SENTRY_TOOLBAR));
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -284,6 +294,22 @@ const appConfig: Configuration = {
           },
           {
             loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins: [
+                remarkFrontmatter,
+                remarkMdxFrontmatter,
+                remarkGfm,
+                remarkCallout,
+              ],
+              rehypePlugins: [
+                [
+                  rehypeExpressiveCode,
+                  {
+                    useDarkModeMediaQuery: false,
+                  },
+                ],
+              ],
+            },
           },
         ],
       },
@@ -385,6 +411,7 @@ const appConfig: Configuration = {
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
       'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
     }),
 
     ...(SHOULD_FORK_TS

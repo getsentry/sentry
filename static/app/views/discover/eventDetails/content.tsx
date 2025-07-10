@@ -194,7 +194,6 @@ function EventDetailsContent(props: Props) {
                 projectId={projectId}
                 location={location}
                 errorDest="discover"
-                transactionDest="discover"
               />
             </Layout.Main>
             <Layout.Main fullWidth={!isSidebarVisible}>
@@ -369,7 +368,7 @@ function EventDetailsContent(props: Props) {
 }
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints.small};
+  max-width: ${p => p.theme.breakpoints.sm};
 `;
 
 const TitleWrapper = styled('div')`

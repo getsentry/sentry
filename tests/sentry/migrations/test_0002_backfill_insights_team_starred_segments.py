@@ -18,7 +18,9 @@ class BackfillUserStarredSegmentsTest(TestMigrations):
         self.environment = self.create_environment(
             organization=self.organization, project=self.project
         )
-        self.team: Team = self.create_team(organization=self.organization, members=[self.user])
+        self.team: Team = self.create_team(
+            organization=self.organization, members=[self.user, None]
+        )
 
         self.transaction_name = "my-transaction"
 

@@ -1,10 +1,15 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
-import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
-import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
+import {RepoSelector} from 'sentry/components/codecov/repoSelector/repoSelector';
+import {TestSuiteDropdown} from 'sentry/components/codecov/testSuiteDropdown/testSuiteDropdown';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,8 +20,47 @@ import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/test
 import TestAnalyticsTable, {
   isAValidSort,
 } from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
+import {TestSearchBar} from 'sentry/views/codecov/tests/testSearchBar/testSearchBar';
+
+function EmptySelectorsMessage() {
+  return (
+    <MessageContainer>
+      <StyledIconSearch color="subText" size="xl" />
+      <Title>{t('It looks like there is nothing to show right now.')}</Title>
+      <Subtitle>
+        {t('Please select a repository and branch to view Test Analytics data.')}
+      </Subtitle>
+    </MessageContainer>
+  );
+}
 
 export default function TestsPage() {
+  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+
+  const shouldDisplayContent = integratedOrg && repository && branch && codecovPeriod;
+
+  return (
+    <LayoutGap>
+      <ControlsContainer>
+        <PageFilterBar condensed>
+          <IntegratedOrgSelector />
+          <RepoSelector />
+          <BranchSelector />
+          <DateSelector />
+        </PageFilterBar>
+        <TestSuiteDropdown />
+      </ControlsContainer>
+      {shouldDisplayContent ? <Content /> : <EmptySelectorsMessage />}
+    </LayoutGap>
+  );
+}
+
+const LayoutGap = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
+
+function Content() {
   const location = useLocation();
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -24,21 +68,41 @@ export default function TestsPage() {
   const response = useInfiniteTestResults();
 
   return (
-    <LayoutGap>
-      <PageFilterBar condensed>
-        <IntegratedOrgSelector />
-        <RepoPicker />
-        <BranchSelector />
-        <DatePicker />
-      </PageFilterBar>
+    <Fragment>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
+      <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
-    </LayoutGap>
+    </Fragment>
   );
 }
 
-const LayoutGap = styled('div')`
-  display: grid;
+const MessageContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  justify-items: center;
+  align-items: center;
+  text-align: center;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(4)};
+`;
+
+const Subtitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const Title = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: 14px;
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin-right: ${space(1)};
+`;
+
+const ControlsContainer = styled('div')`
+  display: flex;
   gap: ${space(2)};
 `;

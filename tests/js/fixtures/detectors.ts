@@ -1,9 +1,16 @@
 import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Detector, SnubaQueryDataSource} from 'sentry/types/workflowEngine/detectors';
+import type {
+  ErrorDetector,
+  MetricDetector,
+  SnubaQueryDataSource,
+} from 'sentry/types/workflowEngine/detectors';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
-export function DetectorFixture(params: Partial<Detector> = {}): Detector {
+export function MetricDetectorFixture(
+  params: Partial<MetricDetector> = {}
+): MetricDetector {
   return {
     id: '1',
     name: 'detector',
@@ -14,14 +21,31 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     lastTriggered: '2025-01-01T00:00:00.000Z',
     workflowIds: [],
     config: {
-      detection_type: 'static',
-      threshold_period: 1,
+      detectionType: 'static',
+      thresholdPeriod: 1,
     },
     type: 'metric_issue',
     disabled: false,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     dataSources: params.dataSources ?? [SnubaQueryDataSourceFixture()],
     owner: null,
+    ...params,
+  };
+}
+
+export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): ErrorDetector {
+  return {
+    name: 'Error Detector',
+    createdBy: null,
+    dateCreated: '2025-01-01T00:00:00.000Z',
+    dateUpdated: '2025-01-01T00:00:00.000Z',
+    disabled: false,
+    id: '1',
+    lastTriggered: '2025-01-01T00:00:00.000Z',
+    owner: null,
+    projectId: '1',
+    workflowIds: [],
+    type: 'error',
     ...params,
   };
 }
@@ -40,10 +64,11 @@ export function SnubaQueryDataSourceFixture(
       subscription: '1',
       snubaQuery: {
         aggregate: '',
-        dataset: '',
+        dataset: Dataset.ERRORS,
         id: '',
         query: '',
         timeWindow: 60,
+        eventTypes: [EventTypes.ERROR],
       },
     },
     ...params,

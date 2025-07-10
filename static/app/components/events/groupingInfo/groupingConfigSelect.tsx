@@ -58,5 +58,5 @@ const GroupingConfigItem = styled('span')<{
 }>`
   font-family: ${p => p.theme.text.familyMono};
   opacity: ${p => (p.isHidden ? 0.5 : null)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

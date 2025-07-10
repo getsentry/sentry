@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {
   MIN_HEIGHT,
   MIN_WIDTH,
@@ -73,6 +74,7 @@ function WidgetLayout(props: Widget) {
       height={props.height}
       borderless={props.borderless}
       revealActions={revealActions}
+      minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
@@ -132,6 +134,7 @@ const TitleHoverItems = styled('div')`
 const Frame = styled('div')<{
   borderless?: boolean;
   height?: number;
+  minHeight?: number;
   revealActions?: 'always' | 'hover';
 }>`
   position: relative;
@@ -139,7 +142,7 @@ const Frame = styled('div')<{
   flex-direction: column;
 
   height: ${p => (p.height ? `${p.height}px` : '100%')};
-  min-height: ${MIN_HEIGHT}px;
+  min-height: ${p => p.minHeight}px;
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 

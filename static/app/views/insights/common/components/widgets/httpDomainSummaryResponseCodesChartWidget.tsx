@@ -72,6 +72,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
       ...query,
       chartType: ChartType.LINE,
     })),
+    referrer,
   });
 
   const extraActions = [
@@ -89,6 +90,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           query: query.query,
+          referrer,
         }),
       }))}
     />,

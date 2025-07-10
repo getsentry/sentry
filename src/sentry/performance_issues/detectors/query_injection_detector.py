@@ -57,6 +57,7 @@ class QueryInjectionDetector(PerformanceDetector):
 
         unsafe_inputs = []
         for input_key, input_value in self.potential_unsafe_inputs:
+            original_input_value = input_value.copy()
             # Replace all operands in filter with "?" since the query description is sanitized
             if input_value and isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
@@ -65,19 +66,29 @@ class QueryInjectionDetector(PerformanceDetector):
 
             input_dict = {input_key: input_value}
             if json.dumps(input_dict) in description:
-                description = description.replace(json.dumps(input_value), "?")
-                unsafe_inputs.append(input_key)
+                description = description.replace(json.dumps(input_value), "[UNTRUSTED_INPUT]")
+                unsafe_inputs.append((input_key, original_input_value))
 
         if len(unsafe_inputs) == 0:
             return
 
-        fingerprint = self._fingerprint(description)
+        parameterized_description = span.get("sentry_tags", {}).get("description")
+        # If the query description is not parameterized, use the original description with replacements
+        if not parameterized_description:
+            parameterized_description = description
+        vulnerable_keys = [key for key, _ in unsafe_inputs]
+        fingerprint_description = f"{'-'.join(vulnerable_keys)}-{parameterized_description}"
+        fingerprint = self._fingerprint(fingerprint_description)
+
+        issue_description = (
+            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
+        )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             type=DBQueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
-            desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
+            desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
             cause_span_ids=[],
             parent_span_ids=[],
             offender_span_ids=spans_involved,
@@ -87,7 +98,7 @@ class QueryInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "unsafe_inputs": unsafe_inputs,
+                "vulnerable_parameters": unsafe_inputs,
                 "request_url": self.request_url,
             },
             evidence_display=[

@@ -14,10 +14,14 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
-const TOOLBAR_AGGREGATES = [
+export const LOG_AGGREGATES = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,
+  },
+  {
+    label: t('count unique'),
+    value: AggregationKey.COUNT_UNIQUE,
   },
   {
     label: t('sum'),
@@ -69,13 +73,20 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
-  const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
     label: prettifyTagKey(key),
     value: key,
   }));
-  if (aggregateFunction === 'count') {
-    aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+
+  if (aggregateFunction === AggregationKey.COUNT) {
+    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
     aggregateParam = 'logs';
+  }
+  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
+    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
+      label: prettifyTagKey(key),
+      value: key,
+    }));
   }
 
   return (
@@ -86,7 +97,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         </SectionHeader>
         <ToolbarSelectRow>
           <Select
-            options={TOOLBAR_AGGREGATES}
+            options={LOG_AGGREGATES}
             onChange={val => {
               if (val.value === 'count') {
                 setLogsPageParams({
@@ -95,20 +106,21 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
                 });
               } else {
                 setLogsPageParams({aggregateFn: val.value as string | undefined});
+                functionArgRef.current?.querySelector('button')?.click();
               }
-              functionArgRef.current?.querySelector('button')?.click();
             }}
             value={aggregateFunction}
           />
           <SelectRefWrapper ref={functionArgRef}>
             <Select
               options={aggregatableKeys}
-              onChange={val =>
-                setLogsPageParams({aggregateParam: val.value as string | undefined})
-              }
+              onChange={val => {
+                if (aggregateFunction !== 'count') {
+                  setLogsPageParams({aggregateParam: val.value as string | undefined});
+                }
+              }}
               searchable
               value={aggregateParam}
-              disabled={aggregateFunction === 'count'}
             />
           </SelectRefWrapper>
         </ToolbarSelectRow>
@@ -150,7 +162,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.background};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)};
   }
 `;

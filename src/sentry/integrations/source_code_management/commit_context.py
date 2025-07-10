@@ -56,6 +56,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -139,6 +140,10 @@ class PullRequestFile:
     patch: str
 
 
+ISSUE_TITLE_MAX_LENGTH = 50
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "* ‼️ [**{title}**]({url}){environment}\n"
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -191,8 +196,9 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
-            except ApiRetryError as e:
+            except (ApiRetryError, ApiHostError) as e:
                 # Ignore retry errors for GitLab
+                # Ignore host error errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
@@ -570,6 +576,37 @@ class PRCommentWorkflow(ABC):
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
 
+    @staticmethod
+    def _truncate_title(title: str, max_length: int = ISSUE_TITLE_MAX_LENGTH) -> str:
+        """Truncate title if it's too long and add ellipsis."""
+        if len(title) <= max_length:
+            return title
+        return title[:max_length].rstrip() + "..."
+
+    def get_environment_info(self, issue: Group) -> str:
+        try:
+            recommended_event = issue.get_recommended_event()
+            if recommended_event:
+                environment = recommended_event.get_environment()
+                if environment and environment.name:
+                    return f" in `{environment.name}`"
+        except Exception as e:
+            # If anything goes wrong, just continue without environment info
+            logger.info(
+                "get_environment_info.no-environment",
+                extra={"issue_id": issue.id, "error": e},
+            )
+        return ""
+
+    @staticmethod
+    def get_merged_pr_single_issue_template(title: str, url: str, environment: str) -> str:
+        truncated_title = PRCommentWorkflow._truncate_title(title)
+        return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+            title=truncated_title,
+            url=url,
+            environment=environment,
+        )
+
 
 class OpenPRCommentWorkflow(ABC):
     def __init__(self, integration: CommitContextIntegration):
@@ -636,11 +673,15 @@ class OpenPRCommentWorkflow(ABC):
         self, projects: list[Project], sentry_filenames: list[str], function_names: list[str]
     ) -> list[dict[str, Any]]:
         """
-        Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+        Given a list of projects, filenames reverse-codemapped into filenames in Sentry,
         and function names representing the list of functions changed in a PR file, return a
         sublist of the top 5 recent unhandled issues ordered by event count.
         """
         if not len(projects):
+            logger.info(
+                "open_pr_comment.no_projects",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
         patch_parsers = get_patch_parsers_for_organization(projects[0].organization)
@@ -650,6 +691,10 @@ class OpenPRCommentWorkflow(ABC):
         language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
 
         if not language_parser:
+            logger.info(
+                "open_pr_comment.no_language_parser",
+                extra={"sentry_filenames": sentry_filenames},
+            )
             return []
 
         group_ids = list(
@@ -662,6 +707,13 @@ class OpenPRCommentWorkflow(ABC):
             .order_by("-times_seen")
             .values_list("id", flat=True)
         )[:OPEN_PR_MAX_RECENT_ISSUES]
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.length_of_group_ids",
+                extra={"group_ids_length": len(group_ids)},
+            )
+
         project_ids = [p.id for p in projects]
 
         multi_if = language_parser.generate_multi_if(function_names)
@@ -761,6 +813,12 @@ class OpenPRCommentWorkflow(ABC):
             tenant_ids={"organization_id": projects[0].organization_id},
             query=query,
         )
+
+        if projects[0].organization_id == 1:
+            logger.info(
+                "open_pr_comment.snuba_query",
+                extra={"query": request.to_dict()["query"]},
+            )
 
         try:
             return raw_snql_query(request, referrer=self.referrer.value)["data"]

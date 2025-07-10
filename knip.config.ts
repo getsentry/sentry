@@ -74,7 +74,6 @@ const config: KnipConfig = {
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
-    'ts-node', // Still used implicitly
     'terser', // Still used in a loader
   ],
   rules: {

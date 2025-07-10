@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/core/avatar/projectAvatar';
+import {DocIntegrationAvatar} from './docIntegrationAvatar';
+import {OrganizationAvatar} from './organizationAvatar';
+import {ProjectAvatar} from './projectAvatar';
+import {SentryAppAvatar} from './sentryAppAvatar';
+import {TeamAvatar} from './teamAvatar';
+import {UserAvatar} from './userAvatar';
+
+import types from '!!type-loader!./projectAvatar';
 
 export default Storybook.story('Avatar', (story, APIReference) => {
   APIReference(types.Avatar);

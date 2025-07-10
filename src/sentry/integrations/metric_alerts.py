@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
 
+import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -229,18 +230,16 @@ def incident_attachment_info(
         except AlertRuleDetector.DoesNotExist:
             raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
 
+        workflow_engine_params = title_link_params.copy()
+
         try:
             open_period_incident = IncidentGroupOpenPeriod.objects.get(
                 group_open_period_id=metric_issue_context.open_period_identifier
             )
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            raise ValueError(
-                "Incident group open period not found when querying for IncidentGroupOpenPeriod"
-            )
-
-        workflow_engine_params = title_link_params.copy()
-
-        workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
+            workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
+        except IncidentGroupOpenPeriod.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            # Swallowing the error here since this model isn't being written to just yet
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 

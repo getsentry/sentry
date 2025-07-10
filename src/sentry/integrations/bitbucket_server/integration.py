@@ -24,17 +24,19 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -150,12 +152,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(IntegrationPipelineViewT):
+class InstallationConfigView:
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -173,14 +175,14 @@ class InstallationConfigView(IntegrationPipelineViewT):
         )
 
 
-class OAuthLoginView(IntegrationPipelineViewT):
+class OAuthLoginView:
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_LOGIN,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -214,14 +216,14 @@ class OAuthLoginView(IntegrationPipelineViewT):
             return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(IntegrationPipelineViewT):
+class OAuthCallbackView:
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_CALLBACK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -260,7 +262,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     @property
     def integration_name(self) -> str:
-        return "bitbucket_server"
+        return IntegrationProviderSlug.BITBUCKET_SERVER.value
 
     def get_client(self) -> BitbucketServerClient:
         try:
@@ -313,7 +315,10 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     def get_unmigratable_repositories(self):
         repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["bitbucket_server"]
+            organization_id=self.organization_id,
+            providers=[
+                IntegrationProviderSlug.BITBUCKET_SERVER.value,
+            ],
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
@@ -378,7 +383,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     )
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def post_install(
@@ -390,7 +395,10 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
-            providers=["bitbucket_server", "integrations:bitbucket_server"],
+            providers=[
+                IntegrationProviderSlug.BITBUCKET_SERVER.value,
+                f"integrations:{IntegrationProviderSlug.BITBUCKET_SERVER.value}",
+            ],
             has_integration=False,
         )
 

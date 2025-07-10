@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export enum TabKey {
+  AI = 'ai',
   BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
   ERRORS = 'errors',
@@ -14,6 +16,7 @@ export enum TabKey {
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
   const supportedVideoTabs = [
+    TabKey.AI,
     TabKey.TAGS,
     TabKey.ERRORS,
     TabKey.BREADCRUMBS,
@@ -30,7 +33,13 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 }
 
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
-  const defaultTab = TabKey.BREADCRUMBS;
+  const organization = useOrganization();
+
+  // Use AI as default tab if user has the replay-ai-summaries feature flag, otherwise use breadcrumbs
+  const defaultTab = organization.features.includes('replay-ai-summaries')
+    ? TabKey.AI
+    : TabKey.BREADCRUMBS;
+
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';

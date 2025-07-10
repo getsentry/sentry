@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=45,
     ),
 )
 def pr_comment_workflow(pr_id: int, project_id: int):
@@ -340,7 +341,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
-        if file_extension == ["php"]:
+        if file_extension in ["php"]:
             logger.info(
                 _open_pr_comment_log(integration_name=integration_name, suffix="php"),
                 extra={
@@ -352,9 +353,33 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
-        if file_extension == ["rb"]:
+        if file_extension in ["rb"]:
             logger.info(
                 _open_pr_comment_log(integration_name=integration_name, suffix="ruby"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension in ["cs"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="csharp"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
+        if file_extension in ["go"]:
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="go"),
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
@@ -373,6 +398,19 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             function_names=list(function_names),
         )
         if not len(top_issues):
+            if organization.id == 1:
+                logger.info(
+                    _open_pr_comment_log(
+                        integration_name=integration_name, suffix="no_issues_for_file"
+                    ),
+                    extra={
+                        "organization_id": org_id,
+                        "repository_id": repo.id,
+                        "file_name": file.filename,
+                        "sentry_filenames": list(sentry_filenames),
+                        "function_names": list(function_names),
+                    },
+                )
             continue
 
         top_issues_per_file.append(top_issues)

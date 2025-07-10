@@ -8,7 +8,7 @@ from django.http.response import HttpResponseBase
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
 
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -18,7 +18,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -33,7 +33,8 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
@@ -198,12 +199,12 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> Sequence[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [
             NestedPipelineView(
                 bind_key="identity",
                 provider_key="bitbucket",
-                pipeline_cls=IdentityProviderPipeline,
+                pipeline_cls=IdentityPipeline,
                 config={"redirect_url": absolute_uri("/extensions/bitbucket/setup/")},
             ),
             VerifyInstallation(),
@@ -274,8 +275,8 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
 
 
-class VerifyInstallation(IntegrationPipelineViewT):
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+class VerifyInstallation:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.VERIFY_INSTALLATION,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

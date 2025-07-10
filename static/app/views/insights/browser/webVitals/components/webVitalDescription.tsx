@@ -122,7 +122,7 @@ export const VITAL_DESCRIPTIONS: Partial<
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
-  const colors = theme.chart.getColorPalette(3);
+  const colors = theme.chart.getColorPalette(4);
   const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score === undefined ? undefined : scoreToStatus(score);
 
@@ -210,7 +210,7 @@ const DescriptionWrapper = styled('div')`
 const Value = styled('h2')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(1)};
 `;
 
@@ -237,10 +237,10 @@ const ScoreBadge = styled('div')<{status: PerformanceScore}>`
 
 const StatusText = styled('span')`
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StatusScore = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
