@@ -44,9 +44,9 @@ import {
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import DashboardsOwnedTable, {
+import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
-} from 'sentry/views/dashboards/manage/tableView/ownedTable';
+} from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -345,7 +345,7 @@ function ManageDashboards() {
         columnCount={columnCount}
       />
     ) : organization.features.includes('dashboards-starred-reordering') ? (
-      <DashboardsOwnedTable
+      <OwnedDashboardsTable
         dashboards={ownedDashboards.data ?? []}
         isLoading={ownedDashboards.isLoading}
         pageLinks={ownedDashboards.getResponseHeader?.('Link') ?? undefined}
