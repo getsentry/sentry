@@ -13,6 +13,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_sdk import set_tag
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
@@ -307,8 +308,8 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
             recording.replay_event,
         )
 
-    # Emit trace-items to EAP.
-    emit_trace_items_to_eap(recording.trace_items)
+    if recording.project_id in options.get("replay.recording.ingest-trace-items.allow-list"):
+        emit_trace_items_to_eap(recording.trace_items)
 
 
 @sentry_sdk.trace
