@@ -151,7 +151,25 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            {isQueryInjection ? feedbackButton : <NewIssueExperienceButton />}
+            {isQueryInjection ? (
+              <ButtonBar gap={0.5}>
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
