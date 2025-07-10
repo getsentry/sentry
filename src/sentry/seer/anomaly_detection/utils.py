@@ -271,7 +271,7 @@ def fetch_historical_data(
     if start is None:
         start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
-
+    event_types = get_event_types(snuba_query, event_types)
     dataset = get_dataset_from_label_and_event_types(snuba_query.dataset, event_types)
 
     if not project or not dataset or not organization:
@@ -328,7 +328,6 @@ def fetch_historical_data(
         )
         return results
     else:
-        event_types = get_event_types(snuba_query, event_types)
         snuba_query_string = get_snuba_query_string(snuba_query, event_types)
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
