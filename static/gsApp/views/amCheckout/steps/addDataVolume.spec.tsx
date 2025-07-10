@@ -485,7 +485,7 @@ describe('AddDataVolume for modern plans', function () {
       />
     );
 
-    const heading = await screen.findByText('Set Reserved Volumes (optional)');
+    const heading = await screen.findByText('Set Reserved Volumes (Optional)');
     expect(heading).toBeInTheDocument();
   });
 
@@ -505,7 +505,7 @@ describe('AddDataVolume for modern plans', function () {
     );
 
     // Open section by clicking on heading.
-    const heading = await screen.findByText('Set Reserved Volumes (optional)');
+    const heading = await screen.findByText('Set Reserved Volumes (Optional)');
     await userEvent.click(heading);
 
     assertSliders([
@@ -663,7 +663,7 @@ describe('AddDataVolume for modern plans', function () {
       />
     );
     const panel = await screen.findByTestId('step-add-data-volume');
-    const heading = within(panel).getByText('Set Reserved Volumes (optional)');
+    const heading = within(panel).getByText('Set Reserved Volumes (Optional)');
     await userEvent.click(heading);
 
     // Click continue to collapse the panel again

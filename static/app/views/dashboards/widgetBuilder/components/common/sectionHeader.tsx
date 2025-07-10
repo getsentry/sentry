@@ -29,7 +29,7 @@ export function SectionHeader({
       >
         <StyledHeader className={className}>{title}</StyledHeader>
       </Tooltip>
-      {optional && <OptionalHeader>{t('(optional)')}</OptionalHeader>}
+      {optional && <OptionalHeader>{t('(Optional)')}</OptionalHeader>}
     </HeaderWrapper>
   );
 }

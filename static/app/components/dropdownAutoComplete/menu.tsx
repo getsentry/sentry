@@ -144,12 +144,12 @@ export interface MenuProps
   inputProps?: React.HTMLAttributes<HTMLInputElement>;
 
   /**
-   * Used to control the input value (optional)
+   * Used to control the input value (Optional)
    */
   inputValue?: string;
 
   /**
-   * Used to control dropdown state (optional)
+   * Used to control dropdown state (Optional)
    */
   isOpen?: boolean;
 

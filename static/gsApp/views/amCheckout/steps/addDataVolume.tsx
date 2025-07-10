@@ -43,7 +43,7 @@ function AddDataVolume({
     !isAmPlan(checkoutTier) ||
     [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
 
-  const title = isLegacy ? t('Reserved Volumes') : t('Set Reserved Volumes (optional)');
+  const title = isLegacy ? t('Reserved Volumes') : t('Set Reserved Volumes (Optional)');
   const testId = 'reserved-volumes';
 
   const renderInfo = () => {

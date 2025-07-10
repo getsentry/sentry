@@ -310,7 +310,7 @@ function SpanTabControlSection({
         id={ExploreSpansTour.TOOLBAR}
         title={t('Configure Your Query')}
         description={t(
-          'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (optional) and sort.'
+          'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (Optional) and sort.'
         )}
         position="right"
         margin={-8}
