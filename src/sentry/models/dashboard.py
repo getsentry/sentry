@@ -321,7 +321,7 @@ class Dashboard(Model):
 
         return f"{base_name} copy {next_copy_number}"
 
-    def get_filters(self) -> dict[str, Any] | None:
+    def get_filters(self) -> dict[str, Any]:
         """
         Returns the filters for the dashboard.
 
