@@ -172,10 +172,33 @@ class GetRateLimitKeyTest(TestCase):
 
     def test_org_auth_token(self):
         self.request.user = AnonymousUser()
-        self.request.auth = AuthenticatedToken.from_token(
-            self.create_org_auth_token(organization_id=self.organization.id, scope_list=["org:ci"])
+        creator_user = self.user
+        org_auth_token = self.create_org_auth_token(
+            organization_id=self.organization.id,
+            scope_list=["org:ci"],
+            created_by_id=creator_user.id
+        )
+        self.request.auth = AuthenticatedToken.from_token(org_auth_token)
+
+        # Org auth tokens should now use per-user rate limiting based on the creator
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"user:default:APITestEndpoint:GET:{creator_user.id}"
         )
 
+    def test_org_auth_token_no_creator(self):
+        # Test fallback behavior when org auth token has no creator
+        self.request.user = AnonymousUser()
+        org_auth_token = self.create_org_auth_token(
+            organization_id=self.organization.id,
+            scope_list=["org:ci"],
+            created_by_id=None
+        )
+        self.request.auth = AuthenticatedToken.from_token(org_auth_token)
+
+        # Should fallback to IP-based rate limiting when no creator is available
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
