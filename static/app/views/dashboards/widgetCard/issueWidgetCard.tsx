@@ -16,6 +16,7 @@ import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -31,6 +32,7 @@ type Props = {
   theme: Theme;
   widget: Widget;
   errorMessage?: string;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   tableResults?: TableData[];
 };
 
@@ -43,6 +45,7 @@ export function IssueWidgetCard({
   organization,
   location,
   theme,
+  onWidgetTableResizeColumn,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -65,12 +68,14 @@ export function IssueWidgetCard({
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
   const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.();
-  const columns = decodeColumnOrder(queryFields.map(field => ({field}))).map(column => ({
-    key: column.key,
-    name: column.name,
-    width: column.width,
-    type: column.type === 'never' ? null : column.type,
-  }));
+  const columns = decodeColumnOrder(queryFields.map(field => ({field}))).map(
+    (column, index) => ({
+      key: column.key,
+      name: column.name,
+      width: widget.tableWidths?.[index] ?? column.width,
+      type: column.type === 'never' ? null : column.type,
+    })
+  );
   const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
   const tableData = convertTableDataToTabularData(tableResults?.[0]);
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
@@ -108,6 +113,7 @@ export function IssueWidgetCard({
             unit,
           } satisfies RenderFunctionBaggage;
         }}
+        onResizeColumn={onWidgetTableResizeColumn}
       />
     </TableContainer>
   ) : (
