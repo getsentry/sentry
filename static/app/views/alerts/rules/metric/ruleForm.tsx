@@ -626,7 +626,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               aggregate: name === 'aggregate' ? (value as string) : aggregate,
               dataset,
               organization,
-              eventTypes: eventTypes ?? undefined,
+              eventTypes,
             });
 
             return {
