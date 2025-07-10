@@ -44,6 +44,7 @@ import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -66,11 +67,8 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {isJavascriptPlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -79,6 +77,8 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -92,7 +92,6 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
@@ -278,21 +277,12 @@ export function EventDetailsContent({
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
       {isANR && (
-        <QuickTraceQuery
-          event={event}
-          location={location}
-          orgSlug={organization.slug}
-          type={'spans'}
-          skipLight
+        <TraceStateProvider
+          initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}
+          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
         >
-          {results => {
-            return (
-              <QuickTraceContext value={results}>
-                <AnrRootCause event={event} organization={organization} />
-              </QuickTraceContext>
-            );
-          }}
-        </QuickTraceQuery>
+          <AnrRootCause event={event} organization={organization} />
+        </TraceStateProvider>
       )}
       {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
