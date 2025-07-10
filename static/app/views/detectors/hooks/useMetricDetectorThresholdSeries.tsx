@@ -66,7 +66,7 @@ interface UseMetricDetectorThresholdSeriesResult {
   /**
    * Helps set the y-axis bounds to ensure all thresholds are visible
    */
-  maxValue: number;
+  maxValue: number | undefined;
   series: AreaChartSeries[];
 }
 
@@ -76,10 +76,10 @@ export function useMetricDetectorThresholdSeries({
 }: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
 
-  return useMemo((): {maxValue: number; series: AreaChartSeries[]} => {
+  return useMemo((): UseMetricDetectorThresholdSeriesResult => {
     if (detectionType !== 'static') {
       // Other detectionTypes are not currently supported
-      return {series: [], maxValue: 0};
+      return {series: [], maxValue: undefined};
     }
 
     const {thresholds} = extractThresholdsFromConditions(conditions);

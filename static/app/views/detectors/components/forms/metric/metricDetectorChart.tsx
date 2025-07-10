@@ -74,7 +74,10 @@ export function MetricDetectorChart({
     });
 
   // Calculate y-axis bounds to ensure all thresholds are visible
-  const yAxisBounds = useMemo(() => {
+  const yAxisBounds = useMemo((): {max: number | undefined; min: number | undefined} => {
+    if (thresholdMaxValue === undefined) {
+      return {min: undefined, max: undefined};
+    }
     // Get series data bounds
     const seriesData = series[0]?.data || [];
     const seriesValues = seriesData.map(point => point.value).filter(val => !isNaN(val));
@@ -92,7 +95,6 @@ export function MetricDetectorChart({
     return {
       min: Math.round(paddedMin),
       max: Math.round(paddedMax),
-      hasThresholds: thresholdMaxValue > 0,
     };
   }, [series, thresholdMaxValue]);
 
@@ -132,8 +134,8 @@ export function MetricDetectorChart({
         stacked={false}
         series={mergedSeries}
         yAxis={{
-          min: yAxisBounds.hasThresholds ? yAxisBounds.min : undefined,
-          max: yAxisBounds.hasThresholds ? yAxisBounds.max : undefined,
+          min: yAxisBounds.min,
+          max: yAxisBounds.max,
           axisLabel: {
             // Hide the maximum y-axis label to avoid showing arbitrary threshold values
             showMaxLabel: false,
