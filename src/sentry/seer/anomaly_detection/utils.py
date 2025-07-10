@@ -21,6 +21,12 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
+from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+)
 
 NUM_DAYS = 28
 
@@ -29,6 +35,21 @@ SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
     SnubaQueryEventType.EventType.DEFAULT: "default",
     SnubaQueryEventType.EventType.TRANSACTION: "transaction",
 }
+
+
+def get_anomaly_evaluation_from_workflow_engine(
+    detector: Detector,
+    data_packet_processing_results: list[
+        tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+    ],
+) -> bool | DetectorEvaluationResult | None:
+    evaluation = None
+    for result in data_packet_processing_results:
+        if result[0].id == detector.id:
+            evaluation = result[1].get("values")
+            if evaluation:
+                return evaluation.priority == DetectorPriorityLevel.HIGH
+    return evaluation
 
 
 def has_anomaly(anomaly: TimeSeriesPoint, label: str) -> bool:

@@ -588,6 +588,9 @@ SPANS_PRIVATE_ATTRIBUTES: set[str] = {
     if definition.private
 }
 
+# For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
+SPANS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {"sentry._meta"}
+
 SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
     definition.replacement
     for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()

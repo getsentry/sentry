@@ -21,6 +21,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -36,6 +37,7 @@ import type {AutomationFormData} from 'sentry/views/automations/components/autom
 import {
   getAutomationFormData,
   getNewAutomationData,
+  validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
@@ -67,10 +69,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
 }
 
 export default function AutomationEdit() {
-  const navigate = useNavigate();
-  const organization = useOrganization();
   const params = useParams<{automationId: string}>();
-  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   useWorkflowEngineFeatureGate({redirect: true});
 
@@ -80,6 +79,23 @@ export default function AutomationEdit() {
     isError,
     refetch,
   } = useAutomationQuery(params.automationId);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError || !automation) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return <AutomationEditForm automation={automation} />;
+}
+
+function AutomationEditForm({automation}: {automation: Automation}) {
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const params = useParams<{automationId: string}>();
+  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -115,24 +131,21 @@ export default function AutomationEdit() {
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
-      const formData = getNewAutomationData(data as AutomationFormData, state);
-      const updatedData = {
-        automationId: params.automationId,
-        ...formData,
-      };
-      const updatedAutomation = await updateAutomation(updatedData);
-      navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
+
+      if (Object.keys(errors).length === 0) {
+        const formData = getNewAutomationData(data as AutomationFormData, state);
+        const updatedData = {
+          automationId: params.automationId,
+          ...formData,
+        };
+        const updatedAutomation = await updateAutomation(updatedData);
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      }
     },
     [params.automationId, organization.slug, navigate, updateAutomation, state]
   );
-
-  if (isPending && !initialData) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError || !automation || !initialData) {
-    return <LoadingError onRetry={refetch} />;
-  }
 
   return (
     <FullHeightForm

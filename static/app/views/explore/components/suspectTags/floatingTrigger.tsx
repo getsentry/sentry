@@ -82,6 +82,7 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}
         position: 'absolute',
         top: triggerPosition.top,
         left: triggerPosition.left,
+        zIndex: 1000,
       }}
     >
       <List>
