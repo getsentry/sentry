@@ -6,6 +6,75 @@ const HERO_IMAGE_URL =
   'data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAEAcAASxYAAEAAQAcJaQAA3AA/vuUAAA=';
 
 function LoginPage() {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email');
+    const password = formData.get('password');
+
+    try {
+      const response = await fetch('/api/0/auth-v2/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({email, password}),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      await response.json();
+    } catch (error) {
+      // Handle error in UI (to be implemented)
+    }
+  };
+
+  const handleGetCsrfToken = async () => {
+    try {
+      const response = await fetch('/api/0/auth-v2/csrf/', {
+        method: 'GET',
+      });
+
+      const lol = await response.json();
+      console.log(lol);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleGetHw = async () => {
+    try {
+      const response = await fetch('/api/0/auth-v2/login/', {
+        method: 'GET',
+      });
+
+      const lol = await response.json();
+      console.log(lol);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleRotateCsrfToken = async () => {
+    try {
+      const response = await fetch('/api/0/auth-v2/csrf/', {
+        method: 'PUT',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rotate CSRF token');
+      }
+
+      const lol = await response.json();
+      console.log(lol);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <Page>
       <LeftColumn>
@@ -15,11 +84,26 @@ function LoginPage() {
         <RegisterPrompt />
         <SignInForm>
           <h2>Sign In</h2>
-          <form>
-            <Input type="email" placeholder="Email" required />
+          <form onSubmit={handleSubmit}>
+            <Input
+              name="email"
+              type="email"
+              placeholder="Email"
+              value="dlee@sentry.io"
+              required
+            />
+            <Input name="password" type="password" placeholder="Password" required />
             <Button type="submit">Sign In</Button>
           </form>
         </SignInForm>
+
+        <CsrfButtonGroup>
+          <SecondaryButton onClick={handleGetCsrfToken}>Get CSRF Token</SecondaryButton>
+          <SecondaryButton onClick={handleRotateCsrfToken}>
+            Rotate CSRF Token
+          </SecondaryButton>
+          <SecondaryButton onClick={handleGetHw}>Get HW</SecondaryButton>
+        </CsrfButtonGroup>
       </RightColumn>
     </Page>
   );
@@ -103,6 +187,24 @@ const PromptWrapper = styled('div')`
   top: ${space(2)};
   right: ${space(2)};
   text-align: right;
+`;
+
+const CsrfButtonGroup = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  margin-top: ${space(2)};
+`;
+
+const SecondaryButton = styled('button')`
+  padding: 10px;
+  background-color: transparent;
+  color: ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: 4px;
+  cursor: pointer;
+  &:hover {
+    background-color: ${p => p.theme.gray100};
+  }
 `;
 
 export default LoginPage;
