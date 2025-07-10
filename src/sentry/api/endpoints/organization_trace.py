@@ -27,8 +27,8 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
-from sentry.utils.validators import is_event_id
 from sentry.utils.numbers import base32_encode
+from sentry.utils.validators import is_event_id
 
 # 1 worker each for spans, errors, performance issues
 _query_thread_pool = ThreadPoolExecutor(max_workers=3)
