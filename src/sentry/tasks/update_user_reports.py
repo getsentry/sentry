@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=issues_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def update_user_reports(
