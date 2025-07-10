@@ -78,7 +78,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         project = (
             Project.objects.filter(
                 organization=organization,
-                # teams__organizationmember__user_id=request.user.id,
+                teams__organizationmember__user_id=request.user.id,
                 status=ObjectStatus.ACTIVE,
             )
             .order_by("name")
