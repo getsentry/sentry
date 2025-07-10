@@ -153,7 +153,13 @@ export const Heading = styled((props: HeadingProps) => {
 
   font-family: ${p => (p.monospace ? p.theme.text.familyMono : p.theme.text.family)};
   font-weight: ${p => ((p.bold ?? true) ? p.theme.fontWeight.bold : undefined)};
-  font-variant-numeric: ${p => (p.tabular ? 'tabular-nums' : undefined)};
+  font-variant-numeric: ${p =>
+    [
+      p.tabular ? 'tabular-nums' : undefined,
+      p.fraction ? 'diagonal-fractions' : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 `;
 
