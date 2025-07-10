@@ -84,7 +84,7 @@ interface TableWidgetVisualizationProps {
   onChangeSort?: (sort: Sort) => void;
 
   /**
-   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL
+   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL. This function always guarantees width field is supplied, meaning it will fallback to -1
    * @param columns an array of columns with the updated widths
    */
   onResizeColumn?: (columns: TabularColumn[]) => void;
