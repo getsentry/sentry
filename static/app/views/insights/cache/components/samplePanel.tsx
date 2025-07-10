@@ -64,7 +64,6 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {

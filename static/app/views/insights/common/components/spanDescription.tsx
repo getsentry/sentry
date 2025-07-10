@@ -13,7 +13,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
@@ -62,7 +61,6 @@ export function DatabaseSpanDescription({
       limit: 1,
       fields: [
         SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.DB_SYSTEM,
         SpanIndexedField.CODE_FILEPATH,
@@ -81,11 +79,6 @@ export function DatabaseSpanDescription({
 
   const project = projects.find(p => p.id === indexedSpan?.project_id?.toString());
 
-  const {data: eventDetailsData} = useEventDetails({
-    eventId: indexedSpan?.['transaction.id'],
-    projectSlug: project?.slug,
-  });
-
   const {data: release} = useRelease({
     orgSlug: organization.slug,
     projectSlug: project?.slug ?? '',
@@ -101,13 +94,11 @@ export function DatabaseSpanDescription({
         }
       : undefined;
 
-  const event = useEap
-    ? {
-        platform: indexedSpan?.platform,
-        release,
-        sdk,
-      }
-    : eventDetailsData;
+  const event = {
+    platform: indexedSpan?.platform,
+    release,
+    sdk,
+  };
 
   // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
   const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(

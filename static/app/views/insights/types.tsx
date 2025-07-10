@@ -364,7 +364,6 @@ export enum SpanIndexedField {
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
   TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
