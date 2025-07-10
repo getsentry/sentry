@@ -65,6 +65,28 @@ describe('useSeerExplorer', () => {
         },
       });
 
+      // Mock the GET request that happens after POST to fetch session state
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/new-run-123/`,
+        method: 'GET',
+        body: {
+          session: {
+            messages: [
+              {
+                id: 'msg-1',
+                type: 'response',
+                content: 'Response content',
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+            ],
+            run_id: 'new-run-123',
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
       const {result} = renderHook(() => useSeerExplorer(), {
         wrapper: createWrapper(),
       });
@@ -78,7 +100,6 @@ describe('useSeerExplorer', () => {
         expect.objectContaining({
           method: 'POST',
           data: expect.objectContaining({
-            run_id: null,
             query: 'Test query',
             insert_index: 0,
             message_timestamp: expect.any(Number),

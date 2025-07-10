@@ -191,6 +191,35 @@ describe('ExplorerPanel', () => {
         },
       });
 
+      // Mock the GET request that happens after POST to fetch session state
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            messages: [
+              {
+                id: 'msg-1',
+                type: 'user-input',
+                content: 'Test message',
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+              {
+                id: 'response-1',
+                type: 'response',
+                content: 'Response content',
+                timestamp: '2024-01-01T00:01:00Z',
+                loading: false,
+              },
+            ],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        },
+      });
+
       render(<ExplorerPanel isVisible />, {organization});
 
       const textarea = screen.getByRole('textbox');
@@ -230,6 +259,35 @@ describe('ExplorerPanel', () => {
             content: 'Response',
             timestamp: '2024-01-01T00:01:00Z',
             loading: false,
+          },
+        },
+      });
+
+      // Mock the GET request that happens after POST to fetch session state
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            messages: [
+              {
+                id: 'msg-1',
+                type: 'user-input',
+                content: 'Test message',
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+              {
+                id: 'response-1',
+                type: 'response',
+                content: 'Response',
+                timestamp: '2024-01-01T00:01:00Z',
+                loading: false,
+              },
+            ],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
           },
         },
       });
