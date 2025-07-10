@@ -502,7 +502,20 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
-# 1020 was DBQueryInjectionVulnerabilityGroupType, which was experimental
+# Experimental Group Type for Query Injection Vulnerability
+@dataclass(frozen=True)
+class DBQueryInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1020
+    slug = "db_query_injection_vulnerability"
+    description = "Potential Database Query Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
+
+
 @dataclass(frozen=True)
 class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1021
