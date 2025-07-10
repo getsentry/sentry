@@ -57,16 +57,23 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
   return {thresholds};
 }
 
-/**
- *
- */
-export function useThresholdSeries({
-  conditions,
-  detectionType,
-}: {
+interface UseMetricDetectorThresholdSeriesProps {
   conditions: Array<Omit<DataCondition, 'id'>>;
   detectionType: MetricDetectorConfig['detectionType'];
-}) {
+}
+
+interface UseMetricDetectorThresholdSeriesResult {
+  /**
+   * Helps set the y-axis bounds to ensure all thresholds are visible
+   */
+  maxValue: number;
+  series: AreaChartSeries[];
+}
+
+export function useMetricDetectorThresholdSeries({
+  conditions,
+  detectionType,
+}: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
 
   return useMemo((): {maxValue: number; series: AreaChartSeries[]} => {
@@ -94,9 +101,6 @@ export function useThresholdSeries({
       };
     });
 
-    /**
-     * Helps set the y-axis bounds to ensure all thresholds are visible
-     */
     const maxValue = Math.max(...thresholds.map(threshold => threshold.value));
 
     return {series, maxValue};

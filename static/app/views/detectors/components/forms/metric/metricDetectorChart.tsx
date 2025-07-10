@@ -12,7 +12,7 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
-import {useThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
 const CHART_HEIGHT = 150;
 
@@ -67,10 +67,11 @@ export function MetricDetectorChart({
     projectId,
   });
 
-  const {series: thresholdSeries, maxValue: thresholdMaxValue} = useThresholdSeries({
-    conditions,
-    detectionType,
-  });
+  const {series: thresholdSeries, maxValue: thresholdMaxValue} =
+    useMetricDetectorThresholdSeries({
+      conditions,
+      detectionType,
+    });
 
   // Calculate y-axis bounds to ensure all thresholds are visible
   const yAxisBounds = useMemo(() => {

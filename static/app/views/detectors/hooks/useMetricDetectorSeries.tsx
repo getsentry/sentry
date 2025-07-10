@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {Series} from 'sentry/types/echarts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -15,6 +16,12 @@ interface UseMetricDetectorSeriesProps {
   query: string;
 }
 
+interface UseMetricDetectorSeriesResult {
+  isError: boolean;
+  isPending: boolean;
+  series: Series[];
+}
+
 /**
  * Make the request to the backend provided series query and transform into a series
  */
@@ -25,7 +32,7 @@ export function useMetricDetectorSeries({
   query,
   environment,
   projectId,
-}: UseMetricDetectorSeriesProps) {
+}: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
   const seriesQueryOptions = datasetConfig.getSeriesQueryOptions({
