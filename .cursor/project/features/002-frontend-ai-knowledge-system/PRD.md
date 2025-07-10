@@ -20,6 +20,8 @@ This document outlines the technical requirements for implementing a comprehensi
 - Describe error boundary patterns and performance optimization
 - Map key directories in `static/app/` with their purposes
 - Include component lifecycle and data flow patterns
+- Document local development setup and frontend dev server usage
+- Include onboarding guidance for new team members
 
 **Implementation**:
 
@@ -193,6 +195,8 @@ const SENTRY_DESIGN_TOKENS = {
 - [ ] Document MobX store patterns and usage
 - [ ] Create routing and navigation documentation
 - [ ] Establish JSDoc standards for components
+- [ ] Document local frontend dev server setup and usage patterns
+- [ ] Create onboarding guidance for new team members
 
 ### Phase 2: Design System Documentation (Week 3-4)
 
@@ -308,12 +312,14 @@ static/app/stories/
 - Brand guideline compliance: 100%
 - TypeScript compilation success: 100%
 - Accessibility audit pass rate: >90%
+- New team member onboarding success: >100% report AI rules helped them follow best practices and use local dev tools
 
 ### User Experience Validation
 - AI suggestions require minimal manual styling adjustments
 - Generated components integrate seamlessly with existing UI
 - Development velocity increases measurably
 - Design system adoption improves across the codebase
+- New team members onboard faster with AI-guided best practices and local development tool usage
 
 ## Risk Mitigation
 
