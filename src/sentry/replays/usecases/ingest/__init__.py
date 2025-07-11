@@ -6,11 +6,11 @@ from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
-from sentry.replays.lib.kafka import TraceItem
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
@@ -187,7 +187,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
             recording.replay_event,
         )
 
-    emit_trace_items_to_eap(recording["project_id"], recording["trace_items"])
+    emit_trace_items_to_eap(recording.context["project_id"], recording.trace_items)
 
 
 @sentry_sdk.trace
