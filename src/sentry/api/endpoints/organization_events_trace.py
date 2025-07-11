@@ -1790,7 +1790,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     def serialize(
         self,
         results: Mapping[str, int],
-    ) -> Mapping[str, int | dict[str, int]]:
+    ) -> Mapping[str, int | dict[str, int] | list[Any]]:
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
@@ -1798,6 +1798,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
             "span_count": 0,
-            "transaction_child_count_map": {},
+            "transaction_child_count_map": [],
             "span_count_map": {},
         }
