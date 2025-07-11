@@ -24,6 +24,7 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -368,6 +369,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     def update_comment(self, issue_id, user_id, group_note):
         pass
+
+
+class IntegrationSyncTargetNotFound(IntegrationError):
+    pass
 
 
 class IssueSyncIntegration(IssueBasicIntegration, ABC):
