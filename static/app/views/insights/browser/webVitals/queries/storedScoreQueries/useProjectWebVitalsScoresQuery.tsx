@@ -1,9 +1,9 @@
 import type {Tag} from 'sentry/types/group';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
@@ -23,8 +23,6 @@ export const useProjectWebVitalsScoresQuery = ({
   browserTypes,
   subregions,
 }: Props = {}) => {
-  const defaultQuery = useDefaultWebVitalsQuery();
-
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
@@ -43,7 +41,7 @@ export const useProjectWebVitalsScoresQuery = ({
     {
       cursor: '',
       limit: 50,
-      search: [defaultQuery, search.formatString()].join(' ').trim(),
+      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       fields: [
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',

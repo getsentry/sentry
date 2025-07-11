@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {
@@ -510,20 +511,14 @@ export function getCheckoutAPIData({
 }: APIDataProps) {
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
-  const reservedData = {
-    // TODO(data categories): BIL-965
-    reservedErrors: formatReservedData(formData.reserved.errors),
-    reservedTransactions: formatReservedData(formData.reserved.transactions),
-    reservedAttachments: formatReservedData(formData.reserved.attachments),
-    reservedReplays: formatReservedData(formData.reserved.replays),
-    reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
-    reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
-    reservedSpans: formatReservedData(formData.reserved.spans),
-    reservedUptime: formatReservedData(formData.reserved.uptime),
-  } satisfies Partial<
-    // Enforce plural spelling against the enums in DataCategory
-    Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
-  >;
+  const reservedData = Object.fromEntries(
+    Object.entries(formData.reserved).map(([category, value]) => [
+      `reserved${toTitleCase(category, {
+        allowInnerUpperCase: true,
+      })}`,
+      formatReservedData(value),
+    ])
+  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)

@@ -63,6 +63,7 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -105,6 +106,7 @@ type WidgetCardChartProps = Pick<
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
@@ -155,6 +157,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       organization,
       theme,
       onWidgetTableSort,
+      onWidgetTableResizeColumn,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -181,10 +184,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           field,
         })),
         tableResults[i]?.meta
-      ).map(column => ({
+      ).map((column, index) => ({
         key: column.key,
-        name: column.name,
-        width: minTableColumnWidth ?? column.width,
+        width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
         sortable:
           widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
@@ -226,6 +228,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                   eventView,
                 } satisfies RenderFunctionBaggage;
               }}
+              onResizeColumn={onWidgetTableResizeColumn}
             />
           ) : (
             <StyledSimpleTableChart

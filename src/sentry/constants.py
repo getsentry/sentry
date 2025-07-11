@@ -640,6 +640,7 @@ class InsightModules(Enum):
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
     AGENTS = "agents"
+    MCP = "mcp"
 
 
 INSIGHT_MODULE_FILTERS = {
@@ -676,6 +677,7 @@ INSIGHT_MODULE_FILTERS = {
     InsightModules.AGENTS: lambda spans: any(
         span.get("op").startswith("gen_ai.") for span in spans
     ),
+    InsightModules.MCP: lambda spans: any(span.get("op").startswith("mcp.") for span in spans),
 }
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

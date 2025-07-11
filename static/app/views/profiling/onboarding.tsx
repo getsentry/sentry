@@ -6,18 +6,18 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {
+  OnboardingCodeSnippet,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Configuration,
-  type StepProps,
-  StepTitles,
-  StepType,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
   DocsPageLocation,
   type DocsParams,
+  type OnboardingStep,
   ProductSolution,
+  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -122,7 +122,7 @@ function StepRenderer({
 }: {
   isLastStep: boolean;
   project: Project;
-  step: StepProps;
+  step: OnboardingStep;
 }) {
   const {type, title} = step;
   const api = useApi();
@@ -199,7 +199,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
                 <Arcade
-                  src="https://app.arcade.software/share/IebjOcBKpUHBuFpfGO4f?embed"
+                  src="https://demo.arcade.software/IebjOcBKpUHBuFpfGO4f?embed"
                   loading="lazy"
                   allowFullScreen
                 />
