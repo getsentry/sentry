@@ -29,7 +29,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
