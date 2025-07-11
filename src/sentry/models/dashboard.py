@@ -335,8 +335,8 @@ class Dashboard(Model):
         )
 
         return {
-            "projects": projects,
             **(self.filters or {}),
+            "projects": projects,
         }
 
 
