@@ -507,7 +507,7 @@ def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
     if not settings.SEER_GHE_ENCRYPT_KEY:
-        raise RuntimeError("Cannot encrypt access token without SEER_API_SHARED_SECRET")
+        raise RuntimeError("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
 
     integration = integration_service.get_integration(
         integration_id=integration_id,
