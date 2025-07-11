@@ -21,6 +21,7 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
+DELETE_HASH_METRIC = "grouping.similarity.delete_records_by_hash"
 
 
 class CreateGroupingRecordData(TypedDict):
@@ -84,7 +85,7 @@ def post_bulk_grouping_records(
         return {"success": False, "reason": response.reason}
 
 
-def delete_project_grouping_records(
+def call_seer_to_delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:
@@ -125,7 +126,7 @@ def delete_project_grouping_records(
         return False
 
 
-def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> bool:
+def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> bool:
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
@@ -142,6 +143,11 @@ def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> b
             "seer.delete_grouping_records.hashes.timeout",
             extra=extra,
         )
+        metrics.incr(
+            DELETE_HASH_METRIC,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"success": False, "reason": "ReadTimeoutError"},
+        )
         return False
 
     if response.status >= 200 and response.status < 300:
@@ -150,7 +156,7 @@ def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> b
             extra=extra,
         )
         metrics.incr(
-            "grouping.similarity.delete_records_by_hash",
+            DELETE_HASH_METRIC,
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"success": True},
         )
@@ -158,7 +164,7 @@ def delete_grouping_records_by_hash(project_id: int, hashes: Sequence[str]) -> b
     else:
         logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
         metrics.incr(
-            "grouping.similarity.delete_records_by_hash",
+            DELETE_HASH_METRIC,
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"success": False},
         )

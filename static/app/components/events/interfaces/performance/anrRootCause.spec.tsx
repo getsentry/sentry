@@ -5,6 +5,25 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
+  return {
+    useTrace: jest.fn(() => ({
+      data: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    })),
+  };
+});
+
+const wrapper = ({children}: {children: React.ReactNode}) => (
+  <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+    {children}
+  </TraceStateProvider>
+);
 
 const makeEventWithThreads = (threads: Thread[]): Event => {
   const event: Event = {
@@ -13,6 +32,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     eventID: '020eb33f6ce64ed6adc60f8993535816',
     projectID: '2',
     size: 3481,
+
     entries: [
       {
         data: {
@@ -215,7 +235,7 @@ describe('anrRootCause', function () {
     ]);
     const {organization} = initializeOrg();
     const org = {...organization, features: ['anr-analyze-frames']};
-    render(<AnrRootCause event={event} organization={org} />);
+    render(<AnrRootCause event={event} organization={org} />, {wrapper});
 
     expect(
       screen.getByText(
