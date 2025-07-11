@@ -92,7 +92,7 @@ class SQLInjectionDetector(PerformanceDetector):
 
         for query_pair in request_data:
             # Skip None values or pairs that don't have at least 2 elements
-            if not query_pair or len(query_pair) < 2:
+            if not query_pair or not isinstance(query_pair, Sequence) or len(query_pair) < 2:
                 continue
             query_value = query_pair[1]
             query_key = query_pair[0]
