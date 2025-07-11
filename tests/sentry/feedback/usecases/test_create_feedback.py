@@ -548,74 +548,72 @@ def test_create_feedback_spam_detection_produce_to_kafka(
     monkeypatch,
     feature_flag,
 ):
-    with Feature({"organizations:user-feedback-spam-filter-actions": True}):
-
-        with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
-            event = {
-                "project_id": default_project.id,
-                "request": {
-                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                    "headers": {
-                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-                    },
+    with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
+        event = {
+            "project_id": default_project.id,
+            "request": {
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
                 },
-                "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-                "timestamp": 1698255009.574,
-                "received": "2021-10-24T22:23:29.574000+00:00",
-                "environment": "prod",
-                "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
-                "user": {
-                    "ip_address": "72.164.175.154",
-                    "email": "josh.ferge@sentry.io",
-                    "id": 880461,
-                    "isStaff": False,
+            },
+            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+            "timestamp": 1698255009.574,
+            "received": "2021-10-24T22:23:29.574000+00:00",
+            "environment": "prod",
+            "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+            "user": {
+                "ip_address": "72.164.175.154",
+                "email": "josh.ferge@sentry.io",
+                "id": 880461,
+                "isStaff": False,
+                "name": "Josh Ferge",
+            },
+            "contexts": {
+                "feedback": {
+                    "contact_email": "josh.ferge@sentry.io",
                     "name": "Josh Ferge",
+                    "message": input_message,
+                    "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
                 },
-                "contexts": {
-                    "feedback": {
-                        "contact_email": "josh.ferge@sentry.io",
-                        "name": "Josh Ferge",
-                        "message": input_message,
-                        "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
-                        "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                    },
-                },
-                "breadcrumbs": [],
-                "platform": "javascript",
-            }
+            },
+            "breadcrumbs": [],
+            "platform": "javascript",
+        }
 
-            mock_openai = Mock()
-            mock_openai().chat.completions.create = create_dummy_response
+        mock_openai = Mock()
+        mock_openai().chat.completions.create = create_dummy_response
 
-            monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
 
-            create_feedback_issue(
-                event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        # Check if the 'is_spam' evidence in the Kafka message matches the expected result
+        is_spam_evidence = [
+            evidence.value
+            for evidence in mock_produce_occurrence_to_kafka.call_args_list[0]
+            .kwargs["occurrence"]
+            .evidence_display
+            if evidence.name == "is_spam"
+        ]
+        found_is_spam = is_spam_evidence[0] if is_spam_evidence else None
+        assert (
+            found_is_spam == expected_result
+        ), f"Expected {expected_result} but found {found_is_spam} for {input_message} and feature flag {feature_flag}"
+
+        if expected_result and feature_flag:
+            assert (
+                mock_produce_occurrence_to_kafka.call_args_list[1]
+                .kwargs["status_change"]
+                .new_status
+                == GroupStatus.IGNORED
             )
 
-            # Check if the 'is_spam' evidence in the Kafka message matches the expected result
-            is_spam_evidence = [
-                evidence.value
-                for evidence in mock_produce_occurrence_to_kafka.call_args_list[0]
-                .kwargs["occurrence"]
-                .evidence_display
-                if evidence.name == "is_spam"
-            ]
-            found_is_spam = is_spam_evidence[0] if is_spam_evidence else None
-            assert (
-                found_is_spam == expected_result
-            ), f"Expected {expected_result} but found {found_is_spam} for {input_message} and feature flag {feature_flag}"
-
-            if expected_result and feature_flag:
-                assert (
-                    mock_produce_occurrence_to_kafka.call_args_list[1]
-                    .kwargs["status_change"]
-                    .new_status
-                    == GroupStatus.IGNORED
-                )
-
-            if not (expected_result and feature_flag):
-                assert mock_produce_occurrence_to_kafka.call_count == 1
+        if not (expected_result and feature_flag):
+            assert mock_produce_occurrence_to_kafka.call_count == 1
 
 
 @django_db_all
@@ -904,7 +902,6 @@ def test_create_feedback_filters_large_message(
     """Large messages are filtered before spam detection and producing to kafka."""
     features = (
         {
-            "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-ingest": True,
         }
         if spam_enabled
@@ -950,8 +947,8 @@ def test_create_feedback_evidence_has_spam(
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         create_feedback_issue(event, default_project.id, source)
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert mock_produce_occurrence_to_kafka.call_count == 2  # second call is status change
+    evidence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"].evidence_data
     assert evidence["is_spam"] is True
 
 
