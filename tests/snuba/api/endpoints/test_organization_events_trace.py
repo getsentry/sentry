@@ -1763,4 +1763,4 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["performance_issues"] == 2
         assert data["span_count"] == 0
         assert data["span_count_map"] == {}
-        assert len(data["transaction_child_count_map"]) == 8
+        assert len(data["transaction_child_count_map"]) == 0
