@@ -10,7 +10,7 @@ from sentry.db.models import DefaultFieldsModelExisting, FlexibleForeignKey, reg
 class DataSecrecyWaiver(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
-    organization = FlexibleForeignKey("sentry.Organization", unique=True, db_constraint=False)
+    organization = FlexibleForeignKey("sentry.Organization", unique=True)
     access_start = models.DateTimeField(default=timezone.now)
     access_end = models.DateTimeField(default=timezone.now)
     zendesk_tickets = ArrayField(models.TextField(), default=list)
