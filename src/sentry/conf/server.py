@@ -3864,8 +3864,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     "sentry-api-0-shared-group-details",
-    # Unscoped profiling URLs
-    "sentry-api-0-profiling-project-profile",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
