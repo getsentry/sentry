@@ -15,10 +15,10 @@ from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import 
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 

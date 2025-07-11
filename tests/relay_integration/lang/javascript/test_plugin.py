@@ -18,9 +18,9 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json

@@ -29,11 +29,11 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads

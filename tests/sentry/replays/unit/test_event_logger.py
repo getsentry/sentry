@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.replays.usecases.ingest.event_logger import emit_click_events, gen_rage_clicks
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
-from sentry.testutils.pytest.sentry import thread_leaks
+from sentry.testutils import thread_leaks
 
 
 def test_gen_rage_clicks():

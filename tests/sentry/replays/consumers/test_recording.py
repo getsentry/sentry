@@ -16,8 +16,8 @@ from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFac
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.pytest.sentry import thread_leaks
 
 
 class RecordingTestCase(TransactionTestCase):

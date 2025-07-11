@@ -32,11 +32,11 @@ from sentry.profiles.task import (
 )
 from sentry.profiles.utils import Profile
 from sentry.signals import first_profile_received
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome

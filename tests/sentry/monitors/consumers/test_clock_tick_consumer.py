@@ -25,9 +25,9 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.system_incidents import DecisionResult, TickAnomalyDecision
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.sentry import thread_leaks
 
 partition = Partition(Topic("test"), 0)
 

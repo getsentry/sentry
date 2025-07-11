@@ -43,8 +43,8 @@ from sentry.snuba.metrics.naming_layer import (
     TransactionMRI,
     get_public_name_from_mri,
 )
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
-from sentry.testutils.pytest.sentry import thread_leaks
 
 pytestmark = pytest.mark.sentry_metrics
 
