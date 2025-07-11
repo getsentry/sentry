@@ -1268,9 +1268,7 @@ def process_plugins(job: PostProcessJob) -> None:
 def process_similarity(job: PostProcessJob) -> None:
     if not options.get("sentry.similarity.indexing.enabled"):
         return
-    if job["is_reprocessed"] or job["event"].group.project.get_option(
-        "sentry:similarity_backfill_completed"
-    ):
+    if job["is_reprocessed"]:
         return
 
     from sentry import similarity

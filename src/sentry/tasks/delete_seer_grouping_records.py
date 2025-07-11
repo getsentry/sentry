@@ -78,7 +78,6 @@ def may_schedule_task_to_delete_hashes_from_seer(
         project = group.project if group else None
     if (
         project
-        and project.get_option("sentry:similarity_backfill_completed")
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
