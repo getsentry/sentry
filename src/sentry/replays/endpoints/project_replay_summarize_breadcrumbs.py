@@ -411,6 +411,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
+                response_size = None
                 if sizes_tuple and sizes_tuple[1] is not None:
                     response_size = str(sizes_tuple[1])
 
