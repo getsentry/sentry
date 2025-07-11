@@ -451,10 +451,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         logger.exception(
             "Error parsing event in replay AI summary",
             extra={
-                "event": logger.exception(
-                    "Error parsing event in replay AI summary",
-                    extra={"event": json.dumps(event, indent=2)},
-                )
+                "event": json.dumps(event, indent=2),
             },
         )
         return None
