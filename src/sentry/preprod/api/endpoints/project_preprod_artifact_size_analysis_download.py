@@ -1,5 +1,3 @@
-import posixpath
-
 from django.conf import settings
 from django.http.response import FileResponse, HttpResponseBase
 from rest_framework.request import Request
@@ -11,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 
 @region_silo_endpoint
@@ -50,21 +48,16 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Feature not enabled"}, status=403)
 
         try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
-
-        # Look up the size metrics record for this artifact
-        try:
-            size_metrics = PreprodArtifactSizeMetrics.objects.get(
-                preprod_artifact_id=preprod_artifact.id
+            size_metrics = PreprodArtifactSizeMetrics.objects.select_related(
+                "preprod_artifact"
+            ).get(
+                preprod_artifact__project=project,
+                preprod_artifact__id=artifact_id,
             )
         except PreprodArtifactSizeMetrics.DoesNotExist:
             return Response(
-                {"error": "Size analysis results not available for this artifact"}, status=404
+                {"error": "Preprod artifact not found or size analysis results not available"},
+                status=404,
             )
 
         if size_metrics.analysis_file_id is None:
@@ -82,13 +75,9 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Failed to retrieve size analysis file"}, status=500)
 
-        filename = f"size_analysis_{artifact_id}.json"
         response = FileResponse(
             fp,
             content_type="application/json",
         )
-
         response["Content-Length"] = file_obj.size
-        response["Content-Disposition"] = f'attachment; filename="{posixpath.basename(filename)}"'
-
         return response
