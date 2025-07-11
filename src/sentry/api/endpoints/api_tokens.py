@@ -8,6 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.api_token_created import ApiTokenCreated
+from sentry.analytics.events.api_token_deleted import ApiTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -101,7 +103,7 @@ class ApiTokensEndpoint(Endpoint):
                 send_email=True,
             )
 
-            analytics.record("api_token.created", user_id=request.user.id)
+            analytics.record(ApiTokenCreated(user_id=request.user.id))
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
@@ -126,6 +128,6 @@ class ApiTokensEndpoint(Endpoint):
 
             token_to_delete.delete()
 
-        analytics.record("api_token.deleted", user_id=request.user.id)
+        analytics.record(ApiTokenDeleted(user_id=request.user.id))
 
         return Response(status=204)
