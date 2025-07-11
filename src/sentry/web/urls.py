@@ -41,6 +41,7 @@ from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
+from sentry.web.frontend.oauth_revoke import OAuthRevokeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
@@ -198,6 +199,11 @@ urlpatterns += [
                     r"^authorize/$",
                     OAuthAuthorizeView.as_view(),
                     name="sentry-oauth-authorize",
+                ),
+                re_path(
+                    r"^revoke/$",
+                    OAuthRevokeView.as_view(),
+                    name="sentry-oauth-revoke",
                 ),
                 re_path(
                     r"^token/$",
