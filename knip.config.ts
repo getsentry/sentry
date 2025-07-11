@@ -82,6 +82,7 @@ const config: KnipConfig = {
     enumMembers: 'off',
     unlisted: 'off',
   },
+  include: ['nsExports', 'nsTypes'],
 };
 
 export default config;
