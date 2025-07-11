@@ -73,17 +73,17 @@ class DeleteGroupTest(TestCase):
         group = self.create_group()
         group2 = self.create_group()
         group_ids = [group.id, group2.id]
+        group.delete()
 
         with self.tasks():
-            group.delete()
             delete_groups(object_ids=group_ids)
 
-        assert not Group.objects.all() == []
+        assert Group.objects.count() == 0
 
     def test_no_first_group_found(self) -> None:
         group = self.create_group()
         group_ids = [group.id]
+        group.delete()
 
         with self.tasks(), pytest.raises(DeleteAborted):
-            group.delete()
             delete_groups(object_ids=group_ids)
