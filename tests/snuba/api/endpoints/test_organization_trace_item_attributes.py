@@ -181,6 +181,29 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
+    def test_attribute_collision(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={"timestamp": "bar", "severity": "baz"},
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "message",
+            "project",
+            "severity",
+            "tags[severity,string]",
+            "tags[timestamp,string]",
+        }
+
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
@@ -464,6 +487,39 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
             key=itemgetter("key"),
         )
+
+    def test_attribute_collision(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={
+                "span.op": "foo",
+                "span.duration": "bar",
+            },
+            is_eap=True,
+        )
+
+        response = self.do_request()
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "key": "span.description",
+                "name": "span.description",
+                "secondaryAliases": ["description", "message"],
+            },
+            {"key": "project", "name": "project"},
+            {"key": "transaction", "name": "transaction"},
+            {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
+            {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
+        ]
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):

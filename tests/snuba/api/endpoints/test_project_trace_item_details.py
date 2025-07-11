@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, S
 from sentry.testutils.helpers.datetime import before_now
 
 
-class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
+class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -38,47 +38,27 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             )
 
     def test_simple(self):
-        logs = [
-            self.create_ourlog(
-                {
-                    "body": "foo",
-                    "trace_id": self.trace_uuid,
-                },
-                attributes={
-                    "str_attr": {
-                        "string_value": "1",
-                    },
-                    "int_attr": {"int_value": 2},
-                    "float_attr": {
-                        "double_value": 3.0,
-                    },
-                    "bool_attr": {
-                        "bool_value": True,
-                    },
-                },
-                timestamp=self.one_min_ago,
-            ),
-        ]
-        self.store_ourlogs(logs)
-        item_list_url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
             },
-        )
-        with self.feature(self.features):
-            item_list_response = self.client.get(
-                item_list_url,
-                {
-                    "field": ["message", "sentry.item_id", "sentry.trace_id"],
-                    "query": "",
-                    "orderby": "sentry.item_id",
-                    "project": self.project.id,
-                    "dataset": "ourlogs",
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
                 },
-            )
-        assert item_list_response.data is not None
-        item_id = item_list_response.data["data"][0]["sentry.item_id"]
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_ourlogs([log])
+        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -113,47 +93,27 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         )
 
     def test_simple_using_logs_item_type(self):
-        logs = [
-            self.create_ourlog(
-                {
-                    "body": "foo",
-                    "trace_id": self.trace_uuid,
-                },
-                attributes={
-                    "str_attr": {
-                        "string_value": "1",
-                    },
-                    "int_attr": {"int_value": 2},
-                    "float_attr": {
-                        "double_value": 3.0,
-                    },
-                    "bool_attr": {
-                        "bool_value": True,
-                    },
-                },
-                timestamp=self.one_min_ago,
-            ),
-        ]
-        self.store_ourlogs(logs)
-        item_list_url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
             },
-        )
-        with self.feature(self.features):
-            item_list_response = self.client.get(
-                item_list_url,
-                {
-                    "field": ["message", "sentry.item_id", "sentry.trace_id"],
-                    "query": "",
-                    "orderby": "sentry.item_id",
-                    "project": self.project.id,
-                    "dataset": "ourlogs",
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
                 },
-            )
-        assert item_list_response.data is not None
-        item_id = item_list_response.data["data"][0]["sentry.item_id"]
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_ourlogs([log])
+        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -325,49 +285,29 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         )
 
     def test_logs_with_a_meta_key(self):
-        logs = [
-            self.create_ourlog(
-                {
-                    "body": "[Filtered]",
-                    "trace_id": self.trace_uuid,
-                },
-                attributes={
-                    "str_attr": {
-                        "string_value": "1",
-                    },
-                    # This is a guess on how this will look, the key & storage may change at some point
-                    "sentry._meta.fields.attributes": '{"sentry.body": {"length": 300, "reason": "value too long"}, "float_attr": {"unit": "float"}}',
-                    "int_attr": {"int_value": 2},
-                    "float_attr": {
-                        "double_value": 3.0,
-                    },
-                    "bool_attr": {
-                        "bool_value": True,
-                    },
-                },
-                timestamp=self.one_min_ago,
-            ),
-        ]
-        self.store_ourlogs(logs)
-        item_list_url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+        log = self.create_ourlog(
+            {
+                "body": "[Filtered]",
+                "trace_id": self.trace_uuid,
             },
-        )
-        with self.feature(self.features):
-            item_list_response = self.client.get(
-                item_list_url,
-                {
-                    "field": ["message", "sentry.item_id", "sentry.trace_id"],
-                    "query": "",
-                    "orderby": "sentry.item_id",
-                    "project": self.project.id,
-                    "dataset": "ourlogs",
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
                 },
-            )
-        assert item_list_response.data is not None
-        item_id = item_list_response.data["data"][0]["sentry.item_id"]
+                # This is a guess on how this will look, the key & storage may change at some point
+                "sentry._meta.fields.attributes": '{"sentry.body": {"length": 300, "reason": "value too long"}, "float_attr": {"unit": "float"}}',
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_ourlogs([log])
+        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -400,6 +340,52 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 "message": {"length": 300, "reason": "value too long"},
                 "tags[float_attr,number]": {"unit": "float"},
             },
+            "itemId": item_id,
+            "timestamp": self.one_min_ago.replace(
+                microsecond=0,
+                tzinfo=None,
+            ).isoformat()
+            + "Z",
+        }
+
+    def test_user_attributes_collide_with_sentry_attributes(self):
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={"timestamp": "bar", "severity": "baz"},
+            timestamp=self.one_min_ago,
+        )
+
+        self.store_ourlogs([log])
+        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+
+        trace_details_response = self.do_request("logs", item_id)
+        assert trace_details_response.status_code == 200, trace_details_response.content
+
+        timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
+        assert trace_details_response.data == {
+            "attributes": [
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {
+                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {
+                    "name": "tags[sentry.timestamp_precise,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "message", "type": "str", "value": "foo"},
+                {"name": "severity", "type": "str", "value": "INFO"},
+                {"name": "tags[severity,string]", "type": "str", "value": "baz"},
+                {"name": "tags[timestamp,string]", "type": "str", "value": "bar"},
+                {"name": "trace", "type": "str", "value": self.trace_uuid},
+            ],
+            "meta": {},
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
