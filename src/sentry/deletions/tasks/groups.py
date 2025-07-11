@@ -39,7 +39,11 @@ def delete_groups(
     from sentry import deletions, eventstream
     from sentry.models.group import Group
 
-    first_group = Group.objects.get(id=object_ids[0])
+    # We have encountered cases where the first group is already gone
+    first_group = Group.objects.filter(id__in=object_ids).first()
+    if not first_group:
+        raise DeleteAborted("delete_groups.no_group_found")
+
     # The tags can be used if we want to find errors for when a task fails
     sentry_sdk.set_tags(
         {
