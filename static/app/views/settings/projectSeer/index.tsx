@@ -69,7 +69,7 @@ export const autofixAutomatingTuningField = {
   label: t('Auto-Trigger Fixes'),
   help: () =>
     t(
-      'If Seer detects that an issue is actionable enough, it will automatically analyze it in the background. By the time you notice, the root cause and fix will be ready for your approval.'
+      'If Seer detects that an issue is actionable enough, it will automatically analyze it in the background. By the time you see it, the root cause and solution will already be there for you.'
     ),
   type: 'choice',
   options: SEER_THRESHOLD_OPTIONS.map(option => ({
