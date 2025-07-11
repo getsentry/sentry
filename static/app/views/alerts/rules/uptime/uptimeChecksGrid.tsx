@@ -2,14 +2,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
@@ -65,7 +65,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
         {key: 'durationMs', width: 110, name: t('Duration')},
         {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 100, name: t('Trace')},
+        {key: 'traceId', width: 150, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
@@ -137,9 +137,9 @@ function CheckInBodyCell({
       return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
+      const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
       return (
-        <Cell style={{color: theme[colorKey] as string}}>
+        <Cell style={{color}}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReason &&
             tct('([reason])', {

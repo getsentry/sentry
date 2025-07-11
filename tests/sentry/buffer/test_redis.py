@@ -234,8 +234,7 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=[project_id, project_id2])
 
         # store the rules and group per project
         self.buf.push_to_hash(

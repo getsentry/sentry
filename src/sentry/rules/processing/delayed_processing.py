@@ -549,7 +549,7 @@ def fire_rules(
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     updated = (
                         GroupRuleStatus.objects.filter(id=status.id)
@@ -567,7 +567,7 @@ def fire_rules(
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
@@ -596,17 +596,21 @@ def fire_rules(
                         is_post_process=False,
                     ).values()
 
-                    # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-                    for callback, futures in callback_and_futures:
-                        try:
-                            callback(groupevent, futures)
-                        except SoftTimeLimitExceeded:
-                            # If we're out of time, we don't want to continue.
-                            # Raise so we can retry.
-                            raise
-                        except Exception as e:
-                            func_name = getattr(callback, "__name__", str(callback))
-                            logger.exception("%s.process_error", func_name, extra={"exception": e})
+                    if not features.has(
+                        "organizations:workflow-engine-trigger-actions", group.organization
+                    ):
+                        for callback, futures in callback_and_futures:
+                            try:
+                                callback(groupevent, futures)
+                            except SoftTimeLimitExceeded:
+                                # If we're out of time, we don't want to continue.
+                                # Raise so we can retry.
+                                raise
+                            except Exception as e:
+                                func_name = getattr(callback, "__name__", str(callback))
+                                logger.exception(
+                                    "%s.process_error", func_name, extra={"exception": e}
+                                )
 
                     if log_config.num_events_issue_debugging:
                         logger.info(

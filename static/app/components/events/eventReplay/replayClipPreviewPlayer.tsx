@@ -84,7 +84,7 @@ export default function ReplayClipPreviewPlayer({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   }
 `;

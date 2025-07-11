@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -168,7 +168,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const TagHeading = styled('h5')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0;
   color: ${p => p.theme.linkColor};
 `;
@@ -188,7 +188,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   top: 0;
   bottom: 0;
   left: 0;
-  background: ${p => p.theme.tagBar};
+  background: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
   width: ${p => p.widthPercent};
 `;
@@ -208,7 +208,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.textColor};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.tagBarHover};
+      background: ${p => (p.theme.isChonk ? p.theme.blue300 : p.theme.purple200)};
     }
   }
 `;
@@ -216,14 +216,14 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 const TagBarLabel = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   position: relative;
   flex-grow: 1;
   ${p => p.theme.overflowEllipsis}
 `;
 
 const TagBarCount = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   position: relative;
   padding-left: ${space(2)};
   padding-right: ${space(1)};

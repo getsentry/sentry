@@ -1,13 +1,23 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+interface TransactionCellProps {
+  column: GridColumnOrder<string>;
+  dataRow: Record<string, any>;
+  projectId: string;
+  targetView: 'backend' | 'frontend';
+  transaction: string;
+  details?: React.ReactNode;
+  query?: string;
+}
 
 export function TransactionCell({
   transaction,
@@ -16,14 +26,8 @@ export function TransactionCell({
   dataRow,
   details,
   targetView,
-}: {
-  column: GridColumnOrder<string>;
-  dataRow: Record<string, any>;
-  projectId: string;
-  targetView: 'backend' | 'frontend';
-  transaction: string;
-  details?: React.ReactNode;
-}) {
+  query,
+}: TransactionCellProps) {
   const organization = useOrganization();
   const {setTransactionFilter} = useTransactionNameQuery();
 
@@ -32,7 +36,9 @@ export function TransactionCell({
     transaction,
     view: targetView,
     projectID: projectId,
-    query: {},
+    query: {
+      query: query || '',
+    },
   });
 
   return (

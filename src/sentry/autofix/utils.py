@@ -1,5 +1,6 @@
-import datetime
 import enum
+import logging
+from datetime import UTC, datetime
 from typing import TypedDict
 
 import orjson
@@ -7,11 +8,18 @@ import requests
 from django.conf import settings
 from pydantic import BaseModel
 
+from sentry import features, options, ratelimits
+from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.seer_utils import AutofixAutomationTuningSettings
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
+from sentry.utils.outcomes import Outcome, track_outcome
+
+logger = logging.getLogger(__name__)
 
 
 class AutofixIssue(TypedDict):
@@ -48,7 +56,7 @@ class CodebaseState(BaseModel):
 class AutofixState(BaseModel):
     run_id: int
     request: AutofixRequest
-    updated_at: datetime.datetime
+    updated_at: datetime
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
@@ -85,7 +93,11 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
 
 def get_autofix_state(
-    *, group_id: int | None = None, run_id: int | None = None, check_repo_access: bool = False
+    *,
+    group_id: int | None = None,
+    run_id: int | None = None,
+    check_repo_access: bool = False,
+    is_user_fetching: bool = False,
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
@@ -93,6 +105,7 @@ def get_autofix_state(
             "group_id": group_id,
             "run_id": run_id,
             "check_repo_access": check_repo_access,
+            "is_user_fetching": is_user_fetching,
         }
     )
 
@@ -152,3 +165,112 @@ class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     ALERT = "alert"
     POST_PROCESS = "post_process"
+
+
+def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
+    """
+    Check if Seer Scanner automation is rate limited for a given project and organization.
+    Calling this method increments the counter used to enforce the rate limit, and tracks rate limited outcomes.
+
+    Args:
+        project: The project to check.
+        organization: The organization to check.
+
+    Returns:
+        bool: Whether the seer scanner is rate limited.
+    """
+    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        return False
+
+    limit = options.get("seer.max_num_scanner_autotriggered_per_ten_seconds", 15)
+    is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+        project=project,
+        key="seer.scanner.auto_triggered",
+        limit=limit,
+        window=10,  # 10 seconds
+    )
+    if is_rate_limited:
+        logger.info(
+            "Seer scanner auto-trigger rate limit hit",
+            extra={
+                "org_slug": organization.slug,
+                "project_slug": project.slug,
+                "scanner_run_count": current,
+                "scanner_run_limit": limit,
+            },
+        )
+        track_outcome(
+            org_id=organization.id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="rate_limited",
+            timestamp=datetime.now(UTC),
+            category=DataCategory.SEER_SCANNER,
+        )
+    return is_rate_limited
+
+
+AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
+    AutofixAutomationTuningSettings.OFF: 5,
+    AutofixAutomationTuningSettings.SUPER_LOW: 5,
+    AutofixAutomationTuningSettings.LOW: 4,
+    AutofixAutomationTuningSettings.MEDIUM: 3,
+    AutofixAutomationTuningSettings.HIGH: 2,
+    AutofixAutomationTuningSettings.ALWAYS: 1,
+    None: 1,  # default if option is not set
+}
+
+
+def is_seer_autotriggered_autofix_rate_limited(
+    project: Project, organization: Organization
+) -> bool:
+    """
+    Check if Seer Autofix automation is rate limited for a given project and organization.
+    Calling this method increments the counter used to enforce the rate limit, and tracks rate limited outcomes.
+
+    Args:
+        project: The project to check.
+        organization: The organization to check.
+
+    Returns:
+        bool: Whether Autofix is rate limited.
+    """
+    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        return False
+
+    limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
+
+    # The more selective automation is, the higher the limit we allow.
+    # This is to protect projects with extreme settings from starting too many runs
+    # while allowing big projects with reasonable settings to run more often.
+    option = project.get_option("sentry:autofix_automation_tuning")
+    multiplier = AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.get(option, 1)
+    limit *= multiplier
+
+    is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+        project=project,
+        key="autofix.auto_triggered",
+        limit=limit,
+        window=60 * 60,  # 1 hour
+    )
+    if is_rate_limited:
+        logger.info(
+            "Autofix auto-trigger rate limit hit",
+            extra={
+                "auto_run_count": current,
+                "auto_run_limit": limit,
+                "org_slug": organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+        track_outcome(
+            org_id=organization.id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="rate_limited",
+            timestamp=datetime.now(UTC),
+            category=DataCategory.SEER_AUTOFIX,
+        )
+    return is_rate_limited

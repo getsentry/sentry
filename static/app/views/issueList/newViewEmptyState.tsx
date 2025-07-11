@@ -1,14 +1,20 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {t} from 'sentry/locale';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
 type SearchSuggestion = {
   label: string;
@@ -63,6 +69,21 @@ function Query({label, query}: SearchSuggestion) {
 }
 
 export function NewViewEmptyState() {
+  const organization = useOrganization();
+  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
+    {
+      orgSlug: organization.slug,
+    },
+    {
+      // Force this to be enabled even with the new navigation
+      enabled: true,
+    }
+  );
+
+  const personalSavedSearches = savedSearches.filter(
+    search => search.visibility === SavedSearchVisibility.OWNER
+  );
+
   return (
     <Wrapper>
       <Card>
@@ -74,9 +95,60 @@ export function NewViewEmptyState() {
           ))}
         </QueryGrid>
       </Card>
+      {personalSavedSearches.length > 0 && !isPending && (
+        <Card>
+          <CardHeading>
+            {t('My Saved Searches')}
+            <Tooltip
+              title={
+                <Fragment>
+                  <Bold>
+                    {t('Saved searches are deprecated and will be removed soon.')}
+                  </Bold>
+                  {tct(
+                    'Organization saved searches have been converted to Issue Views and are available in the [allViews:All Views] page.',
+                    {
+                      allViews: (
+                        <TooltipSubLink to="/organizations/organization-slug/issues/views/" />
+                      ),
+                    }
+                  )}
+                </Fragment>
+              }
+              skipWrapper
+              isHoverable
+            >
+              <IconWarning color="subText" />
+            </Tooltip>
+          </CardHeading>
+          <p>{t('Your personal saved searches.')}</p>
+          <QueryGrid>
+            {personalSavedSearches.map(savedSearch => (
+              <Query
+                key={savedSearch.id}
+                label={savedSearch.name}
+                query={savedSearch.query}
+              />
+            ))}
+          </QueryGrid>
+        </Card>
+      )}
     </Wrapper>
   );
 }
+
+const Bold = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const TooltipSubLink = styled(Link)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  :hover {
+    color: ${p => p.theme.subText};
+  }
+`;
 
 const Wrapper = styled('div')`
   display: flex;
@@ -87,19 +159,23 @@ const Wrapper = styled('div')`
 `;
 
 const Card = styled(Panel)`
+  width: 80%;
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(2)};
 `;
 
 const CardHeading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const QueryGrid = styled('ul')`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr 4fr;
   column-gap: ${space(2)};
   margin: 0 -${space(2)};
   padding: 0;
@@ -111,6 +187,7 @@ const QueryRow = styled('li')`
   grid-template-columns: subgrid;
   grid-column: 1/-1;
   list-style: none;
+  overflow: hidden;
 
   &:not(:last-child) {
     &::after {
@@ -129,7 +206,7 @@ const QueryButton = styled('button')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   background: none;
   border: none;
   margin: 0;

@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import Any, ClassVar, Literal, Protocol, TypedDict
 
 from django.core.cache import cache
-from django.db.models import QuerySet
 from snuba_sdk import Op
 
 from sentry import release_health, tsdb
@@ -16,7 +15,6 @@ from sentry.issues.constants import (
     get_issue_tsdb_user_group_model,
 )
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
-from sentry.models.group import Group
 from sentry.rules.conditions.event_attribute import ATTR_CHOICES
 from sentry.rules.conditions.event_frequency import (
     MIN_SESSIONS_TO_FIRE,
@@ -33,6 +31,13 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 QueryFilter = dict[str, Any]
 QueryResult = dict[int, int | float]
+
+
+class GroupValues(TypedDict):
+    id: int
+    type: int
+    project_id: int
+    project__organization_id: int
 
 
 class TSDBFunction(Protocol):
@@ -59,13 +64,6 @@ class InvalidFilter(Exception):
     """
 
     pass
-
-
-class _QSTypedDict(TypedDict):
-    id: int
-    type: int
-    project_id: int
-    project__organization_id: int
 
 
 class BaseEventFrequencyQueryHandler(ABC):
@@ -154,7 +152,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     def get_group_ids_by_category(
         self,
-        groups: QuerySet[Group, _QSTypedDict],
+        groups: list[GroupValues],
     ) -> dict[GroupCategory, list[int]]:
         """
         Separate group ids into error group ids and generic group ids
@@ -170,7 +168,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     def get_value_from_groups(
         self,
-        groups: QuerySet[Group, _QSTypedDict] | None,
+        groups: list[GroupValues],
         value: Literal["id", "project_id", "project__organization_id"],
     ) -> int | None:
         result = None
@@ -270,7 +268,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     @abstractmethod
     def batch_query(
         self,
-        group_ids: set[int],
+        groups: list[GroupValues],
         start: datetime,
         end: datetime,
         environment_id: int | None,
@@ -285,7 +283,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     def get_rate_bulk(
         self,
         duration: timedelta,
-        group_ids: set[int],
+        groups: list[GroupValues],
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
@@ -306,7 +304,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
         with self.disable_consistent_snuba_mode(duration):
             result = self.batch_query(
-                group_ids=group_ids,
+                groups=groups,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -325,16 +323,13 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
         self,
-        group_ids: set[int],
+        groups: list[GroupValues],
         start: datetime,
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
     ) -> QueryResult:
         batch_sums: QueryResult = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values(
-            "id", "type", "project_id", "project__organization_id"
-        )
         category_group_ids = self.get_group_ids_by_category(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
@@ -352,7 +347,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_frequency",
+                    referrer_suffix="wf_batch_alert_event_frequency",
                     filters=filters,
                     group_on_time=False,
                 )
@@ -371,16 +366,13 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
         self,
-        group_ids: set[int],
+        groups: list[GroupValues],
         start: datetime,
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
     ) -> QueryResult:
         batch_sums: QueryResult = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values(
-            "id", "type", "project_id", "project__organization_id"
-        )
         category_group_ids = self.get_group_ids_by_category(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
@@ -398,7 +390,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_uniq_user_frequency",
+                    referrer_suffix="wf_batch_alert_event_uniq_user_frequency",
                     filters=filters,
                     group_on_time=False,
                 )
@@ -442,16 +434,13 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
 
     def batch_query(
         self,
-        group_ids: set[int],
+        groups: list[GroupValues],
         start: datetime,
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
     ) -> QueryResult:
         batch_percents: QueryResult = {}
-        groups = Group.objects.filter(id__in=group_ids).values(
-            "id", "type", "project_id", "project__organization_id"
-        )
         category_group_ids = self.get_group_ids_by_category(groups)
         project_id = self.get_value_from_groups(groups, "project_id")
 
@@ -488,7 +477,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="batch_alert_event_frequency",
+                referrer_suffix="wf_batch_alert_event_frequency_percent",
                 filters=filters,
                 group_on_time=False,
             )

@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.utils import timezone
@@ -20,6 +21,7 @@ from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComme
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -108,6 +110,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+            {"filename": "raj.cs", "changes": 100, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -122,6 +125,58 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
             {"filename": "doo.rb", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_simple_with_csharp(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.js", "changes": 0, "status": "renamed"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "bop.cs", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:go-open-pr-comments")
+    def test_simple_with_go(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = self.open_pr_comment_workflow.safe_for_comment(repo=self.gh_repo, pr=self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "main.go", "changes": 100, "status": "modified"},
+            {"filename": "service.go", "changes": 50, "status": "modified"},
+            {"filename": "handler.rb", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -482,6 +537,59 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:csharp-open-pr-comments")
+    def test_csharp_simple(self):
+        group_id_1 = [
+            self._create_event(
+                function_names=["test.planet", "test/component.blue"],
+                filenames=["baz.cs", "foo.cs"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["test/component.blue", "world"],
+                filenames=["foo.cs", "baz.cs"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.cs"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["test.planet", "world"]
+
+    @with_feature("organizations:go-open-pr-comments")
+    def test_go_simple(self):
+        # should match function name exactly or struct.functionName
+        group_id_1 = [
+            self._create_event(
+                function_names=["handler.planet", "service.blue"],
+                filenames=["baz.go", "foo.go"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["service.blue", "world"],
+                filenames=["foo.go", "baz.go"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = self.open_pr_comment_workflow.get_top_5_issues_by_count_for_file(
+            projects=[self.project], sentry_filenames=["baz.go"], function_names=["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["handler.planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]
@@ -901,11 +1009,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     def setUp(self):
         self.user_id = "user_1"
         self.app_id = "app_1"
-
-        self.group_id_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
+        self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
             0
-        ].group.id
-        self.group_id_2 = [
+        ].group
+        self.group_id_1 = self.group_1.id
+        self.group_2 = [
             self._create_event(
                 culprit="issue2",
                 filenames=["foo.py", "bar.py"],
@@ -913,7 +1021,8 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 user_id=str(i),
             )
             for i in range(6)
-        ][0].group.id
+        ][0].group
+        self.group_id_2 = self.group_2.id
 
         self.gh_repo = self.create_repo(
             name="getsentry/sentry",
@@ -933,7 +1042,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
                 "event_count": 1000 * (i + 1),
                 "function_name": "function_" + str(i),
             }
-            for i, g in enumerate(Group.objects.all())
+            for i, g in enumerate([self.group_1, self.group_2])
         ]
         self.groups.reverse()
 
@@ -966,14 +1075,28 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             json={"id": 1},
             headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
         )
-
         open_pr_comment_workflow(self.pr.id)
 
-        assert (
-            f'"body": "## \\ud83d\\udd0d Existing Issues For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Unhandled Issue |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
-            in responses.calls[0].request.body
+        expected_body = (
+            "## 🔍 Existing Issues For Review\n"
+            "Your pull request is modifying functions with the following pre-existing issues:\n\n"
+            "📄 File: **foo.py**\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "<details>\n"
+            "<summary><b>📄 File: bar.py (Click to Expand)</b></summary>\n\n"
+            "| Function | Unhandled Issue |\n"
+            "| :------- | :----- |\n"
+            f"| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Event Count:` **2k** |\n"
+            f"| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Event Count:` **1k** |\n"
+            "</details>\n"
+            "---\n\n"
+            "<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         )
 
+        assert orjson.loads(responses.calls[0].request.body.decode())["body"] == expected_body
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         comment = pull_request_comment_query[0]

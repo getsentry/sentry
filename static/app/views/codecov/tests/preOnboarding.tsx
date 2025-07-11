@@ -2,12 +2,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary.svg';
+import testsAnalyticsSummaryDark from 'sentry-images/features/test-analytics-summary-dark.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,6 +47,9 @@ export default function TestPreOnboardingPage() {
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
+  const config = useLegacyStore(ConfigStore);
+  const isDarkMode = config.theme === 'dark';
+
   return (
     <LayoutGap>
       {!isUSStorage && (
@@ -56,7 +62,7 @@ export default function TestPreOnboardingPage() {
         </Alert.Container>
       )}
       <IntroSection>
-        <img src={testsAnalyticsSummary} />
+        <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
         <div>
           <h2>{t('Say Goodbye to Flaky Tests')}</h2>
           <p
@@ -170,8 +176,9 @@ const IntroSection = styled('div')`
   justify-content: space-around;
   gap: 90px;
   padding: 44px;
+  max-width: 800px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: column;
     align-items: center;
     gap: ${space(3)};
@@ -183,6 +190,7 @@ const InstructionsSection = styled('div')`
   border: 1px solid rgba(224, 220, 229, 1);
   border-radius: 10px;
   padding: 24px 40px;
+  max-width: 800px;
 `;
 
 const ButtonBar = styled('div')`

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
+from django.db.utils import OperationalError
 from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
@@ -108,7 +109,7 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # Scope was explicitly marked as unsafe
     if scope._tags.get(UNSAFE_TAG):
@@ -135,7 +136,7 @@ def set_current_event_project(project_id):
     relevant to event processing, or that task may crash ingesting
     sentry-internal errors, causing infinite recursion.
     """
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     scope.set_tag("processing_event_for_project", project_id)
     scope.set_tag("project", project_id)
@@ -248,12 +249,16 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     return event
 
 
-def before_send(event: Event, _: Hint) -> Event | None:
+def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
+
+    if hint.get("exc_info", [None])[0] == OperationalError:
+        event["level"] = "warning"
+
     return event
 
 
@@ -506,7 +511,7 @@ def check_tag_for_scope_bleed(
     # force the string version to prevent false positives
     expected_value = str(expected_value)
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     current_value = scope._tags.get(tag_key)
 
@@ -627,7 +632,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.start_span(op="other", name="bind_organization_context"):
@@ -676,7 +681,7 @@ def bind_ambiguous_org_context(
             f"... ({len(orgs) - (_AMBIGUOUS_ORG_CUTOFF - 1)} more)"
         ]
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # It's possible we've already set the org context with one of the orgs in our list,
     # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
@@ -695,6 +700,13 @@ def bind_ambiguous_org_context(
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
+
+
+def get_trace_id():
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        return span.get_trace_context().get("trace_id")
+    return None
 
 
 def set_span_attribute(data_name, value):

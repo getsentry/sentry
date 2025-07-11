@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
@@ -32,7 +32,7 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 
 @dataclass
-class MetricIssueEvidenceData(EvidenceData):
+class MetricIssueEvidenceData(EvidenceData[float]):
     alert_id: int
 
 
@@ -79,18 +79,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         except Exception:
             assignee = None
 
-        title = self.construct_title(snuba_query, detector_trigger, priority)
-        event_data = {
-            "environment": self.detector.config.get("environment"),
-            "platform": None,
-            "sdk": None,
-        }  # XXX: may need to add to this
-
         return (
             DetectorOccurrence(
                 issue_title=self.detector.name,
-                subtitle=title,
-                resource_id=None,
+                subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
                     "alert_id": alert_id,
                 },
@@ -98,17 +90,21 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 type=MetricIssue,
                 level="error",
                 culprit="",
-                priority=priority,
                 assignee=assignee,
+                priority=priority,
             ),
-            event_data,
+            {},
         )
 
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
-        return data_packet.packet["values"]["value"]
+        # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
+        values = data_packet.packet["values"]
+        if values.get("value") is not None:
+            return values.get("value")
+        return values
 
     def construct_title(
         self,
@@ -117,6 +113,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         priority: DetectorPriorityLevel,
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
+        detection_type = self.detector.config.get("detection_type")
         agg_display_key = snuba_query.aggregate
 
         if is_mri_field(agg_display_key):
@@ -128,6 +125,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
         else:
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+
+        if detection_type == "dynamic":
+            alert_type = aggregate
+            return f"Detected an anomaly in the query for {alert_type}"
 
         # Determine the higher or lower comparison
         higher_or_lower = ""
@@ -174,10 +175,9 @@ class MetricIssue(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
-        validator=MetricAlertsDetectorValidator,
+        validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a metric alert firing",

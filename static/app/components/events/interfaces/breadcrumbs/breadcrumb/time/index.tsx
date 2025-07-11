@@ -55,7 +55,7 @@ const Time = memo(function Time({
 export default Time;
 
 const Wrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
 `;
 

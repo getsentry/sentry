@@ -13,10 +13,9 @@ import {
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -26,7 +25,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -45,24 +43,19 @@ import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
-import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
-import {
-  findSpanAttributeValue,
-  getProfileMeta,
-  getTraceAttributesTreeActions,
-  sortAttributes,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   isEAPSpanNode,
   isEAPTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -79,10 +72,12 @@ function SpanNodeDetailHeader({
   node,
   organization,
   onTabScrollToNode,
+  hideNodeActions,
 }: {
   node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  hideNodeActions?: boolean;
 }) {
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
@@ -96,11 +91,13 @@ function SpanNodeDetailHeader({
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-      />
+      {!hideNodeActions && (
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      )}
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -251,6 +248,7 @@ export function SpanNodeDetails(
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={props.hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         {node.event?.projectSlug ? (
@@ -275,6 +273,7 @@ export function SpanNodeDetails(
                     project={project}
                     organization={organization}
                     location={location}
+                    hideNodeActions={props.hideNodeActions}
                   />
                   <AIInputSection node={node} />
                   <AIOutputSection node={node} />
@@ -362,6 +361,7 @@ function EAPSpanNodeDetails({
   location,
   traceId,
   theme,
+  hideNodeActions,
 }: EAPSpanNodeDetailsProps) {
   const {
     data: traceItemData,
@@ -370,25 +370,28 @@ function EAPSpanNodeDetails({
   } = useTraceItemDetails({
     traceItemId: node.value.event_id,
     projectId: node.value.project_id.toString(),
-    traceId,
+    traceId: node.metadata.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,
   });
 
+  // EAP spans with is_transaction=false don't have an associated transaction_id that maps to the nodestore transaction.
+  // In that case we use the transaction id attached to the direct parent EAP span where is_transaction=true.
+  const transaction_event_id =
+    node.value.transaction_id ??
+    TraceTree.ParentEAPTransaction(node)?.value.transaction_id;
   const {
     data: eventTransaction,
     isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
-    event_id: node.value.transaction_id,
+    event_id: transaction_event_id,
     project_slug: node.value.project_slug,
     organization,
   });
 
   const avgSpanDuration = useAvgSpanDuration(node.value, location);
-
-  const traceState = useTraceState();
 
   if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;
@@ -399,12 +402,6 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = traceItemData?.attributes;
-  const columnCount =
-    traceState.preferences.layout === 'drawer left' ||
-    traceState.preferences.layout === 'drawer right'
-      ? 1
-      : undefined;
-
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
   const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
@@ -416,6 +413,7 @@ function EAPSpanNodeDetails({
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
+        hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
         <ProfilesProvider
@@ -452,57 +450,24 @@ function EAPSpanNodeDetails({
                       location={location}
                       attributes={attributes}
                       avgSpanDuration={avgSpanDuration}
+                      hideNodeActions={hideNodeActions}
                     />
                     <AIInputSection node={node} attributes={attributes} />
                     <AIOutputSection node={node} attributes={attributes} />
-                    <FoldSection
-                      sectionKey={SectionKey.SPAN_ATTRIBUTES}
-                      title={
-                        <SectionTitleWithQuestionTooltip
-                          title={t('Attributes')}
-                          tooltipText={t(
-                            'These attributes are indexed and can be queries in the Trace Explorer.'
-                          )}
-                        />
-                      }
-                      disableCollapsePersistence
-                    >
-                      <AttributesTree
-                        columnCount={columnCount}
-                        attributes={sortAttributes(attributes)}
-                        rendererExtra={{
-                          theme,
-                          location,
-                          organization,
-                        }}
-                        getCustomActions={getTraceAttributesTreeActions({
-                          location,
-                          organization,
-                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
-                        })}
-                      />
-                    </FoldSection>
+                    <Attributes
+                      node={node}
+                      attributes={attributes}
+                      theme={theme}
+                      location={location}
+                      organization={organization}
+                      project={project}
+                    />
 
-                    {isTransaction ? (
-                      <FoldSection
-                        sectionKey={SectionKey.CONTEXTS}
-                        title={
-                          <SectionTitleWithQuestionTooltip
-                            title={t('Contexts')}
-                            tooltipText={t(
-                              "This data is not indexed and can't be queries in the Trace Explorer. For querying, attach these as attributes to your spans."
-                            )}
-                          />
-                        }
-                        disableCollapsePersistence
-                      >
-                        <Request event={eventTransaction} />
-                      </FoldSection>
-                    ) : null}
+                    {isTransaction ? <Contexts event={eventTransaction} /> : null}
 
                     <LogDetails />
 
-                    {isTransaction && organization.features.includes('profiling') ? (
+                    {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails
                         organization={organization}
                         project={project}
@@ -522,16 +487,16 @@ function EAPSpanNodeDetails({
                       />
                     ) : null}
 
-                    {isTransaction ? (
-                      <BreadCrumbs event={eventTransaction} organization={organization} />
-                    ) : null}
-
                     {isTransaction && project ? (
                       <EventAttachments
                         event={eventTransaction}
                         project={project}
                         group={undefined}
                       />
+                    ) : null}
+
+                    {isTransaction ? (
+                      <BreadCrumbs event={eventTransaction} organization={organization} />
                     ) : null}
 
                     {isTransaction && project ? (
@@ -560,24 +525,3 @@ function EAPSpanNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-function SectionTitleWithQuestionTooltip({
-  title,
-  tooltipText,
-}: {
-  title: string;
-  tooltipText: string;
-}) {
-  return (
-    <Flex>
-      <div>{title}</div>
-      <QuestionTooltip title={tooltipText} size="sm" />
-    </Flex>
-  );
-}
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

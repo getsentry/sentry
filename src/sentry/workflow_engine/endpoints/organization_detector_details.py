@@ -28,20 +28,22 @@ from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import can_edit_detector
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
     request: Request, project: Project, detector_type_slug: str, instance=None
 ):
-    detector_type = grouptype.registry.get_by_slug(detector_type_slug)
-    if detector_type is None:
-        raise ValidationError({"detectorType": ["Unknown detector type"]})
+    type = grouptype.registry.get_by_slug(detector_type_slug)
+    if type is None:
+        error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
+        raise ValidationError({"type": [error_message]})
 
-    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
-        raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
+    if type.detector_settings is None or type.detector_settings.validator is None:
+        raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    return detector_type.detector_settings.validator(
+    return type.detector_settings.validator(
         instance=instance,
         context={
             "project": project,
@@ -138,7 +140,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         if not can_edit_detector(detector, request):
             raise PermissionDenied
 
-        group_type = request.data.get("detector_type") or detector.group_type.slug
+        group_type = request.data.get("type") or detector.group_type.slug
         validator = get_detector_validator(request, detector.project, group_type, detector)
 
         if not validator.is_valid():

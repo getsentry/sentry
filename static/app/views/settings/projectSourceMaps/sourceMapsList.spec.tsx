@@ -37,6 +37,11 @@ function renderReleaseBundlesMockRequests({
         ],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
+  });
+
   return {sourceMaps};
 }
 

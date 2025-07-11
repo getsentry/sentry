@@ -23,7 +23,11 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 export type AlertType =
   | 'issues'
@@ -41,7 +45,15 @@ export type AlertType =
   | 'custom_transactions'
   | 'uptime_monitor'
   | 'crons_monitor'
-  | 'eap_metrics';
+  | 'eap_metrics'
+  | 'trace_item_throughput'
+  | 'trace_item_duration'
+  | 'trace_item_apdex'
+  | 'trace_item_failure_rate'
+  | 'trace_item_lcp'
+  | 'trace_item_fid'
+  | 'trace_item_cls'
+  | 'trace_item_logs';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -53,6 +65,16 @@ export type MetricAlertType = Exclude<
   AlertType,
   'issues' | 'uptime_monitor' | 'crons_monitor'
 >;
+
+export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
+  'throughput',
+  'trans_duration',
+  'apdex',
+  'failure_rate',
+  'lcp',
+  'fid',
+  'cls',
+];
 
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
@@ -80,7 +102,15 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
   uptime_monitor: t('Uptime Monitor'),
+  trace_item_throughput: t('Throughput'),
+  trace_item_duration: t('Duration'),
+  trace_item_apdex: t('Apdex'),
+  trace_item_failure_rate: t('Failure Rate'),
+  trace_item_lcp: t('Largest Contentful Paint'),
+  trace_item_fid: t('First Input Delay'),
+  trace_item_cls: t('Cumulative Layout Shift'),
   eap_metrics: t('Spans'),
+  trace_item_logs: t('Logs'),
   crons_monitor: t('Cron Monitor'),
 };
 
@@ -111,20 +141,42 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
       });
     }
+    const deprecatedTransactionAggregationOptions: AlertType[] = [
+      'throughput',
+      'trans_duration',
+      'apdex',
+      'failure_rate',
+      'lcp',
+      'fid',
+      'cls',
+    ];
+
+    const traceItemAggregationOptions: AlertType[] = [
+      'trace_item_throughput',
+      'trace_item_duration',
+      'trace_item_apdex',
+      'trace_item_failure_rate',
+      'trace_item_lcp',
+      'trace_item_fid',
+      'trace_item_cls',
+    ];
     result.push({
       categoryHeading: t('Performance'),
       options: [
-        'throughput',
-        'trans_duration',
-        'apdex',
-        'failure_rate',
-        'lcp',
-        'fid',
-        'cls',
+        ...(deprecateTransactionAlerts(org) && hasEAPAlerts(org)
+          ? traceItemAggregationOptions
+          : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
+
+    if (hasLogAlerts(org)) {
+      result.push({
+        categoryHeading: t('Logs'),
+        options: ['trace_item_logs' as const],
+      });
+    }
 
     if (org.features.includes('uptime')) {
       result.push({
@@ -221,6 +273,46 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRANSACTION,
+  },
+  trace_item_throughput: {
+    aggregate: 'count(span.duration)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_duration: {
+    aggregate: 'p95(span.duration)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_apdex: {
+    aggregate: 'apdex(300)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_failure_rate: {
+    aggregate: 'failure_rate()',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_lcp: {
+    aggregate: 'p95(measurements.lcp)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_fid: {
+    aggregate: 'p95(measurements.fid)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_cls: {
+    aggregate: 'p95(measurements.cls)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
+  },
+  trace_item_logs: {
+    aggregate: 'count(message)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_LOG,
   },
 };
 

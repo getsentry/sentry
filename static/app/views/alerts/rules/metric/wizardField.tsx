@@ -11,17 +11,22 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
+  DEPRECATED_TRANSACTION_ALERTS,
 } from 'sentry/views/alerts/wizard/options';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -36,7 +41,9 @@ type Props = Omit<FormFieldProps, 'children'> & {
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
+  eventTypes?: EventTypes[];
   inFieldLabels?: boolean;
+  isEditing?: boolean;
 };
 
 export default function WizardField({
@@ -44,8 +51,77 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
+  eventTypes,
   ...fieldProps
 }: Props) {
+  const isDeprecatedTransactionAlertType =
+    alertType &&
+    deprecateTransactionAlerts(organization) &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(alertType) &&
+    hasEAPAlerts(organization);
+
+  const deprecatedTransactionAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.throughput,
+      value: 'throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trans_duration,
+      value: 'trans_duration',
+    },
+    {
+      label: AlertWizardAlertNames.apdex,
+      value: 'apdex',
+    },
+    {
+      label: AlertWizardAlertNames.failure_rate,
+      value: 'failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.lcp,
+      value: 'lcp',
+    },
+    {
+      label: AlertWizardAlertNames.fid,
+      value: 'fid',
+    },
+    {
+      label: AlertWizardAlertNames.cls,
+      value: 'cls',
+    },
+  ];
+
+  const traceItemAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.trace_item_throughput,
+      value: 'trace_item_throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_duration,
+      value: 'trace_item_duration',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_apdex,
+      value: 'trace_item_apdex',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_failure_rate,
+      value: 'trace_item_failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_lcp,
+      value: 'trace_item_lcp',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_fid,
+      value: 'trace_item_fid',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_cls,
+      value: 'trace_item_cls',
+    },
+  ];
+
   const menuOptions: GroupedMenuOption[] = [
     {
       label: t('ERRORS'),
@@ -80,34 +156,9 @@ export default function WizardField({
     {
       label: t('PERFORMANCE'),
       options: [
-        {
-          label: AlertWizardAlertNames.throughput,
-          value: 'throughput',
-        },
-        {
-          label: AlertWizardAlertNames.trans_duration,
-          value: 'trans_duration',
-        },
-        {
-          label: AlertWizardAlertNames.apdex,
-          value: 'apdex',
-        },
-        {
-          label: AlertWizardAlertNames.failure_rate,
-          value: 'failure_rate',
-        },
-        {
-          label: AlertWizardAlertNames.lcp,
-          value: 'lcp',
-        },
-        {
-          label: AlertWizardAlertNames.fid,
-          value: 'fid',
-        },
-        {
-          label: AlertWizardAlertNames.cls,
-          value: 'cls',
-        },
+        ...(deprecateTransactionAlerts(organization)
+          ? traceItemAggregationOptions
+          : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(organization)
           ? [
@@ -117,8 +168,30 @@ export default function WizardField({
               },
             ]
           : []),
+
+        ...(fieldProps.isEditing && isDeprecatedTransactionAlertType
+          ? [
+              {
+                label: AlertWizardAlertNames[alertType],
+                value: alertType,
+              },
+            ]
+          : []),
       ],
     },
+    ...(hasLogAlerts(organization)
+      ? [
+          {
+            label: t('LOGS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       label: t('CUSTOM'),
       options: [
@@ -132,7 +205,7 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled}: any) => {
+      {({onChange, model, disabled, isEditing, disabledReason}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const selectedTemplate: AlertType = alertType || 'eap_metrics';
@@ -142,7 +215,10 @@ export default function WizardField({
             dataset,
             alertType,
           });
-        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
+        const fieldOptions = generateFieldOptions({
+          organization,
+          ...fieldOptionsConfig,
+        });
         const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
@@ -167,7 +243,8 @@ export default function WizardField({
             <Select
               value={selectedTemplate}
               options={menuOptions}
-              disabled={disabled}
+              disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
+              disabledReason={disabledReason}
               onChange={(option: MenuOption) => {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
@@ -182,6 +259,7 @@ export default function WizardField({
             {isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
+                eventTypes={eventTypes ?? []}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}
@@ -198,7 +276,7 @@ export default function WizardField({
                 gridColumns={gridColumns}
                 inFieldLabels={inFieldLabels}
                 shouldRenderTag={false}
-                disabled={disabled}
+                disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
                 hideParameterSelector={hideParameterSelector}
                 hidePrimarySelector={hidePrimarySelector}
               />

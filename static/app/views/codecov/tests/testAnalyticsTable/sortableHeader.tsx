@@ -2,8 +2,8 @@ import {Fragment, type ReactNode, useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
-import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -97,6 +97,7 @@ const HeaderCell = styled('div')<{alignment: string}>`
   gap: ${space(1)};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StyledLink = styled(Link)`

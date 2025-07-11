@@ -6,16 +6,11 @@ import responses
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 def test_conf_key() -> None:
     assert OpsGeniePlugin().conf_key == "opsgenie"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("opsgenie", OpsGeniePlugin())
 
 
 class OpsGeniePluginTest(PluginTestCase):

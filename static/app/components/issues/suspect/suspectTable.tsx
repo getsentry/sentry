@@ -1,5 +1,7 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import SuspectFlags from 'sentry/components/issues/suspect/suspectFlags';
 import useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {space} from 'sentry/styles/space';
@@ -11,9 +13,13 @@ interface Props {
 }
 
 export default function SuspectTable({environments, group}: Props) {
+  const [displayMode, setDisplayMode] = useState<'filters' | 'filter_rrf' | 'rrf'>(
+    'filters'
+  );
   const {displayFlags, isPending, susFlags} = useSuspectFlags({
     environments,
     group,
+    displayMode,
   });
 
   if (!displayFlags) {
@@ -22,7 +28,16 @@ export default function SuspectTable({environments, group}: Props) {
 
   return (
     <GradientBox>
-      <SuspectFlags isPending={isPending} susFlags={susFlags} />
+      <SegmentedControl size="xs" onChange={setDisplayMode} value={displayMode}>
+        <SegmentedControl.Item key="filters">Heuristics Only</SegmentedControl.Item>
+        <SegmentedControl.Item key="filter_rrf">
+          Heuristics + Sort (RRF)
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="rrf">Sort (RRF)</SegmentedControl.Item>
+      </SegmentedControl>
+      <ScrolledBox>
+        <SuspectFlags isPending={isPending} susFlags={susFlags} />
+      </ScrolledBox>
     </GradientBox>
   );
 }
@@ -42,4 +57,9 @@ const GradientBox = styled('div')`
   height: max-content;
   display: flex;
   flex-direction: column;
+`;
+
+const ScrolledBox = styled('div')`
+  overflow: scroll;
+  max-height: 300px;
 `;

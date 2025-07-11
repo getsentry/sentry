@@ -455,6 +455,8 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["hasInsightsCaches"] is False
         assert result["hasInsightsQueues"] is False
         assert result["hasInsightsLlmMonitoring"] is False
+        assert result["hasInsightsAgentMonitoring"] is False
+        assert result["hasInsightsMCP"] is False
 
         self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_http))
@@ -466,6 +468,8 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_caches))
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_queues))
         self.project.update(flags=F("flags").bitor(Project.flags.has_insights_llm_monitoring))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_mcp))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasInsightsHttp"] is True
@@ -477,6 +481,8 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["hasInsightsCaches"] is True
         assert result["hasInsightsQueues"] is True
         assert result["hasInsightsLlmMonitoring"] is True
+        assert result["hasInsightsAgentMonitoring"] is True
+        assert result["hasInsightsMCP"] is True
 
     def test_has_flags_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())

@@ -105,6 +105,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-gatsby",
     "javascript-nextjs",
     "javascript-react",
+    "javascript-react-router",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
@@ -346,8 +347,13 @@ class Project(Model):
         # This Project has sent feature flags
         has_flags: bool
 
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
+
+        # This Project has sent insight MCP spans
+        has_insights_mcp: bool
+
         bitfield_default = 10
-        bitfield_null = True
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)

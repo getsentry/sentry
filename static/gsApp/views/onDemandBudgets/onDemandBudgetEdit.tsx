@@ -118,7 +118,10 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {getOnDemandCategories(activePlan).map(category => {
+          {getOnDemandCategories({
+            plan: activePlan,
+            budgetMode: displayBudgetMode,
+          }).map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
             return (
@@ -198,7 +201,10 @@ class OnDemandBudgetEdit extends Component<Props> {
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const oxfordCategories = listDisplayNames({
       plan: activePlan,
-      categories: getOnDemandCategories(activePlan),
+      categories: getOnDemandCategories({
+        plan: activePlan,
+        budgetMode: selectedBudgetMode,
+      }),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
@@ -329,7 +335,7 @@ const BudgetContainer = styled('div')`
 
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 1px;
 `;
 
@@ -340,7 +346,7 @@ const StyledRadio = styled(Radio)`
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
@@ -352,7 +358,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -364,7 +370,7 @@ const Currency = styled('div')`
     content: '$';
     color: ${p => p.theme.subText};
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -380,7 +386,7 @@ const OnDemandType = styled('div')`
 `;
 
 const MediumTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const InputDiv = styled('div')`

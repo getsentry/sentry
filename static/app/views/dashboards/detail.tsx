@@ -134,6 +134,7 @@ type Props = RouteComponentProps<RouteParams> & {
 
 type State = {
   dashboardState: DashboardState;
+  isCommittingChanges: boolean;
   isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
@@ -263,6 +264,7 @@ class DashboardDetail extends Component<Props, State> {
     isWidgetBuilderOpen: false,
     openWidgetTemplates: undefined,
     newlyAddedWidget: undefined,
+    isCommittingChanges: false,
   };
 
   componentDidMount() {
@@ -432,11 +434,16 @@ class DashboardDetail extends Component<Props, State> {
 
   handleBeforeUnload = (event: BeforeUnloadEvent) => {
     const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
+    const {modifiedDashboard, isCommittingChanges, isSavingDashboardFilters} = this.state;
+
+    // Conditions outside of the editing state that we want to trigger the
+    // message for.
+    const warnOnSaving = isCommittingChanges || isSavingDashboardFilters;
     if (
-      defined(modifiedDashboard) &&
-      !isEqual(modifiedDashboard, dashboard) &&
-      this.isEditingDashboard
+      (defined(modifiedDashboard) &&
+        !isEqual(modifiedDashboard, dashboard) &&
+        this.isEditingDashboard) ||
+      warnOnSaving
     ) {
       event.preventDefault();
       event.returnValue = '';
@@ -602,6 +609,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
+      isCommittingChanges: true,
     });
     if (this.isEditingDashboard || this.isPreview) {
       return null;
@@ -612,6 +620,7 @@ class DashboardDetail extends Component<Props, State> {
           onDashboardUpdate(newDashboard);
           this.setState({
             modifiedDashboard: null,
+            isCommittingChanges: false,
           });
         }
         const legendQuery =
@@ -874,6 +883,9 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
+          this.setState({
+            isCommittingChanges: true,
+          });
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
@@ -885,6 +897,7 @@ class DashboardDetail extends Component<Props, State> {
                 {
                   dashboardState: DashboardState.VIEW,
                   modifiedDashboard: null,
+                  isCommittingChanges: false,
                 },
                 () => {
                   if (dashboard && newDashboard.id !== dashboard.id) {
@@ -1389,7 +1402,7 @@ const StyledPageHeader = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(0, 1fr) max-content;
     grid-column-gap: ${space(2)};
     height: 40px;

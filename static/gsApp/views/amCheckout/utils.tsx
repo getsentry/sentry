@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {
@@ -31,7 +32,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
-import {getSlot} from 'getsentry/utils/billing';
+import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
@@ -371,7 +372,7 @@ function recordAnalytics(
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
   const currentData = {
-    // TODO(data categories): check if these can be parsed
+    // TODO(data categories): BIL-966
     plan: data.plan,
     errors: data.reservedErrors,
     transactions: data.reservedTransactions,
@@ -381,13 +382,6 @@ function recordAnalytics(
     spans: data.reservedSpans,
     profileDuration: data.reservedProfileDuration,
     uptime: data.reservedUptime,
-  };
-
-  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
-  const currentSelectableProductData = {
-    [SelectableProduct.SEER]: {
-      enabled: data.seer ?? false,
-    },
   };
 
   const previousData = {
@@ -400,6 +394,20 @@ function recordAnalytics(
     profileDuration: subscription.categories.profileDuration?.reserved || undefined,
     spans: subscription.categories.spans?.reserved || undefined,
     uptime: subscription.categories.uptime?.reserved || undefined,
+  };
+
+  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
+  const selectableProductData = {
+    [SelectableProduct.SEER]: {
+      enabled: data.seer ?? false,
+      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+        ? false
+        : (subscription.reservedBudgets?.some(
+            budget =>
+              (budget.apiName as string as SelectableProduct) ===
+                SelectableProduct.SEER && budget.reservedBudget > 0
+          ) ?? false),
+    },
   };
 
   trackGetsentryAnalytics('checkout.upgrade', {
@@ -420,7 +428,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
-    ...currentSelectableProductData,
+    ...selectableProductData,
   });
 
   let {onDemandBudget} = data;
@@ -503,20 +511,14 @@ export function getCheckoutAPIData({
 }: APIDataProps) {
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
-  const reservedData = {
-    // TODO(data categories): check if these can be parsed
-    reservedErrors: formatReservedData(formData.reserved.errors),
-    reservedTransactions: formatReservedData(formData.reserved.transactions),
-    reservedAttachments: formatReservedData(formData.reserved.attachments),
-    reservedReplays: formatReservedData(formData.reserved.replays),
-    reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
-    reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
-    reservedSpans: formatReservedData(formData.reserved.spans),
-    reservedUptime: formatReservedData(formData.reserved.uptime),
-  } satisfies Partial<
-    // Enforce plural spelling against the enums in DataCategory
-    Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
-  >;
+  const reservedData = Object.fromEntries(
+    Object.entries(formData.reserved).map(([category, value]) => [
+      `reserved${toTitleCase(category, {
+        allowInnerUpperCase: true,
+      })}`,
+      formatReservedData(value),
+    ])
+  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
@@ -618,6 +620,15 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
+
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
@@ -625,7 +636,9 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+        }`
       )
     );
   } catch (error) {

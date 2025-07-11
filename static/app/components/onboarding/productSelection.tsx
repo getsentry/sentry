@@ -98,7 +98,11 @@ export const platformProductAvailability = {
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
-  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  flutter: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
@@ -116,6 +120,10 @@ export const platformProductAvailability = {
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -294,7 +302,10 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: (products: ProductSolution[]) => void;
+  onChange?: (params: {
+    previousProducts: ProductSolution[];
+    products: ProductSolution[];
+  }) => void;
   /**
    * Triggered when the component is loaded
    */
@@ -361,7 +372,10 @@ export function ProductSelection({
 
       const selectedProducts = Array.from(newProduct);
 
-      onChange?.(selectedProducts);
+      onChange?.({
+        previousProducts: urlProducts as ProductSolution[],
+        products: selectedProducts,
+      });
       setParams({product: selectedProducts});
     },
     [products, setParams, urlProducts, onChange]

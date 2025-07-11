@@ -2,6 +2,9 @@ import logging
 import signal
 import time
 from threading import Thread
+from typing import Any
+
+from arroyo.processing.processor import StreamProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -25,19 +28,21 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     time.sleep(sleep_secs)
 
 
-def delay_shutdown(processor, quantized_rebalance_delay_secs) -> None:
+def delay_shutdown(processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int) -> None:
     if quantized_rebalance_delay_secs:
         delay_kafka_rebalance(quantized_rebalance_delay_secs)
 
     processor.signal_shutdown()
 
 
-def run_processor_with_signals(processor, quantized_rebalance_delay_secs: int | None = None):
+def run_processor_with_signals(
+    processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int | None = None
+) -> None:
     if quantized_rebalance_delay_secs:
         # delay startup for quantization
         delay_kafka_rebalance(quantized_rebalance_delay_secs)
 
-    def handler(signum, frame):
+    def handler(signum: object, frame: object) -> None:
         # delay shutdown for quantization
         t = Thread(target=delay_shutdown, args=(processor, quantized_rebalance_delay_secs))
         t.start()

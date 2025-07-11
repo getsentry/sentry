@@ -37,6 +37,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     enforce_data_condition_json_schema,
 )
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def ensure_default_error_detector(project: Project) -> Detector:
             detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
                 project=project,
-                defaults={"config": {}, "name": "Error Detector"},
+                defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
             return detector
     except UnableToAcquireLock:
@@ -145,7 +146,7 @@ class IssueAlertMigrator:
             error_detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
                 project=self.project,
-                defaults={"config": {}, "name": "Error Detector"},
+                defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
             _, created = AlertRuleDetector.objects.get_or_create(
                 detector=error_detector, rule_id=self.rule.id

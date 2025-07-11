@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
 export default Storybook.story('LinkButton', (story, APIReference) => {
@@ -22,6 +21,7 @@ export default Storybook.story('LinkButton', (story, APIReference) => {
       disabled: [false, true],
       external: [false, true],
       title: [undefined, 'Delete this'],
+      href: ['#'],
     };
 
     return (

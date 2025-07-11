@@ -22,11 +22,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
     },
     {enabled: !isShare}
   );
-  const screenshots =
-    attachments?.filter(
-      ({name}) =>
-        name.includes('screenshot') && (name.endsWith('.jpg') || name.endsWith('.png'))
-    ) ?? [];
+
+  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {
     return null;
@@ -66,7 +63,7 @@ const Wrapper = styled(DataSection)<{
 }>`
   padding: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>

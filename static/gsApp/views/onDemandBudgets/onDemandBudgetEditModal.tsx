@@ -371,8 +371,8 @@ const Currency = styled('div')`
     position: absolute;
     content: '$';
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
-    line-height: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
+    line-height: ${p => p.theme.fontSize.lg};
   }
 `;
 
@@ -385,7 +385,7 @@ const OnDemandInput = styled(Input)`
 
 const DetailTitle = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;
@@ -393,7 +393,7 @@ const DetailTitle = styled('div')`
 const OffsetBody = styled('div')`
   margin: -${space(3)} -${space(4)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(3)};
   }
 `;

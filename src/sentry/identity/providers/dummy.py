@@ -5,17 +5,16 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry.identity.base import Provider
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.pipeline import Pipeline, PipelineView
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.pipeline.views.base import PipelineView
+from sentry.users.models.identity import Identity
 
 __all__ = ("DummyProvider",)
 
 
-class AskEmail(PipelineView[IdentityProvider]):
-    def dispatch(
-        self, request: HttpRequest, pipeline: Pipeline[IdentityProvider]
-    ) -> HttpResponseBase:
+class AskEmail:
+    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         if "email" in request.POST:
             pipeline.bind_state("email", request.POST.get("email"))
             return pipeline.next_step()
@@ -29,7 +28,7 @@ class DummyProvider(Provider):
 
     TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
 
-    def get_pipeline_views(self) -> list[PipelineView[IdentityProvider]]:
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [AskEmail()]
 
     def build_identity(self, state):

@@ -211,16 +211,16 @@ class OrganizationIdOrSlugTestEndpoint(Endpoint):
 
 urlpatterns = [
     re_path(
-        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/$",
+        r"^api/0/(?P<organization_id_or_slug>[^/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
     re_path(
-        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/nameless/$",
+        r"^api/0/(?P<organization_id_or_slug>[^/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
     ),
     re_path(
-        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/idorslug/$",
+        r"^api/0/(?P<organization_id_or_slug>[^/]+)/idorslug/$",
         OrganizationIdOrSlugTestEndpoint.as_view(),
         name="org-events-endpoint-id-or-slug",
     ),
@@ -237,10 +237,7 @@ def provision_middleware():
 
 
 @no_silo_test
-@override_settings(
-    ROOT_URLCONF=__name__,
-    SENTRY_SELF_HOSTED=False,
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

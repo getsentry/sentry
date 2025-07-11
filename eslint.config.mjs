@@ -16,7 +16,6 @@ import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -216,7 +215,6 @@ export default typescript.config([
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
-    '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
     'tests/**/fixtures/**/*',
@@ -863,6 +861,7 @@ export default typescript.config([
     name: 'files/sentry-stories',
     files: ['**/*.stories.tsx'],
     rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
   },
@@ -953,6 +952,10 @@ export default typescript.config([
     ...mdx.flat,
     name: 'files/mdx',
     files: ['**/*.mdx'],
+    rules: {
+      ...mdx.flat.rules,
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
   },
   {
     name: 'plugin/boundaries',
@@ -965,7 +968,7 @@ export default typescript.config([
         // --- stories ---
         {
           type: 'story-files',
-          pattern: 'static/**/*.stories.{ts,tsx}',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
           mode: 'full',
         },
         {

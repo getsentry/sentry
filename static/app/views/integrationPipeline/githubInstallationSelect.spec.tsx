@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+
 import {GithubInstallationSelect} from './githubInstallationSelect';
 
 describe('GithubInstallationSelect', () => {
-  beforeEach(() => {
-    window.location.assign = jest.fn();
-  });
-
   it('renders installation options', async () => {
     render(
       <GithubInstallationSelect
@@ -19,7 +17,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
@@ -56,14 +54,13 @@ describe('GithubInstallationSelect', () => {
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
-    screen.logTestingPlaygroundURL();
     // Install button should be enabled
     expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
     // Click Install
     await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       expect.stringContaining(
         `/extensions/github/setup/?chosen_installation_id=${installation_info[1]!.installation_id}`
       )
@@ -88,7 +85,7 @@ describe('GithubInstallationSelect', () => {
     // Click Install
     await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       expect.stringContaining('/extensions/github/setup/?chosen_installation_id=-1')
     );
   });
@@ -102,7 +99,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();

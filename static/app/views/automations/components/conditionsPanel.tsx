@@ -1,44 +1,51 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Action,
-  ActionHandler,
+import {
+  type Action,
+  type ActionHandler,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];
-  triggers: DataConditionGroup;
+  triggers: DataConditionGroup | null;
 };
 
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      <ConditionGroupWrapper>
-        <ConditionGroupHeader>
-          {tct('[when:When] any of the following occur', {
-            when: <ConditionBadge />,
-          })}
-        </ConditionGroupHeader>
-        {triggers.conditions.map((trigger, index) => (
-          <div key={index}>
-            <DataConditionDetails condition={trigger} />
-          </div>
-        ))}
-      </ConditionGroupWrapper>
+      {triggers && (
+        <ConditionGroupWrapper>
+          <ConditionGroupHeader>
+            {tct('[when:When] [logicType] of the following occur', {
+              when: <ConditionBadge />,
+              logicType:
+                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers.logicType)
+                  ?.label || triggers.logicType,
+            })}
+          </ConditionGroupHeader>
+          {triggers.conditions.map((trigger, index) => (
+            <div key={index}>
+              <DataConditionDetails condition={trigger} />
+            </div>
+          ))}
+        </ConditionGroupWrapper>
+      )}
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
           <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
@@ -49,10 +56,20 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
 }
 
 function findActionHandler(
-  type: ActionType,
+  action: Action,
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
-  return availableActions.find(handler => handler.type === type);
+  if (action.type === ActionType.SENTRY_APP) {
+    if (action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID) {
+      return availableActions.find(
+        handler => handler.sentryApp?.id === action.config.target_identifier
+      );
+    }
+    return availableActions.find(
+      handler => handler.sentryApp?.installationUuid === action.config.target_identifier
+    );
+  }
+  return availableActions.find(handler => handler.type === action.type);
 }
 
 interface ActionFilterProps {
@@ -70,8 +87,11 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
       <ConditionGroupHeader>
-        {tct('[if:If] any of these filters match', {
+        {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
+          logicType:
+            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
+              ?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -90,7 +110,7 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
         <div key={index}>
           <ActionDetails
             action={action}
-            handler={findActionHandler(action.type, availableActions)}
+            handler={findActionHandler(action, availableActions)}
           />
         </div>
       ))}
@@ -122,11 +142,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     return <span>{node?.label}</span>;
   }
 
-  return (
-    <Flex wrap="wrap" gap={space(1)} flex={1}>
-      <Component action={action} handler={handler} />
-    </Flex>
-  );
+  return <Component action={action} handler={handler} />;
 }
 
 const Panel = styled('div')`

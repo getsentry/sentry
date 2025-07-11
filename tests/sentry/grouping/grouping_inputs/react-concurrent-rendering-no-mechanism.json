@@ -1,0 +1,14 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "TypeError",
+        "value": "Load failed"
+      },
+      {
+        "type": "Error",
+        "value": "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root."
+      }
+    ]
+  }
+}

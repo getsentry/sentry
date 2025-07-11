@@ -11,7 +11,6 @@ from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user_social_auth import get_provider_label
-from sentry.db.models.base import Model as SentryModel
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
@@ -54,7 +53,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt[M: SentryModel](cls, provider: PipelineProvider[M]) -> Self:
+    def adapt(cls, provider: PipelineProvider[Any]) -> Self:
         return cls(provider.key, provider.name)
 
 

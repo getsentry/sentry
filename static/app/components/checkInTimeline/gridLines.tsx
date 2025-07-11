@@ -147,6 +147,15 @@ interface GridLineOverlayProps {
    */
   cursorOffsets?: CursorOffsets;
   /**
+   * Whether to anchor the cursor overlay to the top or bottom of the container. Defaults to 'top'
+   */
+  cursorOverlayAnchor?: 'top' | 'bottom';
+  /**
+   * The offset of the cursor overlay. If anchor is 'top', this will be added to the top offset.
+   * If anchor is 'bottom', this will be added to the bottom offset.
+   */
+  cursorOverlayAnchorOffset?: number;
+  /**
    * Configres where the timeline labels are displayed
    */
   labelPosition?: LabelPosition;
@@ -170,6 +179,8 @@ export function GridLineOverlay({
   additionalUi,
   stickyCursor,
   cursorOffsets,
+  cursorOverlayAnchor,
+  cursorOverlayAnchorOffset,
   allowZoom,
   className,
   labelPosition = 'left-top',
@@ -218,6 +229,8 @@ export function GridLineOverlay({
     sticky: stickyCursor,
     offsets: cursorOffsets,
     labelText: makeCursorLabel,
+    anchor: cursorOverlayAnchor,
+    anchorOffset: cursorOverlayAnchorOffset,
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
@@ -337,7 +350,7 @@ const TimeLabelContainer = styled('div')<{
 
 const TimeLabel = styled(DateTime)`
   font-variant-numeric: tabular-nums;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   pointer-events: none;
 `;

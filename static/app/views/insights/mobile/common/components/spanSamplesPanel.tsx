@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Link} from 'sentry/components/core/link';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -143,7 +143,7 @@ const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }

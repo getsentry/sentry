@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Alert} from 'sentry/components/core/alert';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -9,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy} from 'sentry/icons';
+import {IconCopy, IconJson} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -164,6 +165,15 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
         />
       </KeyValueTable>
+      {monitor.isUpserting && (
+        <Alert.Container>
+          <Alert type="muted" icon={<IconJson />} showIcon>
+            {t(
+              'This monitor is managed in code and updates automatically with each check-in.'
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
     </Fragment>
   );
 }

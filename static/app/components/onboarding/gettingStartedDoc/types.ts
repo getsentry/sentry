@@ -1,5 +1,5 @@
 import type {Client} from 'sentry/api';
-import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
@@ -8,6 +8,91 @@ type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
   [key in keyof T]: GeneratorFunction<T[key], Params>;
 };
+
+export type Configuration = {
+  /**
+   * Additional information to be displayed below the code snippet
+   */
+  additionalInfo?: React.ReactNode;
+  /**
+   * The code snippet to display
+   */
+  code?: string | CodeSnippetTab[];
+  /**
+   * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
+   */
+  configurations?: Configuration[];
+  /**
+   * A brief description of the configuration
+   */
+  description?: React.ReactNode;
+  /**
+   * The language of the code to be rendered (python, javascript, etc)
+   */
+  language?: string;
+  /**
+   * A callback to be invoked when the configuration is copied to the clipboard
+   */
+  onCopy?: () => void;
+  /**
+   * A callback to be invoked when the configuration is selected and copied to the clipboard
+   */
+  onSelectAndCopy?: () => void;
+  /**
+   * Whether or not the configuration or parts of it are currently being loaded
+   */
+  partialLoading?: boolean;
+};
+
+export enum StepType {
+  INSTALL = 'install',
+  CONFIGURE = 'configure',
+  VERIFY = 'verify',
+}
+
+interface BaseStepProps {
+  /**
+   * Additional information to be displayed below the configurations
+   */
+  additionalInfo?: React.ReactNode;
+  /**
+   * Content that goes directly above the code snippet
+   */
+  codeHeader?: React.ReactNode;
+  /**
+   * Whether the step instructions are collapsible
+   */
+  collapsible?: boolean;
+  /**
+   * An array of configurations to be displayed
+   */
+  configurations?: Configuration[];
+  /**
+   * A brief description of the step
+   */
+  description?: React.ReactNode | React.ReactNode[];
+  /**
+   * Fired when the optional toggle is clicked.
+   * Useful for when we want to fire analytics events.
+   */
+  onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
+  /**
+   * Additional items to be displayed to the right of the step title, e.g. a button to copy the configuration to the clipboard.
+   */
+  trailingItems?: React.ReactNode;
+}
+
+interface StepPropsWithTitle extends BaseStepProps {
+  title: string;
+  type?: undefined;
+}
+
+interface StepPropsWithoutTitle extends BaseStepProps {
+  type: StepType;
+  title?: undefined;
+}
+
+export type OnboardingStep = StepPropsWithTitle | StepPropsWithoutTitle;
 
 export interface PlatformOption<Value extends string = string> {
   /**
@@ -96,16 +181,19 @@ export interface OnboardingConfig<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > extends WithGeneratorProperties<
     {
-      configure: StepProps[];
-      install: StepProps[];
-      verify: StepProps[];
+      configure: OnboardingStep[];
+      install: OnboardingStep[];
+      verify: OnboardingStep[];
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: Array<NextStep | null>;
       onPageLoad?: () => void;
       onPlatformOptionsChange?: (
         platformOptions: SelectedPlatformOptions<PlatformOptions>
       ) => void;
-      onProductSelectionChange?: (products: ProductSolution[]) => void;
+      onProductSelectionChange?: (params: {
+        previousProducts: ProductSolution[];
+        products: ProductSolution[];
+      }) => void;
       onProductSelectionLoad?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
@@ -113,6 +201,7 @@ export interface OnboardingConfig<
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
+  agentMonitoringOnboarding?: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;

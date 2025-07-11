@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, Never
+from typing import Any
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -18,9 +18,10 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -87,7 +88,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [MsTeamsPipelineView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -112,7 +113,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "tenant_id": data["tenant_id"],
             },
             "user_identity": {
-                "type": "msteams",
+                "type": IntegrationProviderSlug.MSTEAMS.value,
                 "external_id": user_id,
                 "scopes": [],
                 "data": {},
@@ -137,6 +138,6 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         client.send_card(conversation_id, card)
 
 
-class MsTeamsPipelineView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class MsTeamsPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         return pipeline.next_step()

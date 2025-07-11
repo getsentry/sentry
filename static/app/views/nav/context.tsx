@@ -9,12 +9,14 @@ import {NavLayout} from 'sentry/views/nav/types';
 
 interface NavContext {
   activePrimaryNavGroup: PrimaryNavGroup | null;
+  collapsedNavIsOpen: boolean;
   endInteraction: () => void;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
   navParentRef: React.RefObject<HTMLDivElement | null>;
   setActivePrimaryNavGroup: (activePrimaryNavGroup: PrimaryNavGroup | null) => void;
+  setCollapsedNavIsOpen: (collapsedNavIsOpen: boolean) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   setShowTourReminder: (showTourReminder: boolean) => void;
   showTourReminder: boolean;
@@ -33,6 +35,8 @@ const NavContext = createContext<NavContext>({
   setShowTourReminder: () => {},
   activePrimaryNavGroup: null,
   setActivePrimaryNavGroup: () => {},
+  collapsedNavIsOpen: false,
+  setCollapsedNavIsOpen: () => {},
 });
 
 export function useNavContext(): NavContext {
@@ -46,12 +50,13 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
+  const [collapsedNavIsOpen, setCollapsedNavIsOpen] = useState(false);
   const [showTourReminder, setShowTourReminder] = useState(false);
   const [activePrimaryNavGroup, setActivePrimaryNavGroup] =
     useState<PrimaryNavGroup | null>(null);
 
   const theme = useTheme();
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const startInteraction = useCallback(() => {
     isInteractingRef.current = true;
@@ -74,6 +79,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setShowTourReminder,
       activePrimaryNavGroup,
       setActivePrimaryNavGroup,
+      collapsedNavIsOpen,
+      setCollapsedNavIsOpen,
     }),
     [
       isMobile,
@@ -85,6 +92,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setShowTourReminder,
       activePrimaryNavGroup,
       setActivePrimaryNavGroup,
+      collapsedNavIsOpen,
+      setCollapsedNavIsOpen,
     ]
   );
 

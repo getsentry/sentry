@@ -96,7 +96,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    colorGraphicsToken: 'accent',
+    colorGraphicsToken: 'promotion',
     description: frame.data.projectSlug,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
@@ -169,7 +169,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     colorGraphicsToken: 'warning',
     description: frame.data.limit
       ? tct(
-          'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          'Significant mutations detected: [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
             count: frame.data.count,
             link: (
@@ -180,7 +180,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
           }
         )
       : tct(
-          'Significant mutations detected [count]. This can slow down the Replay SDK, impacting your customers. [link]',
+          'Significant mutations detected: [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
             count: frame.data.count,
             link: (
@@ -432,7 +432,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'device.battery': (frame: DeviceBatteryFrame) => ({
     colorGraphicsToken: 'promotion',
     description: tct('Device was at [percent]% battery and [charging]', {
-      percent: frame.data.level,
+      percent: Math.round(frame.data.level),
       charging: frame.data.charging ? 'charging' : 'not charging',
     }),
     tabKey: TabKey.BREADCRUMBS,
@@ -470,7 +470,11 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 
 export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   // Override title for User Feedback frames
-  if ('message' in frame && frame.message === 'User Feedback') {
+  if (
+    'message' in frame &&
+    typeof frame.message === 'string' &&
+    frame.message.includes('User Feedback')
+  ) {
     return t('User Feedback');
   }
   if ('category' in frame && frame.category) {

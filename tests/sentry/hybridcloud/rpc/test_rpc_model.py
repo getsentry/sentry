@@ -29,7 +29,7 @@ class RpcModelTest(TestCase):
 
     def test_rpc_model_equals_method(self) -> None:
         orm_user = self.create_user()
-        Authenticator.objects.create(user=orm_user, type=1)
+        Authenticator.objects.create(user=orm_user, type=1, config={})
 
         user1 = user_service.get_user(orm_user.id)
         user2 = user_service.get_user(orm_user.id)

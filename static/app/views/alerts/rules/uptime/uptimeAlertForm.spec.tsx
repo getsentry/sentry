@@ -342,4 +342,21 @@ describe('Uptime Alert Form', function () {
       })
     );
   });
+
+  it('sets a default name from the url', async function () {
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://my-cool-site.com/');
+
+    const simpleName = input('Uptime rule name');
+    expect(simpleName).toHaveValue('Uptime check for my-cool-site.com');
+
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com/with-path');
+
+    const pathName = input('Uptime rule name');
+    expect(pathName).toHaveValue('Uptime check for example.com/with-path');
+  });
 });

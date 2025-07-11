@@ -104,8 +104,8 @@ def evaluate_data_conditions(
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
     """
-    Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
-    Then we apply the logic_type to get the results of the list of conditions.
+    Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
+    Next we apply the logic_type to get the results of the list of conditions.
     """
     condition_results: list[ProcessedDataCondition] = []
 
@@ -148,7 +148,7 @@ def evaluate_data_conditions(
 
 
 def process_data_condition_group(
-    data_condition_group_id: int,
+    group: DataConditionGroup,
     value: T,
     is_fast: bool = True,
 ) -> DataConditionGroupResult:
@@ -159,15 +159,6 @@ def process_data_condition_group(
     condition_results: list[ProcessedDataCondition] = []
 
     try:
-        group = DataConditionGroup.objects.get_from_cache(id=data_condition_group_id)
-    except DataConditionGroup.DoesNotExist:
-        logger.exception(
-            "DataConditionGroup does not exist",
-            extra={"id": data_condition_group_id},
-        )
-        return invalid_group_result
-
-    try:
         logic_type = DataConditionGroup.Type(group.logic_type)
     except ValueError:
         logger.exception(
@@ -176,7 +167,7 @@ def process_data_condition_group(
         )
         return invalid_group_result
 
-    conditions = get_data_conditions_for_group(data_condition_group_id)
+    conditions = get_data_conditions_for_group(group.id)
 
     if is_fast:
         conditions, remaining_conditions = split_conditions_by_speed(conditions)

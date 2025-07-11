@@ -4,13 +4,16 @@ import responses
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apigrant import ApiGrant
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 
@@ -38,10 +41,22 @@ class TestCreator(TestCase):
         ).run(user=self.user, request=kwargs.pop("request", None))
 
     @responses.activate
-    def test_creates_installation(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_creates_installation(self, mock_record):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         assert install.pk
+
+        # SLO assertions
+        assert_success_metric(mock_record=mock_record)
+
+        # INSTALLATION_CREATE (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
 
     @responses.activate
     def test_creates_installation__multiple_runs(self):
@@ -141,3 +156,10 @@ class TestCreator(TestCase):
             organization_id=self.org.id,
             sentry_app="nulldb",
         )
+
+    @responses.activate
+    def test_placeholder_email(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+        install = self.run_creator()
+        proxy_user = User.objects.get(id=install.sentry_app.proxy_user.id)
+        assert proxy_user.email == f"{proxy_user.username}@proxy-user.sentry.io"

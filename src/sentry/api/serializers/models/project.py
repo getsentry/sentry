@@ -283,6 +283,8 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -550,6 +552,8 @@ class ProjectSerializer(Serializer):
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
+            "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -797,6 +801,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
+            hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -1007,6 +1013,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1018,7 +1025,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],

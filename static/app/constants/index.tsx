@@ -114,7 +114,7 @@ export const ORG_ROLES: OrgRole[] = [
   },
 ];
 
-export type PermissionChoice = {
+type PermissionChoice = {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
@@ -215,17 +215,6 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-// Maps a `type: string` -> `url-prefix: string`
-export const AVATAR_URL_MAP = {
-  team: 'team-avatar',
-  organization: 'organization-avatar',
-  project: 'project-avatar',
-  user: 'avatar',
-  sentryAppColor: 'sentry-app-avatar',
-  sentryAppSimple: 'sentry-app-avatar',
-  docIntegration: 'doc-integration-avatar',
-};
-
 export const MENU_CLOSE_DELAY = 200;
 
 export const SLOW_TOOLTIP_DELAY = 1000;
@@ -237,8 +226,6 @@ export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 export const TAXONOMY_DEFAULT_QUERY = 'is:unresolved';
 
-export const DEFAULT_USE_UTC = true;
-
 export const DEFAULT_RELATIVE_PERIODS = {
   '1h': t('Last hour'),
   '24h': t('Last 24 hours'),
@@ -246,14 +233,6 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
-};
-
-export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
-  '1h': t('1H'),
-  '24h': t('24H'),
-  '7d': t('7D'),
-  '14d': t('14D'),
-  '30d': t('30D'),
 };
 
 const DEFAULT_STATS_INFO = {
@@ -347,6 +326,21 @@ export const DATA_CATEGORY_INFO = {
     uid: 7,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/session-replay/',
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.USER_REPORT_V2]: {
+    name: DataCategoryExact.USER_REPORT_V2,
+    apiName: 'feedback',
+    plural: DataCategory.USER_REPORT_V2,
+    displayName: 'user feedback',
+    titleName: t('User Feedback'),
+    productName: t('User Feedback'),
+    uid: 14,
+    isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/user-feedback/',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
@@ -572,10 +566,6 @@ export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
 
-// Limit query length so paginated response headers don't
-// go over HTTP header size limits (4Kb)
-export const MAX_QUERY_LENGTH = 400;
-
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG as unknown as
   | undefined
@@ -607,8 +597,6 @@ export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
-export const LOGS_PROPS_DOCS_URL =
-  'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

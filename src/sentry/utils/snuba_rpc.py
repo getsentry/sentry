@@ -59,7 +59,7 @@ class MultiRpcResponse:
     timeseries_response: list[TimeSeriesResponse]
 
 
-def log_snuba_info(content):
+def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
@@ -122,7 +122,7 @@ def _make_rpc_requests(
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
+        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
     response = [
@@ -248,7 +248,7 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
     thread_isolation_scope = (
-        sentry_sdk.Scope.get_isolation_scope()
+        sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None
         else thread_isolation_scope
     )

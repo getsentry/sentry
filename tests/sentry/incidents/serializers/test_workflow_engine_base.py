@@ -17,7 +17,8 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPeriod
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 
 @freeze_time("2024-12-11 03:21:34")
@@ -133,7 +134,10 @@ class TestWorkflowEngineSerializer(TestCase):
 
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
-        ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
+        workflow = self.create_workflow()
+        WorkflowActionGroupStatus.objects.create(
+            action=self.critical_action, group=self.group, workflow=workflow
+        )
         self.group_open_period = GroupOpenPeriod.objects.get(
             group=self.group, project=self.detector.project
         )

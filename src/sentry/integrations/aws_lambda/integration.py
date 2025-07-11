@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any, Never
+from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
@@ -22,9 +22,10 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -203,7 +204,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
-    def get_pipeline_views(self) -> list[PipelineView[Never]]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
@@ -261,8 +262,8 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             oi.update(config={"default_project_id": default_project_id})
 
 
-class AwsLambdaProjectSelectPipelineView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class AwsLambdaProjectSelectPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -283,13 +284,13 @@ class AwsLambdaProjectSelectPipelineView(PipelineView[Never]):
             organization_id=organization.id,
             filter=dict(project_ids=[p.id for p in projects]),
         )
-        return self.render_react_view(
+        return render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
 
-class AwsLambdaCloudFormationPipelineView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class AwsLambdaCloudFormationPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
@@ -313,7 +314,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView[Never]):
                 "organization": serialized_organization,
                 "awsExternalId": pipeline.fetch_state("aws_external_id"),
             }
-            return self.render_react_view(request, "awsLambdaCloudformation", context)
+            return render_react_view(request, "awsLambdaCloudformation", context)
 
         # form submit adds accountNumber to GET parameters
         if "accountNumber" in request.GET:
@@ -351,8 +352,8 @@ class AwsLambdaCloudFormationPipelineView(PipelineView[Never]):
         return render_response()
 
 
-class AwsLambdaListFunctionsPipelineView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class AwsLambdaListFunctionsPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -372,15 +373,15 @@ class AwsLambdaListFunctionsPipelineView(PipelineView[Never]):
 
         curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
 
-        return self.render_react_view(
+        return render_react_view(
             request,
             "awsLambdaFunctionSelect",
             {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
         )
 
 
-class AwsLambdaSetupLayerPipelineView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class AwsLambdaSetupLayerPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 
@@ -463,7 +464,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView[Never]):
         # otherwise, finish
 
         if failures:
-            return self.render_react_view(
+            return render_react_view(
                 request,
                 "awsLambdaFailureDetails",
                 {"lambdaFunctionFailures": failures, "successCount": success_count},
