@@ -121,7 +121,7 @@ def parse_replay_events(message: Event):
             json.loads(message["payload"]),
         )
     except Exception:
-        logging.exception(
+        logger.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
             message["context"]["org_id"],
             message["context"]["project_id"],
