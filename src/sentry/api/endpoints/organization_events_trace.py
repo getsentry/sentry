@@ -1767,31 +1767,11 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=1,
         )
-        transaction_children_query = SpansIndexedQueryBuilder(
-            dataset=Dataset.SpansIndexed,
-            selected_columns=[
-                "transaction.id",
-                "count()",
-            ],
-            orderby=["transaction.id"],
-            params={},
-            snuba_params=snuba_params,
-            query=f"trace:{trace_id}",
-            limit=10_000,
-        )
 
         with handle_query_errors():
-            results = bulk_snuba_queries(
-                [
-                    meta_query.get_snql_query(),
-                    transaction_children_query.get_snql_query(),
-                ],
+            meta_result = meta_query.run_query(
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
                 query_source=query_source,
-            )
-            meta_result, children_result = (
-                results[0],
-                results[1],
             )
             if len(meta_result["data"]) == 0:
                 return Response(status=404)
@@ -1804,15 +1784,13 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         return Response(
             self.serialize(
                 meta_result["data"][0],
-                children_result["data"],
             )
         )
 
     def serialize(
         self,
         results: Mapping[str, int],
-        child_result: Any,
-    ) -> Mapping[str, int | dict[str, int]]:
+    ) -> Mapping[str, int | dict[str, int] | list[Any]]:
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
@@ -1820,6 +1798,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
             "span_count": 0,
-            "transaction_child_count_map": child_result,
+            "transaction_child_count_map": [],
             "span_count_map": {},
         }
