@@ -23,8 +23,14 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function getDetectorEnvironment(detector: Detector) {
+  // TODO: Add support for other detector types
+  if (detector.type !== 'metric_issue') {
+    return '<placeholder>';
+  }
+
   return (
     detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')?.queryObj
       ?.snubaQuery.environment ?? t('All environments')
@@ -66,7 +72,16 @@ function AssignToUser({userId}: {userId: string}) {
 }
 
 function DetectorPriorities({detector}: {detector: Detector}) {
-  const detectionType = detector.config?.detection_type || 'static';
+  if (detector.type !== 'metric_issue') {
+    return null;
+  }
+
+  // TODO: Add support for other detector types
+  if (!('detectionType' in detector.config)) {
+    return null;
+  }
+
+  const detectionType = detector.config?.detectionType || 'static';
 
   // For dynamic detectors, show the automatic priority message
   if (detectionType === 'dynamic') {
@@ -93,7 +108,7 @@ function DetectorPriorities({detector}: {detector: Detector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
-    const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
+    const thresholdSuffix = getMetricDetectorSuffix(detector);
 
     return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
@@ -119,15 +134,19 @@ function DetectorPriorities({detector}: {detector: Detector}) {
 }
 
 function DetectorResolve({detector}: {detector: Detector}) {
-  const detectionType = detector.config?.detection_type || 'static';
+  // TODO: Add support for other detector types
+  if (detector.type !== 'metric_issue') {
+    return null;
+  }
+
+  const detectionType = detector.config?.detectionType || 'static';
   const conditions = detector.conditionGroup?.conditions || [];
 
   // Get the main condition (first non-OK condition)
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
-
-  const thresholdSuffix = detector.config?.detection_type === 'percent' ? '%' : 's';
+  const thresholdSuffix = getMetricDetectorSuffix(detector);
 
   const description = getResolutionDescription({
     detectionType,

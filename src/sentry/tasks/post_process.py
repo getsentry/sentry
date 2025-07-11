@@ -956,7 +956,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
     from sentry.workflow_engine.processors.workflow import process_workflows
-    from sentry.workflow_engine.tasks import process_workflows_event
+    from sentry.workflow_engine.tasks.workflows import process_workflows_event
 
     # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
@@ -966,6 +966,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     try:
         workflow_event_data = WorkflowEventData(
             event=job["event"],
+            group=job["event"].group,
             group_state=job.get("group_state"),
             has_reappeared=job.get("has_reappeared"),
             has_escalated=job.get("has_escalated"),
@@ -1611,6 +1612,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
+        return
+
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
         return
 
     project = group.project

@@ -8,7 +8,6 @@ from django.urls import reverse
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
 SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
@@ -16,10 +15,6 @@ SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
 
 def test_conf_key() -> None:
     assert PushoverPlugin().conf_key == "pushover"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("pushover", PushoverPlugin())
 
 
 class PushoverPluginTest(PluginTestCase):

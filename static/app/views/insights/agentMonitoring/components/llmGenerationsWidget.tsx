@@ -12,6 +12,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   getAIGenerationsFilter,
@@ -30,19 +31,16 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function LLMGenerationsWidget() {
   const organization = useOrganization();
-  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
   const theme = useTheme();
-
-  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
+  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
   const generationsRequest = useEAPSpans(
     {
@@ -104,7 +102,8 @@ export default function LLMGenerationsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
+              color:
+                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })

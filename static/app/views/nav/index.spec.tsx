@@ -31,13 +31,13 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'user-feedback-ui',
   'session-replay-ui',
   'ourlogs-enabled',
   'performance-view',
   'performance-trace-explorer',
   'profiling',
   'enforce-stacked-navigation',
+  'visibility-explore-view',
 ];
 
 const mockUsingCustomerDomain = jest.fn();

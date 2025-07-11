@@ -18,6 +18,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -36,6 +37,7 @@ const OrganizationHeader = HookOrDefault({
 
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
+  useRegisterDomainViewUsage();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be
@@ -84,6 +86,7 @@ function AppLayout({children, organization}: LayoutProps) {
         <Nav />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
         <BodyContainer id="main">
+          <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
             <OrganizationDetailsBody>{children}</OrganizationDetailsBody>

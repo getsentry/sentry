@@ -652,6 +652,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={**result},
             )
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed_check_updated_interval(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -803,6 +804,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_missed(self):
         features = [
             "organizations:uptime",
@@ -1133,7 +1135,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
@@ -1182,6 +1186,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
     def test_provider_stats(self):
         features = [
             "organizations:uptime",
@@ -1618,7 +1623,9 @@ class ProcessResultSerialTest(ProcessResultTest):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"

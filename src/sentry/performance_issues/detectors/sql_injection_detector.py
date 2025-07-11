@@ -126,24 +126,45 @@ class SQLInjectionDetector(PerformanceDetector):
             regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
             regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
             where_index = description.upper().find("WHERE")
-            if re.search(regex_key, description[where_index:]) and re.search(
-                regex_value, description[where_index:]
+            # Search for comments only in the portion after WHERE clause
+            description_after_where = description[where_index:]
+            comment_index = description_after_where.find("--")
+            if comment_index != -1:
+                description_to_search = description_after_where[:comment_index]
+                description_after_comment = description_after_where[comment_index:]
+            else:
+                description_to_search = description_after_where
+                description_after_comment = ""
+            if re.search(regex_key, description_to_search) and re.search(
+                regex_value, description_to_search
             ):
-                description = description[:where_index] + re.sub(
-                    regex_value, "[UNTRUSTED_INPUT]", description[where_index:]
+                description = (
+                    description[:where_index]
+                    + re.sub(regex_value, "[UNTRUSTED_INPUT]", description_to_search)
+                    + description_after_comment
                 )
                 vulnerable_parameters.append((key, value))
 
         if len(vulnerable_parameters) == 0:
             return
 
-        fingerprint = self._fingerprint(description)
+        parameterized_description = span.get("sentry_tags", {}).get("description")
+        # If the query description is not parameterized, use the original description with replacements
+        if not parameterized_description:
+            parameterized_description = description
+        vulnerable_keys = [key for key, _ in vulnerable_parameters]
+        fingerprint_description = f"{'-'.join(vulnerable_keys)}-{parameterized_description}"
+        fingerprint = self._fingerprint(fingerprint_description)
+
+        issue_description = (
+            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
+        )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             type=DBQueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
-            desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
+            desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
             cause_span_ids=[],
             parent_span_ids=[],
             offender_span_ids=spans_involved,

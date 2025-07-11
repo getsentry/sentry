@@ -25,10 +25,10 @@ type Props = {
   toggleConnected?: (id: string) => void;
 };
 
-function Skeletons({canEdit}: {canEdit: boolean}) {
+function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
   return (
     <Fragment>
-      {Array.from({length: AUTOMATIONS_PER_PAGE}).map((_, index) => (
+      {Array.from({length: numberOfRows}).map((_, index) => (
         <SimpleTable.Row key={index}>
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
@@ -90,7 +90,12 @@ export function ConnectedAutomationsList({
           </SimpleTable.HeaderCell>
           {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
-        {isLoading && <Skeletons canEdit={canEdit} />}
+        {isLoading && (
+          <Skeletons
+            canEdit={canEdit}
+            numberOfRows={Math.min(automationIds.length, AUTOMATIONS_PER_PAGE)}
+          />
+        )}
         {isError && <LoadingError />}
         {automationIds.length === 0 && (
           <SimpleTable.Empty>{t('No automations connected')}</SimpleTable.Empty>

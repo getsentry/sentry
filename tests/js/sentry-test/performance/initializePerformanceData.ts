@@ -42,17 +42,34 @@ export function initializeData(settings?: InitializeDataSettings) {
       ...query,
     },
   };
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/performance/`,
+      query: {...query} as Record<string, string>,
+    },
+    route: '/organizations/:orgId/performance/',
+  };
   if (settings?.selectedProject || settings?.project) {
     routerLocation.query.project = project || settings?.project;
+    initialRouterConfig.location.query.project = project || settings?.project;
   }
   const router = {
     location: routerLocation,
   };
   const initialData = initializeOrg({organization, projects, router});
   const location = initialData.router.location;
-  const eventView = EventView.fromLocation(location);
+  const eventView = EventView.fromLocation(initialRouterConfig.location as any);
 
-  return {...initialData, location, eventView};
+  return {
+    ...initialData,
+    /**
+     * @deprecated use initialRouterConfig instead. Avoid deprecatedRouterMocks.
+     */
+    router: initialData.router,
+    location,
+    eventView,
+    initialRouterConfig,
+  };
 }
 
 export const SAMPLE_SPANS = [

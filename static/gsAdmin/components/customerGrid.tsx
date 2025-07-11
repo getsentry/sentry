@@ -2,8 +2,8 @@ import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 
 import CustomerContact from 'admin/components/customerContact';
 import CustomerName from 'admin/components/customerName';

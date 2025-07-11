@@ -16,7 +16,10 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
-from sentry.preprod.tasks import assemble_preprod_artifact_size_analysis
+from sentry.preprod.tasks import (
+    assemble_preprod_artifact_installable_app,
+    assemble_preprod_artifact_size_analysis,
+)
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -29,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class AssembleType(Enum):
     SIZE_ANALYSIS = "size_analysis"
+    INSTALLABLE_APP = "installable_app"
 
 
 def validate_preprod_artifact_generic_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -124,11 +128,10 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                 )
 
             assemble_type = data.get("assemble_type")
-            if assemble_type == AssembleType.SIZE_ANALYSIS.value:
+
+            def update_assemble_status(task: str):
                 # Check current assembly status
-                state, detail = get_assemble_status(
-                    AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS, project.id, checksum
-                )
+                state, detail = get_assemble_status(task, project.id, checksum)
                 if state is not None:
                     return Response({"state": state, "detail": detail, "missingChunks": []})
 
@@ -139,13 +142,32 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                     return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
 
                 set_assemble_status(
-                    AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS,
+                    task,
                     project.id,
                     checksum,
                     ChunkFileState.CREATED,
                 )
 
+            if assemble_type == AssembleType.SIZE_ANALYSIS.value:
+                response = update_assemble_status(AssembleTask.PREPROD_ARTIFACT_SIZE_ANALYSIS)
+                if response:
+                    return response
+
                 assemble_preprod_artifact_size_analysis.apply_async(
+                    kwargs={
+                        "org_id": project.organization_id,
+                        "project_id": project.id,
+                        "checksum": checksum,
+                        "chunks": chunks,
+                        "artifact_id": artifact_id,
+                    }
+                )
+            elif assemble_type == AssembleType.INSTALLABLE_APP.value:
+                response = update_assemble_status(AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP)
+                if response:
+                    return response
+
+                assemble_preprod_artifact_installable_app.apply_async(
                     kwargs={
                         "org_id": project.organization_id,
                         "project_id": project.id,

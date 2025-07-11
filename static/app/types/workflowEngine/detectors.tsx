@@ -1,12 +1,21 @@
-import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
-import type {AlertRuleSensitivity} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  DataCondition,
+  DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * See SnubaQuerySerializer
  */
 interface SnubaQuery {
   aggregate: string;
-  dataset: string;
+  dataset: Dataset;
+  eventTypes: EventTypes[];
   id: string;
   query: string;
   /**
@@ -16,6 +25,9 @@ interface SnubaQuery {
   environment?: string;
 }
 
+/**
+ * See DataSourceSerializer
+ */
 interface BaseDataSource {
   id: string;
   organizationId: string;
@@ -41,6 +53,8 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
+    body: string | null;
+    headers: Array<[string, string]>;
     hostProviderId: string;
     hostProviderName: string;
     intervalSeconds: number;
@@ -48,16 +62,9 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
     timeoutMs: number;
     traceSampling: boolean;
     url: string;
-    urlDomain: string;
-    urlDomainSuffix: string;
   };
   type: 'uptime_subscription';
 }
-
-/**
- * See DataSourceSerializer
- */
-export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType =
   | 'error'
@@ -65,55 +72,120 @@ export type DetectorType =
   | 'uptime_subscription'
   | 'uptime_domain_failure';
 
-interface BaseDetectorConfig {
-  threshold_period: number;
+interface BaseMetricDetectorConfig {
+  thresholdPeriod: number;
 }
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface StaticDetectorConfig extends BaseDetectorConfig {
-  detection_type: 'static';
+interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+  detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface PercentDetectorConfig extends BaseDetectorConfig {
-  comparison_delta: number;
-  detection_type: 'percent';
+interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+  comparisonDelta: number;
+  detectionType: 'percent';
 }
 
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface DynamicDetectorConfig extends BaseDetectorConfig {
-  detection_type: 'dynamic';
+interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+  detectionType: 'dynamic';
   seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
   sensitivity?: AlertRuleSensitivity;
+  thresholdType?: AlertRuleThresholdType;
 }
 
-export type DetectorConfig =
-  | StaticDetectorConfig
-  | PercentDetectorConfig
-  | DynamicDetectorConfig;
+export type MetricDetectorConfig =
+  | MetricDetectorConfigStatic
+  | MetricDetectorConfigPercent
+  | MetricDetectorConfigDynamic;
 
-interface NewDetector {
-  conditionGroup: DataConditionGroup | null;
-  config: DetectorConfig;
-  dataSources: DataSource[] | null;
+interface UptimeDetectorConfig {
+  environment: string;
+}
+
+type BaseDetector = Readonly<{
+  createdBy: string | null;
+  dateCreated: string;
+  dateUpdated: string;
   disabled: boolean;
+  id: string;
+  lastTriggered: string;
   name: string;
+  owner: string | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
+}>;
+
+export interface MetricDetector extends BaseDetector {
+  readonly conditionGroup: DataConditionGroup | null;
+  readonly config: MetricDetectorConfig;
+  readonly dataSources: SnubaQueryDataSource[];
+  readonly type: 'metric_issue';
 }
 
-export interface Detector extends Readonly<NewDetector> {
-  readonly createdBy: string | null;
-  readonly dateCreated: string;
-  readonly dateUpdated: string;
-  readonly id: string;
-  readonly lastTriggered: string;
-  readonly owner: string | null;
+export interface UptimeDetector extends BaseDetector {
+  readonly config: UptimeDetectorConfig;
+  readonly dataSources: UptimeSubscriptionDataSource[];
+  readonly type: 'uptime_domain_failure';
+}
+
+interface CronDetector extends BaseDetector {
+  // TODO: Add cron detector type fields
+  readonly type: 'uptime_subscription';
+}
+
+export interface ErrorDetector extends BaseDetector {
+  // TODO: Add error detector type fields
+  readonly type: 'error';
+}
+
+export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+
+interface UpdateConditionGroupPayload {
+  conditions: Array<Omit<DataCondition, 'id'>>;
+  logicType: DataConditionGroup['logicType'];
+}
+
+interface UpdateSnubaDataSourcePayload {
+  aggregate: string;
+  dataset: string;
+  environment: string | null;
+  eventTypes: string[];
+  query: string;
+  queryType: number;
+  timeWindow: number;
+}
+
+interface UpdateUptimeDataSourcePayload {
+  intervalSeconds: number;
+  method: string;
+  timeoutMs: number;
+  traceSampling: boolean;
+  url: string;
+}
+
+export interface BaseDetectorUpdatePayload {
+  name: string;
+  owner: Detector['owner'];
+  projectId: Detector['projectId'];
+}
+
+export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  dataSource: UpdateUptimeDataSourcePayload;
+  type: 'uptime_domain_failure';
+}
+
+export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  conditionGroup: UpdateConditionGroupPayload;
+  config: MetricDetectorConfig;
+  dataSource: UpdateSnubaDataSourcePayload;
+  type: 'metric_issue';
 }

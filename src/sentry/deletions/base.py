@@ -5,8 +5,11 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from django.db import router
+
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
+from sentry.silo.safety import unguarded_write
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -61,12 +64,8 @@ class ModelRelation(BaseRelation):
         model: type[ModelT],
         query: Mapping[str, Any],
         task: type[BaseDeletionTask[Any]] | None = None,
-        partition_key: str | None = None,
     ) -> None:
         params = {"model": model, "query": query}
-
-        if partition_key:
-            params["partition_key"] = partition_key
 
         super().__init__(params=params, task=task)
 
@@ -270,30 +269,18 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(
-        self,
-        manager: DeletionTaskManager,
-        model: type[ModelT],
-        query: Mapping[str, Any],
-        partition_key: str | None = None,
-        **kwargs: Any,
-    ):
-        super().__init__(manager, model, query, **kwargs)
-
-        self.partition_key = partition_key
-
     def chunk(self) -> bool:
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
         try:
-            return bulk_delete_objects(
-                model=self.model,
-                limit=self.chunk_size,
-                transaction_id=self.transaction_id,
-                partition_key=self.partition_key,
-                **self.query,
-            )
+            with unguarded_write(using=router.db_for_write(self.model)):
+                return bulk_delete_objects(
+                    model=self.model,
+                    limit=self.chunk_size,
+                    transaction_id=self.transaction_id,
+                    **self.query,
+                )
         finally:
             # Don't log Group and Event child object deletions.
             model_name = self.model.__name__

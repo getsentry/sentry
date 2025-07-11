@@ -5,8 +5,16 @@ from django.core.files.base import ContentFile
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
-from sentry.preprod.tasks import assemble_preprod_artifact, assemble_preprod_artifact_size_analysis
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
+from sentry.preprod.tasks import (
+    assemble_preprod_artifact,
+    assemble_preprod_artifact_installable_app,
+    assemble_preprod_artifact_size_analysis,
+)
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -258,7 +266,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         with (
             patch("sentry.preprod.tasks.assemble_file", return_value=MockAssembleResult()),
             patch.object(
-                PreprodArtifact.objects, "create", side_effect=Exception("Simulated failure")
+                PreprodArtifact.objects, "get_or_create", side_effect=Exception("Simulated failure")
             ),
         ):
 
@@ -285,6 +293,83 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert len(artifacts) == 0
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
+
+class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
+    def setUp(self):
+        super().setUp()
+        self.preprod_artifact = PreprodArtifact.objects.create(
+            project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
+        )
+
+    def _run_task_and_verify_status(
+        self, content, checksum=None, chunks=None, artifact_id=None, org_id=None, project_id=None
+    ):
+        checksum = checksum or sha1(content).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(content), self.organization)
+        chunks = chunks or [blob.checksum]
+
+        assemble_preprod_artifact_installable_app(
+            org_id=org_id or self.organization.id,
+            project_id=project_id or self.project.id,
+            checksum=checksum,
+            chunks=chunks,
+            artifact_id=artifact_id or self.preprod_artifact.id,
+        )
+
+        status, details = get_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP, project_id or self.project.id, checksum
+        )
+        delete_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP, project_id or self.project.id, checksum
+        )
+        return status, details
+
+    def test_assemble_preprod_artifact_installable_app_success(self):
+        status, details = self._run_task_and_verify_status(b"test installable app content")
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify installable app file was created
+        installable_files = File.objects.filter(type="preprod.file")
+        assert len(installable_files) == 1
+        assert installable_files[0].name.startswith("preprod-file-")
+
+        # Verify PreprodArtifact was updated with installable app file ID
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
+
+    def test_assemble_preprod_artifact_installable_app_error_cases(self):
+        # Test nonexistent artifact
+        status, details = self._run_task_and_verify_status(
+            b"nonexistent artifact", artifact_id=99999
+        )
+        assert status == ChunkFileState.ERROR
+
+        # Test checksum mismatch
+        status, details = self._run_task_and_verify_status(b"checksum mismatch", checksum="b" * 40)
+        assert status == ChunkFileState.ERROR
+        assert "checksum mismatch" in details
+
+        # Test missing chunks
+        status, details = self._run_task_and_verify_status(
+            b"missing chunks", chunks=["nonexistent" + "1" * 32]
+        )
+        assert status == ChunkFileState.ERROR
+        assert "Not all chunks available" in details
+
+        # Test nonexistent org
+        status, details = self._run_task_and_verify_status(b"nonexistent org", org_id=99999)
+        assert status == ChunkFileState.ERROR
+
+        # Test nonexistent project
+        status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
+        assert status == ChunkFileState.ERROR
+
+        # Verify PreprodArtifact was not updated for error cases
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.installable_app_file_id is None
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
@@ -323,14 +408,48 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert status == ChunkFileState.OK
         assert details is None
 
-        # Verify size analysis file and artifact update
-        size_files = File.objects.filter(type="preprod.size_analysis")
+        # Verify size analysis file and size metrics creation
+        size_files = File.objects.filter(type="preprod.file")
         assert len(size_files) == 1
-        assert size_files[0].name.startswith("preprod-size-analysis-")
+        assert size_files[0].name.startswith("preprod-file-")
 
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.analysis_file_id == size_files[0].id
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+        # Verify PreprodArtifactSizeMetrics record was created
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].analysis_file_id == size_files[0].id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert (
+            size_metrics[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+
+    def test_assemble_preprod_artifact_size_analysis_update_existing(self):
+        # Create an existing size metrics record
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        status, details = self._run_task_and_verify_status(b"test size analysis update content")
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify size analysis file was created
+        size_files = File.objects.filter(type="preprod.file")
+        assert len(size_files) == 1
+        assert size_files[0].name.startswith("preprod-file-")
+
+        # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1  # Should still be only 1 record
+        assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
+        assert size_metrics[0].analysis_file_id == size_files[0].id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
     def test_assemble_preprod_artifact_size_analysis_error_cases(self):
         # Test nonexistent artifact
@@ -359,7 +478,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         status, details = self._run_task_and_verify_status(b"nonexistent project", project_id=99999)
         assert status == ChunkFileState.ERROR
 
-        # Verify artifact was not updated for error cases
-        self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.analysis_file_id is None
-        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        # Verify no size metrics were created for error cases
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 0

@@ -11,6 +11,8 @@ import {
   MODEL_AGE_CHOICES,
   type ModelAge,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
@@ -46,12 +48,11 @@ function ReleaseAgeTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.release_age_type`}
+      aria-label={t('Release age type')}
       value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
       onChange={(option: SelectValue<ModelAge>) => {
-        onUpdate({
-          match: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, release_age_type: option.value}});
       }}
     />
   );
@@ -62,12 +63,11 @@ function AgeComparisonField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.age_comparison`}
+      aria-label={t('Age comparison')}
       value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({
-          match: option.value,
-        });
+        onUpdate({comparison: {...condition.comparison, age_comparison: option.value}});
       }}
     />
   );
@@ -75,6 +75,7 @@ function AgeComparisonField() {
 
 function EnvironmentField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
 
   const {environments} = useOrganizationEnvironments();
   const environmentOptions = environments.map(({id, name}) => ({
@@ -85,13 +86,15 @@ function EnvironmentField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.environment`}
+      aria-label={t('Environment')}
       value={condition.comparison.environment}
       options={environmentOptions}
       placeholder={t('environment')}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          environment: option,
-        });
+        onUpdate({comparison: {...condition.comparison, environment: option.value}});
+        // We only remove the error when `environment` is changed since
+        // other fields have default values and should not trigger an error
+        removeError(condition.id);
       }}
     />
   );
@@ -109,4 +112,17 @@ function useOrganizationEnvironments() {
     }
   );
   return {environments, isLoading};
+}
+
+export function validateLatestAdoptedReleaseCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (
+    !condition.comparison.release_age_type ||
+    !condition.comparison.age_comparison ||
+    !condition.comparison.environment
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

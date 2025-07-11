@@ -58,7 +58,10 @@ function formatCategoryRowString(
     DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
-  if (category === DataCategoryExact.ATTACHMENT) {
+  if (
+    category === DataCategoryExact.ATTACHMENT ||
+    category === DataCategoryExact.LOG_BYTE
+  ) {
     return reservedWithUnits;
   }
 
@@ -111,6 +114,7 @@ function PlanMigrationRow(props: Props) {
     case DataCategoryExact.REPLAY:
     case DataCategoryExact.MONITOR_SEAT:
     case DataCategoryExact.ATTACHMENT:
+    case DataCategoryExact.LOG_BYTE:
     case DataCategoryExact.PROFILE_DURATION:
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
       nextValue = formatCategoryRowString(props.type, props.nextValue, options);

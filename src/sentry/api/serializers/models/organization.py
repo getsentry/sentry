@@ -123,7 +123,6 @@ class _Links(TypedDict):
 class OnboardingTasksSerializerResponse(TypedDict):
     task: str | None  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime | None
     dateCompleted: datetime
     data: Any  # JSON objec
@@ -500,7 +499,6 @@ class OnboardingTasksSerializer(Serializer):
         return {
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP[obj.status],
-            "user": attrs.get("user"),
             "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,

@@ -13,7 +13,6 @@ interface AiConfigResult {
   hasResources: boolean;
   hasSummary: boolean;
   isAutofixSetupLoading: boolean;
-  needsGenAiAcknowledgement: boolean;
   orgNeedsGenAiAcknowledgement: boolean;
   refetchAutofixSetup: () => void;
 }
@@ -44,11 +43,6 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
   const hasGithubIntegration = !!autofixSetupData?.integration.ok;
 
-  const needsGenAiAcknowledgement =
-    !autofixSetupData?.setupAcknowledgement.userHasAcknowledged &&
-    (isSummaryEnabled || isAutofixEnabled) &&
-    areAiFeaturesAllowed;
-
   const orgNeedsGenAiAcknowledgement =
     !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
     (isSummaryEnabled || isAutofixEnabled) &&
@@ -57,7 +51,6 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   return {
     hasSummary,
     hasAutofix,
-    needsGenAiAcknowledgement,
     orgNeedsGenAiAcknowledgement,
     hasResources,
     isAutofixSetupLoading,

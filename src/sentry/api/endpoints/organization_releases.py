@@ -47,6 +47,7 @@ from sentry.search.utils import get_latest_release
 from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 from sentry.utils.sdk import bind_organization_context
 
@@ -233,6 +234,20 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+    }
+
     SESSION_SORTS = frozenset(
         [
             "crash_free_sessions",

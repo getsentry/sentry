@@ -5009,6 +5009,47 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["fields"][equation] == "number"
 
+    def test_equation_with_orderby_using_same_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|count(span.duration)"
+        response = self.do_request(
+            {
+                "field": ["count(span.duration)", equation],
+                "query": "",
+                "orderby": "count_span_duration",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count(span.duration)": 2,
+                equation: 2,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "integer"
+
     def test_equation_single_function_term(self):
         self.store_spans(
             [
@@ -5810,9 +5851,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
     def test_short_trace_id_filter(self):
         trace_ids = [
             "0" * 32,
-            ("7" * 8) + ("0" * 24),
+            ("7" * 31) + "0",
             "7" * 32,
-            ("7" * 8) + ("f" * 24),
+            ("7" * 31) + "f",
             "f" * 32,
         ]
         self.store_spans(
@@ -5826,24 +5867,25 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             is_eap=self.is_eap,
         )
 
-        response = self.do_request(
-            {
-                "field": ["trace"],
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "query": f"trace:{'7' * 8}",
-                "orderby": "trace",
-            }
-        )
+        for i in range(8, 32):
+            response = self.do_request(
+                {
+                    "field": ["trace"],
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "query": f"trace:{'7' * i}",
+                    "orderby": "trace",
+                }
+            )
 
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert {row["trace"] for row in data} == {
-            ("7" * 8) + ("0" * 24),
-            "7" * 32,
-            ("7" * 8) + ("f" * 24),
-        }
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert {row["trace"] for row in data} == {
+                ("7" * 31) + "0",
+                "7" * 32,
+                ("7" * 31) + "f",
+            }
 
     def test_eps(self):
         self.store_spans(
@@ -5878,3 +5920,321 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["units"] == {"description": None, "eps()": "1/second"}
         assert meta["fields"] == {"description": "string", "eps()": "rate"}
+
+    def test_apdex_function(self):
+        """Test the apdex function with span.duration and threshold."""
+        # Create spans with different durations to test apdex calculation
+        # Threshold = 1000ms (1 second)
+        # Satisfactory: ≤ 1000ms
+        # Tolerable: > 1000ms and ≤ 4000ms
+        # Frustrated: > 4000ms
+        spans = [
+            # Satisfactory spans (≤ 1000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=500,  # 500ms - satisfactory
+            ),
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=1000,  # 1000ms - satisfactory (at threshold)
+            ),
+            # Tolerable spans (> 1000ms and ≤ 4000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=2000,  # 2000ms - tolerable
+            ),
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=4000,  # 4000ms - tolerable (at 4T)
+            ),
+            # Frustrated spans (> 4000ms)
+            self.create_span(
+                {"description": "http.server", "is_segment": True},
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - frustrated
+            ),
+            # Non-segment span
+            self.create_span(
+                {"description": "http.server", "is_segment": False},
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - frustrated
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["apdex(span.duration,1000)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        # Expected apdex calculation:
+        # Satisfactory: 2 spans (500ms, 1000ms)
+        # Tolerable: 2 spans (2000ms, 4000ms)
+        # Frustrated: 1 span (5000ms)
+        # Total: 5 spans
+        # Apdex = (2 + 2/2) / 5 = (2 + 1) / 5 = 3/5 = 0.6
+        expected_apdex = 0.6
+
+        assert len(data) == 1
+        assert data[0]["apdex(span.duration,1000)"] == expected_apdex
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {"apdex(span.duration,1000)": "number"}
+
+    def test_apdex_function_with_filter(self):
+        """Test the apdex function with filtering."""
+        # Create spans with different descriptions and durations
+        # Only segments (transactions) will be counted in apdex calculation
+        spans = [
+            # Satisfactory spans for "api" operations (segments)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=800,
+            ),
+            # Tolerable span for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,
+            ),
+            # Frustrated span for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,
+            ),
+            # Other spans that should be filtered out
+            self.create_span(
+                {
+                    "description": "task",
+                    "sentry_tags": {"status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["apdex(span.duration,1000)"],
+                "query": "description:http.server",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        # Expected apdex calculation for filtered results:
+        # Only segments (transactions) are counted in apdex
+        # Satisfactory: 2 spans (500ms, 800ms) - both are segments
+        # Tolerable: 1 span (2000ms) - is a segment
+        # Frustrated: 1 span (5000ms) - is a segment
+        # Total: 4 spans (all segments)
+        # Apdex = (2 + 1/2) / 4 = (2 + 0.5) / 4 = 2.5/4 = 0.625
+        expected_apdex = 0.625
+
+        assert len(data) == 1
+        assert data[0]["apdex(span.duration,1000)"] == expected_apdex
+
+    def test_user_misery_function(self):
+        """Test the user_misery function with span.duration and threshold."""
+        # Create spans with different durations and users to test user misery calculation
+        # Threshold = 1000ms (1 second)
+        # Miserable threshold = 4000ms (4x threshold)
+        # Users are considered miserable when response time > 4000ms
+        spans = [
+            # Happy users (≤ 4000ms) - segments
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user1"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,  # 500ms - happy
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,  # 2000ms - happy
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user3"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=4000,  # 4000ms - happy (at 4T)
+            ),
+            # Miserable users (> 4000ms) - segments
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user4"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - miserable
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=6000,  # 6000ms - miserable
+            ),
+            # Non-segment span (should not be counted)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user5"},
+                    "is_segment": False,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,  # 5000ms - miserable but not a segment
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["user_misery(span.duration,1000)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        # Expected user misery calculation:
+        # Miserable users: 2 (user4, user2) - both are segments
+        # Total unique users: 5 (user1, user2, user3, user4) - all segments
+        # MISERY_ALPHA = 5.8875, MISERY_BETA = 111.8625
+        # User Misery = (2 + 5.8875) / (5 + 5.8875 + 111.8625) = 7.8875 / 122.75 ≈ 0.0643
+        expected_user_misery = (2 + 5.8875) / (4 + 5.8875 + 111.8625)
+
+        assert len(data) == 1
+        assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
+            expected_user_misery, rel=1e-3
+        )
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {"user_misery(span.duration,1000)": "number"}
+
+    def test_user_misery_function_with_filter(self):
+        """Test the user_misery function with filtering."""
+        # Create spans with different descriptions, durations, and users
+        # Only segments (transactions) will be counted in user misery calculation
+        spans = [
+            # Happy users for "api" operations (segments)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user1", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=500,
+            ),
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user2", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2000,
+            ),
+            # Miserable user for "api" operations (segment)
+            self.create_span(
+                {
+                    "description": "http.server",
+                    "sentry_tags": {"user": "user3", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5000,
+            ),
+            # Other spans that should be filtered out
+            self.create_span(
+                {
+                    "description": "task",
+                    "sentry_tags": {"user": "user4", "status": "success"},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["user_misery(span.duration,1000)"],
+                "query": "description:http.server",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        # Expected user misery calculation for filtered results:
+        # Only segments (transactions) are counted in user misery
+        # Miserable users: 1 (user3) - is a segment
+        # Total unique users: 3 (user1, user2, user3) - all segments
+        # MISERY_ALPHA = 5.8875, MISERY_BETA = 111.8625
+        # User Misery = (1 + 5.8875) / (3 + 5.8875 + 111.8625) = 6.8875 / 120.75 ≈ 0.0570
+        expected_user_misery = (1 + 5.8875) / (3 + 5.8875 + 111.8625)
+
+        assert len(data) == 1
+        assert data[0]["user_misery(span.duration,1000)"] == pytest.approx(
+            expected_user_misery, rel=1e-3
+        )

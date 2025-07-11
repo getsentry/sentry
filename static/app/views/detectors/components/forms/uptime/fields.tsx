@@ -1,7 +1,13 @@
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import type {
+  Detector,
+  UptimeDetectorUpdatePayload,
+} from 'sentry/types/workflowEngine/detectors';
 
-interface UptimeDetectorFormData {
+export interface UptimeDetectorFormData {
+  body: string;
   environment: string;
+  headers: Array<[string, string]>;
   intervalSeconds: number;
   method: string;
   name: string;
@@ -39,4 +45,67 @@ export const UPTIME_DETECTOR_FORM_FIELDS = {
   url: 'url',
   method: 'method',
   traceSampling: 'traceSampling',
+  headers: 'headers',
+  body: 'body',
 } satisfies Record<UptimeDetectorFormFieldName, UptimeDetectorFormFieldName>;
+
+export function uptimeFormDataToEndpointPayload(
+  data: UptimeDetectorFormData
+): UptimeDetectorUpdatePayload {
+  return {
+    type: 'uptime_domain_failure',
+    name: data.name,
+    owner: data.owner,
+    projectId: data.projectId,
+    dataSource: {
+      intervalSeconds: data.intervalSeconds,
+      method: data.method,
+      timeoutMs: data.timeoutMs,
+      traceSampling: data.traceSampling,
+      url: data.url,
+    },
+  };
+}
+
+export function uptimeSavedDetectorToFormData(
+  detector: Detector
+): UptimeDetectorFormData {
+  if (detector.type !== 'uptime_domain_failure') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
+  const dataSource = detector.dataSources?.[0];
+  const environment = 'environment' in detector.config ? detector.config.environment : '';
+
+  const common = {
+    name: detector.name,
+    environment,
+    owner: detector.owner || '',
+    projectId: detector.projectId,
+  };
+
+  if (dataSource?.type === 'uptime_subscription') {
+    return {
+      ...common,
+      intervalSeconds: dataSource.queryObj.intervalSeconds,
+      method: dataSource.queryObj.method,
+      timeoutMs: dataSource.queryObj.timeoutMs,
+      traceSampling: dataSource.queryObj.traceSampling,
+      url: dataSource.queryObj.url,
+      headers: dataSource.queryObj.headers,
+      body: dataSource.queryObj.body ?? '',
+    };
+  }
+
+  return {
+    ...common,
+    intervalSeconds: 60,
+    method: 'GET',
+    timeoutMs: 10000,
+    traceSampling: false,
+    url: 'https://example.com',
+    headers: [],
+    body: '',
+  };
+}

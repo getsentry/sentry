@@ -111,6 +111,7 @@ const LOGO_MAPPING = {
   xbox: logoXbox,
 };
 
+/** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
 // The icons in this list will be inverted when the theme is set to dark mode

@@ -195,6 +195,7 @@ def get_anomaly_data_from_seer(
         expected_seasonality=seasonality,
     )
     context = AlertInSeer(
+        id=None,
         source_id=source_id,
         source_type=source_type,
         cur_window=TimeSeriesPoint(timestamp=timestamp.timestamp(), value=aggregation_value),

@@ -1,6 +1,7 @@
 import os
 import sys
 
+from django.apps.registry import apps
 from django.conf import settings
 from django.core.management.commands import makemigrations
 from django.db.migrations.loader import MigrationLoader
@@ -60,10 +61,14 @@ class Command(makemigrations.Command):
         for migration in loader.disk_migrations.values():
             name = migration.name
             app_label = migration.app_label
-            if (
-                settings.MIGRATIONS_LOCKFILE_APP_WHITELIST
-                and app_label not in settings.MIGRATIONS_LOCKFILE_APP_WHITELIST
-            ):
+            app_cfg = apps.get_app_config(app_label)
+
+            if app_cfg.module is None or app_cfg.module.__file__ is None:
+                raise AssertionError(f"{app_cfg.name} is missing __init__.py")
+
+            rel = os.path.relpath(app_cfg.module.__file__, settings.MIGRATIONS_LOCKFILE_PATH)
+            # do not lock migrations from outside the tree
+            if "/site-packages/" in rel or rel.startswith("../"):
                 continue
             latest_migration_by_app[app_label] = max(
                 latest_migration_by_app.get(app_label, "0"), name, key=_migration_sort_key
