@@ -77,6 +77,12 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         response = self.make_put({"projectId": self.project2.id, "sourceRoot": "newRoot"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+        response = self.make_put({"ProjectId": self.project2.id, "sourceRoot": "newRoot"})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "ProjectId": "ProjectId collides with project_id, please pass only one value"
+        }
+
         response = self.make_put({"sourceRoot": "newRoot"})
         assert response.status_code == status.HTTP_200_OK
 
