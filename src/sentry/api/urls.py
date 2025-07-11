@@ -81,7 +81,6 @@ from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates impo
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
-from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -1054,6 +1053,20 @@ RELAY_URLS = [
     ),
 ]
 
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
+        TestResultsAggregatesEndpoint.as_view(),
+        name="sentry-api-0-test-results-aggregates",
+    ),
+]
+
+
 USER_URLS = [
     re_path(
         r"^$",
@@ -1266,12 +1279,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/(?P<data_export_id>[^/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
-    ),
-    # Data Secrecy
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/data-secrecy/$",
-        WaiveDataSecrecyEndpoint.as_view(),
-        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -2395,6 +2402,10 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/prevent/",
+        include(PREVENT_URLS),
+    ),
     *workflow_urls.organization_urlpatterns,
 ]
 
@@ -3296,19 +3307,6 @@ INTERNAL_URLS = [
     *preprod_urls.preprod_internal_urlpatterns,
 ]
 
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
-]
-
 urlpatterns = [
     # Relay
     re_path(
@@ -3373,11 +3371,6 @@ urlpatterns = [
     re_path(
         r"^broadcasts/",
         include(BROADCAST_URLS),
-    ),
-    # Prevent
-    re_path(
-        r"^prevent/",
-        include(PREVENT_URLS),
     ),
     #
     #

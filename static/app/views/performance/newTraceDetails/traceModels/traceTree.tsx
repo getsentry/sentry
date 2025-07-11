@@ -144,6 +144,8 @@ export declare namespace TraceTree {
   };
 
   type EAPOccurrence = {
+    culprit: string;
+    description: string;
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
@@ -152,7 +154,8 @@ export declare namespace TraceTree {
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    description?: string;
+    type: number;
+    short_id?: string;
   };
 
   type EAPSpan = {

@@ -20,7 +20,7 @@ import {
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-const aggregations = ['avg', 'sum', 'count', 'count_unique'];
+const aggregations = ['avg', 'sum', 'epm', 'count_unique'];
 
 const functionArguments = [
   {name: 'span.duration', kind: FieldKind.MEASUREMENT},
@@ -93,7 +93,7 @@ describe('token', function () {
       expect(input).toHaveValue('');
     });
 
-    it('allow selecting function on mouse', async function () {
+    it('allow selecting function using mouse', async function () {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -143,7 +143,49 @@ describe('token', function () {
       });
     });
 
-    it('allows selection parenthesis using mouse', async function () {
+    it('allows selecting function with no arguments using mouse', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // typing should reduce the options avilable in the autocomplete
+      expect(screen.getAllByRole('option')).toHaveLength(5);
+      await userEvent.type(input, 'epm');
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+
+      await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+      expect(await screen.findByLabelText('epm()')).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+    });
+
+    it('allows selecting function with no arguments using keyboard', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // typing should reduce the options avilable in the autocomplete
+      expect(screen.getAllByRole('option')).toHaveLength(5);
+      await userEvent.type(input, 'epm');
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+      expect(await screen.findByLabelText('epm()')).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+    });
+
+    it('allows selecting parenthesis using mouse', async function () {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -165,7 +207,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('allows selection parenthesis using keyboard', async function () {
+    it('allows selecting parenthesis using keyboard', async function () {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -230,6 +272,27 @@ describe('token', function () {
       await waitFor(() => {
         expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
       });
+    });
+
+    it('autocompletes function token with no arguments when they reach the open parenthesis', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'epm(');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'epm()',
+        })
+      ).toBeInTheDocument();
     });
 
     it('autocompletes addition', async function () {
@@ -536,6 +599,106 @@ describe('token', function () {
       expect(options[1]).toHaveTextContent('span.description');
       await userEvent.type(input, 'desc');
       expect(screen.getByRole('option')).toHaveTextContent('span.description');
+    });
+
+    it('skips input when function has no arguments', async function () {
+      render(<Tokens expression="epm()" />);
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('combobox', {
+            name: 'Select an attribute',
+          })
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('ArithmeticTokenLiteral', function () {
+    it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
+      'renders literal %s',
+      async function (expression) {
+        const dispatch = jest.fn();
+        render(<Tokens expression={expression} dispatch={dispatch} />);
+
+        expect(await screen.findByRole('row', {name: expression})).toBeInTheDocument();
+
+        const input = screen.getByRole('textbox', {
+          name: 'Add a literal',
+        });
+        expect(input).toBeInTheDocument();
+      }
+    );
+
+    it('completes literal with space', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0 ');
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+
+      await userEvent.type(getLastInput(), '{Escape}');
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it('completes literal with escape', async function () {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0{escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+    });
+
+    it.each([
+      ['+', 'icon-add'],
+      ['-', 'icon-subtract'],
+      ['*', 'icon-multiply'],
+      ['/', 'icon-divide'],
+      ['(', 'icon-parenthesis'],
+      [')', 'icon-parenthesis'],
+    ])('completes literal with token %s', async function (token, dataTestId) {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '0');
+      await userEvent.type(input, token);
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
+      expect(screen.getByTestId(dataTestId)).toBeInTheDocument();
     });
   });
 
