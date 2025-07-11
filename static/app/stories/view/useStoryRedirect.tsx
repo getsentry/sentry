@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import kebabCase from 'lodash/kebabCase';
 
 import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,12 +36,12 @@ export function useStoryRedirect() {
     }
     if (story.category === 'shared') {
       navigate(
-        {pathname: `/stories/`, search: `?name=${story.path}`},
+        {pathname: `/stories/`, search: `?name=${encodeURIComponent(story.path)}`},
         {replace: true, state: {storyPath: story.path}}
       );
     } else {
       navigate(
-        {pathname: `/stories/${story.category}/${story.label.toLowerCase()}`},
+        {pathname: `/stories/${story.category}/${kebabCase(story.label)}`},
         {replace: true, state: {storyPath: story.path}}
       );
     }
@@ -90,7 +91,7 @@ function getStoryMetaFromQuery(
   const {category, topic} = query;
   const nodes = stories[category];
   for (const node of nodes) {
-    const match = node.find(n => n.label.toLowerCase() === topic?.toLowerCase());
+    const match = node.find(n => kebabCase(n.label) === topic);
     if (match) {
       return {category, label: match.label, path: match.filesystemPath};
     }
