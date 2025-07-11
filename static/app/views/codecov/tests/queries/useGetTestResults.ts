@@ -68,7 +68,7 @@ export function useInfiniteTestResults() {
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
 
-  const term = searchParams.get('term');
+  const term = searchParams.get('term') || '';
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -103,8 +103,8 @@ export function useInfiniteTestResults() {
                 ],
               sortBy: signedSortBy,
               branch,
+              term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
-              ...(term ? {term} : {}),
             },
           },
         ],
