@@ -12,17 +12,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
-
-const INDEXED_SPAN_SORT = {
-  field: 'span.self_time',
-  kind: 'desc' as const,
-};
 
 interface Props {
   moduleName: ModuleName;
@@ -39,30 +33,24 @@ export function FullSpanDescription({
 }: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
     {
-      search: MutableSearch.fromQueryObject({'span.group': group}),
+      search: MutableSearch.fromQueryObject({'span.group': group, ...filters}),
       limit: 1,
       fields: [
         SpanIndexedField.PROJECT_ID,
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.DB_SYSTEM,
       ],
     },
     'api.starfish.span-description'
   );
+
   const indexedSpan = indexedSpans?.[0];
 
-  // This is used as backup in case we don't have the necessary data available in the indexed span
-  const {
-    data: fullSpan,
-    isLoading,
-    isFetching,
-  } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(indexedSpan), filters);
+  const description = indexedSpan?.['span.description'] ?? shortDescription;
+  const system = indexedSpan?.['db.system'];
 
-  const description =
-    indexedSpan?.['span.description'] ?? fullSpan?.description ?? shortDescription;
-  const system = fullSpan?.data?.['db.system'];
-
-  if (areIndexedSpansLoading || (isLoading && isFetching)) {
+  if (areIndexedSpansLoading) {
     return (
       <PaddedSpinner>
         <LoadingIndicator mini relative />
@@ -83,10 +71,8 @@ export function FullSpanDescription({
         result = prettyPrintJsonString(indexedSpan?.['span.description']);
       } else if (description) {
         result = prettyPrintJsonString(description);
-      } else if (fullSpan?.sentry_tags?.description) {
-        result = prettyPrintJsonString(fullSpan?.sentry_tags.description);
       } else {
-        stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
+        stringifiedQuery = description || 'N/A';
       }
 
       if (result) {
