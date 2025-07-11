@@ -249,7 +249,7 @@ class DashboardFiltersMixin:
         elif period:
             page_filters["period"] = period
 
-        if dashboard_filters.get("utc"):
+        if dashboard_filters.get("utc") is not None:
             page_filters["utc"] = dashboard_filters["utc"]
 
         tag_filters: DashboardFilters = {}
