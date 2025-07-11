@@ -39,7 +39,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_basic(self, mock_generate_summary):
@@ -58,7 +58,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_with_date_filter(self, mock_generate_summary):
@@ -89,7 +89,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_with_project_filter(self, mock_generate_summary):
@@ -118,7 +118,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_with_many_project_filter_as_list(self, mock_generate_summary):
@@ -147,7 +147,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_with_many_project_filter_separate(self, mock_generate_summary):
@@ -175,7 +175,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     def test_get_feedback_summary_too_few_feedbacks(self, mock_generate_summary):
@@ -192,11 +192,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
+        "sentry.feedback.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
     )
     def test_get_feedback_summary_character_limit(self, mock_generate_summary):
@@ -226,10 +226,10 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
-    @patch("sentry.api.endpoints.organization_feedback_summary.cache")
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_hit(self, mock_cache, mock_generate_summary):
         mock_cache.get.return_value = {
             "summary": "Test cached summary of feedback",
@@ -254,10 +254,10 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch(
-        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        "sentry.feedback.endpoints.organization_feedback_summary.generate_summary",
         return_value="Test summary of feedback",
     )
-    @patch("sentry.api.endpoints.organization_feedback_summary.cache")
+    @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_miss(self, mock_cache, mock_generate_summary):
         mock_cache.get.return_value = None
 
