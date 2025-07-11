@@ -730,6 +730,32 @@ export default class ReplayReader {
     )
   );
 
+  getTimelineFrames = memoize(() =>
+    this._trimFramesToClipWindow(
+      [
+        ...this.getPerfFrames(),
+        // ...this.getWebVitalFrames(),
+        ...this.getCustomFrames(),
+        ...this._sortedBreadcrumbFrames.filter(frame =>
+          [
+            'replay.hydrate-error',
+            // 'replay.init',
+            'replay.mutations',
+            'feedback',
+            // 'device.battery',
+            // 'device.connectivity',
+            // 'device.orientation',
+            // 'app.foreground',
+            // 'app.background',
+          ].includes(frame.category)
+        ),
+        // ...this._errors,
+      ].sort(sortFrames),
+      this.getStartTimestampMs(),
+      this.getStartTimestampMs() + this.getDurationMs()
+    )
+  );
+
   getPerfFrames = memoize(() => {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(

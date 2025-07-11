@@ -1,9 +1,11 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import BaseChart from 'sentry/components/charts/baseChart';
+import MarkArea from 'sentry/components/charts/components/markArea';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,86 +19,138 @@ import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import type {EChartMouseEventData, EChartMouseEventParam} from 'sentry/types/echarts';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {incrementalSnapshotEvent} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
+const USER_INTERACTION_CATEGORY = 'user.action';
+const ISSUE_CATEGORY = 'issue';
+
+function createBuckets({
+  bucketCount,
+  durationMs,
+  startTimestampMs,
+}: {
+  bucketCount: number;
+  durationMs: number;
+  startTimestampMs: number;
+}) {
+  const bucketSizeMs = durationMs / bucketCount;
+  return Array.from(
+    {length: bucketCount},
+    (_, index) => startTimestampMs + index * bucketSizeMs
+  );
+}
+
 // Helper function to create stacked area chart data from chapter frames
-function createStackedChartData(
-  chapterFrames: any[],
-  userInteractionEvents: incrementalSnapshotEvent[],
-  durationMs: number,
-  startTimestampMs: number
-) {
-  console.log({userInteractionEvents});
-  if (!chapterFrames.length && !userInteractionEvents.length) {
+function createStackedChartData({
+  bucketCount,
+  durationMs,
+  startTimestampMs,
+  frames,
+  getTimestamp = (frame: unknown) => frame.timestamp || frame.startTimestamp,
+}: {
+  bucketCount: number;
+  durationMs: number;
+  frames: unknown[];
+  startTimestampMs: number;
+  getTimestamp?: (frame: unknown) => number;
+}) {
+  if (!frames?.length) {
     return [];
   }
 
-  // Create time buckets (e.g., every 1% of the duration)
-  const bucketCount = 100;
   const bucketSizeMs = durationMs / bucketCount;
+  const buckets = Array.from(
+    {length: bucketCount},
+    (_, index) => startTimestampMs + index * bucketSizeMs
+  );
 
   // Get unique categories
-  const categories = [
-    ...new Set([
-      ...chapterFrames.map(frame => getFrameOpOrCategory(frame)),
-      'user.action',
-    ]),
-  ].filter(Boolean);
+  // const categories = [
+  //   ...new Set([
+  //     ...chapterFrames.map(frame => getFrameOpOrCategory(frame)),
+  //     ISSUE_CATEGORY,
+  //     USER_INTERACTION_CATEGORY,
+  //   ]),
+  // ].filter(Boolean);
 
   // Initialize buckets
-  const buckets = Array.from({length: bucketCount}, (_, index) => {
-    const bucketData: Record<string, any> = {
-      name: startTimestampMs + index * bucketSizeMs,
-      time: startTimestampMs + index * bucketSizeMs,
-      data: {},
-    };
+  const bucketData = buckets.map(bucket => ({
+    time: bucket,
+    data: 0,
+  }));
 
-    // Initialize all categories to 0
-    categories.forEach(category => {
-      bucketData.data[category] = 0;
-    });
+  // Initialize all categories to 0
+  //     categories.forEach(category => {
+  //     bucketData.data[category] = 0;
+  //   });
 
-    return bucketData;
-  });
+  //   return bucketData;
+  // });
 
   // Count frames per category per bucket
-  chapterFrames.forEach(frame => {
-    const category = getFrameOpOrCategory(frame);
-    if (!category || (!frame.timestamp && !frame.startTimestamp)) return;
+  frames.forEach(frame => {
+    // const category = getFrameOpOrCategory(frame);
+    // if (!category || (!frame.timestamp && !frame.startTimestamp)) return;
+    const timestamp = getTimestamp(frame);
+    if (!timestamp) return;
 
-    const frameTimeMs = (frame.timestamp || frame.startTimestamp) - startTimestampMs;
-    const bucketIndex = Math.floor(frameTimeMs / bucketSizeMs);
+    const relativeTimestampMs = timestamp - startTimestampMs;
+    const bucketIndex = Math.floor(relativeTimestampMs / bucketSizeMs);
 
     if (bucketIndex >= 0 && bucketIndex < bucketCount) {
-      buckets[bucketIndex].data[category] += 1;
+      bucketData[bucketIndex].data += 1;
     }
   });
 
-  userInteractionEvents.forEach(event => {
-    const category = 'user.action';
-    if (!category || !event.timestamp) return;
+  // userInteractionEvents.forEach(event => {
+  //   const category = USER_INTERACTION_CATEGORY;
+  //   if (!category || !event.timestamp) return;
 
-    const eventTimeMs = event.timestamp - startTimestampMs;
-    const bucketIndex = Math.floor(eventTimeMs / bucketSizeMs);
+  //   const eventTimeMs = event.timestamp - startTimestampMs;
+  //   const bucketIndex = Math.floor(eventTimeMs / bucketSizeMs);
 
-    if (bucketIndex >= 0 && bucketIndex < bucketCount) {
-      buckets[bucketIndex].data[category] += 1;
-    }
-  });
+  //   if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+  //     buckets[bucketIndex].data[category] += 1;
+  //   }
+  // });
 
-  return buckets;
+  return bucketData;
+}
+
+function getGroupedCategories(frame: BreadcrumbFrame | SpanFrame) {
+  const category = getFrameOpOrCategory(frame);
+  if (!category) {
+    return null;
+  }
+  if (category.startsWith('navigation')) {
+    return 'navigation';
+  }
+  if (category.startsWith('ui')) {
+    return 'ui';
+  }
+
+  return null;
 }
 
 export default function ReplayTimeline() {
-  const {replay, currentTime} = useReplayContext();
+  const {replay, currentTime, setCurrentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
+  const [currentHoverTime] = useCurrentHoverTime();
   const theme = useTheme();
+  const handleOnClick = useCallback(
+    (params: EChartMouseEventParam<EChartMouseEventData>) => {
+      console.log('onClick', {params});
+    },
+    []
+  );
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -104,31 +158,68 @@ export default function ReplayTimeline() {
     timelineScale
   );
 
+  if (!replay) {
+    return <Placeholder height="60px" />;
+  }
+
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
 
-  if (!replay) {
-    return <Placeholder height="20px" />;
-  }
-
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getStartTimestampMs();
-  const chapterFrames = replay.getChapterFrames();
+  const chapterFrames = replay.getTimelineFrames();
+  const issueFrames = replay.getErrorFrames();
   const videoEvents = replay.getVideoEvents();
   const userInteractionEvents = replay.getUserInteractionEvents();
 
-  // Generate stacked chart data from chapter frames
-  const stackedData = useMemo(
+  const frameDetails = useMemo(
     () =>
-      createStackedChartData(
-        chapterFrames,
-        userInteractionEvents,
-        durationMs,
-        startTimestampMs
+      new Map(
+        chapterFrames.map(frame => [
+          getGroupedCategories(frame),
+          getFrameDetails(frame).colorGraphicsToken,
+        ])
       ),
-    [chapterFrames, userInteractionEvents, durationMs, startTimestampMs]
+    [chapterFrames]
   );
-  console.log({stackedData});
+
+  const categories = useMemo(() => frameDetails.keys().filter(Boolean), [frameDetails]);
+
+  // Generate stacked chart data from chapter frames
+  const stackedData = useMemo(() => {
+    const data = categories.map(category => [
+      category,
+      createStackedChartData({
+        bucketCount: 100,
+        frames: chapterFrames.filter(frame => getGroupedCategories(frame) === category),
+        durationMs,
+        startTimestampMs,
+      }),
+    ]);
+    return Object.fromEntries(data);
+  }, [chapterFrames, durationMs, startTimestampMs, categories]);
+
+  const issuesStackedData = useMemo(
+    () =>
+      createStackedChartData({
+        bucketCount: 1000,
+        frames: issueFrames,
+        durationMs,
+        startTimestampMs,
+      }),
+    [issueFrames, durationMs, startTimestampMs]
+  );
+
+  const userInteractionStackedData = useMemo(
+    () =>
+      createStackedChartData({
+        bucketCount: 100,
+        frames: userInteractionEvents,
+        durationMs,
+        startTimestampMs,
+      }),
+    [userInteractionEvents, durationMs, startTimestampMs]
+  );
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
@@ -147,182 +238,214 @@ export default function ReplayTimeline() {
     return initialTranslate - (currentTime > durationMs ? 1 : percentComplete);
   };
 
-  const frameDetails = new Map([
-    ...chapterFrames.map(frame => [
-      getFrameOpOrCategory(frame),
-      getFrameDetails(frame).colorGraphicsToken,
-    ]),
-    ['user.action', 'muted'],
-  ]);
-  const chapterByCategory = useMemo(() => {
-    return chapterFrames.reduce(
-      (acc, frame) => {
-        const category = getFrameOpOrCategory(frame);
-        if (!acc[category]) {
-          acc[category] = [];
-        }
-        acc[category].push(frame);
-        return acc;
-      },
-      {} as Record<string, Array<BreadcrumbFrame | SpanFrame>>
-    );
-  }, [chapterFrames]);
+  const maxIssueCount = issuesStackedData.reduce((acc, bucket) => {
+    if ((bucket.data ?? 0) > acc) {
+      acc = bucket.data ?? 0;
+    }
+    return acc;
+  }, 0);
+
+  // const ui = Object.entries(
+  //   userInteractionEvents.reduce((acc, event) => {
+  //     if (acc[event.timestamp]) {
+  //       acc[event.timestamp] += 1;
+  //     } else {
+  //       acc[event.timestamp] = 1;
+  //     }
+  //     return acc;
+  //   }, {})
+  // ).map(([timestamp, value]) => [Number(timestamp), value]);
+
+  // const chapters = chapterFrames.reduce((acc, frame) => {
+  //   const category = getFrameOpOrCategory(frame);
+  //   if (!category) return acc;
+
+  //   const timestamp = frame.timestampMs || frame.startTimestampMs;
+
+  //   if (acc[category]) {
+  //     if (acc[category][timestamp]) {
+  //       acc[category][timestamp] += 1;
+  //     } else {
+  //       acc[category][timestamp] = 1;
+  //     }
+  //   } else {
+  //     acc[category] = {[timestamp]: 1};
+  //   }
+  //   return acc;
+  // }, {});
+
+  // console.log(chapters);
+
+  // A line series for rrweb user interaction events
+  const userInteractionSeries = {
+    type: 'line' as const,
+    gridIndex: 1,
+    xAxisIndex: 0,
+    yAxisIndex: 1,
+    lineStyle: {
+      color: theme.tokens.graphics.muted,
+      opacity: 0.75,
+      width: 0.4,
+    },
+    showSymbol: false,
+    name: 'User activity',
+    opacity: 0.25,
+    smooth: true,
+    color: theme.tokens.graphics.muted,
+    data: userInteractionStackedData.map(bucket => [bucket.time, bucket.data || 0]),
+  };
+
+  const allScatterSeriesData = [
+    ...issuesStackedData.map(bucket => {
+      return {
+        name: bucket.time,
+        itemStyle: {
+          color: theme.tokens.graphics.danger,
+        },
+        value: [bucket.time, bucket.data || 0],
+      };
+    }),
+    ...Object.entries(stackedData).flatMap(([category, categoryData]) => {
+      return categoryData.map(bucket => {
+        return {
+          name: category,
+          itemStyle: {
+            color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
+          },
+          value: [bucket.time, bucket.data || 0],
+        };
+      });
+    }),
+  ];
+  const issueSeries = {
+    type: 'scatter' as const,
+    singleAxisIndex: 0,
+    gridIndex: 1,
+    yAxisIndex: 1,
+    coordinateSystem: 'singleAxis',
+    showSymbol: true,
+    symbolSize: (dataItem: [timestamp: number, value: number]) => {
+      if (dataItem[1] === 0) {
+        return 0;
+      }
+      // `maxIssueCount` is the max number of issues across all buckets.
+      // `dataItem[1]` is the number of issues in the current bucket.
+      // I want to scale the symbol size based on the number of issues in the current bucket relative to the max number of issues across all buckets.
+      // I want to scale the symbol size between 4 and 16.
+      return (dataItem[1] / maxIssueCount) * 12 + 4;
+      // return (dataItem[1] / maxIssueCount) * 8;
+    },
+    seriesName: ISSUE_CATEGORY,
+    name: ISSUE_CATEGORY,
+    data: allScatterSeriesData,
+    // [
+    //   ...issuesStackedData.map(bucket => {
+    //     return {
+    //       name: bucket.time,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics.danger,
+    //       },
+    //       value: [bucket.time, bucket.data || 0],
+    //     };
+    //   }),
+    //   ...Object.entries(stackedData).map(([category, categoryData]) => {
+    //     return {
+    //       name: category,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
+    //       },
+    //       value: categoryData.map(bucket => [bucket.time, bucket.data || 0]),
+    //     };
+    //   }),
+    // ],
+  };
 
   const series =
     chapterFrames.length > 0
-      ? Object.entries(chapterByCategory).map(([category, frames]) => ({
-          type: 'area',
-          seriesName: category,
-          smooth: true,
-          stack: true,
-          name: category,
-          color: theme.tokens.graphics[frameDetails.get(category)],
-          yAxisIndex: 0,
-
-          // areaStyle: {
-          //   color: theme.tokens.graphics[category],
-          // },
-          // data: frames.map(frame => [+frame.timestamp || +frame.startTimestamp, 1]),
-          data: frames.map(frame => ({
-            name: +(frame.timestamp || frame.startTimestamp),
-            value: 1,
-          })),
-        }))
-      : [];
-
-  const [maxIssueCount, maxOtherCount] = stackedData.reduce<[number, number]>(
-    (acc, bucket) => {
-      if ((bucket.data.issue ?? 0) > acc[0]) {
-        acc[0] = bucket.data.issue ?? 0;
-      }
-      const nonIssueTotal = Object.entries<number>(bucket.data)
-        .filter(([category]) => category !== 'issue' && category !== 'user.action')
-        .reduce((sum, [, value]) => {
-          return sum + (value ?? 0);
-        }, 0);
-
-      if (nonIssueTotal > acc[1]) {
-        acc[1] = nonIssueTotal;
-      }
-      return acc;
-    },
-    [0, 0]
-  );
-
-  console.log({maxIssueCount, maxOtherCount});
-  chapterByCategory['user.action'] = userInteractionEvents;
-
-  const series1 =
-    chapterFrames.length > 0
-      ? [
-          ...new Set(chapterFrames.map(frame => getFrameOpOrCategory(frame))),
-          'user.action',
-        ]
-          .filter(Boolean)
-          .map(category => {
-            if (category === 'issue') {
-              const data = {
-                type: 'scatter',
-                xAxisIndex: 1,
-                // singleAxisIndex: 0,
-                // coordinateSystem: 'singleAxis',
-                showSymbol: true,
-                symbolSize: dataItem => {
-                  if (dataItem[2] === 0) {
-                    return 0;
-                  }
-                  // `maxIssueCount` is the max number of issues across all buckets.
-                  // `dataItem[1]` is the number of issues in the current bucket.
-                  // I want to scale the symbol size based on the number of issues in the current bucket relative to the max number of issues across all buckets.
-                  // I want to scale the symbol size between 4 and 16.
-                  return (dataItem[2] / maxIssueCount) * 12 + 4;
-                  // return (dataItem[1] / maxIssueCount) * 8;
-                },
-                // areaStyle: {
-                //   opacity: category === 'issue' ? 1 : 0.5,
-                // },
-                seriesName: category,
-                name: category,
-                // opacity: category === 'issue' ? 1 : 0.5,
-                smooth: true,
-                color: theme.tokens.graphics[frameDetails.get(category)],
-                data: stackedData.map(bucket => [
-                  bucket.time,
-                  maxOtherCount + 4,
-                  bucket.data[category] || 0,
-                ]),
-                // data: stackedData.map(bucket => ({
-                //   color: theme.tokens.graphics[frameDetails.get(category)],
-                //   opacity: category === 'issue' ? 1 : 0.5,
-                //   name: bucket.time,
-                //   value: bucket[category] || 0,
-                // })),
-              };
-              console.log({data});
-              return data;
-            }
-            if (category === 'user.action') {
-              return {
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 1,
-                // stack: 'user.activity',
-                // areaStyle: {
-                //   // opacity: 1,
-                // },
-                lineStyle: {
-                  color: theme.tokens.graphics[frameDetails.get(category)],
-                  opacity: 0.75,
-                  // opacity: 1,
-                  width: 0.4,
-                },
-                showSymbol: false,
-                seriesName: category,
-                name: category,
-                opacity: 0.25,
-                smooth: true,
-                color: theme.tokens.graphics[frameDetails.get(category)],
-                // data: stackedData.map(bucket => ({
-                //   name: bucket.time,
-                //   value: bucket[category] || 0,
-                // })),
-                data: stackedData.map(bucket => [
-                  bucket.time,
-                  bucket.data[category] || 0,
-                ]),
-              };
-            }
-
-            return {
-              type: 'line',
-              xAxisIndex: 0,
-              stack: 'breadcrumbs',
-              areaStyle: {
-                opacity: 1,
-              },
-              lineStyle: {
-                color: theme.tokens.graphics[frameDetails.get(category)],
-                // opacity: 1,
-                width: 0.4,
-              },
-              showSymbol: false,
-              seriesName: category,
-              name: category,
-              opacity: category === 'issue' ? 1 : 0.5,
-              smooth: true,
+      ? Object.entries(stackedData).map(([category, categoryData]) => {
+          const data = categoryData.map(bucket => [bucket.time, bucket.data || 0]);
+          return {
+            type: 'line' as const,
+            smooth: true,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            triggerLineEvent: true,
+            gridIndex: 1,
+            stack: 'breadcrumbs',
+            areaStyle: {
+              opacity: 1,
+            },
+            lineStyle: {
               color: theme.tokens.graphics[frameDetails.get(category)],
-              // data: stackedData.map(bucket => ({
-              //   name: bucket.time,
-              //   value: bucket[category] || 0,
-              // })),
-              data: stackedData.map(bucket => [bucket.time, bucket.data[category] || 0]),
-            };
-          })
+              // opacity: 1,
+              width: 0.4,
+            },
+            showSymbol: false,
+            seriesName: category,
+            name: category,
+            opacity: 0.5,
+            smooth: true,
+            color: theme.tokens.graphics[frameDetails.get(category)],
+            data,
+          };
+        })
       : [];
 
-  console.log({chapterFrames, chapterByCategory, frameDetails, stackedData, series});
+  const playedStatus = {
+    type: 'custom' as const,
+    gridIndex: 2,
+    xAxisIndex: 1,
+    yAxisIndex: 2,
+    renderItem: () => null,
+    markArea: MarkArea({
+      silent: true,
+      itemStyle: {
+        color: theme.tokens.graphics.accent,
+        opacity: 0.25,
+      },
+      label: {
+        show: false,
+      },
+      data: [[{xAxis: 0}, {xAxis: startTimestampMs + currentTime}]],
+    }),
+    markLine: MarkLine({
+      silent: true,
+      lineStyle: {
+        color: theme.tokens.graphics.accent,
+        width: 2,
+        type: 'solid',
+      },
+      label: {
+        show: false,
+      },
+      data: [{xAxis: startTimestampMs + currentTime}],
+      animation: false,
+    }),
+  };
+
+  const hoverStatus = {
+    type: 'custom' as const,
+    gridIndex: 2,
+    xAxisIndex: 1,
+    yAxisIndex: 2,
+    renderItem: () => null,
+    markLine: MarkLine({
+      silent: true,
+      lineStyle: {
+        color: theme.tokens.graphics.accent,
+        width: 2,
+        type: 'dotted',
+      },
+      label: {
+        show: false,
+      },
+      data: currentHoverTime ? [{xAxis: startTimestampMs + currentHoverTime}] : [],
+      animation: false,
+    }),
+  };
+
   return (
-    <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
+    <VisiblePanel ref={panelRef}>
       <Stacked
         style={{
           width: `${toPercent(timelineScale)}`,
@@ -332,7 +455,6 @@ export default function ReplayTimeline() {
       >
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
-        <TimelineScrubber />
         <TimelineGaps
           durationMs={durationMs}
           startTimestampMs={startTimestampMs}
@@ -340,11 +462,40 @@ export default function ReplayTimeline() {
         />
         <div>
           <BaseChart
-            stacked
-            height={16}
+            onClick={handleOnClick}
+            height={60}
             tooltip={{appendToBody: true}}
             yAxes={[
               {
+                gridIndex: 0,
+                show: false,
+                axisLabel: {
+                  show: false,
+                },
+                axisTick: {
+                  show: false,
+                },
+                axisLine: {
+                  show: false,
+                },
+                boundaryGap: false,
+              },
+              {
+                gridIndex: 0,
+                show: false,
+                axisLabel: {
+                  show: false,
+                },
+                axisTick: {
+                  show: false,
+                },
+                axisLine: {
+                  show: false,
+                },
+                boundaryGap: false,
+              },
+              {
+                gridIndex: 2,
                 show: false,
                 axisLabel: {
                   show: false,
@@ -358,9 +509,30 @@ export default function ReplayTimeline() {
                 boundaryGap: false,
               },
             ]}
+            singleAxis={[
+              {
+                gridIndex: 1,
+                type: 'time',
+                boundaryGap: false,
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 20,
+                // height: 100 / 7 - 10 + '%',
+                axisLine: {show: false},
+                axisTick: {show: false},
+                axisLabel: {
+                  show: false,
+                },
+                min: startTimestampMs,
+                max: startTimestampMs + durationMs,
+              },
+            ]}
             xAxes={[
               {
-                boundaryGap: false,
+                gridIndex: 0,
+                type: 'time',
+                show: false,
                 axisTick: {show: false},
                 axisLine: {show: false},
                 axisLabel: {
@@ -368,67 +540,14 @@ export default function ReplayTimeline() {
                 },
                 splitLine: {
                   show: false,
-                  lineStyle: {color: 'rgba(24, 20, 35, 0.05)'},
                 },
+                min: startTimestampMs,
+                max: startTimestampMs + durationMs,
               },
               {
-                boundaryGap: false,
-                axisTick: {show: false},
-                axisLine: {show: false, onZero: false},
-                axisLabel: {
-                  show: false,
-                },
-                splitLine: {
-                  show: false,
-                },
-              },
-            ]}
-            grid={{
-              left: 0,
-              right: 0,
-              top: 8,
-              bottom: 0,
-            }}
-            series={[
-              ...series1.filter(s => s.seriesName === 'issue'),
-              // ...series1.filter(s => s.seriesName !== 'issue'),
-            ]}
-          />
-          <BaseChart
-            stacked
-            height={36}
-            tooltip={{appendToBody: true}}
-            yAxes={[
-              {
+                gridIndex: 2,
+                type: 'time',
                 show: false,
-                axisLabel: {
-                  show: false,
-                },
-                axisTick: {
-                  show: false,
-                },
-                axisLine: {
-                  show: false,
-                },
-                boundaryGap: false,
-              },
-              {
-                show: false,
-                axisLabel: {
-                  show: false,
-                },
-                axisTick: {
-                  show: false,
-                },
-                axisLine: {
-                  show: false,
-                },
-                boundaryGap: false,
-              },
-            ]}
-            xAxes={[
-              {
-                boundaryGap: false,
                 axisTick: {show: false},
                 axisLine: {show: false},
                 axisLabel: {
@@ -436,30 +555,37 @@ export default function ReplayTimeline() {
                 },
                 splitLine: {
                   show: false,
-                  lineStyle: {color: 'rgba(24, 20, 35, 0.05)'},
                 },
-              },
-              {
-                boundaryGap: false,
-                axisTick: {show: false},
-                axisLine: {show: false, onZero: false},
-                axisLabel: {
-                  show: false,
-                },
-                splitLine: {
-                  show: false,
-                },
+                min: startTimestampMs,
+                max: startTimestampMs + durationMs,
               },
             ]}
-            grid={{
-              left: 0,
-              right: 0,
-              top: 8,
-              bottom: 0,
-            }}
+            grid={[
+              {
+                left: 0,
+                right: 0,
+                top: 20,
+                bottom: 0,
+              },
+              {
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 20,
+              },
+              {
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              },
+            ]}
             series={[
-              // ...series1.filter(s => s.seriesName === 'issue'),
-              ...series1.filter(s => s.seriesName !== 'issue'),
+              userInteractionSeries,
+              ...series,
+              playedStatus,
+              issueSeries,
+              hoverStatus,
             ]}
           />
         </div>
@@ -473,9 +599,4 @@ const VisiblePanel = styled(Panel)`
   border: 0;
   overflow: hidden;
   background: ${p => p.theme.translucentInnerBorder};
-`;
-
-const TimelineEventsContainer = styled('div')`
-  padding-top: 10px;
-  padding-bottom: 10px;
 `;
