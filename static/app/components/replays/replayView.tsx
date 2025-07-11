@@ -18,6 +18,7 @@ import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import ReplayScale from 'sentry/views/replays/detail/replayScale';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -72,6 +73,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
               <ReplayCurrentUrl />
             )}
             <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+            <ReplayScale />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
