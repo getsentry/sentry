@@ -659,14 +659,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   project_id: {
-    sortField: 'project_id',
+    sortField: null,
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
       return getProjectIdLink(projectId, baggage);
     },
   },
   'project.id': {
-    sortField: 'project.id',
+    sortField: null,
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
       return getProjectIdLink(projectId, baggage);
