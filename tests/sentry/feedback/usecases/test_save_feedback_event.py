@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.save_feedback_event import save_feedback_event
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
