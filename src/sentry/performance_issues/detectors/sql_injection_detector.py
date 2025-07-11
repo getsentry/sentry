@@ -91,6 +91,9 @@ class SQLInjectionDetector(PerformanceDetector):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
+            # Skip None values or pairs that don't have at least 2 elements
+            if not query_pair or len(query_pair) < 2:
+                continue
             query_value = query_pair[1]
             query_key = query_pair[0]
 
