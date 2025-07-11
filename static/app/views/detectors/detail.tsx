@@ -1,14 +1,13 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -51,29 +50,39 @@ export default function DetectorDetails() {
 
   return (
     <SentryDocumentTitle title={detector.name} noSuffix>
-      <BreadcrumbsProvider
-        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
-      >
-        <ActionsProvider actions={<Actions detector={detector} />}>
-          <DetailLayout project={project}>
-            <DetailLayout.Main>
-              {/* TODO: Add chart here */}
-              <Section title={t('Ongoing Issues')}>
-                {/* TODO: Replace with GroupList */}
-                <IssuesList />
-              </Section>
-              <Section title={t('Connected Automations')}>
-                <ErrorBoundary mini>
-                  <ConnectedAutomationsList automationIds={detector.workflowIds} />
-                </ErrorBoundary>
-              </Section>
-            </DetailLayout.Main>
-            <DetailLayout.Sidebar>
-              <DetectorDetailsSidebar detector={detector} />
-            </DetailLayout.Sidebar>
-          </DetailLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
+      <DetailLayout>
+        <DetailLayout.Header>
+          <DetailLayout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+                {label: detector.name},
+              ]}
+            />
+            <DetailLayout.Title title={detector.name} project={project} />
+          </DetailLayout.HeaderContent>
+          <DetailLayout.Actions>
+            <Actions detector={detector} />
+          </DetailLayout.Actions>
+        </DetailLayout.Header>
+        <DetailLayout.Body>
+          <DetailLayout.Main>
+            {/* TODO: Add chart here */}
+            <Section title={t('Ongoing Issues')}>
+              {/* TODO: Replace with GroupList */}
+              <IssuesList />
+            </Section>
+            <Section title={t('Connected Automations')}>
+              <ErrorBoundary mini>
+                <ConnectedAutomationsList automationIds={detector.workflowIds} />
+              </ErrorBoundary>
+            </Section>
+          </DetailLayout.Main>
+          <DetailLayout.Sidebar>
+            <DetectorDetailsSidebar detector={detector} />
+          </DetailLayout.Sidebar>
+        </DetailLayout.Body>
+      </DetailLayout>
     </SentryDocumentTitle>
   );
 }
