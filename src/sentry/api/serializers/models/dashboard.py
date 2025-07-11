@@ -212,12 +212,25 @@ class _Widget(TypedDict):
     filters: DashboardFilters
 
 
+class PageFiltersOptional(TypedDict, total=False):
+    period: str
+    utc: str
+    expired: bool
+    start: datetime
+    end: str
+
+
+class PageFilters(PageFiltersOptional):
+    projects: list[int]
+    environment: list[str]
+
+
 class DashboardFiltersMixin:
-    def get_filters(self, obj: Dashboard) -> tuple[dict[str, Any], DashboardFilters]:
+    def get_filters(self, obj: Dashboard) -> tuple[PageFilters, DashboardFilters]:
         from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 
         dashboard_filters = obj.get_filters()
-        page_filters = {
+        page_filters: PageFilters = {
             "projects": dashboard_filters.get("projects", []),
             "environment": dashboard_filters.get("environment", []),
             "utc": dashboard_filters.get("utc", ""),
@@ -237,15 +250,12 @@ class DashboardFiltersMixin:
         elif period:
             page_filters["period"] = period
 
-        tag_filters = {}
+        tag_filters: DashboardFilters = {}
         for filter_key in ("release", "releaseId"):
             if dashboard_filters.get(camel_to_snake_case(filter_key)):
                 tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
 
-        return page_filters, {
-            "release": tag_filters.get("release", []),
-            "releaseId": tag_filters.get("releaseId", []),
-        }
+        return page_filters, tag_filters
 
 
 class DashboardListSerializer(Serializer, DashboardFiltersMixin):
@@ -397,6 +407,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "isFavorited": user.id in obj.favorited_by,
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
+            **page_filters,
         }
 
         return data
