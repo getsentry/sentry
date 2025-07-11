@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -176,10 +177,11 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
             if repo is not None:
                 if repo.integration_id is not None:
                     analytics.record(
-                        "integration.resolve.commit",
-                        provider=repo.provider,
-                        id=repo.integration_id,
-                        organization_id=repo.organization_id,
+                        IntegrationResolveCommitEvent(
+                            provider=repo.provider,
+                            id=repo.integration_id,
+                            organization_id=repo.organization_id,
+                        )
                     )
 
                 issue_resolved.send_robust(
@@ -251,10 +253,11 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
         else:
             if repo is not None and repo.integration_id is not None:
                 analytics.record(
-                    "integration.resolve.pr",
-                    provider=repo.provider,
-                    id=repo.integration_id,
-                    organization_id=repo.organization_id,
+                    IntegrationResolvePREvent(
+                        provider=repo.provider,
+                        id=repo.integration_id,
+                        organization_id=repo.organization_id,
+                    )
                 )
 
 
