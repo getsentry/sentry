@@ -464,6 +464,10 @@ class EventManager:
         # After calling _pull_out_data we get some keys in the job like the platform
         _pull_out_data([job], projects)
 
+        # Sometimes projects get created without a platform, in which case we set it based on the
+        # first event
+        _set_project_platform_if_needed(project, job["event"])
+
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
@@ -688,6 +692,17 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
             job["event"].datetime.strftime("%s")
         )
         job["groups"] = []
+
+
+def _set_project_platform_if_needed(project: Project, event: Event) -> None:
+    if not project.platform and event.platform:
+        project.update(platform=event.platform)
+
+    elif project.platform != event.platform:
+        # Do we want to update to `other` here? Do we only want to do that if we were the ones to
+        # set the platform value? (We could track this in a project option). Maybe we should only do
+        # that if we add some FE indicator?
+        pass
 
 
 @sentry_sdk.tracing.trace
@@ -1283,6 +1298,9 @@ def assign_event_to_group(
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
+
+    # BELOW IS WHERE WE DO IT FOR GROUPING CONFIG - FOR PROJECT PLATFORM IT MAKES SENSE TO DO IT
+    # EARLIER IN THE CALL STACK SO IT APPLIES TO TRANSACTION EVENTS, ETC ALSO
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
