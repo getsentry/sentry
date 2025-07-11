@@ -78,7 +78,7 @@ jobs:
         with:
           image_name: 'sentry'
           platform: ${{ matrix.platform }}
-          dockerfile: 'self-hosted/Dockerfile'
+          dockerfile_path: 'self-hosted/Dockerfile'
           publish_to_ghcr: false
           publish_to_gar: false
 
