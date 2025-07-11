@@ -415,12 +415,6 @@ const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.purple200,
-  tagBar: colors.gray200,
-
-  /**
    * Search filter "token" background
    */
   searchTokenBackground: {
@@ -1222,6 +1216,7 @@ const darkAliases = generateThemeAliases(darkColors);
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
+  type: 'light' as 'light' | 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,
@@ -1277,6 +1272,7 @@ export const lightTheme = {
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: typeof lightTheme = {
+  type: 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,

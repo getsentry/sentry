@@ -10,6 +10,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
@@ -35,6 +36,7 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   windowWidth?: number;
 };
@@ -60,6 +62,7 @@ function SortableWidget(props: Props) {
     newlyAddedWidget,
     onNewWidgetScrollComplete,
     onWidgetTableSort,
+    onWidgetTableResizeColumn,
   } = props;
 
   const organization = useOrganization();
@@ -108,6 +111,7 @@ function SortableWidget(props: Props) {
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
     onWidgetTableSort,
+    onWidgetTableResizeColumn,
   };
 
   return (
