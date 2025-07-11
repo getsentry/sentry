@@ -5,20 +5,21 @@ import {useStoryBookFilesByCategory} from 'sentry/stories/view/storySidebar';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-interface LegacyStoryQuery {
+type LegacyStoryQuery = {
   name: string;
   category?: never;
   topic?: never;
-}
-interface NewStoryQuery {
+};
+type NewStoryQuery = {
   category: StoryCategory;
   topic: string;
   name?: never;
-}
+};
+
 type StoryQuery = LegacyStoryQuery | NewStoryQuery;
 
 export function useStoryRedirect() {
-  const location = useLocation<{category?: string; name?: string; topic?: string}>();
+  const location = useLocation<StoryQuery>();
   const navigate = useNavigate();
   const stories = useStoryBookFilesByCategory();
 
@@ -30,7 +31,7 @@ export function useStoryRedirect() {
     if (!location.pathname.startsWith('/stories')) {
       return;
     }
-    const story = getStoryMeta(location.query as StoryQuery, stories);
+    const story = getStoryMeta(location.query, stories);
     if (!story) {
       return;
     }
