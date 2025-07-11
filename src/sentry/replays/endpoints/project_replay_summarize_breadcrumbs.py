@@ -448,7 +448,15 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.FEEDBACK:
                 return None  # the log message is processed before this method is called
     except (KeyError, ValueError):
-        logger.exception("Error parsing event in replay AI summary", extra={"event": event})
+        logger.exception(
+            "Error parsing event in replay AI summary",
+            extra={
+                "event": logger.exception(
+                    "Error parsing event in replay AI summary",
+                    extra={"event": json.dumps(event, indent=2)},
+                )
+            },
+        )
         return None
 
 
