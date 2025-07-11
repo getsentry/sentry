@@ -1982,6 +1982,17 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="flows/">
+        <IndexRoute component={make(() => import('sentry/views/codecov/flows'))} />
+        <Route
+          path="new/"
+          component={make(() => import('sentry/views/codecov/flows/new'))}
+        />
+        <Route
+          path=":flowId/"
+          component={make(() => import('sentry/views/codecov/flows/flowDetail'))}
+        />
+      </Route>
       <Route path="tokens/">
         <Route
           component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}

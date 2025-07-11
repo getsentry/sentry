@@ -5,6 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
 import {
   COVERAGE_BASE_URL,
+  FLOWS_BASE_URL,
   TESTS_BASE_URL,
   TOKENS_BASE_URL,
 } from 'sentry/views/codecov/settings';
@@ -21,6 +22,10 @@ function CodecovSecondaryNav() {
   const testsPathname = makeCodecovPathname({
     organization,
     path: `/${TESTS_BASE_URL}/`,
+  });
+  const flowsPathname = makeCodecovPathname({
+    organization,
+    path: `/${FLOWS_BASE_URL}/`,
   });
   const tokensPathName = makeCodecovPathname({
     organization,
@@ -42,6 +47,9 @@ function CodecovSecondaryNav() {
           </SecondaryNav.Item>
           <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
             {t('Tests')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item to={flowsPathname} activeTo={flowsPathname}>
+            {t('Flows')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="codecov-configure" title={t('Configure')}>
