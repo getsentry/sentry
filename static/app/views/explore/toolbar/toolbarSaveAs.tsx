@@ -60,7 +60,10 @@ export function ToolbarSaveAs() {
   const mode = useExploreMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
-    () => dedupeArray(visualizes.map(v => v.yAxis)),
+    () =>
+      dedupeArray(
+        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
+      ),
     [visualizes]
   );
 
