@@ -76,7 +76,7 @@ export function UptimeDetectorFixture(
   };
 }
 
-export function UptimeSubscriptionDataSourceFixture(
+function UptimeSubscriptionDataSourceFixture(
   params: Partial<UptimeSubscriptionDataSource> = {}
 ): UptimeSubscriptionDataSource {
   return {
