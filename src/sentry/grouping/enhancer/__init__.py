@@ -361,8 +361,6 @@ class Enhancements:
 
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
-        self.run_split_enhancements = version == 3
-
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
         self.classifier_rules = classifier_config.rules
