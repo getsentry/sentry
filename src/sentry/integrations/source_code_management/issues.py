@@ -14,9 +14,9 @@ from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
-SOURCE_CODE_ISSUE_HALT_PATTERNS = [
+SOURCE_CODE_ISSUE_HALT_PATTERNS = {
     "No workspace with identifier",  # Bitbucket
-]
+}
 
 
 class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegration, ABC):
@@ -36,7 +36,8 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         except ApiError as exc:
             if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
                 lifecycle.record_halt(exc)
-            lifecycle.record_failure(exc)
+            else:
+                lifecycle.record_failure(exc)
             raise IntegrationError("Unable to retrieve repositories. Please try again later.")
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
