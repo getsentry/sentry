@@ -4,7 +4,6 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
     VirtualColumnDefinition,
-    datetime_processor,
     project_context_constructor,
     project_term_resolver,
     simple_sentry_field,
@@ -36,12 +35,6 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
-        ),
-        ResolvedAttribute(
-            public_alias="timestamp",
-            internal_name="sentry.timestamp",
-            search_type="string",
-            processor=datetime_processor,
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
