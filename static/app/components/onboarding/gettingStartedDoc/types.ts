@@ -1,64 +1,18 @@
 import type React from 'react';
 
 import type {Client} from 'sentry/api';
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
+export type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+
 type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
   [key in keyof T]: GeneratorFunction<T[key], Params>;
 };
-
-type BaseBlock<T extends string> = {
-  type: T;
-};
-
-type AlertBlock = BaseBlock<'alert'> & {
-  alertType: AlertProps['type'];
-  text: React.ReactNode;
-  type: 'alert';
-  icon?: AlertProps['icon'];
-  showIcon?: AlertProps['showIcon'];
-  system?: AlertProps['system'];
-  trailingItems?: AlertProps['trailingItems'];
-};
-
-type TextBlock = BaseBlock<'text'> & {
-  /**
-   * Only meant for text or return values of translation functions (t, tct, tn).
-   *
-   * **Do not** use this with custom react elements but instead use the `custom` block type.
-   */
-  text: React.ReactNode;
-};
-
-type CodeTabWithoutValue = Omit<CodeSnippetTab, 'value'>;
-
-type SingleCodeBlock = BaseBlock<'code'> & Omit<CodeTabWithoutValue, 'label'>;
-type MultipleCodeBlock = BaseBlock<'code'> & {
-  tabs: CodeTabWithoutValue[];
-};
-
-type CodeBlock = SingleCodeBlock | MultipleCodeBlock;
-
-type CustomBlock = BaseBlock<'custom'> & {
-  content: React.ReactNode;
-};
-
-type ConditionalBlock = BaseBlock<'conditional'> & {
-  condition: boolean;
-  content: ContentBlock[];
-};
-
-export type ContentBlock =
-  | TextBlock
-  | CodeBlock
-  | CustomBlock
-  | AlertBlock
-  | ConditionalBlock;
 
 export type Configuration = {
   /**

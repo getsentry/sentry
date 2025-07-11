@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocksRenderer';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,

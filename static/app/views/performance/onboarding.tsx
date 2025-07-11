@@ -27,7 +27,7 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocksRenderer';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
