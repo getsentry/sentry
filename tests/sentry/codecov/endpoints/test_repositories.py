@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
@@ -27,7 +28,7 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
-        mock_graphql_response: dict[str, any] = {
+        mock_graphql_response: dict[str, Any] = {
             "data": {
                 "owner": {
                     "repositories": {
@@ -94,7 +95,7 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
-        mock_graphql_response: dict[str, any] = {
+        mock_graphql_response: dict[str, Any] = {
             "data": {
                 "owner": {
                     "repositories": {
