@@ -5,7 +5,15 @@ import type {Location} from 'history';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
-import * as ReplayTableColumns from 'sentry/components/replays/table/replayTableColumns';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountErrorsColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplaySessionColumn,
+  ReplaySlowestTransactionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -169,15 +177,13 @@ function ReplaysContent({
     <Layout.Main fullWidth>
       <ReplayTable
         columns={[
-          ReplayTableColumns.ReplaySessionColumn,
-          ...(hasRoomForColumns
-            ? [ReplayTableColumns.ReplaySlowestTransactionColumn]
-            : []),
-          ReplayTableColumns.ReplayOSColumn,
-          ...(allMobileProj ? [] : [ReplayTableColumns.ReplayBrowserColumn]),
-          ReplayTableColumns.ReplayDurationColumn,
-          ReplayTableColumns.ReplayCountErrorsColumn,
-          ReplayTableColumns.ReplayActivityColumn,
+          ReplaySessionColumn,
+          ...(hasRoomForColumns ? [ReplaySlowestTransactionColumn] : []),
+          ReplayOSColumn,
+          ...(allMobileProj ? [] : [ReplayBrowserColumn]),
+          ReplayDurationColumn,
+          ReplayCountErrorsColumn,
+          ReplayActivityColumn,
         ]}
         error={fetchError}
         isPending={isFetching}
