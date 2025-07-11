@@ -73,7 +73,7 @@ function GroupHeaderTabs({
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
-  const hasSimilarView = projectFeatures.has('similarity-view');
+  const hasSimilarView = false; // Similarity functionality has been removed
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasReplaySupport =
     organizationFeatures.has('session-replay') &&

@@ -49,7 +49,7 @@ function SimilarStackTrace({project}: Props) {
 
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
-  const hasSimilarityFeature = project.features.includes('similarity-view');
+  const hasSimilarityFeature = false; // Similarity functionality has been removed
   const {data: projectData, isPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,

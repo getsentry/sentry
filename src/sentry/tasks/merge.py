@@ -5,7 +5,7 @@ from typing import Any
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
-from sentry import eventstream, similarity, tsdb
+from sentry import eventstream, tsdb
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -117,8 +117,6 @@ def merge_groups(
             # from the list of "from" groups that are being merged, and finish the
             # work for this group.
             from_object_ids.remove(from_object_id)
-
-            similarity.merge(group.project, new_group, [group], allow_unsafe=True)
 
             environment_ids = list(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)

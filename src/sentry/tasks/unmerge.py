@@ -10,7 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, features, similarity, tsdb
+from sentry import analytics, eventstore, features, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.eventstore.models import BaseEvent
@@ -307,8 +307,6 @@ def truncate_denormalizations(project, group):
         [group.id],
     )
 
-    similarity.delete(project, group)
-
 
 def collect_group_environment_data(events):
     """\
@@ -461,9 +459,6 @@ def repair_denormalizations(caches, project, events):
     repair_group_environment_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
-
-    for event in events:
-        similarity.record(project, [event])
 
 
 def lock_hashes(project_id, source_id, fingerprints):

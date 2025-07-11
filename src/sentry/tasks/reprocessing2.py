@@ -283,6 +283,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
     eventstream.backend.exclude_groups(project_id, [group_id])
 
-    from sentry import similarity
 
-    similarity.delete(None, group)
+def reindex_event_for_similarity(project_id, event_id, **kwargs):
+    # Similarity module has been removed, this function is now a no-op
+    return

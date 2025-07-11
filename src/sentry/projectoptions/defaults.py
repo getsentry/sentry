@@ -47,7 +47,7 @@ register(key="sentry:secondary_grouping_config", default=None)
 # Has this project had its issues backfilled into the Seer database, and if so, when did the
 # backfill complete? (This is a temporary way to flag projects as we roll out Seer grouping, because
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
-register(key="sentry:similarity_backfill_completed", default=None)
+
 
 
 # The JavaScript loader version that is the project default.  This option

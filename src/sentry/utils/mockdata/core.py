@@ -63,7 +63,6 @@ from sentry.monitors.models import (
 )
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
-from sentry.similarity import features
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -118,7 +117,7 @@ def create_sample_event(*args, **kwargs):
         click.echo(f"> Skipping Event: {e}")
     else:
         if event is not None:
-            features.record([event])
+            # Similarity module has been removed, skip similarity recording
             return event
 
 

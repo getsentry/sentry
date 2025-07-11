@@ -912,58 +912,6 @@ register(
 )
 
 # Killswitches for individual Seer services
-#
-# TODO: Most of these are not yet being used. The one current exception is the similarity service
-# killswitch, which is checked before calling Seer when potentially creating a  new group as part of
-# ingestion.
-register(
-    "seer.similarity-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity-backfill-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity-embeddings-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity-embeddings-grouping-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity.grouping_killswitch_projects",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity.grouping-ingest-retries",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity.grouping-ingest-timeout",
-    type=Int,
-    default=1,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "seer.severity-killswitch.enabled",
     default=False,
@@ -989,73 +937,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "seer.similarity.global-rate-limit",
-    type=Dict,
-    default={"limit": 20, "window": 1},  # window is in seconds
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.similarity.per-project-rate-limit",
-    type=Dict,
-    default={"limit": 5, "window": 1},  # window is in seconds
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-# Note: This is based on US volume. Since other regions are lower-traffic, this effectively means
-# the circuit breaker is disabled for any region without its own values configured (you can hardly
-# have 33K Seer errors if you don't even have 33K events, so the breaker will never be tripped in
-# smaller regions relying on the default).
-register(
-    "seer.similarity.circuit-breaker-config",
-    type=Dict,
-    default={
-        "error_limit": 33250,  # 95% error rate * avg volume of ~35K events with new hashes/10 min
-        "error_limit_window": 600,  # 10 min
-        "broken_state_duration": 300,  # 5 min
-    },
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "seer.similarity.ingest.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "seer.similarity.similar_issues.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "seer.similarity.ingest.num_matches_to_request",
-    type=Int,
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Temporary killswitch for making a second request to Seer to store the incoming event when we have
-# a hybrid fingerprint and none of the matches returned by Seer is a fingerprint match
-register(
-    "seer.similarity.ingest.store_hybrid_fingerprint_non_matches",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
-# favor of the default 10% sample rate
-register(
-    "seer.similarity.metrics_sample_rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # seer nearest neighbour endpoint timeout
 register(
@@ -2888,58 +2770,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "similarity.backfill_nodestore_use_multithread",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-register(
-    "similarity.backfill_nodestore_chunk_size",
-    default=5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "similarity.backfill_nodestore_threads",
-    default=6,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_snuba_concurrent_requests",
-    default=20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_seer_chunk_size",
-    default=30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_seer_threads",
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_project_cohort_size",
-    default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_total_worker_count",
-    default=6,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.new_project_seer_grouping.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_use_reranking",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "delayed_processing.batch_size",
     default=10000,
@@ -3149,13 +2980,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# allows us to disable indexing during maintenance events
-register(
-    "sentry.similarity.indexing.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 
 # Enforces a QueryBuilder check that the first relevant event has been sent for each project
 register(

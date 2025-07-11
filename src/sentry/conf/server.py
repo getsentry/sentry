@@ -994,7 +994,7 @@ CELERY_QUEUES_REGION = [
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
     Queue("sentry_metrics.indexer", routing_key="sentry_metrics.indexer"),
-    Queue("similarity.index", routing_key="similarity.index"),
+
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
@@ -3499,9 +3499,7 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 
-# Similarity cluster to use
-# Similarity-v1: uses hardcoded set of event properties for diffing
-SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days

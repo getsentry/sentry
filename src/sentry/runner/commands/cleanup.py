@@ -62,7 +62,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     configure()
 
-    from sentry import deletions, models, similarity
+    from sentry import deletions, models
 
     skip_models = [
         # Handled by other parts of cleanup
@@ -72,7 +72,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         models.GroupEmailThread,
         models.GroupRuleStatus,
         # Handled by TTL
-        similarity,
     ]
 
     while True:

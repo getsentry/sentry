@@ -14,10 +14,7 @@ function DiffModal({className, Body, CloseButton, ...props}: Props) {
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
-  // similarity-embeddings feature is only available on project details
-  const similarityEmbeddingsProjectFeature = projectData?.features.includes(
-    'similarity-embeddings'
-  );
+  const hasSimilarityEmbeddings = false; // Similarity functionality has been removed
 
   return (
     <Body>
@@ -25,7 +22,7 @@ function DiffModal({className, Body, CloseButton, ...props}: Props) {
       <IssueDiff
         className={className}
         organization={organization}
-        hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
+        hasSimilarityEmbeddingsProjectFeature={hasSimilarityEmbeddings}
         {...props}
       />
     </Body>

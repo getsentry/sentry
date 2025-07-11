@@ -309,11 +309,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         self.delete_children(child_relations)
 
     def delete_instance(self, instance: Group) -> None:
-        from sentry import similarity
-
-        if not self.skip_models or similarity not in self.skip_models:
-            similarity.delete(None, instance)
-
+        # Similarity module has been removed, skip similarity deletion
         return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:

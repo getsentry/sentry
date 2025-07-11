@@ -1266,19 +1266,8 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if not options.get("sentry.similarity.indexing.enabled"):
-        return
-    if job["is_reprocessed"] or job["event"].group.project.get_option(
-        "sentry:similarity_backfill_completed"
-    ):
-        return
-
-    from sentry import similarity
-
-    event = job["event"]
-
-    with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
-        safe_execute(similarity.record, event.project, [event])
+    # Similarity module has been removed, this function is now a no-op
+    return
 
 
 def fire_error_processed(job: PostProcessJob):
