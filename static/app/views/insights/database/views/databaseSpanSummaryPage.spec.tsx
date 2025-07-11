@@ -332,7 +332,7 @@ describe('DatabaseSpanSummaryPage', function () {
       })
     );
 
-    expect(spanDescriptionRequestMock).toHaveBeenCalledTimes(2);
+    expect(spanDescriptionRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsRequestMock).toHaveBeenCalledTimes(2);
     expect(transactionListMock).toHaveBeenCalledTimes(1);
