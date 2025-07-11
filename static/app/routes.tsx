@@ -2562,16 +2562,22 @@ function buildRoutes(
   );
 
   const appRoutes = (
-    <Route component={ProvideAriaRouter}>
-      <Route component={SentryHooksProvider}>
-        {experimentalSpaRoutes}
-        <Route path="/" component={errorHandler(App)}>
-          {rootRoutes}
-          {authV2Routes}
-          {organizationRoutes}
-          {legacyRedirectRoutes}
-          <Route path="*" component={errorHandler(RouteNotFound)} />
-        </Route>
+    <Route
+      component={({children}: {children: React.ReactNode}) => {
+        return (
+          <ProvideAriaRouter>
+            <SentryHooksProvider>{children}</SentryHooksProvider>
+          </ProvideAriaRouter>
+        );
+      }}
+    >
+      {experimentalSpaRoutes}
+      <Route path="/" component={errorHandler(App)}>
+        {rootRoutes}
+        {authV2Routes}
+        {organizationRoutes}
+        {legacyRedirectRoutes}
+        <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
     </Route>
   );
