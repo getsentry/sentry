@@ -8,7 +8,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 

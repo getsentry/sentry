@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry import eventstore, quotas
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
-from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode

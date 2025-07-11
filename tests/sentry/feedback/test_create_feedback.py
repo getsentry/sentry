@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import (
+from sentry.feedback.usecases.ingest.create_feedback import (
     create_feedback_issue,
     fix_for_issue_platform,
     get_feedback_title,

@@ -15,7 +15,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
 from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
-from sentry.feedback.usecases.userreport import Conflict, save_userreport
+from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization

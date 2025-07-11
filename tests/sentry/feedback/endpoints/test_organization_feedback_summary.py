@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test

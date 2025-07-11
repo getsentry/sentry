@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
-from sentry.feedback.usecases.userreport import save_userreport, validate_user_report
+from sentry.feedback.usecases.ingest.userreport import save_userreport, validate_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
