@@ -34,6 +34,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
@@ -1095,6 +1096,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
             if use_spans:
+                # want to know where the remaining usage of this code path is coming from
+                metrics.incr(
+                    "usage.events-trace", tags={"method": "token" if request.auth else "other"}
+                )
                 transactions, errors = query_trace_data(
                     trace_id,
                     snuba_params,
