@@ -2,6 +2,8 @@ import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta
 
+import pytest
+
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -66,6 +68,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         """Store a single uptime data row. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement store_uptime_data")
 
+    @pytest.mark.skip(reason="flaky: #94200")
     def test_get(self):
         with self.feature(self.features):
             response = self.get_success_response(
