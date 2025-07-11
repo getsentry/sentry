@@ -233,7 +233,6 @@ class DashboardFiltersMixin:
         page_filters: PageFilters = {
             "projects": dashboard_filters.get("projects", []),
             "environment": dashboard_filters.get("environment", []),
-            "utc": dashboard_filters.get("utc", ""),
             "expired": dashboard_filters.get("expired", False),
         }
         start, end, period = (
@@ -249,6 +248,9 @@ class DashboardFiltersMixin:
             page_filters["end"] = end
         elif period:
             page_filters["period"] = period
+
+        if dashboard_filters.get("utc"):
+            page_filters["utc"] = dashboard_filters["utc"]
 
         tag_filters: DashboardFilters = {}
         for filter_key in ("release", "releaseId"):
