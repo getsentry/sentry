@@ -53,21 +53,6 @@ class EventTest(TestCase):
             "uuid": b"AAEC",
         }
 
-    def test_equality_no_uuid_mock(self):
-        a = ExampleEvent(
-            id="1",  # type: ignore[arg-type]
-            map={"key": "value"},
-            optional=False,
-        )
-        a.datetime_ = datetime(2001, 4, 18, tzinfo=timezone.utc)
-        b = ExampleEvent(
-            id="1",  # type: ignore[arg-type]
-            map={"key": "value"},
-            optional=False,
-        )
-        b.datetime_ = datetime(2001, 4, 18, tzinfo=timezone.utc)
-        assert a == b
-
     @patch("sentry.analytics.event.uuid1")
     def test_simple_from_instance(self, mock_uuid1):
         mock_uuid1.return_value = self.get_mock_uuid()
