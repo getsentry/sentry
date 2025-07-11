@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 import functools
 import hashlib
 import itertools
@@ -10,6 +9,7 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
