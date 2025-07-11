@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.data_secrecy.data_access_grant_service.model import RpcEffectiveGrantStatus
+from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
 
 
 def serialize_effective_grant_status(

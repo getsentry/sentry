@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.data_secrecy.data_access_grant_service.model import RpcEffectiveGrantStatus
-from sentry.data_secrecy.data_access_grant_service.serial import serialize_effective_grant_status
-from sentry.data_secrecy.data_access_grant_service.service import DataAccessGrantService
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
+from sentry.data_secrecy.service.serial import serialize_effective_grant_status
+from sentry.data_secrecy.service.service import DataAccessGrantService
 
 
 class DatabaseBackedDataAccessGrantService(DataAccessGrantService):

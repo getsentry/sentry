@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.data_secrecy.data_access_grant_service.model import RpcEffectiveGrantStatus
+from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 
@@ -16,9 +16,7 @@ class DataAccessGrantService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.data_secrecy.data_access_grant_service.impl import (
-            DatabaseBackedDataAccessGrantService,
-        )
+        from sentry.data_secrecy.service.impl import DatabaseBackedDataAccessGrantService
 
         return DatabaseBackedDataAccessGrantService()
 
