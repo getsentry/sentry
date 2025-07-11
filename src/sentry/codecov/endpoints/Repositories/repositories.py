@@ -57,8 +57,14 @@ class RepositoriesEndpoint(CodecovEndpoint):
         if cursor:
             cursor = cursor.replace(" ", "+")
 
-        first = int(first_param) if first_param else None
-        last = int(last_param) if last_param else None
+        try:
+            first = int(first_param) if first_param else None
+            last = int(last_param) if last_param else None
+        except ValueError:
+            return Response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                data={"details": "Query parameters 'first' and 'last' must be integers."},
+            )
 
         if first and last:
             return Response(
