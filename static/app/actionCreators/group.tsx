@@ -310,7 +310,7 @@ type FetchIssueTagValuesParameters = {
   sort?: string | string[];
 };
 
-export const makeFetchIssueTagValuesQueryKey = ({
+const makeFetchIssueTagValuesQueryKey = ({
   orgSlug,
   groupId,
   tagKey,
@@ -339,7 +339,7 @@ type FetchIssueTagParameters = {
   tagKey: string;
 };
 
-export const makeFetchIssueTagQueryKey = ({
+const makeFetchIssueTagQueryKey = ({
   orgSlug,
   groupId,
   tagKey,

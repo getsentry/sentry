@@ -224,7 +224,7 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
     });
 }
 
-export function getAnalyticsCreateEventKeyName(
+function getAnalyticsCreateEventKeyName(
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
   isNewQuery: boolean,
@@ -241,7 +241,7 @@ export function getAnalyticsCreateEventKeyName(
  * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
  * the desired fields to populate into reload analytics
  */
-export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   const {projects, fields, query} = payload;
   return {
     projects,
