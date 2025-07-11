@@ -5,11 +5,14 @@ import {Flex} from 'sentry/components/core/layout';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector, SnubaQueryDataSource} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricDetector,
+  SnubaQueryDataSource,
+} from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
-interface DetailsPanelProps {
-  detector: Detector;
+interface MetricDetectorDetectProps {
+  detector: MetricDetector;
 }
 
 function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
@@ -40,12 +43,10 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
   );
 }
 
-function DetailsPanel({detector}: DetailsPanelProps) {
-  if (detector.type === 'metric_issue') {
-    const dataSource = detector.dataSources?.[0];
-    if (dataSource?.type === 'snuba_query_subscription') {
-      return <SnubaQueryDetails dataSource={dataSource} />;
-    }
+export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProps) {
+  const dataSource = detector.dataSources?.[0];
+  if (dataSource?.type === 'snuba_query_subscription') {
+    return <SnubaQueryDetails dataSource={dataSource} />;
   }
 
   return (
@@ -85,5 +86,3 @@ const Value = styled('dl')`
   word-break: break-all;
   margin: 0;
 `;
-
-export default DetailsPanel;
