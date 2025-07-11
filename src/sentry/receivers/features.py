@@ -64,6 +64,7 @@ from sentry.signals import (
     transaction_processed,
     user_feedback_received,
 )
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
@@ -399,7 +400,6 @@ def record_alert_rule_edited(
             user_id=user_id,
             default_user_id=default_user_id,
             organization_id=project.organization_id,
-            project_id=project.id,
             rule_id=rule.id,
             rule_type=rule_type,
             is_api_token=is_api_token,
@@ -408,7 +408,7 @@ def record_alert_rule_edited(
 
 
 @plugin_enabled.connect(weak=False)
-def record_plugin_enabled(plugin, project, user, **kwargs):
+def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
     analytics.record(
         PluginEnabledEvent(
             user_id=user.id if user else None,

@@ -4,15 +4,15 @@ from sentry import analytics
 @analytics.eventclass("integration.added")
 class IntegrationAddedEvent(analytics.Event):
     provider: str
-    id: str
-    organization_id: str
-    user_id: str | None = None
-    default_user_id: str
+    id: int
+    organization_id: int
+    user_id: int | None = None
+    default_user_id: int
 
 
 @analytics.eventclass("integration.disabled.notified")
 class IntegrationDisabledNotified(analytics.Event):
-    organization_id: str
+    organization_id: int
     provider: str
     integration_type: str
     integration_id: str
@@ -22,7 +22,7 @@ class IntegrationDisabledNotified(analytics.Event):
 @analytics.eventclass("integration.issue.created")
 class IntegrationIssueCreatedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
     user_id: str | None = None
     default_user_id: str
@@ -31,7 +31,7 @@ class IntegrationIssueCreatedEvent(analytics.Event):
 @analytics.eventclass("integration.issue.linked")
 class IntegrationIssueLinkedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
     user_id: str | None = None
     default_user_id: str
@@ -40,41 +40,41 @@ class IntegrationIssueLinkedEvent(analytics.Event):
 @analytics.eventclass("integration.issue.status.synced")
 class IntegrationIssueStatusSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.issue.assignee.synced")
 class IntegrationIssueAssigneeSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.issue.comments.synced")
 class IntegrationIssueCommentsSyncedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.repo.added")
 class IntegrationRepoAddedEvent(analytics.Event):
     provider: str
-    id: str
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.resolve.commit")
 class IntegrationResolveCommitEvent(analytics.Event):
-    provider: str
-    id: str
+    provider: str | None
+    id: int
     organization_id: str
 
 
 @analytics.eventclass("integration.resolve.pr")
 class IntegrationResolvePREvent(analytics.Event):
-    provider: str
+    provider: str | None
     id: str
     organization_id: str
 
@@ -83,11 +83,11 @@ class IntegrationResolvePREvent(analytics.Event):
 class IntegrationStacktraceLinkEvent(analytics.Event):
     provider: str
     config_id: str
-    project_id: str
-    organization_id: str
+    project_id: int
+    organization_id: int
     filepath: str
     status: str
-    link_fetch_iterations: str
+    link_fetch_iterations: int
     platform: str | None = None
 
 

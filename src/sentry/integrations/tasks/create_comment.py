@@ -73,6 +73,5 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
                 provider=installation.model.provider,
                 id=installation.model.id,
                 organization_id=external_issue.organization_id,
-                user_id=user_id,
             )
         )
