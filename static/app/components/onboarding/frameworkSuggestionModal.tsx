@@ -320,7 +320,7 @@ export function FrameworkSuggestionModal({
                         );
                       })}
                     </PlatformList>
-                    {!isExpanded && (
+                    {!isExpanded && showMoreButton && (
                       <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
                     )}
                   </Fragment>
