@@ -331,7 +331,7 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-function getAttachmentsWithUnit(gigabytes: number): string {
+function getWithBytes(gigabytes: number): string {
   return `${gigabytes.toLocaleString()} GB`;
 }
 
@@ -346,8 +346,8 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS) {
-    return getAttachmentsWithUnit(events).replace(' ', '');
+  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
+    return getWithBytes(events).replace(' ', '');
   }
 
   if (events >= 1_000_000_000) {
@@ -382,6 +382,7 @@ function recordAnalytics(
     spans: data.reservedSpans,
     profileDuration: data.reservedProfileDuration,
     uptime: data.reservedUptime,
+    logBytes: data.reservedLogBytes,
   };
 
   const previousData = {
@@ -394,6 +395,7 @@ function recordAnalytics(
     profileDuration: subscription.categories.profileDuration?.reserved || undefined,
     spans: subscription.categories.spans?.reserved || undefined,
     uptime: subscription.categories.uptime?.reserved || undefined,
+    logBytes: subscription.categories.logBytes?.reserved || undefined,
   };
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
@@ -422,6 +424,7 @@ function recordAnalytics(
     previous_profileDuration: previousData.profileDuration,
     previous_spans: previousData.spans,
     previous_uptime: previousData.uptime,
+    previous_logBytes: previousData.logBytes,
     ...currentData,
   });
 
