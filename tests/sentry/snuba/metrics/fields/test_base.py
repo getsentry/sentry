@@ -43,6 +43,7 @@ from sentry.snuba.metrics.naming_layer import (
     TransactionMRI,
     get_public_name_from_mri,
 )
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -612,6 +613,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         assert self.sessions_errored.run_post_query_function(series, alias=alias, idx=4) == 3
 
 
+@thread_leaks.allowlist(issue=-11, reason="Arroyo concurrent execution")
 class DerivedMetricAliasTestCase(TestCase):
     def test_session_duration_derived_alias(self):
         org_id = self.project.organization_id
