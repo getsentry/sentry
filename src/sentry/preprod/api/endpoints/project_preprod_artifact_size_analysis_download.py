@@ -72,7 +72,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
                 status=500,
             )
 
-        if size_metrics.analysis_file_id is None:
+        if size_metrics is None or size_metrics.analysis_file_id is None:
             return Response(
                 {"error": "Size analysis file not available for this artifact"}, status=404
             )
