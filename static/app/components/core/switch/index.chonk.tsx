@@ -1,3 +1,4 @@
+import {chonkFor} from 'sentry/components/core/chonk';
 import type {SwitchProps} from 'sentry/components/core/switch';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
@@ -75,14 +76,14 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
 
   &:checked + div {
     background: ${p => p.theme.colors.chonk.blue400};
-    border-top: 3px solid ${p => p.theme.colors.chonk.blue100};
-    border-right: 1px solid ${p => p.theme.colors.chonk.blue100};
-    border-bottom: 1px solid ${p => p.theme.colors.chonk.blue100};
-    border-left: 1px solid ${p => p.theme.colors.chonk.blue100};
+    border-top: 3px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-right: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-bottom: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
+    border-left: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
 
     > div {
       background: ${p => p.theme.colors.surface500};
-      border: 1px solid ${p => p.theme.colors.chonk.blue100};
+      border: 1px solid ${p => chonkFor(p.theme, p.theme.colors.chonk.blue400)};
       transform: translateY(-1px) translateX(${p => toggleWrapperSize[p.nativeSize].width - toggleButtonSize[p.nativeSize].width}px);
 
       &:after {
