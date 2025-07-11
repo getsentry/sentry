@@ -166,6 +166,26 @@ def translate_columns(columns):
     return translated_columns
 
 
+def translate_orderby(orderby: list[str] | None):
+    if not orderby:
+        return None
+    orderby_without_direction = []
+    directions = []
+    for field in orderby:
+        if field.startswith("-"):
+            orderby_without_direction.append(field[1:])
+            directions.append("-")
+        else:
+            orderby_without_direction.append(field)
+            directions.append("")
+
+    translated_orderby = translate_columns(orderby_without_direction)
+    new_orderby = [
+        f"{direction}{column}" for direction, column in zip(directions, translated_orderby)
+    ]
+    return new_orderby
+
+
 def translate_mep_to_eap(query_parts: QueryParts):
     """
     This is a utility used to translate transactions/metrics/mep
@@ -178,11 +198,13 @@ def translate_mep_to_eap(query_parts: QueryParts):
     new_query = translate_query(query_parts["query"])
     new_columns = translate_columns(query_parts["selected_columns"])
 
+    new_orderby = translate_orderby(query_parts["orderby"])
+
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
         equations=query_parts["equations"],
-        orderby=query_parts["orderby"],
+        orderby=new_orderby,
     )
 
     return eap_query
