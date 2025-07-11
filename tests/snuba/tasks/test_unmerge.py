@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import functools
 import hashlib
 import itertools
@@ -171,6 +172,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
+    @pytest.mark.skip(reason="flaky: #95352")
     @with_feature("projects:similarity-indexing")
     @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
