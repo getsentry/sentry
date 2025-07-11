@@ -1,6 +1,6 @@
 import contextlib
 from dataclasses import fields
-from unittest.mock import MagicMock, mock
+from unittest.mock import MagicMock, patch
 
 from sentry.analytics.event import Event
 
@@ -46,6 +46,6 @@ def assert_analytics_events(
 
     # analytics events must have been recorded in the context
     """
-    with mock.patch("sentry.analytics.record") as mock_record:
+    with patch("sentry.analytics.record") as mock_record:
         yield
         assert_analytics_events_recorded(mock_record, expected_events, check_uuid, check_datetime)
