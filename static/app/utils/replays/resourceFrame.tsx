@@ -1,3 +1,5 @@
+import invariant from 'invariant';
+
 import type {RequestFrame, ResourceFrame, SpanFrame} from 'sentry/utils/replays/types';
 
 export function isRequestFrame(frame: SpanFrame): frame is RequestFrame {
@@ -50,6 +52,115 @@ export function getResponseBodySize(frame: SpanFrame) {
     //   frame.data.decodedBodySize
     //   frame.data.encodedBodySize
     return frame.data.size;
+  }
+  return undefined;
+}
+
+const knownGraphQLQueryParams = [
+  'query',
+  'operationName',
+  'variables',
+  'extensions',
+] as const;
+
+// Looks at conventions described in https://graphql.org/learn/serving-over-http/
+// to infer if this is a GraphQL request, or GraphQL-like.
+// The SDK must be configured to capture the request body.
+export function isFrameMaybeGraphQLRequest(frame: SpanFrame): boolean {
+  if (!isRequestFrame(frame) || !frame.data?.request) {
+    return false;
+  }
+
+  const request = frame.data.request;
+  const contentType = request.headers?.['content-type'] ?? '';
+
+  // https://graphql.org/learn/serving-over-http/#headers
+  // `application/graphql-response+json` is a good indicator
+  if (contentType.includes('application/graphql-response+json')) {
+    return true;
+  }
+  // Legacy servers required `application/json`
+  if (!contentType.includes('application/json')) {
+    return false;
+  }
+
+  try {
+    const url = new URL(frame.description);
+    const hasUrlQuery = Boolean(url.searchParams.get('query'));
+    if (hasUrlQuery) {
+      return hasOnlyKnownGraphQLQueryParams(Array.from(url.searchParams.keys()));
+    }
+  } catch {
+    //
+  }
+
+  try {
+    const bodyJson =
+      typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+    const hasBodyQuery = 'query' in bodyJson;
+    if (hasBodyQuery) {
+      return hasOnlyKnownGraphQLQueryParams(Object.keys(bodyJson));
+    }
+  } catch {
+    //
+  }
+  return false;
+}
+function hasOnlyKnownGraphQLQueryParams(keys: string[]) {
+  return keys.every(key =>
+    knownGraphQLQueryParams.includes(key as (typeof knownGraphQLQueryParams)[number])
+  );
+}
+
+export function getGraphQLDescription(frame: SpanFrame) {
+  if (!isRequestFrame(frame) || !isFrameMaybeGraphQLRequest(frame)) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(frame.description);
+    if (url.searchParams.has('operationName')) {
+      return `${frame.description} (${url.searchParams.get('operationName')})`;
+    }
+
+    const query = url.searchParams.get('query');
+    if (query) {
+      const operation = parseGraphQLQuery(query);
+      if (operation) {
+        return `${frame.description} (${operation.type} ${operation.name})`;
+      }
+    }
+  } catch {
+    //
+  }
+
+  try {
+    const request = frame.data.request;
+    invariant(request, 'For Typescript. isFrameGraphQLRequest() guards this already');
+    const bodyJson =
+      typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+
+    if (bodyJson.operationName) {
+      return `${frame.description} (${bodyJson.operationName})`;
+    }
+    const query = bodyJson.query;
+    if (query) {
+      const operation = parseGraphQLQuery(query);
+      if (operation) {
+        return `${frame.description} (${operation.type} ${operation.name})`;
+      }
+    }
+  } catch {
+    //
+  }
+  return undefined;
+}
+
+const queryRegExp = /(query|mutation|subscription)\s+([\w]+)/i;
+function parseGraphQLQuery(query: string): {name: string; type: string} | undefined {
+  const match = query.match(queryRegExp);
+  if (match) {
+    return {type: match[1]!, name: match[2]!};
   }
   return undefined;
 }
