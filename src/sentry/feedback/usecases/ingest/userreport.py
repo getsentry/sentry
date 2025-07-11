@@ -19,7 +19,7 @@ from sentry.feedback.lib.utils import (
     FeedbackCreationSource,
     is_in_feedback_denylist,
 )
-from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
@@ -40,7 +40,7 @@ def save_userreport(
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
-    with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
+    with metrics.timer("userreport.create_user_report", tags={"referrer": source.value}):
         if start_time is None:
             start_time = timezone.now()
 

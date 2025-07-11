@@ -15,7 +15,9 @@ from tests.sentry.feedback import mock_feedback_event
 
 @pytest.fixture
 def mock_create_feedback_issue():
-    with mock.patch("sentry.feedback.usecases.save_event_feedback.create_feedback_issue") as m:
+    with mock.patch(
+        "sentry.feedback.usecases.ingest.save_event_feedback.create_feedback_issue"
+    ) as m:
         yield m
 
 

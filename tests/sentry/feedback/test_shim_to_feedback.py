@@ -111,7 +111,7 @@ def test_shim_to_feedback_fails_if_required_fields_missing(default_project, monk
     # Email and comments are required to shim. Tests key errors are handled.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.shim_to_feedback.create_feedback_issue",
+        "sentry.feedback.usecases.ingest.shim_to_feedback.create_feedback_issue",
         mock_create_feedback_issue,
     )
     report_dict = {

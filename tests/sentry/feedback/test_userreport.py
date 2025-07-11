@@ -31,14 +31,14 @@ def mock_report_dict() -> UserReportDict:
 @pytest.fixture
 def skip_denylist(monkeypatch):
     monkeypatch.setattr(
-        "sentry.feedback.usecases.userreport.is_in_feedback_denylist", lambda org: False
+        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", lambda org: False
     )
 
 
 @pytest.fixture
 def skip_filters(monkeypatch):
     monkeypatch.setattr(
-        "sentry.feedback.usecases.userreport.validate_user_report",
+        "sentry.feedback.usecases.ingest.userreport.validate_user_report",
         Mock(return_value=(False, None, None)),
     )
 
@@ -222,7 +222,7 @@ def test_save_user_report_filters_denylist(
     default_project, monkeypatch, skip_filters, mock_report_dict
 ):
     monkeypatch.setattr(
-        "sentry.feedback.usecases.userreport.is_in_feedback_denylist", lambda org: True
+        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", lambda org: True
     )
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -291,7 +291,7 @@ def test_save_user_report_shims_if_event_found(
 
     mock_shim_to_feedback = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.userreport.shim_to_feedback", mock_shim_to_feedback
+        "sentry.feedback.usecases.ingest.userreport.shim_to_feedback", mock_shim_to_feedback
     )
 
     mock_report_dict["event_id"] = event.event_id
@@ -312,7 +312,7 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
 
     mock_shim_to_feedback = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.userreport.shim_to_feedback", mock_shim_to_feedback
+        "sentry.feedback.usecases.ingest.userreport.shim_to_feedback", mock_shim_to_feedback
     )
     # Source is new feedback, so no shim
     save_userreport(

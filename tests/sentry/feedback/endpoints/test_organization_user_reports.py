@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.ingest.userreport import save_userreport
+from sentry.feedback.usecases.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase

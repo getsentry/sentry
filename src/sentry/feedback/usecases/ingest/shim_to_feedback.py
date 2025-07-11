@@ -8,7 +8,7 @@ from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
