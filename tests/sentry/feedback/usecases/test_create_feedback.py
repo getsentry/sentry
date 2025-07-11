@@ -948,7 +948,7 @@ def test_create_feedback_evidence_has_spam(
         create_feedback_issue(event, default_project.id, source)
 
     assert mock_produce_occurrence_to_kafka.call_count == 2  # second call is status change
-    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    evidence = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["occurrence"].evidence_data
     assert evidence["is_spam"] is True
 
 
