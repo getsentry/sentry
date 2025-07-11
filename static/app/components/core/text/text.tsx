@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -61,6 +62,11 @@ interface TextProps {
   tabular?: boolean;
 
   /**
+   * trim text to the edge of the container.
+   */
+  trim?: 'none' | 'both' | 'start' | 'end';
+
+  /**
    * Determines if the text should be underlined.
    * @default false
    */
@@ -83,11 +89,16 @@ interface TextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
-export const Text = styled((props: TextProps) => {
-  const {children, ...rest} = props;
-  const Component = props.as || 'span';
-  return <Component {...rest}>{children}</Component>;
-})`
+export const Text = styled(
+  (props: TextProps) => {
+    const {children, ...rest} = props;
+    const Component = props.as || 'span';
+    return <Component {...rest}>{children}</Component>;
+  },
+  {
+    shouldForwardProp: p => isPropValid(p),
+  }
+)`
   font-size: ${p => getFontSize(p.size, p.theme)};
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 
@@ -118,8 +129,9 @@ export const Text = styled((props: TextProps) => {
       .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
-  text-box-edge: cap alphabetic;
-  text-box-trim: trim-both;
+  text-box-edge: text text;
+  text-box-trim: ${p =>
+    p.trim === 'none' ? undefined : p.trim ? `trim-${p.trim}` : 'trim-both'};
 `;
 
 interface HeadingProps extends Omit<TextProps, 'as'> {
@@ -135,12 +147,17 @@ interface HeadingProps extends Omit<TextProps, 'as'> {
   bold?: boolean;
 }
 
-export const Heading = styled((props: HeadingProps) => {
-  const {children, as, ...rest} = props;
-  const HeadingComponent = as;
+export const Heading = styled(
+  (props: HeadingProps) => {
+    const {children, as, ...rest} = props;
+    const HeadingComponent = as;
 
-  return <HeadingComponent {...rest}>{children}</HeadingComponent>;
-})`
+    return <HeadingComponent {...rest}>{children}</HeadingComponent>;
+  },
+  {
+    shouldForwardProp: p => isPropValid(p),
+  }
+)`
   font-size: ${p => getFontSize(p.size ?? getDefaultHeadingFontSize(p.as), p.theme)};
   font-style: ${p => (p.italic ? 'italic' : undefined)};
 
@@ -166,8 +183,9 @@ export const Heading = styled((props: HeadingProps) => {
       .join(' ')};
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
-  text-box-edge: cap alphabetic;
-  text-box-trim: trim-both;
+  text-box-edge: text text;
+  text-box-trim: ${p =>
+    p.trim === 'none' ? undefined : p.trim ? `trim-${p.trim}` : 'trim-both'};
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
