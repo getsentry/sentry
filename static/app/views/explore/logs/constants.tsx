@@ -14,8 +14,8 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
 };
 
 export const MAX_LOG_INGEST_DELAY = 40_000;
-export const QUERY_PAGE_LIMIT = 5000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
-export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 5000;
+export const QUERY_PAGE_LIMIT = 1000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
+export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 1000;
 
 /**
  * These are required fields are always added to the query when fetching the log table.
