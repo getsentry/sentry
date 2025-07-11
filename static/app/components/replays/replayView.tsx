@@ -73,7 +73,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
               <ReplayCurrentUrl />
             )}
             <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
-            <ReplayScale />
+            <ReplayScale isLoading={isLoading} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
