@@ -38,20 +38,28 @@ export default function ReplayTable({
   showDropdownFilters,
   sort,
 }: Props) {
+  const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
+
   if (isPending) {
     return (
-      <ReplayTableWithColumns columns={columns} data-test-id="replay-table-loading">
+      <StyledSimpleTable
+        data-test-id="replay-table-loading"
+        style={{gridTemplateColumns}}
+      >
         <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
-      </ReplayTableWithColumns>
+      </StyledSimpleTable>
     );
   }
 
   if (error) {
     return (
-      <ReplayTableWithColumns columns={columns} data-test-id="replay-table-errored">
+      <StyledSimpleTable
+        data-test-id="replay-table-errored"
+        style={{gridTemplateColumns}}
+      >
         <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
@@ -59,12 +67,12 @@ export default function ReplayTable({
             {getErrorMessage(error)}
           </Alert>
         </SimpleTable.Empty>
-      </ReplayTableWithColumns>
+      </StyledSimpleTable>
     );
   }
 
   return (
-    <ReplayTableWithColumns columns={columns} data-test-id="replay-table">
+    <StyledSimpleTable data-test-id="replay-table" style={{gridTemplateColumns}}>
       <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
@@ -96,18 +104,11 @@ export default function ReplayTable({
           </SimpleTable.Row>
         );
       })}
-    </ReplayTableWithColumns>
+    </StyledSimpleTable>
   );
 }
 
-const ReplayTableWithColumns = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'columns',
-})<{
-  columns: readonly ReplayTableColumn[];
-}>`
-  grid-template-columns: ${p =>
-    p.columns.map(col => col.width ?? 'max-content').join(' ')};
-  margin-bottom: 0;
+const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
 
   [data-clickable='true'] {
