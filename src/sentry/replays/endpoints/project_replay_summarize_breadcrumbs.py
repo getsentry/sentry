@@ -374,117 +374,81 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     event_type = which(event)
     timestamp = event.get("timestamp", 0.0)
 
-    match event_type:
-        case EventType.CLICK:
-            message = event["data"]["payload"].get("message")
-            return f"User clicked on {message} at {timestamp}" if message else None
-        case EventType.DEAD_CLICK:
-            message = event["data"]["payload"].get("message")
-            return (
-                f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
-                if message
-                else None
-            )
-        case EventType.RAGE_CLICK:
-            message = event["data"]["payload"].get("message")
-            return (
-                f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
-                if message
-                else None
-            )
-        case EventType.NAVIGATION:
-            to = event["data"]["payload"]["data"].get("to")
-            return f"User navigated to: {to} at {timestamp}" if to else None
-        case EventType.CONSOLE:
-            message = event["data"]["payload"].get("message")
-            return f"Logged: {message} at {timestamp}" if message else None
-        case EventType.UI_BLUR:
-            timestamp_ms = timestamp * 1000
-            return f"User looked away from the tab at {timestamp_ms}"
-        case EventType.UI_FOCUS:
-            timestamp_ms = timestamp * 1000
-            return f"User returned to tab at {timestamp_ms}"
-        case EventType.RESOURCE_FETCH:
-            timestamp_ms = timestamp * 1000
-            payload = event["data"]["payload"]
-            method = payload["data"].get("method")
-            status_code = payload["data"].get("statusCode")
-            description = payload.get("description")
+    try:
+        match event_type:
+            case EventType.CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User clicked on {message} at {timestamp}"
+            case EventType.DEAD_CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
+            case EventType.RAGE_CLICK:
+                message = event["data"]["payload"]["message"]
+                return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
+            case EventType.NAVIGATION:
+                to = event["data"]["payload"]["data"]["to"]
+                return f"User navigated to: {to} at {timestamp}"
+            case EventType.CONSOLE:
+                message = event["data"]["payload"]["message"]
+                return f"Logged: {message} at {timestamp}"
+            case EventType.UI_BLUR:
+                timestamp_ms = timestamp * 1000
+                return f"User looked away from the tab at {timestamp_ms}"
+            case EventType.UI_FOCUS:
+                timestamp_ms = timestamp * 1000
+                return f"User returned to tab at {timestamp_ms}"
+            case EventType.RESOURCE_FETCH:
+                timestamp_ms = timestamp * 1000
+                payload = event["data"]["payload"]
+                method = payload["data"]["method"]
+                status_code = payload["data"]["statusCode"]
+                description = payload["description"]
+                duration = payload["endTimestamp"] - payload["startTimestamp"]
 
-            if payload.get("endTimestamp") and payload.get("startTimestamp"):
-                duration = payload.get("endTimestamp") - payload.get("startTimestamp")
-            else:
-                duration = None
+                # Parse URL path
+                parsed_url = urlparse(description)
+                path = f"{parsed_url.path}?{parsed_url.query}"
 
-            # Parse URL path
-            parsed_url = urlparse(description) if description else None
-            path = f"{parsed_url.path}?{parsed_url.query}" if parsed_url else None
+                # Check if the tuple is valid and response size exists
+                sizes_tuple = parse_network_content_lengths(event)
+                if sizes_tuple and sizes_tuple[1] is not None:
+                    response_size = str(sizes_tuple[1])
 
-            # Get response size if available
-            sizes_tuple = parse_network_content_lengths(event)
-            response_size = (
-                str(sizes_tuple[1]) if sizes_tuple and sizes_tuple[1] is not None else None
-            )
+                # Skip successful requests
+                if status_code and str(status_code).startswith("2"):
+                    return None
 
-            # Skip successful requests
-            if status_code and str(status_code).startswith("2"):
+                if response_size is None:
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
+                else:
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+            case EventType.LCP:
+                timestamp_ms = timestamp * 1000
+                duration = event["data"]["payload"]["data"]["size"]
+                rating = event["data"]["payload"]["data"]["rating"]
+                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            case EventType.FCP:
+                timestamp_ms = timestamp * 1000
+                duration = event["data"]["payload"]["data"]["size"]
+                rating = event["data"]["payload"]["data"]["rating"]
+                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+            case EventType.HYDRATION_ERROR:
+                return f"There was a hydration error on the page at {timestamp}"
+            case EventType.RESOURCE_XHR:
                 return None
-
-            # Build log message
-            parts = ["Application initiated request: "]
-            if method:
-                parts.append(f"{method} ")
-            if path:
-                parts.append(f"{path} HTTP/2.0")
-            if status_code:
-                parts.append(f" with status code {status_code}")
-            if response_size:
-                parts.append(f" and response size {response_size}")
-            if duration:
-                parts.append(f"; took {duration} milliseconds")
-            parts.append(f" at {timestamp_ms}")
-
-            return "".join(parts)
-        case EventType.LCP:
-            timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"].get("size")
-            rating = event["data"]["payload"]["data"].get("rating")
-
-            parts = ["Application largest contentful paint"]
-            if duration:
-                parts.append(f": {duration} ms")
-            if rating:
-                parts.append(f" with {rating} rating")
-            parts.append(f" at {timestamp_ms}")
-
-            return "".join(parts)
-        case EventType.FCP:
-            timestamp_ms = timestamp * 1000
-            duration = event["data"]["payload"]["data"].get("size")
-            rating = event["data"]["payload"]["data"].get("rating")
-
-            parts = ["Application first contentful paint"]
-            if duration:
-                parts.append(f": {duration} ms")
-            if rating:
-                parts.append(f" with {rating} rating")
-            parts.append(f" at {timestamp_ms}")
-
-            return "".join(parts)
-        case EventType.HYDRATION_ERROR:
-            return f"There was a hydration error on the page at {timestamp}"
-        case EventType.RESOURCE_XHR:
-            return None
-        case EventType.MUTATIONS:
-            return None
-        case EventType.UNKNOWN:
-            return None
-        case EventType.CANVAS:
-            return None
-        case EventType.OPTIONS:
-            return None
-        case EventType.FEEDBACK:
-            return None  # the log message is processed before this method is called
+            case EventType.MUTATIONS:
+                return None
+            case EventType.UNKNOWN:
+                return None
+            case EventType.CANVAS:
+                return None
+            case EventType.OPTIONS:
+                return None
+            case EventType.FEEDBACK:
+                return None  # the log message is processed before this method is called
+    except (KeyError, ValueError):
+        logger.exception("Error parsing event in replay AI summary", extra={"event": event})
+        return None
 
 
 def make_seer_request(request_data: str) -> bytes:
