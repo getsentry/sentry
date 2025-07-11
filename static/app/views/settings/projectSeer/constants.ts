@@ -6,7 +6,7 @@ export const SEER_THRESHOLD_OPTIONS = [
   {
     value: 'off',
     label: t('Off'),
-    details: t('Seer will never analyze any issues without manually clicking Start.'),
+    details: t('Seer only runs when you click Start.'),
   },
   {
     value: 'super_low',
