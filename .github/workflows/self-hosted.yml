@@ -74,32 +74,13 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
-        if: github.ref_name == 'master' && github.event_name != 'pull_request'
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
-
-      - name: Build
-        uses: docker/build-push-action@32945a339266b759abcbdc89316275140b0fc960 # v6.8.10
+      - uses: getsentry/action-build-and-push-images@3e678a5b35eb78afec14922aa822c8923a2d2e32
         with:
-          context: .
-          file: 'self-hosted/Dockerfile'
-          cache-from: ghcr.io/getsentry/sentry:latest
-          cache-to: type=inline
-          platforms: linux/${{ matrix.platform }}
-          tags: sentry:${{ matrix.platform }}
-          outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
-          push: false
-          build-args: |
-            SOURCE_COMMIT=${{ github.sha }}
-            TARGETARCH=${{ matrix.platform }}
-
-      - name: Upload Image
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: sentry-${{ matrix.platform }}
-          path: /tmp/sentry-${{ matrix.platform }}.tar
+          image_name: 'sentry'
+          platform: ${{ matrix.platform }}
+          dockerfile: 'self-hosted/Dockerfile'
+          publish_to_ghcr: false
+          publish_to_gar: false
 
   assemble:
     needs: [self-hosted]
