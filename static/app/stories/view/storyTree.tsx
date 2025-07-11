@@ -207,7 +207,7 @@ export function useStoryTree(
   }
 ) {
   const location = useLocation();
-  const initialName = useRef(location.query.name);
+  const initialName = useRef(location.state?.storyPath);
 
   const tree = useMemo(() => {
     const root = new StoryTreeNode('root', '', '');
@@ -412,7 +412,7 @@ function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
   const location = useLocation();
   const hasActiveChild = useMemo(() => {
-    const child = props.node.find(n => n.filesystemPath === location.query.name);
+    const child = props.node.find(n => n.filesystemPath === location.state?.storyPath);
     return !!child;
   }, [location, props.node]);
 
@@ -471,7 +471,7 @@ function File(props: {node: StoryTreeNode}) {
     <li>
       <FolderLink
         to={`/stories/?${query}`}
-        active={location.query.name === props.node.filesystemPath}
+        active={location.state?.storyPath === props.node.filesystemPath}
       >
         {normalizeFilename(props.node.name)}
       </FolderLink>
