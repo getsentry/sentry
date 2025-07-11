@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, tagstore
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -68,9 +69,10 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         List a Tag's Values
         """
         analytics.record(
-            "eventuser_endpoint.request",
-            project_id=group.project_id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            EventUserEndpointRequest(
+                project_id=group.project_id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            )
         )
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
