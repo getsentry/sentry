@@ -70,7 +70,7 @@ export default function Stories() {
   );
 }
 
-const Layout = styled('div')`
+export const Layout = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   --stories-grid-space: 0;
 
@@ -86,7 +86,7 @@ const Layout = styled('div')`
   right: 0;
 `;
 
-const HeaderContainer = styled('header')`
+export const HeaderContainer = styled('header')`
   position: fixed;
   top: 0;
   left: 0;

@@ -105,7 +105,7 @@ export function StorySearch() {
   );
 }
 
-function SearchInput(
+export function SearchInput(
   props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
 ) {
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
@@ -134,7 +134,7 @@ interface SearchComboBoxProps<T extends StoryTreeNode>
   label?: string;
 }
 
-function filter(textValue: string, inputValue: string): boolean {
+export function filter(textValue: string, inputValue: string): boolean {
   const match = fzf(textValue, inputValue.toLowerCase(), false);
   return match.score > 0;
 }
@@ -201,7 +201,7 @@ function SearchComboBox<T extends StoryTreeNode>(props: SearchComboBoxProps<T>) 
   );
 }
 
-const StorySearchContainer = styled('div')`
+export const StorySearchContainer = styled('div')`
   position: relative;
   width: 320px;
   flex-grow: 1;
@@ -213,7 +213,7 @@ const StorySearchContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledOverlay = styled(Overlay)`
+export const StyledOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
   left: 272px;

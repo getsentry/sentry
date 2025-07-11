@@ -56,7 +56,7 @@ export function StoryHeader() {
   );
 }
 
-const HeaderGrid = styled('header')`
+export const HeaderGrid = styled('header')`
   display: grid;
   grid-template-columns: 256px minmax(auto, 820px) auto;
   gap: ${space(1)};
@@ -73,7 +73,7 @@ const HeaderGrid = styled('header')`
   }
 `;
 
-const H1 = styled('h1')`
+export const H1 = styled('h1')`
   margin: 0;
   display: flex;
   gap: ${space(1)};
