@@ -3,7 +3,7 @@ from sentry import analytics
 
 @analytics.eventclass("first_sourcemaps.sent")
 class FirstSourcemapsSentEvent(analytics.Event):
-    user_id: str
+    user_id: int
     organization_id: str
     project_id: str
     platform: str | None = None
