@@ -21,12 +21,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
     {
       key: 'count(span.duration)',
-      name: 'count(span.duration)',
       type: 'number',
     },
     {
       key: 'http.request_method',
-      name: 'http.request_method',
       type: 'string',
     },
   ];

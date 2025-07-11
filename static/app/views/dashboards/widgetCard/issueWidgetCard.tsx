@@ -71,7 +71,6 @@ export function IssueWidgetCard({
   const columns = decodeColumnOrder(queryFields.map(field => ({field}))).map(
     (column, index) => ({
       key: column.key,
-      name: column.name,
       width: widget.tableWidths?.[index] ?? column.width,
       type: column.type === 'never' ? null : column.type,
     })
