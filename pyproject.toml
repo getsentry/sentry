@@ -212,7 +212,6 @@ module = [
     "sentry.eventstore.reprocessing.redis",
     "sentry.eventstream.*",
     "sentry.eventtypes.error",
-    "sentry.feedback.migrations.*",
     "sentry.flags.migrations.*",
     "sentry.grouping.api",
     "sentry.grouping.component",
