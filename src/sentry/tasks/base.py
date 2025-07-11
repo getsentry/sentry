@@ -208,6 +208,7 @@ def instrumented_task(
                 processing_deadline_duration=taskworker_config.processing_deadline_duration,
                 at_most_once=taskworker_config.at_most_once,
                 wait_for_delivery=taskworker_config.wait_for_delivery,
+                compression_type=taskworker_config.compression_type,
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
