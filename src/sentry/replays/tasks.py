@@ -185,15 +185,14 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
     """
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
-    # This should be impossible but if we re-schedule the task and the job is not in-progress or
-    # pending then something went wrong.
-    if job.status not in (DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS):
-        return None
-
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
         job.status = DeletionJobStatus.IN_PROGRESS
         job.save()
+
+    # Exit if the job status is failed or completed.
+    if job.status != DeletionJobStatus.IN_PROGRESS:
+        return None
 
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
