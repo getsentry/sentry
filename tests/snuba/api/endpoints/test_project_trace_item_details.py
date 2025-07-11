@@ -335,8 +335,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                     "str_attr": {
                         "string_value": "1",
                     },
-                    # This is a guess on how this will look, the key & storage may change at some point
-                    "sentry._meta.fields.attributes": '{"sentry.body": {"length": 300, "reason": "value too long"}, "float_attr": {"unit": "float"}}',
+                    "sentry._meta.fields.attributes.sentry.body": '{"length": 300, "reason": "value too long"}',
+                    "sentry._meta.fields.attributes.float_attr": '{"unit": "float"}',
                     "int_attr": {"int_value": 2},
                     "float_attr": {
                         "double_value": 3.0,
@@ -397,8 +397,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {
-                "message": {"length": 300, "reason": "value too long"},
                 "tags[float_attr,number]": {"unit": "float"},
+                "message": {"length": 300, "reason": "value too long"},
             },
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
