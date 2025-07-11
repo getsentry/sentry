@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -63,6 +64,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
@@ -909,11 +911,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "search" == response.data["detail"]
             )
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                AdvancedSearchFeatureGateEvent(
+                    user_id=self.user.id,
+                    default_user_id=self.user.id,
+                    organization_id=self.organization.id,
+                ),
             )
 
     # This seems like a random override, but this test needed a way to override
@@ -3825,11 +3829,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "search" == response.data["detail"]
             )
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                AdvancedSearchFeatureGateEvent(
+                    user_id=self.user.id,
+                    default_user_id=self.user.id,
+                    organization_id=self.organization.id,
+                ),
             )
 
     def test_snuba_heavy_filter_not_unresolved(self, _: MagicMock) -> None:
