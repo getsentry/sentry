@@ -16,6 +16,7 @@ from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
+from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -338,11 +339,12 @@ class OrganizationReportBatch:
             message.send(to=(self.email_override,))
         else:
             analytics.record(
-                "weekly_report.sent",
-                user_id=user_id,
-                organization_id=self.ctx.organization.id,
-                notification_uuid=template_ctx["notification_uuid"],
-                user_project_count=template_ctx["user_project_count"],
+                WeeklyReportSent(
+                    user_id=user_id,
+                    organization_id=self.ctx.organization.id,
+                    notification_uuid=template_ctx["notification_uuid"],
+                    user_project_count=template_ctx["user_project_count"],
+                )
             )
 
             # TODO: see if we can use the UUID to track if the email was sent or not
