@@ -90,7 +90,7 @@ function getStoryMetaFromQuery(
   stories: ReturnType<typeof useStoryBookFilesByCategory>
 ): StoryMeta | undefined {
   const {category, topic} = query;
-  const nodes = stories[category];
+  const nodes = category in stories ? stories[category] : [];
   for (const node of nodes) {
     const match = node.find(n => kebabCase(n.label) === topic);
     if (match) {
