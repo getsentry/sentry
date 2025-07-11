@@ -13,12 +13,12 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
-    """Saves a feedback from a feedback event envelope.
+def save_event_feedback(event_data: Mapping[str, Any], project_id: int):
+    """Saves feedback given data in an event format. This function should only be called by the new feedback consumer's ingest strategy, to process feedback envelopes (feedback v2).
+    It is currently instrumented as a task in sentry.tasks.store.
 
     If the save is successful and the `associated_event_id` field is present, this will
-    also save a UserReport in Postgres. This is to ensure the feedback can be queried by
-    group_id, which is hard to associate in clickhouse.
+    also save a UserReport in Postgres (shim to v1). This is to allow queries by the group_id relation, which we don't have in clickhouse.
     """
     if not isinstance(event_data, dict):
         event_data = dict(event_data)
@@ -32,6 +32,7 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
 
     try:
         # Shim to UserReport
+        # TODO: this logic should be extracted to a shim_to_userreport function which returns a report dict. After that this function can be removed and the store task can directly call feedback ingest functions.
         feedback_context = fixed_event_data["contexts"]["feedback"]
         associated_event_id = feedback_context.get("associated_event_id")
 

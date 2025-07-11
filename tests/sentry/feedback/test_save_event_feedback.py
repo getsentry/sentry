@@ -5,7 +5,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.save_feedback_event import save_feedback_event
+from sentry.feedback.usecases.save_event_feedback import save_event_feedback
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
@@ -15,7 +15,7 @@ from tests.sentry.feedback import mock_feedback_event
 
 @pytest.fixture
 def mock_create_feedback_issue():
-    with mock.patch("sentry.feedback.usecases.save_feedback_event.create_feedback_issue") as m:
+    with mock.patch("sentry.feedback.usecases.save_event_feedback.create_feedback_issue") as m:
         yield m
 
 
@@ -30,11 +30,11 @@ def create_test_event(project_id: int, environment: Environment) -> Event:
 
 
 @django_db_all
-def test_save_feedback_event_no_associated_event(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_no_associated_event(default_project, mock_create_feedback_issue):
     event_data = mock_feedback_event(default_project.id)
     mock_create_feedback_issue.return_value = None
 
-    save_feedback_event(event_data, default_project.id)
+    save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
         event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -47,7 +47,7 @@ def test_save_feedback_event_no_associated_event(default_project, mock_create_fe
     "timestamp_format",
     ["number", "iso"],
 )
-def test_save_feedback_event_with_associated_event(
+def test_save_event_feedback_with_associated_event(
     default_project, mock_create_feedback_issue, timestamp_format
 ):
     environment = Factories.create_environment(default_project, name="production")
@@ -63,7 +63,7 @@ def test_save_feedback_event_with_associated_event(
     event_data["environment"] = "production"
     mock_create_feedback_issue.return_value = event_data
 
-    save_feedback_event(event_data, default_project.id)
+    save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
         event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -83,7 +83,7 @@ def test_save_feedback_event_with_associated_event(
 
 
 @django_db_all
-def test_save_feedback_event_with_unprocessed_associated_event(
+def test_save_event_feedback_with_unprocessed_associated_event(
     default_project,
     mock_create_feedback_issue,
 ):
@@ -95,7 +95,7 @@ def test_save_feedback_event_with_unprocessed_associated_event(
     event_data["environment"] = "production"
     mock_create_feedback_issue.return_value = event_data
 
-    save_feedback_event(event_data, default_project.id)
+    save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
         event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -116,7 +116,7 @@ def test_save_feedback_event_with_unprocessed_associated_event(
 
 
 @django_db_all
-def test_save_feedback_event_with_missing_fields(default_project, mock_create_feedback_issue):
+def test_save_event_feedback_with_missing_fields(default_project, mock_create_feedback_issue):
     environment = Factories.create_environment(default_project, name="production")
 
     event_data = mock_feedback_event(default_project.id)
@@ -130,7 +130,7 @@ def test_save_feedback_event_with_missing_fields(default_project, mock_create_fe
 
     mock_create_feedback_issue.return_value = event_data
 
-    save_feedback_event(event_data, default_project.id)
+    save_event_feedback(event_data, default_project.id)
 
     mock_create_feedback_issue.assert_called_once_with(
         event_data, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE

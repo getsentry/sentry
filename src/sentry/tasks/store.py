@@ -16,7 +16,9 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
-from sentry.feedback.usecases.save_feedback_event import save_feedback_event
+from sentry.feedback.usecases.save_event_feedback import (
+    save_event_feedback as save_event_feedback_impl,
+)
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -703,7 +705,7 @@ def save_event_feedback(
     project_id: int,
     **kwargs: Any,
 ) -> None:
-    save_feedback_event(data, project_id)
+    save_event_feedback_impl(data, project_id)
 
 
 @instrumented_task(
