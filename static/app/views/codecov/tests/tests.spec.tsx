@@ -41,7 +41,7 @@ const mockTestResultAggregates = [
 
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
-    url: `/prevent/owner/some-org-name/repository/some-repository/test-results/`,
+    url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/test-results/`,
     method: 'GET',
     body: {
       results: mockTestResultsData,
@@ -54,7 +54,7 @@ const mockApiCall = () => {
   });
 
   MockApiClient.addMockResponse({
-    url: `/prevent/owner/some-org-name/repository/some-repository/test-results-aggregates/`,
+    url: `/organizations/org-slug/prevent/owner/some-org-name/repository/some-repository/test-results-aggregates/`,
     method: 'GET',
     body: {
       results: mockTestResultAggregates,
