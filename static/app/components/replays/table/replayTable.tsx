@@ -41,7 +41,12 @@ export default function ReplayTable({
   if (isPending) {
     return (
       <ReplayTableWithColumns columns={columns} data-test-id="replay-table-loading">
-        <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+        />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -52,7 +57,12 @@ export default function ReplayTable({
   if (error) {
     return (
       <ReplayTableWithColumns columns={columns} data-test-id="replay-table-errored">
-        <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+        <ReplayTableHeader
+          columns={columns}
+          onSortClick={onSortClick}
+          replays={replays}
+          sort={sort}
+        />
         <SimpleTable.Empty>
           <Alert type="error" showIcon>
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -65,7 +75,12 @@ export default function ReplayTable({
 
   return (
     <ReplayTableWithColumns columns={columns} data-test-id="replay-table">
-      <ReplayTableHeader columns={columns} onSortClick={onSortClick} sort={sort} />
+      <ReplayTableHeader
+        columns={columns}
+        onSortClick={onSortClick}
+        replays={replays}
+        sort={sort}
+      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
