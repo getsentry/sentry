@@ -3240,10 +3240,7 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with (
-            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
-            self.feature("organizations:user-feedback-spam-filter-actions"),
-        ):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
