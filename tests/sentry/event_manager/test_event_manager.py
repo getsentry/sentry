@@ -3951,7 +3951,7 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
 
-    def test_detector_group_created_with_detector_id(self):
+    def test_detector_group_created_with_detector_id(self) -> None:
         from sentry.grouping.grouptype import ErrorGroupType
         from sentry.issues.issue_occurrence import IssueOccurrence
         from sentry.workflow_engine.models import Detector, DetectorGroup
@@ -3982,6 +3982,7 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
             priority=None,
             assignee=None,
         )
+        assert hasattr(event, "occurrence")
         event.occurrence = occurrence
         group, created, _ = save_grouphash_and_group(
             self.project, event, "detector-test-fingerprint"
@@ -3990,11 +3991,12 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         detector_group = DetectorGroup.objects.get(group_id=group.id)
         assert detector_group.detector_id == detector.id
 
-    def test_metric_issue_detector_group_created_with_detector_id(self):
+    def test_metric_issue_detector_group_created_with_detector_id(self) -> None:
         from datetime import timedelta
 
         from sentry.incidents.grouptype import MetricIssueDetectorHandler
         from sentry.incidents.utils.types import QuerySubscriptionUpdate
+        from sentry.issues.issue_occurrence import IssueOccurrence
         from sentry.snuba.models import QuerySubscription, SnubaQuery
         from sentry.workflow_engine.models import (
             DataCondition,
@@ -4059,14 +4061,19 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
 
         occurrence = None
         for result in eval_result.values():
+            if result.result is None:
+                continue
+
             if (
-                hasattr(result.result, "evidence_data")
+                isinstance(result.result, IssueOccurrence)
+                and result.result.evidence_data
                 and "detector_id" in result.result.evidence_data
             ):
                 occurrence = result.result
                 break
 
         assert occurrence is not None, "No occurrence was created by the handler"
+        assert hasattr(event, "occurrence")
         event.occurrence = occurrence
 
         # Save the group and verify DetectorGroup is created
@@ -4077,7 +4084,7 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         detector_group = DetectorGroup.objects.get(detector_id=detector.id)
         assert detector_group.group_id == group.id
 
-    def test_detector_group_not_created_for_errors(self):
+    def test_detector_group_not_created_for_errors(self) -> None:
         from sentry.workflow_engine.models import DetectorGroup
 
         # Create a regular event without an occurrence (simulating error groups)
@@ -4095,7 +4102,7 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         # Verify no DetectorGroup was created
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 
-    def test_detector_group_not_created_for_existing_group(self):
+    def test_detector_group_not_created_for_existing_group(self) -> None:
         from datetime import UTC, datetime
 
         from sentry.grouping.grouptype import ErrorGroupType
@@ -4126,8 +4133,9 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
             detection_time=datetime.now(UTC),
             level="error",
             culprit="test-culprit",
-            type=ErrorGroupType.type_id,
+            type=ErrorGroupType,
         )
+        assert hasattr(event, "occurrence")
         event.occurrence = occurrence
 
         group_hash = "existing_group_hash"
@@ -4148,7 +4156,9 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         # Verify only one DetectorGroup exists (no duplicate created)
         detector_groups = DetectorGroup.objects.filter(detector_id=detector.id)
         assert detector_groups.count() == 1
-        assert detector_groups.first().group_id == group1.id
+        item = detector_groups.first()
+        assert item is not None
+        assert item.group_id == group1.id
 
 
 example_transaction_event = {
