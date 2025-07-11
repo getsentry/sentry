@@ -3,7 +3,7 @@ import invariant from 'invariant';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import {
   getGraphQLDescription,
-  isFrameGraphQLRequest,
+  isFrameMaybeGraphQLRequest,
 } from 'sentry/utils/replays/resourceFrame';
 import type {RawSpanFrame, SpanFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
@@ -32,7 +32,7 @@ export default function hydrateSpans(
           timestampMs: start.getTime(),
         };
 
-        if (isFrameGraphQLRequest(spanFrame)) {
+        if (isFrameMaybeGraphQLRequest(spanFrame)) {
           spanFrame.description =
             getGraphQLDescription(spanFrame) ?? spanFrame.description;
         }

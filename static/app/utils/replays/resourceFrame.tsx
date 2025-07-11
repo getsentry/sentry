@@ -56,10 +56,17 @@ export function getResponseBodySize(frame: SpanFrame) {
   return undefined;
 }
 
+const knownGraphQLQueryParams = [
+  'query',
+  'operationName',
+  'variables',
+  'extensions',
+] as const;
+
 // Looks at conventions described in https://graphql.org/learn/serving-over-http/
 // to infer if this is a GraphQL request, or GraphQL-like.
 // The SDK must be configured to capture the request body.
-export function isFrameGraphQLRequest(frame: SpanFrame): boolean {
+export function isFrameMaybeGraphQLRequest(frame: SpanFrame): boolean {
   if (!isRequestFrame(frame) || !frame.data?.request) {
     return false;
   }
@@ -81,7 +88,7 @@ export function isFrameGraphQLRequest(frame: SpanFrame): boolean {
     const url = new URL(frame.description);
     const hasUrlQuery = Boolean(url.searchParams.get('query'));
     if (hasUrlQuery) {
-      return true;
+      return hasOnlyKnownGraphQLQueryParams(Array.from(url.searchParams.keys()));
     }
   } catch {
     //
@@ -92,16 +99,21 @@ export function isFrameGraphQLRequest(frame: SpanFrame): boolean {
       typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
     const hasBodyQuery = 'query' in bodyJson;
     if (hasBodyQuery) {
-      return true;
+      return hasOnlyKnownGraphQLQueryParams(Object.keys(bodyJson));
     }
   } catch {
     //
   }
   return false;
 }
+function hasOnlyKnownGraphQLQueryParams(keys: string[]) {
+  return keys.every(key =>
+    knownGraphQLQueryParams.includes(key as (typeof knownGraphQLQueryParams)[number])
+  );
+}
 
 export function getGraphQLDescription(frame: SpanFrame) {
-  if (!isRequestFrame(frame) || !isFrameGraphQLRequest(frame)) {
+  if (!isRequestFrame(frame) || !isFrameMaybeGraphQLRequest(frame)) {
     return undefined;
   }
 
