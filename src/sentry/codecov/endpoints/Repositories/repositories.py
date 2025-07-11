@@ -62,7 +62,7 @@ class RepositoriesEndpoint(CodecovEndpoint):
             last = int(last_param) if last_param else None
         except ValueError:
             return Response(
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "Query parameters 'first' and 'last' must be integers."},
             )
 
