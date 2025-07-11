@@ -297,7 +297,9 @@ describe('DataConditionNodeList', function () {
       <AutomationBuilderErrorContext.Provider
         value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
       >
-        <DataConditionNodeList {...defaultProps} />
+        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+          <DataConditionNodeList {...defaultProps} />
+        </AutomationBuilderConflictContext.Provider>
       </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
