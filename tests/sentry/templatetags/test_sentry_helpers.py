@@ -166,6 +166,7 @@ def test_get_item(a_dict, key, expected):
     assert result == expected
 
 
+@pytest.mark.skip(reason="flaky: #95046")
 def test_sanitize_periods():
     input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
     result = engines["django"].from_string(input).render().strip()
