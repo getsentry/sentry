@@ -9,6 +9,7 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {
   SummaryFilterKey,
   SummaryTAFilterKey,
@@ -61,6 +62,7 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
 export function useInfiniteTestResults() {
   const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+  const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
   const sortBy = searchParams.get('sort') || '-commitsFailed';
@@ -79,7 +81,7 @@ export function useInfiniteTestResults() {
     QueryKey
   >({
     queryKey: [
-      `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
       {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
     ],
     queryFn: async ({
@@ -149,6 +151,7 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

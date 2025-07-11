@@ -7,6 +7,73 @@ from sentry.codecov.endpoints.TestResults.serializers import (
 )
 from sentry.testutils.cases import APITestCase
 
+mock_graphql_response_empty = {
+    "data": {
+        "owner": {
+            "repository": {
+                "__typename": "Repository",
+                "testAnalytics": {
+                    "testResults": {
+                        "edges": [],
+                        "pageInfo": {"endCursor": None, "hasNextPage": False},
+                        "totalCount": 0,
+                    }
+                },
+            }
+        }
+    }
+}
+
+mock_graphql_response_populated = {
+    "data": {
+        "owner": {
+            "repository": {
+                "__typename": "Repository",
+                "testAnalytics": {
+                    "testResults": {
+                        "edges": [
+                            {
+                                "node": {
+                                    "updatedAt": "2025-05-22T16:21:18.763951+00:00",
+                                    "avgDuration": 0.04066228070175437,
+                                    "totalDuration": 1.0,
+                                    "lastDuration": 0.04066228070175437,
+                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_no_yaml",
+                                    "failureRate": 0.0,
+                                    "flakeRate": 0.0,
+                                    "commitsFailed": 0,
+                                    "totalFailCount": 0,
+                                    "totalFlakyFailCount": 0,
+                                    "totalSkipCount": 0,
+                                    "totalPassCount": 70,
+                                }
+                            },
+                            {
+                                "node": {
+                                    "updatedAt": "2025-05-22T16:21:18.763961+00:00",
+                                    "avgDuration": 0.034125877192982455,
+                                    "totalDuration": 1.0,
+                                    "lastDuration": 0.034125877192982455,
+                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
+                                    "failureRate": 0.0,
+                                    "flakeRate": 0.0,
+                                    "commitsFailed": 0,
+                                    "totalFailCount": 0,
+                                    "totalFlakyFailCount": 0,
+                                    "totalSkipCount": 0,
+                                    "totalPassCount": 70,
+                                }
+                            },
+                        ],
+                        "pageInfo": {"endCursor": "cursor123", "hasNextPage": False},
+                        "totalCount": 2,
+                    }
+                },
+            }
+        }
+    }
+}
+
 
 class TestResultsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-test-results"
@@ -20,6 +87,7 @@ class TestResultsEndpointTest(APITestCase):
         return reverse(
             self.endpoint,
             kwargs={
+                "organization_id_or_slug": self.organization.slug,
                 "owner": owner,
                 "repository": repository,
             },
@@ -27,58 +95,9 @@ class TestResultsEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
-        mock_graphql_response = {
-            "data": {
-                "owner": {
-                    "repository": {
-                        "__typename": "Repository",
-                        "testAnalytics": {
-                            "testResults": {
-                                "edges": [
-                                    {
-                                        "node": {
-                                            "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                                            "avgDuration": 0.04066228070175437,
-                                            "totalDuration": 1.0,
-                                            "lastDuration": 0.04066228070175437,
-                                            "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_no_yaml",
-                                            "failureRate": 0.0,
-                                            "flakeRate": 0.0,
-                                            "commitsFailed": 0,
-                                            "totalFailCount": 0,
-                                            "totalFlakyFailCount": 0,
-                                            "totalSkipCount": 0,
-                                            "totalPassCount": 70,
-                                        }
-                                    },
-                                    {
-                                        "node": {
-                                            "updatedAt": "2025-05-22T16:21:18.763961+00:00",
-                                            "avgDuration": 0.034125877192982455,
-                                            "totalDuration": 1.0,
-                                            "lastDuration": 0.034125877192982455,
-                                            "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
-                                            "failureRate": 0.0,
-                                            "flakeRate": 0.0,
-                                            "commitsFailed": 0,
-                                            "totalFailCount": 0,
-                                            "totalFlakyFailCount": 0,
-                                            "totalSkipCount": 0,
-                                            "totalPassCount": 70,
-                                        }
-                                    },
-                                ],
-                                "pageInfo": {"endCursor": "cursor123", "hasNextPage": False},
-                                "totalCount": 2,
-                            }
-                        },
-                    }
-                }
-            }
-        }
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
+        mock_response.json.return_value = mock_graphql_response_populated
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
@@ -128,25 +147,9 @@ class TestResultsEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
-        mock_graphql_response = {
-            "data": {
-                "owner": {
-                    "repository": {
-                        "__typename": "Repository",
-                        "testAnalytics": {
-                            "testResults": {
-                                "edges": [],
-                                "pageInfo": {"endCursor": None, "hasNextPage": False},
-                                "totalCount": 0,
-                            }
-                        },
-                    }
-                }
-            }
-        }
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
+        mock_response.json.return_value = mock_graphql_response_empty
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
@@ -188,25 +191,9 @@ class TestResultsEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
     def test_get_with_last_parameter(self, mock_codecov_client_class):
-        mock_graphql_response = {
-            "data": {
-                "owner": {
-                    "repository": {
-                        "__typename": "Repository",
-                        "testAnalytics": {
-                            "testResults": {
-                                "edges": [],
-                                "pageInfo": {"endCursor": None, "hasNextPage": False},
-                                "totalCount": 0,
-                            }
-                        },
-                    }
-                }
-            }
-        }
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
+        mock_response.json.return_value = mock_graphql_response_empty
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
@@ -248,3 +235,47 @@ class TestResultsEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {"details": "Cannot specify both `first` and `last`"}
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_term_filter(self, mock_codecov_client_class):
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response_empty
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {
+            "term": "test::function_with_underscores-and-dashes",
+            "branch": "develop",
+            "filterBy": "FLAKY_TESTS",
+            "sortBy": "AVG_DURATION",
+            "interval": "INTERVAL_7_DAY",
+            "first": "15",
+        }
+        response = self.client.get(url, query_params)
+
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "develop",
+                "parameter": "FLAKY_TESTS",
+                "interval": "INTERVAL_7_DAY",
+                "flags": None,
+                "term": "test::function_with_underscores-and-dashes",
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "ASC",
+                "parameter": "AVG_DURATION",
+            },
+            "first": 15,
+            "last": None,
+            "before": None,
+            "after": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200

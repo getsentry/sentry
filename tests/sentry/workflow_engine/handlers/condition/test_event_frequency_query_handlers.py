@@ -23,7 +23,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -35,7 +35,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -44,7 +44,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__equal(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -58,7 +58,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__not_equal(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -72,7 +72,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__starts_with(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -86,7 +86,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__not_starts_with(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -100,7 +100,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__ends_with(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -114,7 +114,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__not_ends_with(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -128,7 +128,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__contains(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -138,7 +138,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__not_contains(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -148,7 +148,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__is_set(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -162,7 +162,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__is_not_set(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -176,7 +176,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__is_in(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -190,7 +190,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__tag_conditions__is_not_in(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -205,7 +205,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     def test_batch_query__tag_conditions__invalid(self):
         with pytest.raises(ValueError):
             self.handler().batch_query(
-                group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+                groups=self.groups,
                 start=self.start,
                 end=self.end,
                 environment_id=self.environment.id,
@@ -214,7 +214,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__attribute_conditions(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -227,7 +227,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -240,7 +240,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         # error.handled is only available for errors, not issue platform
         # perf event should not have any events that match the criteria
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -253,10 +253,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
     def test_get_error_and_generic_group_ids(self):
-        groups = Group.objects.filter(
-            id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
-        ).values("id", "type", "project_id", "project__organization_id")
-        category_group_ids = self.handler().get_group_ids_by_category(groups)
+        category_group_ids = self.handler().get_group_ids_by_category(self.groups)
         error_group_ids = category_group_ids[GroupCategory.ERROR]
         assert self.event.group_id in error_group_ids
         assert self.event2.group_id in error_group_ids
@@ -268,7 +265,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query_user(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -280,7 +277,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -289,7 +286,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query_user__tag_conditions(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -302,7 +299,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -312,7 +309,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query__attribute_conditions(self):
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -325,7 +322,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -338,7 +335,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
         # error.handled is only available for errors, not issue platform
         # perf event should not have any events that match the criteria
         batch_query = self.handler().batch_query(
-            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -361,12 +358,9 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
     def test_batch_query_percent(self):
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
-        group_ids = {self.event.group_id, self.event2.group_id, self.perf_event.group_id}
-        for group_id in group_ids:
-            assert group_id
 
         batch_query = self.handler().batch_query(
-            group_ids=group_ids,
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -380,7 +374,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
 
         assert self.event3.group_id
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -391,13 +385,17 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
         self._make_sessions(600, self.environment.name)
 
         assert self.event.group_id
-        group_ids = {self.event.group_id}
+        groups = list(
+            Group.objects.filter(id=self.event.group_id).values(
+                "id", "type", "project_id", "project__organization_id"
+            )
+        )
 
         self.start = before_now(hours=1)
         self.end = self.start + timedelta(hours=1)
 
         batch_query = self.handler().batch_query(
-            group_ids=group_ids,
+            groups=groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -411,12 +409,8 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
     def test_batch_query_percent_no_avg_sessions_in_interval(self):
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
-        group_ids = {self.event.group_id, self.event2.group_id, self.perf_event.group_id}
-        for group_id in group_ids:
-            assert group_id
-
         batch_query = self.handler().batch_query(
-            group_ids=group_ids,
+            groups=self.groups,
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -430,7 +424,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
 
         assert self.event3.group_id
         batch_query = self.handler().batch_query(
-            group_ids={self.event3.group_id},
+            groups=self.group_3,
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,

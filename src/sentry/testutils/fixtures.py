@@ -495,6 +495,9 @@ class Fixtures:
             team=team, organization=team.organization, integration_id=integration.id, **kwargs
         )
 
+    def create_data_access_grant(self, **kwargs):
+        return Factories.create_data_access_grant(**kwargs)
+
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:
             project = self.project

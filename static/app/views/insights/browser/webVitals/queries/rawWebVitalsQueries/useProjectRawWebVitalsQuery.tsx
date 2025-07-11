@@ -1,7 +1,7 @@
 import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
@@ -19,7 +19,6 @@ export const useProjectRawWebVitalsQuery = ({
   subregions,
 }: Props = {}) => {
   const search = new MutableSearch([]);
-  const defaultQuery = useDefaultWebVitalsQuery();
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
@@ -35,7 +34,7 @@ export const useProjectRawWebVitalsQuery = ({
 
   return useMetrics(
     {
-      search: [defaultQuery, search.formatString()].join(' ').trim(),
+      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       limit: 50,
       fields: [
         'p75(measurements.lcp)',

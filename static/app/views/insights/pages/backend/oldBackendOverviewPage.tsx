@@ -33,7 +33,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {EAPExperimentButton} from 'sentry/views/insights/pages/backend/eapExperimentButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -230,10 +229,7 @@ export function OldBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader
-        headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<EAPExperimentButton />}
-      />
+      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

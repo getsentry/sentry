@@ -3,6 +3,7 @@ from typing import Any
 from uuid import uuid4
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -129,3 +130,14 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             fingerprint=fingerprint,
         )
         self.data = {"interval": "5m", "value": 30}
+
+        self.groups = list(
+            Group.objects.filter(
+                id__in={self.event.group_id, self.event2.group_id, self.perf_event.group_id}
+            ).values("id", "type", "project_id", "project__organization_id")
+        )
+        self.group_3 = list(
+            Group.objects.filter(id=self.event3.group_id).values(
+                "id", "type", "project_id", "project__organization_id"
+            )
+        )

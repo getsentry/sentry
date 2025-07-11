@@ -28,6 +28,18 @@ class TestProcessDataSources(BaseWorkflowTest):
         self.detector_one = self.create_detector(name="test_detector1")
         self.detector_two = self.create_detector(name="test_detector2", type="metric_issue")
 
+        self.detector_one.workflow_condition_group = self.create_data_condition_group(
+            logic_type="any"
+        )
+
+        self.create_data_condition(
+            condition_group=self.detector_one.workflow_condition_group,
+            type="eq",
+            comparison="bar",
+            condition_result=True,
+        )
+        self.detector_one.save()
+
         self.ds1 = self.create_data_source(source_id=self.query.id, type="test")
         self.ds1.detectors.set([self.detector_one])
 
@@ -141,3 +153,26 @@ class TestProcessDataSources(BaseWorkflowTest):
                 2,
                 tags={"query_type": "test"},
             )
+
+    def test_sql_cascades(self):
+        with self.assertNumQueries(3):
+            """
+            There should be 3 total SQL queries for `bulk_fetch_enabled_detectors`:
+            - Get all the detectors
+            - Get all the data condition groups for those detectors
+            - Get all the data conditions for those groups
+            """
+            results = process_data_sources(self.data_packets, "test")
+
+            for packet, detectors in results:
+                # If the detector is not prefetched this will increase the query count
+                assert all(detector.enabled for detector in detectors)
+
+                for detector in detectors:
+                    if detector.workflow_condition_group:
+                        # Trigger a SQL query if not prefetched, and fail the assertion
+                        assert detector.workflow_condition_group.id is not None
+
+                        for condition in detector.workflow_condition_group.conditions.all():
+                            # Trigger a SQL query if not prefetched, and fail the assertion
+                            assert condition.id is not None
