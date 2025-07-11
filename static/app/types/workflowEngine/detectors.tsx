@@ -55,8 +55,6 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
   queryObj: {
     body: string | null;
     headers: Array<[string, string]>;
-    hostProviderId: string;
-    hostProviderName: string;
     intervalSeconds: number;
     method: string;
     timeoutMs: number;
