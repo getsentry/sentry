@@ -279,7 +279,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </LoadingContainer>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
-          {t('Your code is not available to Seer. Click "Add Repos" to get started.')}
+          {t('Seer can't see your code. Click "Add Repos" to give Seer access.')}
         </EmptyMessage>
       ) : (
         <ReposContainer>
