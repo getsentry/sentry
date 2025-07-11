@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
-from sentry.apidocs.parameters import PreventParams
+from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.Repositories.query import query
@@ -30,6 +30,7 @@ class RepositoriesEndpoint(CodecovEndpoint):
     @extend_schema(
         operation_id="Retrieves repository list for a given owner",
         parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
             PreventParams.FIRST,
             PreventParams.LAST,
@@ -58,21 +59,21 @@ class RepositoriesEndpoint(CodecovEndpoint):
             cursor = cursor.replace(" ", "+")
 
         try:
-            first = int(first_param) if first_param else None
-            last = int(last_param) if last_param else None
+            first = int(first_param) if first_param is not None else None
+            last = int(last_param) if last_param is not None else None
         except ValueError:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "Query parameters 'first' and 'last' must be integers."},
             )
 
-        if first and last:
+        if first is not None and last is not None:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "Cannot specify both `first` and `last`"},
             )
 
-        if not first and not last:
+        if first is None and last is None:
             first = MAX_RESULTS_PER_PAGE
 
         variables = {

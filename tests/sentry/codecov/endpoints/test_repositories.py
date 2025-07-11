@@ -27,7 +27,7 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
-        mock_graphql_response = {
+        mock_graphql_response: dict[str, any] = {
             "data": {
                 "owner": {
                     "repositories": {
@@ -94,7 +94,7 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
-        mock_graphql_response = {
+        mock_graphql_response: dict[str, any] = {
             "data": {
                 "owner": {
                     "repositories": {
