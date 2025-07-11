@@ -27,8 +27,10 @@ query = """query ReposForOwner(
         }
       }
       pageInfo {
+          startCursor
           endCursor
           hasNextPage
+          hasPreviousPage
       }
       totalCount
     }

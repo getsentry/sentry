@@ -8,6 +8,43 @@ from sentry.codecov.endpoints.Repositories.serializers import (
 )
 from sentry.testutils.cases import APITestCase
 
+mock_graphql_response_populated: dict[str, Any] = {
+    "data": {
+        "owner": {
+            "repositories": {
+                "edges": [
+                    {
+                        "node": {
+                            "name": "test-repo-one",
+                            "updatedAt": "2025-05-22T16:21:18.763951+00:00",
+                            "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
+                            "defaultBranch": "branch-one",
+                        }
+                    },
+                    {
+                        "node": {
+                            "name": "test-repo-one",
+                            "updatedAt": "2025-05-22T16:21:18.763951+00:00",
+                            "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
+                            "defaultBranch": "branch-one",
+                        }
+                    },
+                ],
+            }
+        }
+    }
+}
+
+mock_graphql_response_empty: dict[str, Any] = {
+    "data": {
+        "owner": {
+            "repositories": {
+                "edges": [],
+            }
+        }
+    }
+}
+
 
 class RepositoriesEndpointTest(APITestCase):
     endpoint = "sentry-api-0-repositories"
@@ -28,35 +65,9 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
-        mock_graphql_response: dict[str, Any] = {
-            "data": {
-                "owner": {
-                    "repositories": {
-                        "edges": [
-                            {
-                                "node": {
-                                    "name": "test-repo-one",
-                                    "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                                    "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
-                                    "defaultBranch": "branch-one",
-                                }
-                            },
-                            {
-                                "node": {
-                                    "name": "test-repo-one",
-                                    "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                                    "latestCommitAt": "2025-05-21T16:21:18.763951+00:00",
-                                    "defaultBranch": "branch-one",
-                                }
-                            },
-                        ],
-                    }
-                }
-            }
-        }
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
+        mock_response.json.return_value = mock_graphql_response_populated
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
@@ -95,24 +106,16 @@ class RepositoriesEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
-        mock_graphql_response: dict[str, Any] = {
-            "data": {
-                "owner": {
-                    "repositories": {
-                        "edges": [],
-                    }
-                }
-            }
-        }
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = mock_graphql_response
+        mock_response.json.return_value = mock_graphql_response_empty
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
         query_params = {
             "term": "search-term",
+            "first": 3,
         }
         response = self.client.get(url, query_params)
 
@@ -124,7 +127,7 @@ class RepositoriesEndpointTest(APITestCase):
             },
             "direction": "DESC",
             "ordering": "COMMIT_DATE",
-            "first": 50,
+            "first": 3,
             "last": None,
             "after": None,
             "before": None,
@@ -138,15 +141,7 @@ class RepositoriesEndpointTest(APITestCase):
     def test_get_with_last_parameter(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = {
-            "data": {
-                "owner": {
-                    "repositories": {
-                        "edges": [],
-                    }
-                }
-            }
-        }
+        mock_response.json.return_value = mock_graphql_response_empty
         mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
@@ -171,3 +166,21 @@ class RepositoriesEndpointTest(APITestCase):
         call_args = mock_codecov_client_instance.query.call_args
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
+
+    def test_when_first_is_not_integer_returns_bad_request(self):
+        """Test that providing first as a non numerical string value returns a 400 Bad Request error"""
+        url = self.reverse_url()
+        query_params = {"first": "abc"}
+        response = self.client.get(url, query_params)
+
+        assert response.status_code == 400
+        assert response.data == {"details": "Query parameters 'first' and 'last' must be integers."}
+
+    def test_when_both_first_and_last_returns_bad_request(self):
+        """Test that providing both first and last parameters returns a 400 Bad Request error"""
+        url = self.reverse_url()
+        query_params = {"first": "10", "last": "5"}
+        response = self.client.get(url, query_params)
+
+        assert response.status_code == 400
+        assert response.data == {"details": "Cannot specify both `first` and `last`"}

@@ -19,6 +19,17 @@ class RepositoryNodeSerializer(serializers.Serializer):
     defaultBranch = serializers.CharField()
 
 
+class PageInfoSerializer(serializers.Serializer):
+    """
+    Serializer for pagination information
+    """
+
+    startCursor = serializers.CharField(allow_null=True)
+    endCursor = serializers.CharField(allow_null=True)
+    hasNextPage = serializers.BooleanField()
+    hasPreviousPage = serializers.BooleanField()
+
+
 class RepositoriesSerializer(serializers.Serializer):
     """
     Serializer for repositories response
@@ -27,6 +38,8 @@ class RepositoriesSerializer(serializers.Serializer):
     __test__ = False
 
     results = RepositoryNodeSerializer(many=True)
+    pageInfo = PageInfoSerializer()
+    totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):
         """
@@ -35,6 +48,7 @@ class RepositoriesSerializer(serializers.Serializer):
         try:
             repository_data = graphql_response["data"]["owner"]["repositories"]
             repositories = repository_data["edges"]
+            page_info = repository_data.get("pageInfo", {})
 
             nodes = []
             for edge in repositories:
@@ -43,6 +57,16 @@ class RepositoriesSerializer(serializers.Serializer):
 
             response_data = {
                 "results": nodes,
+                "pageInfo": repository_data.get(
+                    "pageInfo",
+                    {
+                        "hasNextPage": page_info.get("hasNextPage"),
+                        "hasPreviousPage": page_info.get("hasPreviousPage"),
+                        "startCursor": page_info.get("startCursor"),
+                        "endCursor": page_info.get("endCursor"),
+                    },
+                ),
+                "totalCount": repository_data.get("totalCount", len(nodes)),
             }
 
             return super().to_representation(response_data)
