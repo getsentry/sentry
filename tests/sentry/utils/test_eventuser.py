@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import call
 
 from django.utils import timezone
 from snuba_sdk import BooleanOp
 
+from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
+from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.eventuser import EventUser
 
@@ -70,10 +72,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident == self.event_2.data.get("user").get("id")
         assert euser[0].email == self.event_2.data.get("user").get("email")
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -88,8 +90,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=0,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=1,
                     total_rows_returned=1,
@@ -281,10 +282,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[1].email == self.event_3.data.get("user").get("email")
         assert eusers[1].ip_address == self.event_3.data.get("user").get("ip_address")
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -298,8 +299,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=19,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=1,
                     total_rows_returned=2,
@@ -361,10 +361,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[1].email == email_2
         assert eusers[1].ip_address == "2001:db8:0:85a3::ac1f:8005"
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -379,8 +379,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=4,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -395,8 +394,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=3,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=2,
                     total_rows_returned=2,
