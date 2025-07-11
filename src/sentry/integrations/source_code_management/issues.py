@@ -10,8 +10,13 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repository import BaseRepositoryIntegration
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+
+SOURCE_CODE_ISSUE_HALT_PATTERNS = [
+    "No workspace with identifier",  # Bitbucket
+]
 
 
 class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegration, ABC):
@@ -23,35 +28,52 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
             org_integration=self.org_integration,
         )
 
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
+    def _get_repository_choices(
+        self, *, group: Group | None, params: Mapping[str, Any], lifecycle: EventLifecycle
+    ):
+        try:
+            repos = self.get_repositories()
+        except ApiError as exc:
+            if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
+                lifecycle.record_halt(exc)
+            lifecycle.record_failure(exc)
+            raise IntegrationError("Unable to retrieve repositories. Please try again later.")
+        else:
+            repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
+
+        defaults = self.get_project_defaults(group.project_id) if group else {}
+        repo = params.get("repo") or defaults.get("repo")
+
+        try:
+            default_repo = repo or repo_choices[0][0]
+        except IndexError:
+            return "", repo_choices
+
+        # If a repo has been selected outside of the default list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
+
+        return default_repo, repo_choices
+
+    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any]):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
-        with self.record_event(SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES).capture():
+        user_facing_error = None
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
+        ).capture() as lifecycle:
             try:
-                repos = self.get_repositories()
-            except ApiError:
-                raise IntegrationError("Unable to retrieve repositories. Please try again later.")
-            else:
-                repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
-
-            defaults = self.get_project_defaults(group.project_id) if group else {}
-            repo = params.get("repo") or defaults.get("repo")
-
-            try:
-                default_repo = repo or repo_choices[0][0]
-            except IndexError:
-                return "", repo_choices
-
-            # If a repo has been selected outside of the default list of
-            # repos, stick it onto the front of the list so that it can be
-            # selected.
-            try:
-                next(True for r in repo_choices if r[0] == default_repo)
-            except StopIteration:
-                repo_choices.insert(0, self.create_default_repo_choice(default_repo))
-
-            return default_repo, repo_choices
+                return self._get_repository_choices(group=group, params=params, lifecycle=lifecycle)
+            except IntegrationError as exc:
+                user_facing_error = exc
+        # Now that we're outside the lifecycle, we can raise the user facing error
+        if user_facing_error:
+            raise user_facing_error
 
     # TODO(saif): Make private and move all usages over to `get_defaults`
     def get_project_defaults(self, project_id):
