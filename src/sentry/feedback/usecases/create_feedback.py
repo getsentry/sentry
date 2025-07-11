@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -428,7 +428,16 @@ def create_feedback_issue(
     )
     # Mark as spam. We need this since IP doesn't currently support an initial status of IGNORED.
     if is_message_spam:
-        auto_ignore_spam_feedbacks(project, issue_fingerprint)
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
+            ),
+        )
+
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
@@ -450,24 +459,6 @@ def create_feedback_issue(
     )
 
     return event_fixed
-
-
-def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    """
-    Marks an issue as spam with a STATUS_CHANGE kafka message. The IGNORED status allows the occurrence to skip alerts
-    and be picked up by frontend spam queries.
-    """
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
-        metrics.incr("feedback.spam-detection-actions.set-ignored")
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project.id,
-                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=GroupSubStatus.FOREVER,
-            ),
-        )
 
 
 ###########
