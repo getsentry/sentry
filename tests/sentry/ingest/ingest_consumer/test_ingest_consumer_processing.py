@@ -33,6 +33,7 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
@@ -335,6 +336,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 @django_db_all
 @requires_symbolicator
 @pytest.mark.symbolicator
+@thread_leaks.allowlist(issue=-6, reason="ingest consumer")
 def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_option, live_server):
     with set_sentry_option("system.url-prefix", live_server.url):
         payload = get_normalized_event(
