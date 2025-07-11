@@ -18,6 +18,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
@@ -59,6 +60,7 @@ def load_fixture(name):
 
 
 @django_db_all(transaction=True)
+@thread_leaks.allowlist(issue=-8, reason="relay integration")
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):

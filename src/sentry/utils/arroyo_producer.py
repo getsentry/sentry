@@ -3,16 +3,17 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
+from concurrent.futures import Future
 from typing import Deque
 
-from arroyo.backends.abstract import ProducerFuture
+from arroyo.backends.abstract import Producer, ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
 
 
-class SingletonProducer:
+class SingletonProducer(Producer[KafkaPayload]):
     """
     A Kafka producer that can be instantiated as a global
     variable/singleton/service.
@@ -21,6 +22,8 @@ class SingletonProducer:
     producer on process shutdown.
     """
 
+    __active_producers: set[SingletonProducer] = set()
+
     def __init__(
         self, kafka_producer_factory: Callable[[], KafkaProducer], max_futures: int = 1000
     ) -> None:
@@ -28,6 +31,8 @@ class SingletonProducer:
         self._factory = kafka_producer_factory
         self._futures: Deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
+        self.__active_producers.add(self)
+        self.__result: Future[None] | None = None
 
     def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
@@ -37,7 +42,6 @@ class SingletonProducer:
     def _get(self) -> KafkaProducer:
         if self._producer is None:
             self._producer = self._factory()
-            atexit.register(self._shutdown)
 
         return self._producer
 
@@ -51,7 +55,17 @@ class SingletonProducer:
             else:
                 future.result()
 
+    def close(self) -> Future[None]:
+        if self.__result is None:
+            if self._producer:
+                self.__result = self._producer.close()
+            else:
+                self.__result = Future()
+                self.__result.set_result(None)
+        return self.__result
+
     def _shutdown(self) -> None:
+        """Shut down any background producer. Synchronous."""
         for future in self._futures:
             try:
                 future.result()
@@ -59,4 +73,23 @@ class SingletonProducer:
                 pass
 
         if self._producer:
-            self._producer.close()
+            self.close().result()
+
+        self.__active_producers.remove(self)
+
+    @classmethod
+    def _shutdown_all(cls):
+        """Shut down ALL background producers. Synchronous."""
+        for producer in tuple(cls.__active_producers):
+            producer._shutdown()
+        assert not cls.__active_producers, cls.__active_producers
+
+    def __repr__(self):
+        class_name = type(self).__qualname__
+        # fallback chiefly for functools.partial
+        func_name = getattr(self._factory, "__qualname__", str(self._factory))
+        func_fqname = f"{self._factory.__module__}.{func_name}"
+        return f"{class_name}({func_fqname}, {self.max_futures!r})"
+
+
+atexit.register(SingletonProducer._shutdown_all)

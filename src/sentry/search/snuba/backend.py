@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 import functools
 import logging
 from abc import ABCMeta, abstractmethod
@@ -286,11 +285,6 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
     return query
 
 
-_side_query_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10)
-
-atexit.register(_side_query_pool.shutdown, False)
-
-
 def _group_attributes_side_query(
     events_only_search_results: CursorResult[Group],
     builder: Callable[[], BaseQuerySet[Group, Group]],
@@ -402,27 +396,29 @@ def _group_attributes_side_query(
             connection.close()
 
     try:
-        _side_query_pool.submit(
-            __run_joined_query_and_log_metric,
-            events_only_search_results,
-            builder,
-            projects,
-            retention_window_start,
-            group_queryset,
-            environments,
-            sort_by,
-            limit,
-            cursor,
-            count_hits,
-            paginator_options,
-            search_filters,
-            date_from,
-            date_to,
-            max_hits,
-            referrer,
-            actor,
-            aggregate_kwargs,
-        )
+        side_query_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10)
+        with side_query_pool:
+            side_query_pool.submit(
+                __run_joined_query_and_log_metric,
+                events_only_search_results,
+                builder,
+                projects,
+                retention_window_start,
+                group_queryset,
+                environments,
+                sort_by,
+                limit,
+                cursor,
+                count_hits,
+                paginator_options,
+                search_filters,
+                date_from,
+                date_to,
+                max_hits,
+                referrer,
+                actor,
+                aggregate_kwargs,
+            )
     except Exception:
         logger.exception("failed to submit group-attributes search side-query to pool")
 

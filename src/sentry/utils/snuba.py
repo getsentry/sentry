@@ -555,10 +555,6 @@ _snuba_pool = connection_from_url(
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
 )
-_query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix=__name__,
-    max_workers=10,
-)
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
@@ -1161,19 +1157,24 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (
-                            sentry_sdk.get_isolation_scope(),
-                            sentry_sdk.get_current_scope(),
-                            snuba_request,
-                        )
-                        for snuba_request in snuba_requests_list
-                    ],
-                )
+            query_thread_pool = ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=10,
             )
+            with query_thread_pool:
+                query_results = list(
+                    query_thread_pool.map(
+                        _snuba_query,
+                        [
+                            (
+                                sentry_sdk.get_isolation_scope(),
+                                sentry_sdk.get_current_scope(),
+                                snuba_request,
+                            )
+                            for snuba_request in snuba_requests_list
+                        ],
+                    )
+                )
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [

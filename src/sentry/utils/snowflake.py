@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import warnings
+
+warnings.filterwarnings(
+    action="ignore",
+    message=".*distutils Version classes are deprecated.*",
+    category=DeprecationWarning,
+)
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
