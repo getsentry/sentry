@@ -727,10 +727,6 @@ export type DiscoverResponse = Flatten<DiscoverResponseRaw>;
 
 export type DiscoverProperty = keyof DiscoverResponse;
 
-export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
-  [SpanIndexedField.PROJECT_ID]?: string;
-};
-
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;

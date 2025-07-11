@@ -146,11 +146,11 @@ describe('CacheLandingPage', function () {
         query: {
           dataset: 'metrics',
           environment: [],
-          field: ['avg(transaction.duration)', 'transaction'],
+          field: ['avg(span.duration)', 'transaction'],
           per_page: 50,
           noPagination: true,
           project: [],
-          query: 'transaction:["my-transaction"]',
+          query: 'transaction:["my-transaction"] AND is_transaction:true',
           referrer: 'api.performance.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
@@ -206,11 +206,11 @@ describe('CacheLandingPage', function () {
         query: {
           dataset: 'metrics',
           environment: [],
-          field: ['avg(transaction.duration)', 'transaction'],
+          field: ['avg(span.duration)', 'transaction'],
           noPagination: true,
           per_page: 50,
           project: [],
-          query: 'transaction:["transaction with \\"quote\\""]',
+          query: 'transaction:["transaction with \\"quote\\""] AND is_transaction:true',
           referrer: 'api.performance.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
@@ -407,13 +407,13 @@ const setRequestMocks = (organization: Organization) => {
       data: [
         {
           transaction: 'my-transaction',
-          'avg(transaction.duration)': 456,
+          'avg(span.duration)': 456,
         },
       ],
       meta: {
         fields: {
           transaction: 'string',
-          'avg(transaction.duration)': 'duration',
+          'avg(span.duration)': 'duration',
         },
         units: {},
       },
