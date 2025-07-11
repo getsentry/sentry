@@ -26,6 +26,7 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
+from sentry.testutils import thread_leaks
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -1572,6 +1573,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 class ProcessResultSerialTest(ProcessResultTest):
     strategy_processing_mode = "serial"
 
@@ -1676,5 +1678,6 @@ class ProcessResultSerialTest(ProcessResultTest):
         assert group_2 == [result_3]
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
