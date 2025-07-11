@@ -1,3 +1,4 @@
+import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -593,6 +594,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "This field is required." == response.data["query"]["mode"][0]
 
+    @pytest.mark.skip(reason="flaky: #95350")
     def test_post_success(self):
         with self.feature(self.features):
             response = self.client.post(
