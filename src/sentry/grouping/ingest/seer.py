@@ -162,19 +162,16 @@ def _has_too_many_contributing_frames(event: Event, variants: dict[str, BaseVari
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
-    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
-    # forcing the project to wait until it's been manually added to a feature handler. Once all
-    # projects have been backfilled, the option (and this check) can go away.
-    has_been_backfilled = bool(project.get_option("sentry:similarity_backfill_completed"))
+    # Check if similarity grouping is enabled for new projects in this region
+    is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     metrics.incr(
-        "grouping.similarity.event_project_backfill_status",
+        "grouping.similarity.event_project_similarity_enabled",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"backfilled": has_been_backfilled},
+        tags={"enabled": is_region_enabled},
     )
 
-    return has_been_backfilled
+    return is_region_enabled
 
 
 def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:

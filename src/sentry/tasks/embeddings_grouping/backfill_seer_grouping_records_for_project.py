@@ -163,10 +163,7 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    is_project_processed = (
-        skip_processed_projects
-        and project.get_option("sentry:similarity_backfill_completed") is not None
-    )
+    is_project_processed = False  # Removed backfill completion check
     is_project_skipped = skip_project_ids and project.id in skip_project_ids
     if is_project_processed or is_project_skipped:
         logger.info(

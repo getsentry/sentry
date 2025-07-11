@@ -10,6 +10,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.mocking import capture_results
 
 EMPTY_SEER_RESULTS = (None, None)
@@ -75,45 +76,45 @@ class SeerEventManagerGroupingTest(TestCase):
             ),
         ):
 
-            # Project option not set
-            self.project.update_option("sentry:similarity_backfill_completed", None)
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+            # Similarity grouping disabled
+            with override_options({"similarity.new_project_seer_grouping.enabled": False}):
+                new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 
-            # We checked whether to make the call, but didn't go through with it
-            assert should_call_seer_spy.call_count == 1
-            assert get_seer_similar_issues_spy.call_count == 0
+                # We checked whether to make the call, but didn't go through with it
+                assert should_call_seer_spy.call_count == 1
+                assert get_seer_similar_issues_spy.call_count == 0
 
-            # Parent group not used (even though `should_group` is True)
-            assert new_event.group_id != existing_event.group_id
+                # Parent group not used (even though `should_group` is True)
+                assert new_event.group_id != existing_event.group_id
 
-            should_call_seer_spy.reset_mock()
-            get_seer_similar_issues_spy.reset_mock()
+                should_call_seer_spy.reset_mock()
+                get_seer_similar_issues_spy.reset_mock()
 
-            # Project option set
-            self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-            new_event = save_new_event(
-                {
-                    "exception": {
-                        "values": [{"type": "DogsAreNeverAnError", "value": "Dogs are great!"}],
+            # Similarity grouping enabled
+            with override_options({"similarity.new_project_seer_grouping.enabled": True}):
+                new_event = save_new_event(
+                    {
+                        "exception": {
+                            "values": [{"type": "DogsAreNeverAnError", "value": "Dogs are great!"}],
+                        },
                     },
-                },
-                self.project,
-            )
-            # In real life just filtering on group id wouldn't be enough to guarantee us a
-            # single, specific GroupHash record, but since the database resets before each test,
-            # here it's okay
-            expected_grouphash = GroupHash.objects.filter(group_id=existing_event.group_id).first()
+                    self.project,
+                )
+                # In real life just filtering on group id wouldn't be enough to guarantee us a
+                # single, specific GroupHash record, but since the database resets before each test,
+                # here it's okay
+                expected_grouphash = GroupHash.objects.filter(group_id=existing_event.group_id).first()
 
-            # We checked whether to make the call, and then made it
-            assert should_call_seer_spy.call_count == 1
-            assert get_seer_similar_issues_spy.call_count == 1
+                # We checked whether to make the call, and then made it
+                assert should_call_seer_spy.call_count == 1
+                assert get_seer_similar_issues_spy.call_count == 1
 
-            # Stacktrace distance returned
-            assert get_seer_similar_issues_return_values[0][0] == 0.01
+                # Stacktrace distance returned
+                assert get_seer_similar_issues_return_values[0][0] == 0.01
 
-            # Parent grouphash returned and parent group used
-            assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
-            assert new_event.group_id == existing_event.group_id
+                # Parent grouphash returned and parent group used
+                assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
+                assert new_event.group_id == existing_event.group_id
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
