@@ -129,19 +129,24 @@ class Event:
 
         return self_values == other_values
 
+    def __hash__(self) -> int:
+        return hash(tuple(getattr(self, f.name) for f in fields(self) if f.name != "uuid_"))
+
 
 def serialize_event(event: Event) -> dict[str, Any]:
     # TODO: this is the "old-style" attributes based serializer. Once all events are migrated to the new style,
     # we can remove this.
     if event.data is None:
-        event.data = {
+        data = {
             k: v
             for k, v in asdict(event).items()
             if k not in ("type", "uuid_", "datetime_", "data")
         }
+    else:
+        data = event.data
     return {
         "type": event.type,
         "uuid": b64encode(event.uuid_.bytes),
         "timestamp": event.datetime_.timestamp(),
-        "data": event.data,
+        "data": data,
     }
