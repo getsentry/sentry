@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
+from sentry.api.endpoints.codeowners.analytics import CodeOwnersMaxLengthExceeded
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.issues.ownership.grammar import (
@@ -106,8 +107,9 @@ class ProjectCodeOwners(Model):
 
         if len(self.raw) > MAX_RAW_LENGTH:
             analytics.record(
-                "codeowners.max_length_exceeded",
-                organization_id=organization.id,
+                CodeOwnersMaxLengthExceeded(
+                    organization_id=organization.id,
+                )
             )
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
