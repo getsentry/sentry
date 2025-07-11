@@ -114,7 +114,8 @@ def test_shim_to_feedback_missing_event(default_project, monkeypatch):
     # Not allowing this since creating feedbacks with no environment (copied from the associated event) doesn't work well.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.create_feedback.create_feedback_issue", mock_create_feedback_issue
+        "sentry.feedback.usecases.shim_to_feedback.create_feedback_issue",
+        mock_create_feedback_issue,
     )
     report_dict = {
         "name": "andrew",
@@ -135,7 +136,8 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
     # Email and comments are required to shim. Tests key errors are handled.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.create_feedback.create_feedback_issue", mock_create_feedback_issue
+        "sentry.feedback.usecases.shim_to_feedback.create_feedback_issue",
+        mock_create_feedback_issue,
     )
     report_dict = {
         "name": "andrew",
