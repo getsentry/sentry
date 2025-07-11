@@ -85,7 +85,8 @@ interface TextProps {
 
 export const Text = styled((props: TextProps) => {
   const {children, ...rest} = props;
-  return <span {...rest}>{children}</span>;
+  const Component = props.as || 'span';
+  return <Component {...rest}>{children}</Component>;
 })`
   font-size: ${p => getFontSize(p.size, p.theme)};
   font-style: ${p => (p.italic ? 'italic' : undefined)};
@@ -118,7 +119,7 @@ export const Text = styled((props: TextProps) => {
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: cap alphabetic;
-  text-box-trim: both;
+  text-box-trim: trim-both;
 `;
 
 interface HeadingProps extends Omit<TextProps, 'as'> {
@@ -166,7 +167,7 @@ export const Heading = styled((props: HeadingProps) => {
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
 
   text-box-edge: cap alphabetic;
-  text-box-trim: both;
+  text-box-trim: trim-both;
 `;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps['size'] {
