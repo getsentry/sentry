@@ -920,7 +920,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'os.name',
     renderFunc: data => {
       const osName = data['os.name'];
-      if (osName !== 'string') {
+      if (typeof osName !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
 
