@@ -11,6 +11,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -135,6 +136,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
+    @thread_leaks.allowlist(issue=-5, reason="Django test server")
     def test_serialize_organizationintegration_with_create_issue_config_for_jira(self):
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""
