@@ -573,20 +573,6 @@ const lightColors = {
   surface200: '#EAE7F6', // border.muted
   surface100: '#DFDBEF', // border.primary
 
-  // ⚠ Deprecated
-  grayOpaque500: '#181423',
-  grayOpaque400: '#6D6B74',
-  grayOpaque300: '#939198',
-  grayOpaque200: '#E0DFE2',
-  grayOpaque100: '#F3F3F4',
-
-  // ⚠ Deprecated
-  grayTransparent500: 'rgba(24, 20, 35, 1.0)',
-  grayTransparent400: 'rgba(24, 20, 35, 0.63)',
-  grayTransparent300: 'rgba(24, 20, 35, 0.47)',
-  grayTransparent200: 'rgba(24, 20, 35, 0.14)',
-  grayTransparent100: 'rgba(24, 20, 35, 0.05)',
-
   gray800: '#181423', // content.primary
   gray700: '#3B434E', // ⚠ link.muted.active only
   gray600: '#48515B', // ⚠ link.muted.hover only
@@ -655,20 +641,6 @@ const darkColors: typeof lightColors = {
   surface300: '#191621', // background.teritary
   surface200: '#0D071A', // border.muted
   surface100: '#000000', // border.primary
-
-  // ⚠ Deprecated
-  grayOpaque500: '#F6F5FA',
-  grayOpaque400: '#A09DA8',
-  grayOpaque300: '#767380',
-  grayOpaque200: '#4D4A59',
-  grayOpaque100: '#3D394A',
-
-  // ⚠ Deprecated
-  grayTransparent500: 'rgba(246, 245, 250, 1.0)',
-  grayTransparent400: 'rgba(246, 245, 250, 0.58)',
-  grayTransparent300: 'rgba(246, 245, 250, 0.37)',
-  grayTransparent200: 'rgba(246, 245, 250, 0.18)',
-  grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
   gray800: '#F6F5FA', // content.primary
   gray700: '#C6C0D6', // ⚠ link.muted.active only
