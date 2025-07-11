@@ -279,7 +279,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </LoadingContainer>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
-          {t('No repositories selected. Click "Add Repos" to get started.')}
+          {t('Your code is not available to Seer. Click "Add Repos" to get started.')}
         </EmptyMessage>
       ) : (
         <ReposContainer>
@@ -313,7 +313,7 @@ const ReposContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.errorText};
   text-align: center;
   font-size: ${p => p.theme.fontSize.md};
 `;
