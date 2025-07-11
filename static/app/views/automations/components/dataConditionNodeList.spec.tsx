@@ -280,7 +280,9 @@ describe('DataConditionNodeList', function () {
           errors: {'condition-with-error': errorMessage},
         }}
       >
-        <DataConditionNodeList {...defaultProps} conditions={[conditionWithError]} />
+        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+          <DataConditionNodeList {...defaultProps} conditions={[conditionWithError]} />
+        </AutomationBuilderConflictContext.Provider>
       </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
