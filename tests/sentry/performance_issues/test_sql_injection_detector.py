@@ -68,6 +68,10 @@ class SQLInjectionDetectorTest(TestCase):
         injection_event = get_event("sql-injection/sql-injection-not-in-where-event")
         assert len(self.find_problems(injection_event)) == 0
 
+    def test_sql_injection_with_comment(self):
+        injection_event = get_event("sql-injection/sql-injection-test-comment")
+        assert len(self.find_problems(injection_event)) == 0
+
     def test_sql_injection_on_non_vulnerable_query(self):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
         assert len(self.find_problems(injection_event)) == 0
