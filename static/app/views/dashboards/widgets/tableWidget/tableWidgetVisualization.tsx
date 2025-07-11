@@ -287,10 +287,11 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
   aliases?: Record<string, string>;
   columns?: TabularColumn[];
 }) {
+  const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
     <GridEditable
       isLoading
-      columnOrder={columns ?? []}
+      columnOrder={columnsWithName}
       columnSortBy={[]}
       data={[]}
       resizable={false}
@@ -298,8 +299,8 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
         renderHeadCell: (_tableColumn, columnIndex) => {
           if (!columns) return null;
           const column = columns[columnIndex]!;
-          const align = fieldAlignment(column.name, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.name;
+          const align = fieldAlignment(column.key, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.key;
 
           return (
             <SortLink
