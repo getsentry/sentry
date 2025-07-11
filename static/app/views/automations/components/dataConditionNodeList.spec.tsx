@@ -2,7 +2,7 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -24,7 +24,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
     type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
   }),
   DataConditionHandlerFixture({
-    type: DataConditionType.TAGGED_EVENT,
+    type: DataConditionType.EVENT_FREQUENCY,
     handlerSubgroup: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
   }),
 ];
@@ -86,7 +86,9 @@ describe('DataConditionNodeList', function () {
     expect(
       screen.getByRole('menuitemradio', {name: 'Issue priority'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Tagged event'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Number of events'})
+    ).toBeInTheDocument();
   });
 
   it('adds conditions', async function () {
@@ -288,5 +290,32 @@ describe('DataConditionNodeList', function () {
     );
 
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
+  });
+
+  it('shows warning message for occurrence-based monitors', async function () {
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {organization}
+    );
+
+    // Open dropdown
+    await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
+    // Find the "Number of events" option which should have a warning icon
+    const numberOfEventsOption = screen.getByRole('menuitemradio', {
+      name: 'Number of events',
+    });
+    // Hover over the warning icon within the "Number of events" option
+    const warningIcon = within(numberOfEventsOption).getByRole('img');
+    await userEvent.hover(warningIcon);
+
+    expect(
+      await screen.findByText(
+        'These filters will only apply to some of your monitors and triggers.'
+      )
+    ).toBeInTheDocument();
   });
 });
