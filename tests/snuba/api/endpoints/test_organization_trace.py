@@ -232,3 +232,26 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
+
+    def test_with_additional_attributes(self):
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "timestamp": self.day_ago,
+                    "additional_attributes": [
+                        "gen_ai.request.model",
+                        "gen_ai.usage.total_tokens",
+                    ],
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+
+        # The root span doesn't have any of the additional attributes and returns defaults
+        assert data[0]["additional_attributes"]["gen_ai.request.model"] == ""
+        assert data[0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 0
+
+        assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
+        assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100

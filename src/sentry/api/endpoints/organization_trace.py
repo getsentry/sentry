@@ -67,6 +67,7 @@ class SerializedSpan(SerializedEvent):
     start_timestamp: datetime
     is_transaction: bool
     transaction_id: str
+    additional_attributes: NotRequired[dict[str, Any]]
 
 
 @region_silo_endpoint
@@ -165,12 +166,21 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
 
     def serialize_rpc_event(
-        self, event: dict[str, Any], group_cache: dict[int, Group]
+        self,
+        event: dict[str, Any],
+        group_cache: dict[int, Group],
+        additional_attributes: list[str] | None = None,
     ) -> SerializedEvent | SerializedIssue:
         if event.get("event_type") == "span":
+            attribute_dict = {
+                attribute: event[attribute]
+                for attribute in additional_attributes or []
+                if attribute in event
+            }
             return SerializedSpan(
                 children=[
-                    self.serialize_rpc_event(child, group_cache) for child in event["children"]
+                    self.serialize_rpc_event(child, group_cache, additional_attributes)
+                    for child in event["children"]
                 ],
                 errors=[self.serialize_rpc_issue(error, group_cache) for error in event["errors"]],
                 occurrences=[
@@ -200,6 +210,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 op=event["span.op"],
                 name=event["span.name"],
                 event_type="span",
+                additional_attributes=attribute_dict,
             )
         else:
             return self.serialize_rpc_issue(event, group_cache)
@@ -292,7 +303,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         return result
 
     @sentry_sdk.tracing.trace
-    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
+    def query_trace_data(
+        self,
+        snuba_params: SnubaParams,
+        trace_id: str,
+        additional_attributes: list[str] | None = None,
+    ) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
         # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
@@ -311,6 +327,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params,
             Referrer.API_TRACE_VIEW_GET_EVENTS.value,
             SearchResolverConfig(),
+            additional_attributes,
         )
         errors_future = _query_thread_pool.submit(
             self.run_errors_query,
@@ -361,7 +378,9 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         for errors in id_to_error.values():
             result.extend(errors)
         group_cache: dict[int, Group] = {}
-        return [self.serialize_rpc_event(root, group_cache) for root in result]
+        return [
+            self.serialize_rpc_event(root, group_cache, additional_attributes) for root in result
+        ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return bool(
@@ -378,12 +397,14 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        additional_attributes = request.GET.getlist("additional_attributes", [])
+
         update_snuba_params_with_timestamp(request, snuba_params)
 
         def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
-                spans = self.query_trace_data(snuba_params, trace_id)
+                spans = self.query_trace_data(snuba_params, trace_id, additional_attributes)
             return spans
 
         return self.paginate(
