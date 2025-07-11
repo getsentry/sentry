@@ -95,6 +95,33 @@ class ProjectMemberSerializer(serializers.Serializer):
         help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
         required=False,
     )
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=[item.value for item in AutofixAutomationTuningSettings],
+        required=False,
+    )
+    seerScannerAutomation = serializers.BooleanField(required=False)
+
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
 
 
 @extend_schema_serializer(
@@ -222,10 +249,6 @@ E.g. `['release', 'environment']`""",
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[item.value for item in AutofixAutomationTuningSettings], required=False
-    )
-    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -446,28 +469,6 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
-    def validate_autofixAutomationTuning(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
-    def validate_seerScannerAutomation(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -566,7 +567,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked`.
+        `isBookmarked`, `autofixAutomationTuning`, and `seerScannerAutomation`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
