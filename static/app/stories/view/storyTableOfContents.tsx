@@ -14,7 +14,9 @@ function toAlphaNumeric(str: string): string {
 }
 
 function getContentEntries(main: HTMLElement): Entry[] {
-  const titles = main.querySelectorAll('h2, h3, h4, h5, h6');
+  const titles = Array.from(main.querySelectorAll('h2, h3, h4, h5, h6')).filter(
+    title => title.closest('[data-test-id="storybook-demo"]') === null
+  );
   const entries: Entry[] = [];
 
   for (const entry of Array.from(titles ?? [])) {
