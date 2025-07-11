@@ -3,7 +3,7 @@ from time import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from django.test import RequestFactory
+from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import delete_groups
@@ -104,15 +104,12 @@ class UpdateGroupsTest(TestCase):
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"status": "unresolved", "substatus": "ongoing"})
-        request.GET = factory.get("/", {"id": str(resolved_group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(request, group_list, data={"status": "unresolved", "substatus": "ongoing"})
 
         resolved_group.refresh_from_db()
 
@@ -133,15 +130,12 @@ class UpdateGroupsTest(TestCase):
         assert open_period is not None
         assert open_period.date_ended is None
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"status": "resolved", "substatus": None})
-        request.GET = factory.get("/", {"id": str(unresolved_group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(request, group_list, data={"status": "resolved", "substatus": None})
 
         unresolved_group.refresh_from_db()
 
@@ -159,15 +153,12 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.UNRESOLVED
         GroupOpenPeriod.objects.all().delete()
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"status": "resolved", "substatus": None})
-        request.GET = factory.get("/", {"id": str(unresolved_group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(request, group_list, data={"status": "resolved", "substatus": None})
 
         unresolved_group.refresh_from_db()
 
@@ -182,15 +173,14 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"status": "ignored", "substatus": "archived_forever"})
-        request.GET = factory.get("/", {"id": str(group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(
+            request, group_list, data={"status": "ignored", "substatus": "archived_forever"}
+        )
 
         group.refresh_from_db()
 
@@ -210,22 +200,20 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        factory = RequestFactory()
-        request = factory.post(
-            "/",
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(
+            request,
+            group_list,
             data={
                 "status": "ignored",
                 "substatus": "archived_until_condition_met",
                 "statusDetails": {"ignoreDuration": 1},
             },
         )
-        request.GET = factory.get("/", {"id": str(group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
-
-        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
 
         group.refresh_from_db()
 
@@ -261,18 +249,14 @@ class UpdateGroupsTest(TestCase):
             },
         ]:
             group = data["group"]
-
-            factory = RequestFactory()
-            request = factory.post("/", data=data["request_data"])
-            request.GET = factory.get("/", {"id": str(group.id)}).GET
-            request.user = self.user
-            request.session = self.session
-            drf_request = drf_request_from_request(request)
+            http_request = self.make_request(user=self.user, method="GET")
+            request = drf_request_from_request(http_request)
+            request.GET = QueryDict(query_string=f"id={group.id}")
 
             group_list = get_group_list(
                 self.organization.id, [self.project], request.GET.getlist("id")
             )
-            update_groups(drf_request, group_list)
+            update_groups(request, group_list, data=data["request_data"])
 
             group.refresh_from_db()
 
@@ -285,15 +269,12 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"inbox": False})
-        request.GET = factory.get("/", {"id": str(group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(request, group_list, data={"inbox": False})
 
         group.refresh_from_db()
 
@@ -305,17 +286,16 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        factory = RequestFactory()
-        request = factory.post(
-            "/", data={"status": "ignored", "substatus": "archived_until_escalating"}
-        )
-        request.GET = factory.get("/", {"id": str(group.id)}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(drf_request, group_list)
+        update_groups(
+            request,
+            group_list,
+            data={"status": "ignored", "substatus": "archived_until_escalating"},
+        )
 
         group.refresh_from_db()
 
@@ -329,18 +309,19 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         assert GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=True).exists()
 
-        factory = RequestFactory()
-        request = factory.post("/", data={"status": "resolved", "substatus": None})
-        request.GET = factory.get("/", {"id": group.qualified_short_id}).GET
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(
+            user=self.user,
+            method="GET",
+            # The UI calls the endpoint with the short ID, not the group ID
+            GET={"id": group.qualified_short_id},
+        )
+        request = drf_request_from_request(http_request)
 
         assert request.GET.getlist("id")[0] == group.qualified_short_id
         assert request.GET.getlist("id")[0].isdigit() is False
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         assert group_list == [group]
-        update_groups(drf_request, group_list)
+        update_groups(request, group_list, data={"status": "resolved", "substatus": None})
 
         group.refresh_from_db()
 
@@ -350,22 +331,16 @@ class UpdateGroupsTest(TestCase):
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_simple(self, mock_handle_merge: MagicMock) -> None:
+    def test_simple(self, mock_handle_merge: MagicMock):
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
-        # Create a request with GET parameters that include multiple ids
-        factory = RequestFactory()
-        path = f"/?id={group_ids[0]}&id={group_ids[1]}&project={project.id}"
-        request = factory.put(path)
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="PUT")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}&project={project.id}")
 
-        # Mock the data property since it's read-only
-        with patch.object(drf_request, "data", {"merge": 1}):
-            group_list = get_group_list(self.organization.id, [project], group_ids)
-            update_groups(drf_request, group_list)
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list, data={"merge": 1})
 
         call_args = mock_handle_merge.call_args.args
 
@@ -376,7 +351,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_projects(self, mock_handle_merge: MagicMock) -> None:
+    def test_multiple_projects(self, mock_handle_merge: MagicMock):
         project1 = self.create_project()
         project2 = self.create_project()
         projects = [project1, project2]
@@ -387,25 +362,21 @@ class MergeGroupsTest(TestCase):
             self.create_group(project2).id,
         ]
 
-        # Create a request with GET parameters that include multiple ids and projects
-        factory = RequestFactory()
-        path = f"/?id={group_ids[0]}&id={group_ids[1]}&project={project_ids[0]}&project={project_ids[1]}"
-        request = factory.put(path)
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="PUT")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(
+            f"id={group_ids[0]}&id={group_ids[1]}&project={project_ids[0]}&project={project_ids[1]}"
+        )
 
-        # Mock the data property since it's read-only
-        with patch.object(drf_request, "data", {"merge": 1}):
-            group_list = get_group_list(self.organization.id, projects, group_ids)
-            response = update_groups(drf_request, group_list)
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        response = update_groups(request, group_list, data={"merge": 1})
 
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
         assert response.status_code == 400
         assert mock_handle_merge.call_count == 0
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock) -> None:
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock):
         """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
         projects = [self.create_project(), self.create_project()]
         proj1 = projects[0]
@@ -413,20 +384,16 @@ class MergeGroupsTest(TestCase):
         group_ids = [g.id for g in groups]
         project_ids = [p.id for p in projects]
 
-        # Create a request with GET parameters that include multiple ids and projects
-        factory = RequestFactory()
-        path = f"/?id={group_ids[0]}&id={group_ids[1]}&project={project_ids[0]}&project={project_ids[1]}"
-        request = factory.put(path)
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="PUT")
+        request = drf_request_from_request(http_request)
+        # The two groups belong to the same project, so we should be able to merge them, even though
+        # we're passing multiple project ids
+        request.GET = QueryDict(
+            f"id={group_ids[0]}&id={group_ids[1]}&project={project_ids[0]}&project={project_ids[1]}"
+        )
 
-        # Mock the data property since it's read-only
-        with patch.object(drf_request, "data", {"merge": 1}):
-            # The two groups belong to the same project, so we should be able to merge them, even though
-            # we're passing multiple project ids
-            group_list = get_group_list(self.organization.id, projects, group_ids)
-            update_groups(drf_request, group_list)
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        update_groups(request, group_list, data={"merge": 1})
 
         call_args = mock_handle_merge.call_args.args
 
@@ -437,24 +404,18 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock) -> None:
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock):
         """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
         we should be able to derive them from the given group ids."""
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
-        # Create a request with GET parameters that include multiple ids but no projects
-        factory = RequestFactory()
-        path = f"/?id={group_ids[0]}&id={group_ids[1]}"
-        request = factory.put(path)
-        request.user = self.user
-        request.session = self.session
-        drf_request = drf_request_from_request(request)
+        http_request = self.make_request(user=self.user, method="PUT")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
 
-        # Mock the data property since it's read-only
-        with patch.object(drf_request, "data", {"merge": 1}):
-            group_list = get_group_list(self.organization.id, [project], group_ids)
-            update_groups(drf_request, group_list)
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list, data={"merge": 1})
 
         call_args = mock_handle_merge.call_args.args
 
@@ -464,7 +425,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
-    def test_metrics(self) -> None:
+    def test_metrics(self):
         for referer, expected_referer_tag in [
             ("https://sentry.io/organizations/dogsaregreat/issues/", "issue stream"),
             ("https://dogsaregreat.sentry.io/issues/", "issue stream"),
@@ -498,32 +459,24 @@ class MergeGroupsTest(TestCase):
             ]
             project = self.project
 
-            # Create a request with GET parameters and referer header
-            factory = RequestFactory()
-            path = f"/?id={group_ids[0]}&id={group_ids[1]}&project={project.id}"
-            request = factory.put(path)
-            request.user = self.user
-            request.session = self.session
+            http_request = self.make_request(user=self.user, method="PUT")
+            request = drf_request_from_request(http_request)
+            request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}&project={project.id}")
             request.META = {"HTTP_REFERER": referer}
-            drf_request = drf_request_from_request(request)
 
-            # Mock the data property since it's read-only
-            with patch.object(drf_request, "data", {"merge": 1}):
-                with patch(
-                    "sentry.api.helpers.group_index.update.metrics.incr"
-                ) as mock_metrics_incr:
-                    group_list = get_group_list(self.organization.id, [project], group_ids)
-                    update_groups(drf_request, group_list)
+            with patch("sentry.api.helpers.group_index.update.metrics.incr") as mock_metrics_incr:
+                group_list = get_group_list(self.organization.id, [project], group_ids)
+                update_groups(request, group_list, data={"merge": 1})
 
-                    mock_metrics_incr.assert_any_call(
-                        "grouping.merge_issues",
-                        sample_rate=1.0,
-                        tags={
-                            "platform": "javascript",
-                            "referer": expected_referer_tag,
-                            "sdk": "sentry.javascript.nextjs",
-                        },
-                    )
+                mock_metrics_incr.assert_any_call(
+                    "grouping.merge_issues",
+                    sample_rate=1.0,
+                    tags={
+                        "platform": "javascript",
+                        "referer": expected_referer_tag,
+                        "sdk": "sentry.javascript.nextjs",
+                    },
+                )
 
 
 class TestHandleIsSubscribed(TestCase):
@@ -545,11 +498,11 @@ class TestHandleIsSubscribed(TestCase):
 
         resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
 
-        subscription = GroupSubscription.objects.filter(group=self.group, user_id=self.user.id)
-        assert subscription.exists()
-        subscription_obj = subscription.first()
-        assert subscription_obj is not None
-        assert subscription_obj.is_active
+        subscription = GroupSubscription.objects.filter(
+            group=self.group, user_id=self.user.id
+        ).first()
+        assert subscription is not None
+        assert subscription.is_active
         assert resp["reason"] == "unknown"
 
 
@@ -714,12 +667,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then unassign it
         assigned_to = handle_assigned_to(
-            None,  # type: ignore[arg-type]
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
+            None, None, None, self.group_list, self.project_lookup, self.user  # type: ignore[arg-type]
         )
 
         assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
@@ -776,12 +724,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then unassign it
         assigned_to = handle_assigned_to(
-            None,  # type: ignore[arg-type]
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
+            None, None, None, self.group_list, self.project_lookup, self.user  # type: ignore[arg-type]
         )
 
         assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
@@ -839,12 +782,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then unassign it
         assigned_to = handle_assigned_to(
-            None,  # type: ignore[arg-type]
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
+            None, None, None, self.group_list, self.project_lookup, self.user  # type: ignore[arg-type]
         )
 
         assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
@@ -1137,7 +1075,7 @@ class TestHandleAssignedTo(TestCase):
             had_to_deassign=True,
         )
 
-    def test_user_in_reassigned_team(self) -> None:
+    def test_user_in_reassigned_team(self):
         """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
@@ -1229,15 +1167,12 @@ class TestHandleAssignedTo(TestCase):
 
 class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_simple(self, send_robust: Mock) -> None:
+    def test_delete_groups_simple(self, send_robust: Mock):
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
-
-        request = self.make_request(
-            method="GET",
-            GET={"id": group_ids},
-        )
-
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
         hashes = ["0" * 32, "1" * 32]
         for i, group in enumerate(groups):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
@@ -1266,12 +1201,9 @@ class DeleteGroupsTest(TestCase):
 
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
-
-        request = self.make_request(
-            method="GET",
-            GET={"id": group_ids},
-        )
-
+        http_request = self.make_request(user=self.user, method="GET")
+        request = drf_request_from_request(http_request)
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
         hashes = ["0" * 32, "1" * 32]
         for i, group in enumerate(groups):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
