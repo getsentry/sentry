@@ -11,6 +11,7 @@ from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry import analytics
+from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
@@ -193,11 +194,14 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
 
         if random.random() < ANALYTICS_SAMPLING_RATE:
             analytics.record(
-                "checkin_processing_error.stored",
-                organization_id=organization.id,
-                project_id=project.id,
-                monitor_slug=item.payload["monitor_slug"],
-                error_types=[process_error["type"] for process_error in error.processing_errors],
+                CheckinProcessingErrorStored(
+                    organization_id=organization.id,
+                    project_id=project.id,
+                    monitor_slug=item.payload["monitor_slug"],
+                    error_types=[
+                        process_error["type"] for process_error in error.processing_errors
+                    ],
+                )
             )
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
