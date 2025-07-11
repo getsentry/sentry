@@ -14,6 +14,9 @@ query = """query ReposForOwner(
       ordering: $ordering
       orderingDirection: $direction
       first: $first
+      after: $after
+      last: $last
+      before: $before
     ) {
       edges {
         node {
