@@ -9,6 +9,7 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer, publish_replay_event
@@ -267,8 +268,11 @@ def report_rage_click(
 
 
 @sentry_sdk.trace
-def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
+def emit_trace_items_to_eap(project_id: int, trace_items: list[TraceItem]) -> None:
     """Emit trace-items to EAP."""
+    if project_id not in options.get("replay.recording.ingest-trace-items.allow-list"):
+        return None
+
     topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
     for trace_item in trace_items:
         payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])

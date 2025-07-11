@@ -77,7 +77,11 @@ def test_emit_click_events_environment_handling():
         assert producer.call_args.args[1].value is not None
 
 
-def test_emit_trace_items_to_eap():
+@mock.patch("sentry.options.get")
+@mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
+def test_emit_trace_items_to_eap(producer, options_get):
+    options_get.return_value = [1]
+
     timestamp = Timestamp()
     timestamp.FromMilliseconds(1000)
 
@@ -97,11 +101,41 @@ def test_emit_trace_items_to_eap():
         )
     ]
 
-    with mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce") as producer:
-        emit_trace_items_to_eap(trace_items)
+    emit_trace_items_to_eap(1, trace_items)
 
-        assert producer.called
-        assert producer.call_args[0][0].name == Topic.SNUBA_ITEMS.value
-        assert producer.call_args[0][1].key is None
-        assert producer.call_args[0][1].headers == []
-        assert isinstance(producer.call_args[0][1].value, bytes)
+    assert options_get.called
+    assert producer.called
+    assert producer.call_args[0][0].name == Topic.SNUBA_ITEMS.value
+    assert producer.call_args[0][1].key is None
+    assert producer.call_args[0][1].headers == []
+    assert isinstance(producer.call_args[0][1].value, bytes)
+
+
+@mock.patch("sentry.options.get")
+@mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
+def test_emit_trace_items_to_eap_option_blocked(producer, options_get):
+    options_get.return_value = []
+
+    timestamp = Timestamp()
+    timestamp.FromMilliseconds(1000)
+
+    trace_items = [
+        TraceItem(
+            organization_id=1,
+            project_id=2,
+            trace_id=uuid.uuid4().hex,
+            item_id=uuid.uuid4().bytes,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=timestamp,
+            attributes={},
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
+            retention_days=90,
+            received=timestamp,
+        )
+    ]
+
+    emit_trace_items_to_eap(1, trace_items)
+
+    assert options_get.called
+    assert not producer.called
