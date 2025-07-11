@@ -21,7 +21,6 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import TimeSince from 'sentry/components/timeSince';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -153,7 +152,7 @@ const missingUserMisery = tct(
   }
 );
 const userAgentLocking = t(
-  'This OS locks newer versions to this version in the user-agent HTTP header. The exact OS version is unknown.'
+  'This operating system does not provide detailed version information in the User-Agent HTTP header. The exact operating system version is unknown.'
 );
 
 export function nullableValue(value: string | null): string | React.ReactElement {
@@ -498,15 +497,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   'span.description': {
     sortField: 'span.description',
     renderFunc: data => {
-      const value = data['span.description'];
-      const op: string = data['span.op'];
+      const value = data[SpanFields.SPAN_DESCRIPTION];
+      const op: string = data[SpanFields.SPAN_OP];
       const projectId =
-        typeof data.project_id === 'number'
-          ? data.project_id
-          : parseInt(data.project_id, 10) || -1;
-      const spanGroup: string | undefined = data['span.group'];
+        typeof data[SpanFields.PROJECT_ID] === 'number'
+          ? data[SpanFields.PROJECT_ID]
+          : parseInt(data[SpanFields.PROJECT_ID], 10) || -1;
+      const spanGroup: string | undefined = data[SpanFields.SPAN_GROUP];
 
-      if (op === ModuleName.DB) {
+      if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
             description={value}
@@ -516,16 +515,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           />
         );
       }
-      if (op === ModuleName.RESOURCE) {
-        return (
-          <SpanDescriptionCell
-            description={value}
-            moduleName={op}
-            projectId={projectId}
-            group={spanGroup}
-          />
-        );
-      }
+
       return (
         <Tooltip
           title={value}
@@ -670,27 +660,16 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   project_id: {
     sortField: 'project_id',
-    renderFunc: (data, {organization}) => {
+    renderFunc: (data, baggage) => {
       const projectId = data.project_id;
-      // TODO: add projects to baggage to avoid using deprecated component
-      return (
-        <NumberContainer>
-          <Projects orgId={organization.slug} slugs={[]} projectIds={[projectId]}>
-            {({projects}) => {
-              const project = projects.find(p => p.id === projectId?.toString());
-              if (!project) {
-                return emptyValue;
-              }
-              const target = makeProjectsPathname({
-                path: `/${project?.slug}/?project=${projectId}/`,
-                organization,
-              });
-
-              return <Link to={target}>{projectId}</Link>;
-            }}
-          </Projects>
-        </NumberContainer>
-      );
+      return getProjectIdLink(projectId, baggage);
+    },
+  },
+  'project.id': {
+    sortField: 'project.id',
+    renderFunc: (data, baggage) => {
+      const projectId = data['project.id'];
+      return getProjectIdLink(projectId, baggage);
     },
   },
   user: {
@@ -849,7 +828,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const date = new Date(data.timestamp);
       return (
         <Container>
-          <TimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />
+          <Tooltip title={timestamp}>
+            <FieldDateTime date={date} seconds year timeZone />
+          </Tooltip>
         </Container>
       );
     },
@@ -910,10 +891,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
-      const formattedName = browserName.split(' ').join('-').toLocaleLowerCase();
       return (
         <IconContainer>
-          <ContextIcon name={formattedName} size="md" />
+          {getContextIcon(browserName, false)}
           {browserName}
         </IconContainer>
       );
@@ -927,13 +907,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
-      const broswerArray = browser.split(' ');
-      broswerArray.pop();
-      const formattedName = broswerArray.join('-').toLocaleLowerCase();
-
       return (
         <IconContainer>
-          <ContextIcon name={formattedName} size="md" />
+          {getContextIcon(browser, true)}
           {browser}
         </IconContainer>
       );
@@ -947,10 +923,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
-      const formattedName = osName.split(' ').join('-').toLocaleLowerCase();
       return (
         <IconContainer>
-          <ContextIcon name={formattedName} size="md" />
+          {getContextIcon(osName, false)}
           {osName}
         </IconContainer>
       );
@@ -964,14 +939,11 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         return <Container>{emptyStringValue}</Container>;
       }
 
-      const osArray = os.split(' ');
-      const hasUserAgentLocking = osArray[osArray.length - 1]?.includes('>=');
-      osArray.pop();
-      const formattedName = osArray.join('-').toLocaleLowerCase();
+      const hasUserAgentLocking = os.includes('>=');
 
       return (
         <IconContainer>
-          <ContextIcon name={formattedName} size="md" />
+          {getContextIcon(os, true)}
           {hasUserAgentLocking ? (
             <Tooltip title={userAgentLocking} showUnderline>
               {os}
@@ -983,6 +955,53 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+};
+
+/**
+ * Returns an icon component for fields that use logo icons
+ * @param value the text to map to an icon
+ * @param dropVersion drops the last part of the value (the version)
+ */
+const getContextIcon = (value: string, dropVersion?: boolean) => {
+  const valueArray = value.split(' ');
+
+  // Some fields have the number version attached, so it needs to be removed
+  if (dropVersion) {
+    valueArray.pop();
+  }
+
+  const formattedValue = valueArray.join('-').toLocaleLowerCase();
+
+  return <ContextIcon name={formattedValue} size="md" />;
+};
+
+const getProjectIdLink = (
+  projectId: number | string | undefined,
+  {organization}: RenderFunctionBaggage
+) => {
+  if (!projectId) {
+    return <NumberContainer>{emptyValue}</NumberContainer>;
+  }
+  const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
+  // TODO: Component has been deprecated in favour of hook, need to refactor this later
+  return (
+    <NumberContainer>
+      <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
+        {({projects}) => {
+          const project = projects.find(p => p.id === parsedId?.toString());
+          if (!project) {
+            return emptyValue;
+          }
+          const target = makeProjectsPathname({
+            path: `/${project?.slug}/?project=${parsedId}/`,
+            organization,
+          });
+
+          return <Link to={target}>{parsedId}</Link>;
+        }}
+      </Projects>
+    </NumberContainer>
+  );
 };
 
 type SpecialFunctionFieldRenderer = (

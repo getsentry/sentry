@@ -237,7 +237,7 @@ describe('Performance > TransactionSummary', function () {
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('400.00ms');
     expect(tableFirstRowColumns[4]).toHaveTextContent('1234');
-    expect(tableFirstRowColumns[5]).toHaveTextContent('in 3y');
+    expect(tableFirstRowColumns[5]).toHaveTextContent('May 21, 2020 3:31:18 PM UTC');
 
     ProjectsStore.reset();
   });
@@ -268,7 +268,7 @@ describe('Performance > TransactionSummary', function () {
     expect(tableFirstRowColumns[3]).toHaveTextContent('200');
     expect(tableFirstRowColumns[4]).toHaveTextContent('400.00ms');
     expect(tableFirstRowColumns[5]).toHaveTextContent('1234');
-    expect(tableFirstRowColumns[6]).toHaveTextContent('in 3y');
+    expect(tableFirstRowColumns[6]).toHaveTextContent('May 21, 2020 3:31:18 PM UTC');
 
     ProjectsStore.reset();
   });

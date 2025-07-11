@@ -14,6 +14,7 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -51,6 +52,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -365,7 +367,7 @@ function filterSeriesSortOptions(columns: Set<string>) {
 }
 
 function renderEventInTraceView(
-  data: any,
+  data: EventData,
   {location, organization}: RenderFunctionBaggage
 ) {
   const spanId: string = data.id;
@@ -379,6 +381,7 @@ function renderEventInTraceView(
     organization,
     location,
     spanId,
+    source: TraceViewSources.DASHBOARDS,
   });
 
   return <Link to={target}>{getShortEventId(spanId)}</Link>;

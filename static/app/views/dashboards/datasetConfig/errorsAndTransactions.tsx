@@ -19,12 +19,12 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   FieldFormatterRenderFunctionPartial,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
@@ -360,7 +360,7 @@ function getSeriesResultType(
 }
 
 export function renderEventIdAsLinkable(
-  data: any,
+  data: EventData,
   {eventView, organization}: RenderFunctionBaggage
 ) {
   const id: string | unknown = data?.id;
@@ -387,12 +387,12 @@ export function renderEventIdAsLinkable(
 
 export function renderTraceAsLinkable(widget?: Widget) {
   return function (
-    data: any,
+    data: EventData,
     {eventView, organization, location}: RenderFunctionBaggage
   ) {
     const id: string | unknown = data?.trace;
     if (!eventView || typeof id !== 'string') {
-      return null;
+      return emptyStringValue;
     }
     const dateSelection = eventView.normalizeDateSelection(location);
     const target = getTraceDetailsUrl({
