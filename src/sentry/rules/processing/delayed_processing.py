@@ -493,6 +493,8 @@ def fire_rules(
     alert_rules: list[Rule],
     project: Project,
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     now = datetime.now(tz=timezone.utc)
     project_id = project.id
     with track_batch_performance(
@@ -596,9 +598,7 @@ def fire_rules(
                         is_post_process=False,
                     ).values()
 
-                    if not features.has(
-                        "organizations:workflow-engine-trigger-actions", group.organization
-                    ):
+                    if not should_fire_workflow_actions(group.organization):
                         for callback, futures in callback_and_futures:
                             try:
                                 callback(groupevent, futures)

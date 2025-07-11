@@ -596,6 +596,8 @@ def fire_actions_for_groups(
     event_data: EventRedisData,
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     serialized_groups = {
         group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
     }
@@ -701,10 +703,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    organization,
-                ):
+                if should_fire_workflow_actions(organization):
                     for action in filtered_actions:
                         if features.has(
                             "organizations:workflow-engine-action-trigger-async",

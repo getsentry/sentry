@@ -1003,11 +1003,12 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    # TODO: only fire one system. To test, fire from both systems and observe metrics
-    if not features.has("organizations:workflow-engine-process-workflows", org):
-        return
 
-    process_workflow_engine(job)
+    # process workflow engine if we are single processing or dual processing for a specific org
+    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
+        "organizations:workflow-engine-process-workflows", org
+    ):
+        process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
@@ -1026,6 +1027,12 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
 
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
+        return
+
+    org = job["event"].project.organization
+
+    if features.has("organizations:workflow-engine-single-process-workflows", org):
+        # we are only processing through the workflow engine
         return
 
     from sentry.rules.processing.processor import RuleProcessor
@@ -1052,9 +1059,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has(
-            "organizations:workflow-engine-trigger-actions", group_event.project.organization
-        ):
+        if not features.has("organizations:workflow-engine-trigger-actions", org):
             for callback, futures in callback_and_futures:
                 has_alert = True
                 safe_execute(callback, group_event, futures)

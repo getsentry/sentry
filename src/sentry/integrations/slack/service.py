@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -44,6 +43,7 @@ from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
@@ -232,13 +232,11 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
+            will_fire_workflow_actions = should_fire_workflow_actions(group.organization)
             if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                         open_period_start=open_period_start,
@@ -250,10 +248,7 @@ class SlackService:
                         open_period_start=open_period_start,
                     )
             else:
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                     )
