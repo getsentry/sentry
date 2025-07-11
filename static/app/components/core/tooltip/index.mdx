@@ -12,9 +12,9 @@ resources:
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Storybook from 'sentry/stories';
+import {space} from 'sentry/styles/space';
 
 import types from '!!type-loader!sentry/components/core/tooltip/index';
 
@@ -84,7 +84,6 @@ By default, tooltips hide when you move your cursor toward them. For interactive
     </Tooltip>
   </Flex>
 </Storybook.Demo>
-
 ```jsx
 <Tooltip title="You can hover over this tooltip" isHoverable>
   <Button>Hoverable</Button>
@@ -111,12 +110,14 @@ Control the maximum width of tooltips using the `maxWidth` prop. The default max
     </Tooltip>
   </Flex>
 </Storybook.Demo>
-
 ```jsx
-<Tooltip title="Long message with default width">
+<Tooltip title="This tooltip has a very long message that will wrap to multiple lines by default">
   <Button>Default width</Button>
 </Tooltip>
-<Tooltip title="Long message with custom width" maxWidth={150}>
+<Tooltip
+  title="This tooltip has a very long message that will wrap to multiple lines with custom width"
+  maxWidth={150}
+>
   <Button>Custom width</Button>
 </Tooltip>
 ```
@@ -141,18 +142,45 @@ Tooltips can display rich content including formatted text, multiple lines, and 
       <Button>Rich content</Button>
     </Tooltip>
     <Tooltip
-      title="Line 1&#10;Line 2&#10;Line 3"
+      title={
+        <div>
+          Line 1
+          <br />
+          Line 2
+          <br />
+          Line 3
+        </div>
+      }
     >
       <Button>Multi-line text</Button>
     </Tooltip>
   </Flex>
 </Storybook.Demo>
-
 ```jsx
-<Tooltip title={<div><strong>Bold text</strong><br />Multiple lines<br />Rich content</div>}>
+<Tooltip
+  title={
+    <div>
+      <strong>Bold text</strong>
+      <br />
+      Multiple lines
+      <br />
+      Rich content
+    </div>
+  }
+>
   <Button>Rich content</Button>
 </Tooltip>
-<Tooltip title="Line 1&#10;Line 2&#10;Line 3">
+<Tooltip
+  title={
+    <div>
+      Line 1
+      <br />
+      Line 2
+      <br />
+      Line 3
+    </div>
+  }
+>
   <Button>Multi-line text</Button>
 </Tooltip>
 ```
@@ -206,7 +234,6 @@ For text that may or may not overflow, use the `showOnlyOnOverflow` prop to cond
     </div>
   </Flex>
 </Storybook.Demo>
-
 ```jsx
 <Tooltip title="This text is long and will be truncated" showOnlyOnOverflow>
   <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
