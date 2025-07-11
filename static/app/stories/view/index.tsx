@@ -21,15 +21,15 @@ export default function Stories() {
 
   // If no story is selected, show the landing page stories
   const storyFiles = useMemo(() => {
-    if (!location.state?.storyPath) {
+    if (!(location.state?.storyPath ?? location.query.name)) {
       return files.filter(
         file =>
           file.endsWith('styles/colors.mdx') ||
           file.endsWith('styles/typography.stories.tsx')
       );
     }
-    return [location.state?.storyPath];
-  }, [files, location.state?.storyPath]);
+    return [location.state?.storyPath ?? location.query.name];
+  }, [files, location.state?.storyPath, location.query.name]);
 
   const story = useStoriesLoader({files: storyFiles});
 

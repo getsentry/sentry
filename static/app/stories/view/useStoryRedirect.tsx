@@ -25,7 +25,7 @@ export function useStoryRedirect() {
 
   useEffect(() => {
     // If we already have a `storyPath` in state, bail out
-    if (location.state?.storyPath) {
+    if (location.state?.storyPath ?? location.query.name) {
       return;
     }
     if (!location.pathname.startsWith('/stories')) {
