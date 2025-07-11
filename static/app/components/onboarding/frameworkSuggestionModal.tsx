@@ -261,7 +261,7 @@ export function FrameworkSuggestionModal({
   ];
 
   useEffect(() => {
-    const documentElement = document.querySelector('[role="document"]');
+    const documentElement = document.querySelector('[role="dialog"] [role="document"]');
     if (
       !(documentElement instanceof HTMLElement) ||
       listEntriesWithVanilla.length <= COLLAPSE_COUNT
