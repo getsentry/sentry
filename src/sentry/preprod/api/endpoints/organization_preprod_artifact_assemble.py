@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -80,10 +81,11 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         """
 
         analytics.record(
-            "preprod_artifact.api.assemble",
-            organization_id=project.organization_id,
-            project_id=project.id,
-            user_id=request.user.id,
+            PreprodArtifactApiAssembleEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+            )
         )
 
         if not settings.IS_DEV and not features.has(
