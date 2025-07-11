@@ -16,7 +16,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
+from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -281,7 +281,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
         # Tell seer to delete grouping records with these group hashes
-        call_delete_seer_grouping_records_by_hash([group.id for group in error_groups])
+        may_schedule_task_to_delete_hashes_from_seer([group.id for group in error_groups])
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
