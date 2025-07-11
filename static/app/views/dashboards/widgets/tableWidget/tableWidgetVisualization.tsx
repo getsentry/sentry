@@ -21,6 +21,7 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {ColumnHeader} from 'sentry/views/dashboards/widgets/tableWidget/columnHeader/columnHeader';
 
 type FieldRendererGetter = (
   field: string,
@@ -208,7 +209,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           }
 
           return (
-            <SortLink
+            <ColumnHeader
               align={align}
               canSort={column.sortable ?? false}
               onClick={() => {
@@ -222,15 +223,13 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
               title={<StyledTooltip title={name}>{name}</StyledTooltip>}
               direction={direction}
               generateSortLink={() => {
-                return onChangeSort
-                  ? location
-                  : {
-                      ...location,
-                      query: {
-                        ...location.query,
-                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
-                      },
-                    };
+                return {
+                  ...location,
+                  query: {
+                    ...location.query,
+                    sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                  },
+                };
               }}
             />
           );
