@@ -5,7 +5,7 @@ from sentry import analytics
 class PreprodArtifactApiAssembleEvent(analytics.Event):
     organization_id: str
     project_id: str
-    user_id: str | None = None
+    user_id: int | None = None
 
 
 @analytics.eventclass("preprod_artifact.api.update")
