@@ -658,15 +658,16 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  // Two different project ID fields are being used right now. `project_id` is shared between all datasets, but `project.id` is the new one used in spans
   project_id: {
-    sortField: null,
+    sortField: 'project_id',
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
       return getProjectIdLink(projectId, baggage);
     },
   },
   'project.id': {
-    sortField: null,
+    sortField: 'project.id',
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
       return getProjectIdLink(projectId, baggage);
@@ -886,8 +887,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
-      const browserName: string = data['browser.name'];
-      if (!browserName) {
+      const browserName = data['browser.name'];
+      if (typeof browserName !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -902,8 +903,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   browser: {
     sortField: 'browser',
     renderFunc: data => {
-      const browser: string = data.browser;
-      if (!browser) {
+      const browser = data.browser;
+      if (typeof browser !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -918,8 +919,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   'os.name': {
     sortField: 'os.name',
     renderFunc: data => {
-      const osName: string = data['os.name'];
-      if (!osName) {
+      const osName = data['os.name'];
+      if (osName !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -934,8 +935,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   os: {
     sortField: 'os',
     renderFunc: data => {
-      const os: string = data.os;
-      if (!os) {
+      const os = data.os;
+      if (typeof os !== 'string') {
         return <Container>{emptyStringValue}</Container>;
       }
 
@@ -979,11 +980,12 @@ const getProjectIdLink = (
   projectId: number | string | undefined,
   {organization}: RenderFunctionBaggage
 ) => {
-  if (!projectId) {
+  const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
+  if (!parsedId || isNaN(parsedId)) {
     return <NumberContainer>{emptyValue}</NumberContainer>;
   }
-  const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
-  // TODO: Component has been deprecated in favour of hook, need to refactor this later
+
+  // TODO: Component has been deprecated in favour of hook, need to refactor this
   return (
     <NumberContainer>
       <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>

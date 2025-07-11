@@ -370,8 +370,8 @@ function renderEventInTraceView(
   data: EventData,
   {location, organization}: RenderFunctionBaggage
 ) {
-  const spanId: string = data.id;
-  if (!spanId) {
+  const spanId = data.id;
+  if (!spanId || typeof spanId !== 'string') {
     return emptyStringValue;
   }
   const target = generateLinkToEventInTraceView({
