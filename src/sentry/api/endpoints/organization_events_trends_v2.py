@@ -42,8 +42,6 @@ DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
-_query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__)
-
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
@@ -278,7 +276,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
+            query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__)
+            with query_thread_pool:
+                results = list(query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results
