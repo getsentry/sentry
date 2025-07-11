@@ -42,11 +42,11 @@ export default function Stories() {
           <StorySidebar />
 
           {story.isLoading ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <LoadingIndicator />
             </VerticalScroll>
           ) : story.isError ? (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <Alert.Container>
                 <Alert type="error" showIcon>
                   <strong>{story.error.name}:</strong> {story.error.message}
@@ -60,7 +60,7 @@ export default function Stories() {
               })}
             </StoryMainContainer>
           ) : (
-            <VerticalScroll style={{gridArea: 'body'}}>
+            <VerticalScroll>
               <strong>The file you selected does not export a story.</strong>
             </VerticalScroll>
           )}
@@ -98,6 +98,10 @@ const HeaderContainer = styled('header')`
 const VerticalScroll = styled('main')`
   overflow-x: visible;
   overflow-y: auto;
+
+  grid-row: 1;
+  grid-column: 2;
+  padding: ${space(2)};
 `;
 
 const StoryMainContainer = styled('div')`
@@ -114,7 +118,7 @@ const StoryMainContainer = styled('div')`
   h4,
   h5,
   h6 {
-    scroll-margin-top: ${space(3)};
+    scroll-margin-top: 64px;
     margin: 0;
   }
 

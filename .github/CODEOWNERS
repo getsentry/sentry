@@ -502,6 +502,11 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
+## ML & AI
+*autofix*.py                                                @getsentry/machine-learning-ai
+/static/app/components/events/autofix/                      @getsentry/machine-learning-ai
+/src/sentry/seer/                                           @getsentry/machine-learning-ai
+## End of ML & AI
 
 ## Issues
 # Catch-all
@@ -515,6 +520,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
 /src/sentry/api/issue_search.py                             @getsentry/issue-workflow
 /src/sentry/api/endpoints/                                  @getsentry/issue-workflow
+/src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
@@ -536,6 +542,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/search/events/builder/errors.py                 @getsentry/issue-workflow
 /src/sentry/search/snuba/                                   @getsentry/issue-workflow
 /src/sentry/seer/similarity/                                @getsentry/issue-detection-backend
+/src/sentry/similarity/                                     @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issue-detection-backend
@@ -617,12 +624,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
 /static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
-
-## ML & AI
-*autofix*.py                                                @getsentry/machine-learning-ai
-/static/app/components/events/autofix/                      @getsentry/machine-learning-ai
-/src/sentry/seer/                                           @getsentry/machine-learning-ai
-## End of ML & AI
 
 ## Ecosystem
 /src/sentry/api/endpoints/notifications/notification_actions*           @getsentry/ecosystem

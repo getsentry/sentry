@@ -197,6 +197,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
+@with_feature("organizations:workflow-engine-action-trigger-async")
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):

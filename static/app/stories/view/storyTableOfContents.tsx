@@ -59,6 +59,41 @@ function useStoryIndex(): Entry[] {
   return entries;
 }
 
+function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
+  const [activeId, setActiveId] = useState<string>('');
+
+  useLayoutEffect(() => {
+    if (entries.length === 0) return void 0;
+
+    const observer = new IntersectionObserver(
+      intersectionEntries => {
+        intersectionEntries
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+          .find(entry => {
+            if (entry.isIntersecting) {
+              setActiveId(entry.target.id);
+              return true;
+            }
+            return false;
+          });
+      },
+      {
+        rootMargin: '0px 0px -35% 0px',
+      }
+    );
+
+    entries.forEach(entry => {
+      observer.observe(entry.ref);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [entries]);
+
+  return [activeId, setActiveId];
+}
+
 type NestedEntry = {
   children: NestedEntry[];
   entry: Entry;
@@ -90,11 +125,13 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
     const position = entry.ref.compareDocumentPosition(previousEntry.ref);
 
     const isAfter = !!(position & Node.DOCUMENT_POSITION_PRECEDING);
-    const hierarchy =
-      TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
-      TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
+    const shouldNest =
+      entry.ref.tagName === entries.at(0)?.ref.tagName
+        ? false
+        : TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
+          TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
 
-    if (isAfter && hierarchy && parentEntry) {
+    if (isAfter && shouldNest && parentEntry) {
       const parent: NestedEntry = {
         entry,
         children: [],
@@ -116,14 +153,21 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
 export function StoryTableOfContents() {
   const entries = useStoryIndex();
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
+  const [activeId, setActiveId] = useActiveSection(entries);
 
+  if (nestedEntries.length === 0) return null;
   return (
     <StoryIndexContainer>
-      <StoryIndexTitle>Contents</StoryIndexTitle>
+      <StoryIndexTitle>On this page</StoryIndexTitle>
       <StoryIndexListContainer>
         <StoryIndexList>
           {nestedEntries.map(entry => (
-            <StoryContentsList key={entry.entry.ref.id} entry={entry} />
+            <StoryContentsList
+              key={entry.entry.ref.id}
+              entry={entry}
+              activeId={activeId}
+              setActiveId={setActiveId}
+            />
           ))}
         </StoryIndexList>
       </StoryIndexListContainer>
@@ -131,16 +175,48 @@ export function StoryTableOfContents() {
   );
 }
 
-function StoryContentsList({entry}: {entry: NestedEntry}) {
+function StoryContentsList({
+  entry,
+  activeId,
+  setActiveId,
+  isChild = false,
+}: {
+  activeId: string;
+  entry: NestedEntry;
+  setActiveId: (id: string) => void;
+  isChild?: boolean;
+}) {
+  const isActive = entry.entry.ref.id === activeId;
+
+  // Check if any children are active
+  const hasActiveChild = entry.children.some(
+    child =>
+      child.entry.ref.id === activeId ||
+      child.children.some(grandChild => grandChild.entry.ref.id === activeId)
+  );
+
+  const LinkComponent = isChild ? StyledChildLink : StyledLink;
+
   return (
     <li>
-      <a href={`#${entry.entry.ref.id}`}>
+      <LinkComponent
+        href={`#${entry.entry.ref.id}`}
+        isActive={isActive}
+        hasActiveChild={hasActiveChild}
+        onClick={() => setActiveId(entry.entry.ref.id)}
+      >
         <TextOverflow>{entry.entry.title}</TextOverflow>
-      </a>
+      </LinkComponent>
       {entry.children.length > 0 && (
         <StoryIndexList>
           {entry.children.map(child => (
-            <StoryContentsList key={child.entry.ref.id} entry={child} />
+            <StoryContentsList
+              key={child.entry.ref.id}
+              entry={child}
+              activeId={activeId}
+              setActiveId={setActiveId}
+              isChild
+            />
           ))}
         </StoryIndexList>
       )}
@@ -153,53 +229,83 @@ const StoryIndexContainer = styled('div')`
   position: sticky;
   top: 52px;
   margin-inline: 0 ${space(2)};
+  height: fit-content;
+  padding: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
 
-const StoryIndexListContainer = styled('div')`
-  > ul {
-    padding-left: 0;
-    margin-top: ${space(1)};
-  }
-
-  > ul > li {
-    padding-left: 0;
-    margin-top: ${space(1)};
-
-    > a {
-      margin-bottom: ${space(0.5)};
-    }
-  }
-`;
+const StoryIndexListContainer = styled('div')``;
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0 ${space(1)} 0;
-  margin: ${space(4)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.primary};
+  height: 28px;
+  display: flex;
+  align-items: center;
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${space(1)};
+  border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
-  width: 160px;
+  margin-left: -${space(2)};
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
 
-  li {
-    &:hover {
-      background: ${p => p.theme.backgroundSecondary};
-    }
-
-    a {
-      padding: ${space(0.25)} 0;
-      display: block;
-      color: ${p => p.theme.textColor};
-      text-decoration: none;
-    }
+  ul {
+    margin-left: -${space(1)};
+    padding-left: ${space(1)};
+    border-left: none;
   }
+`;
+
+const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
+  display: block;
+  color: ${p => p.theme.tokens.content.muted};
+  text-decoration: none;
+  line-height: 1;
+  font-size: ${p => p.theme.fontSize.md};
+  padding: ${space(1)};
+  transition: color 80ms ease-out;
+  border-radius: ${p => p.theme.borderRadius};
+  position: relative;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.tertiary};
+    color: ${p => p.theme.textColor};
+  }
+
+  ${p =>
+    p.isActive &&
+    `
+      color: ${p.theme.tokens.content.accent};
+      &::before {
+        content: '';
+        display: block;
+        position: absolute;
+        left: -${space(1)};
+        width: 4px;
+        height: 16px;
+        border-radius: 4px;
+        transform: translateX(-2px);
+        background: ${p.theme.tokens.graphics.accent};
+      }
+    `}
+  ${p =>
+    p.hasActiveChild &&
+    `
+      color: ${p.theme.tokens.content.primary};
+    `}
+`;
+
+const StyledChildLink = styled(StyledLink)<{isActive: boolean}>`
+  margin-left: ${space(2)};
+  border-left: 0;
 `;

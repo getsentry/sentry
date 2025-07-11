@@ -12,7 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
-  ConflictingConditions,
   DataConditionGroup,
   DataConditionGroupLogicType,
 } from 'sentry/types/workflowEngine/dataConditions';
@@ -21,6 +20,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
@@ -36,86 +36,83 @@ export default function AutomationBuilder() {
     fetchOrgMembers(api, organization.slug);
   }, [api, organization]);
 
-  const {conflictingTriggers, conflictingActionFilters} =
-    useMemo((): ConflictingConditions => {
-      return findConflictingConditions(state.triggers, state.actionFilters);
-    }, [state]);
+  const conflictData = useMemo(() => {
+    return findConflictingConditions(state.triggers, state.actionFilters);
+  }, [state]);
 
   return (
-    <Flex direction="column" gap={space(1)}>
-      <Step>
-        <StepLead>
-          {/* TODO: Only make this a selector of "all" is originally selected */}
-          {tct('[when:When] [selector] of the following occur', {
-            when: <ConditionBadge />,
-            selector: (
-              <EmbeddedWrapper>
-                <EmbeddedSelectField
-                  styles={{
-                    control: (provided: any) => ({
-                      ...provided,
-                      minHeight: '21px',
-                      height: '21px',
-                    }),
-                  }}
-                  inline={false}
-                  isSearchable={false}
-                  isClearable={false}
-                  name="triggers.logicType"
-                  value={state.triggers.logicType}
-                  onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                    actions.updateWhenLogicType(option.value)
-                  }
-                  required
-                  flexibleControlStateSize
-                  options={TRIGGER_MATCH_OPTIONS}
-                  size="xs"
-                />
-              </EmbeddedWrapper>
-            ),
-          })}
-        </StepLead>
-      </Step>
-      <DataConditionNodeList
-        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
-        placeholder={t('Select a trigger...')}
-        conditions={state.triggers.conditions}
-        group="triggers"
-        onAddRow={type => actions.addWhenCondition(type)}
-        onDeleteRow={index => actions.removeWhenCondition(index)}
-        updateCondition={(id, comparison) => actions.updateWhenCondition(id, comparison)}
-        conflictingConditionIds={conflictingTriggers}
-      />
-      {state.actionFilters.map(actionFilter => (
-        <ActionFilterBlock
-          key={`actionFilters.${actionFilter.id}`}
-          actionFilter={actionFilter}
-          conflictingConditions={conflictingActionFilters[actionFilter.id] || []}
+    <AutomationBuilderConflictContext.Provider value={conflictData}>
+      <Flex direction="column" gap={space(1)}>
+        <Step>
+          <StepLead>
+            {/* TODO: Only make this a selector of "all" is originally selected */}
+            {tct('[when:When] [selector] of the following occur', {
+              when: <ConditionBadge />,
+              selector: (
+                <EmbeddedWrapper>
+                  <EmbeddedSelectField
+                    styles={{
+                      control: (provided: any) => ({
+                        ...provided,
+                        minHeight: '21px',
+                        height: '21px',
+                      }),
+                    }}
+                    inline={false}
+                    isSearchable={false}
+                    isClearable={false}
+                    name={`${state.triggers.id}.logicType`}
+                    value={state.triggers.logicType}
+                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                      actions.updateWhenLogicType(option.value)
+                    }
+                    required
+                    flexibleControlStateSize
+                    options={TRIGGER_MATCH_OPTIONS}
+                    size="xs"
+                  />
+                </EmbeddedWrapper>
+              ),
+            })}
+          </StepLead>
+        </Step>
+        <DataConditionNodeList
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          placeholder={t('Select a trigger...')}
+          conditions={state.triggers.conditions}
+          groupId={state.triggers.id}
+          onAddRow={type => actions.addWhenCondition(type)}
+          onDeleteRow={index => actions.removeWhenCondition(index)}
+          updateCondition={(id, comparison) =>
+            actions.updateWhenCondition(id, comparison)
+          }
         />
-      ))}
-      <span>
-        <PurpleTextButton
-          borderless
-          icon={<IconAdd />}
-          size="xs"
-          onClick={() => actions.addIf()}
-        >
-          {t('If/Then Block')}
-        </PurpleTextButton>
-      </span>
-    </Flex>
+        {state.actionFilters.map(actionFilter => (
+          <ActionFilterBlock
+            key={`actionFilters.${actionFilter.id}`}
+            actionFilter={actionFilter}
+          />
+        ))}
+        <span>
+          <PurpleTextButton
+            borderless
+            icon={<IconAdd />}
+            size="xs"
+            onClick={() => actions.addIf()}
+          >
+            {t('If/Then Block')}
+          </PurpleTextButton>
+        </span>
+      </Flex>
+    </AutomationBuilderConflictContext.Provider>
   );
 }
 
 interface ActionFilterBlockProps {
   actionFilter: DataConditionGroup;
-  conflictingConditions: string[];
 }
 
-function ActionFilterBlock({
-  actionFilter,
-  conflictingConditions = [],
-}: ActionFilterBlockProps) {
+function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const {actions} = useAutomationBuilderContext();
 
   return (
@@ -164,15 +161,14 @@ function ActionFilterBlock({
           </Flex>
           <DataConditionNodeList
             handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
-            placeholder={t('Filter by...')}
-            group={`actionFilters.${actionFilter.id}`}
+            placeholder={t('Any event')}
+            groupId={actionFilter.id}
             conditions={actionFilter?.conditions || []}
             onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
             onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
             updateCondition={(id, params) =>
               actions.updateIfCondition(actionFilter.id, id, params)
             }
-            conflictingConditionIds={conflictingConditions}
           />
         </Flex>
       </Step>

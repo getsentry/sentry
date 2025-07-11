@@ -10,7 +10,8 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   Detector,
-  DetectorConfig,
+  MetricDetector,
+  MetricDetectorConfig,
   MetricDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
@@ -325,27 +326,27 @@ export function metricDetectorFormDataToEndpointPayload(
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
-  let config: DetectorConfig;
+  let config: MetricDetectorConfig;
   switch (data.kind) {
     case 'percent':
       config = {
-        threshold_period: 1,
-        detection_type: 'percent',
-        comparison_delta: data.conditionComparisonAgo || 3600,
+        thresholdPeriod: 1,
+        detectionType: 'percent',
+        comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        threshold_period: 1,
-        detection_type: 'dynamic',
+        thresholdPeriod: 1,
+        detectionType: 'dynamic',
         sensitivity: data.sensitivity,
       };
       break;
     case 'static':
     default:
       config = {
-        threshold_period: 1,
-        detection_type: 'static',
+        thresholdPeriod: 1,
+        detectionType: 'static',
       };
       break;
   }
@@ -368,7 +369,7 @@ export function metricDetectorFormDataToEndpointPayload(
  * Convert the detector conditions array to the flattened form data
  */
 function processDetectorConditions(
-  detector: Detector
+  detector: MetricDetector
 ): PrioritizeLevelFormData &
   Pick<MetricDetectorFormData, 'conditionValue' | 'conditionType'> {
   // Get conditions from the condition group
@@ -422,6 +423,11 @@ function processDetectorConditions(
 export function metricSavedDetectorToFormData(
   detector: Detector
 ): MetricDetectorFormData {
+  if (detector.type !== 'metric_issue') {
+    // This should never happen
+    throw new Error('Detector type mismatch');
+  }
+
   // Get the first data source (assuming metric detectors have one)
   const dataSource = detector.dataSources?.[0];
 
@@ -442,11 +448,11 @@ export function metricSavedDetectorToFormData(
     : DetectorDataset.SPANS;
 
   const metricDetectorConfig =
-    'detection_type' in detector.config
+    'detectionType' in detector.config
       ? detector.config
       : {
-          detection_type: 'static' as const,
-          threshold_period: 1,
+          detectionType: 'static' as const,
+          thresholdPeriod: 1,
         };
 
   return {
@@ -462,22 +468,22 @@ export function metricSavedDetectorToFormData(
 
     // Priority level and condition fields from processed conditions
     ...conditionData,
-    kind: metricDetectorConfig.detection_type,
+    kind: metricDetectorConfig.detectionType,
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      (metricDetectorConfig.detection_type === 'percent'
-        ? metricDetectorConfig.comparison_delta
+      (metricDetectorConfig.detectionType === 'percent'
+        ? metricDetectorConfig.comparisonDelta
         : null) || 3600,
 
     // Dynamic fields - extract from config for dynamic detectors
     sensitivity:
-      metricDetectorConfig.detection_type === 'dynamic'
+      metricDetectorConfig.detectionType === 'dynamic'
         ? metricDetectorConfig.sensitivity || AlertRuleSensitivity.LOW
         : AlertRuleSensitivity.LOW,
     thresholdType:
-      metricDetectorConfig.detection_type === 'dynamic'
-        ? metricDetectorConfig.threshold_type || AlertRuleThresholdType.ABOVE
+      metricDetectorConfig.detectionType === 'dynamic'
+        ? metricDetectorConfig.thresholdType || AlertRuleThresholdType.ABOVE
         : AlertRuleThresholdType.ABOVE,
   };
 }
