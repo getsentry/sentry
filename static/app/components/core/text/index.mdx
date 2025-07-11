@@ -159,21 +159,27 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
     <div style={{width: '300px', marginBottom: '16px'}}>
+      <Text bold as="p">
+        Compressed density.
+      </Text>
       <Text density="compressed">
-        Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        {`Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
       </Text>
     </div>
     <div style={{width: '300px', marginBottom: '16px'}}>
+      <Text bold as="p">
+        Default density.
+      </Text>
       <Text>
-        Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
-        do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        {`Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
       </Text>
     </div>
     <div style={{width: '300px'}}>
+      <Text bold as="p">
+        Comfortable density.
+      </Text>
       <Text density="comfortable">
-        Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        {`Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`}
       </Text>
     </div>
   </Storybook.SideBySide>
