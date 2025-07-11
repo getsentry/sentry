@@ -1,5 +1,5 @@
 import type {
-  BlockRenderer,
+  BlockRenderers,
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 
@@ -9,14 +9,14 @@ export enum CssVariables {
 
 export function renderBlocks(
   contentBlocks: Array<ContentBlock | null | undefined>,
-  renderer: BlockRenderer
+  renderers: BlockRenderers
 ) {
   return contentBlocks.map((block, index) => {
     if (!block) {
       return null;
     }
     // Need to cast here as ts bugs out on the return type and does not allow assigning the key prop
-    const RendererComponent = renderer[block.type] as (
+    const RendererComponent = renderers[block.type] as (
       block: ContentBlock
     ) => React.ReactNode;
 

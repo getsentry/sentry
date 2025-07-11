@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
 import type {
-  BlockRenderer,
+  BlockRenderers,
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
@@ -70,22 +70,18 @@ function ConditionalBlock({
   condition,
   content,
 }: Extract<ContentBlock, {type: 'conditional'}>) {
-  const {renderer} = useRendererContext();
+  const {renderers} = useRendererContext();
 
   if (condition) {
-    return renderBlocks(content, renderer);
+    return renderBlocks(content, renderers);
   }
 
   return null;
 }
 
 function CustomBlock(block: Extract<ContentBlock, {type: 'custom'}>) {
-  return <CustomBlockWrapper>{block.content}</CustomBlockWrapper>;
+  return <div css={baseBlockStyles}>{block.content}</div>;
 }
-
-const CustomBlockWrapper = styled('div')`
-  ${baseBlockStyles}
-`;
 
 function TextBlock(block: Extract<ContentBlock, {type: 'text'}>) {
   return <TextBlockWrapper>{block.text}</TextBlockWrapper>;
@@ -99,7 +95,7 @@ const TextBlockWrapper = styled('div')`
   }
 `;
 
-export const defaultBlocks: BlockRenderer = {
+export const defaultRenderers: BlockRenderers = {
   text: TextBlock,
   code: CodeBlock,
   custom: CustomBlock,

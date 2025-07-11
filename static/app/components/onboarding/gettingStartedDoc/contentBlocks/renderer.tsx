@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {defaultBlocks} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/defaultBlocks';
+import {defaultRenderers} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/defaultRenderers';
 import {RendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
 import type {
-  BlockRenderer,
+  BlockRenderers,
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
@@ -27,7 +27,7 @@ interface Props {
    * If not provided, the default renderer will be used.
    * The renderer object must have a key for each content block type.
    */
-  renderer?: Partial<BlockRenderer>;
+  renderer?: Partial<BlockRenderers>;
   /**
    * The spacing between the content blocks.
    * Available as a CSS variable `var(${CssVariables.BLOCK_SPACING})` for styling of child elements.
@@ -35,26 +35,28 @@ interface Props {
   spacing?: string;
 }
 
-const NO_RENDERER = {};
+const NO_RENDERERS = {};
 const DEFAULT_SPACING = space(2);
 
 export function ContentBlocksRenderer({
   contentBlocks,
-  renderer: customRenderer = NO_RENDERER,
+  renderer: customRenderers = NO_RENDERERS,
   spacing = DEFAULT_SPACING,
   className,
 }: Props) {
-  const renderer = useMemo(
+  const contextValue = useMemo(
     () => ({
-      ...defaultBlocks,
-      ...customRenderer,
+      renderers: {
+        ...defaultRenderers,
+        ...customRenderers,
+      },
     }),
-    [customRenderer]
+    [customRenderers]
   );
   return (
-    <RendererContext value={{renderer}}>
+    <RendererContext value={contextValue}>
       <Wrapper className={className} spacing={spacing}>
-        {renderBlocks(contentBlocks, renderer)}
+        {renderBlocks(contentBlocks, contextValue.renderers)}
       </Wrapper>
     </RendererContext>
   );

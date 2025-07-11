@@ -63,7 +63,7 @@ export type ContentBlock =
   | CustomBlock
   | TextBlock;
 
-export type BlockRenderer = {
+export type BlockRenderers = {
   [key in ContentBlock['type']]: (
     block: Extract<ContentBlock, {type: key}>
   ) => React.ReactNode;
