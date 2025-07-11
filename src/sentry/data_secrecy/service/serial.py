@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Any
 
 from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
 
 
 def serialize_effective_grant_status(
-    grant_status: dict, organization_id: int
+    grant_status: dict[str, Any], organization_id: int
 ) -> RpcEffectiveGrantStatus:
     """
     Convert cached grant status to simplified RpcGrantStatus model for access control.
