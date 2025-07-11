@@ -8,6 +8,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {parseQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
@@ -16,9 +17,7 @@ interface Props {
 export default function ReplayTableHeaderActions({listItemCheckboxState}: Props) {
   const {countSelected, isAllSelected, selectAll, queryKey} = listItemCheckboxState;
 
-  const queryOptions = queryKey?.at(-1);
-  const queryString =
-    typeof queryOptions === 'string' ? undefined : queryOptions?.query?.query;
+  const queryString = parseQueryKey(queryKey).options?.query?.query;
   return (
     <Fragment>
       <SimpleTable.Header>
