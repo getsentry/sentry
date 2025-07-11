@@ -346,8 +346,8 @@ class DashboardTombstone(Model):
 class DashboardLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    dashboard = FlexibleForeignKey("sentry.Dashboard")
-    member = FlexibleForeignKey("sentry.OrganizationMember")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    member = FlexibleForeignKey("sentry.OrganizationMember", on_delete=models.CASCADE)
 
     last_visited = models.DateTimeField(null=False, default=timezone.now)
 
