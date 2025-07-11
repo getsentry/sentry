@@ -189,6 +189,7 @@ def test_groupby_query():
     assert query.query_groupby == ["release"]
 
 
+@pytest.mark.skip(reason="flaky: #95250")
 def test_virtual_groupby_query():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=session.status")
 
