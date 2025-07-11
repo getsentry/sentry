@@ -106,33 +106,8 @@ def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_
     assert produced_event["contexts"]["feedback"]["contact_email"] == ""
 
 
-# ERROR CASES #
-
-
 @django_db_all
-def test_shim_to_feedback_missing_event(default_project, monkeypatch):
-    # Not allowing this since creating feedbacks with no environment (copied from the associated event) doesn't work well.
-    mock_create_feedback_issue = Mock()
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.shim_to_feedback.create_feedback_issue",
-        mock_create_feedback_issue,
-    )
-    report_dict = {
-        "name": "andrew",
-        "email": "aliu@example.com",
-        "comments": "Shim this",
-        "event_id": "a" * 32,
-        "level": "error",
-    }
-    shim_to_feedback(
-        report_dict, None, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
-    )
-    # Error is handled:
-    assert mock_create_feedback_issue.call_count == 0
-
-
-@django_db_all
-def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
+def test_shim_to_feedback_fails_if_required_fields_missing(default_project, monkeypatch):
     # Email and comments are required to shim. Tests key errors are handled.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
