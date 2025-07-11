@@ -30,7 +30,7 @@ interface Props {
   renderer?: Partial<BlockRenderer>;
   /**
    * The spacing between the content blocks.
-   * Available as a CSS variable `var(--block-spacing)` for styling of child elements.
+   * Available as a CSS variable `var(${CssVariables.BLOCK_SPACING})` for styling of child elements.
    */
   spacing?: string;
 }
