@@ -22,7 +22,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
-TEST_FERNET_KEY = "FzB-fk_pDRL-M44rX2BISaoVPkNY0qT5MSMtdaijHrc="
+TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
