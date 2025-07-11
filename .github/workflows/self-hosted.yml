@@ -74,7 +74,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - uses: getsentry/action-build-and-push-images@970ecdbd9d0af6386451cd888b469f43afceef6b
+      - uses: getsentry/action-build-and-push-images@889dd59ea78e091a9a94a5103194ab77b528aad6
         with:
           image_name: 'sentry'
           platform: ${{ matrix.platform }}
