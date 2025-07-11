@@ -42,7 +42,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -63,7 +62,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -85,7 +83,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -130,7 +127,6 @@ describe('QuickTraceMeta', function () {
         }}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -152,7 +148,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -172,7 +167,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -201,7 +195,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 

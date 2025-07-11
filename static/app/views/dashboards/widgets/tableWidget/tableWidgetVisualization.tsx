@@ -2,14 +2,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {defined} from 'sentry/utils';
+import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
   TabularColumn,
@@ -74,9 +78,28 @@ interface TableWidgetVisualizationProps {
    */
   makeBaggage?: BaggageMaker;
   /**
+   * A callback function that is invoked after a user clicks a sortable column header. If omitted, clicking a column header updates the sort in the URL
+   * @param sort `Sort` object contain the `field` and `kind` ('asc' or 'desc')
+   */
+  onChangeSort?: (sort: Sort) => void;
+
+  /**
+   * A callback function that is invoked after a user resizes a column. If omitted, resizing will update the width parameters in the URL. This function always guarantees width field is supplied, meaning it will fallback to -1
+   * @param columns an array of columns with the updated widths
+   */
+  onResizeColumn?: (columns: TabularColumn[]) => void;
+  /**
+   * If true, will allow table columns to be resized, otherwise no resizing. By default this is true
+   */
+  resizable?: boolean;
+  /**
    * If true, the table will scroll on overflow. Note that the table headers will also be sticky
    */
   scrollable?: boolean;
+  /**
+   * The current sort order to display
+   */
+  sort?: Sort;
 }
 
 const FRAMELESS_STYLES = {
@@ -99,11 +122,16 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     scrollable,
     fit,
     aliases,
+    onChangeSort,
+    sort,
+    onResizeColumn,
+    resizable = true,
   } = props;
 
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
     // NOTE: `alias` is set to `false` here because in almost all endpoints, we don't alias field names anymore. In the past, fields like `"p75(duration)"` would be aliased to `"p75_duration"`, but we don't do that much anymore, so we can safely assume that the field name is the same as the alias.
@@ -125,33 +153,86 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     };
   };
 
+  const {data, meta} = tableData;
+  const locationSort = decodeSorts(location?.query?.sort)[0];
+  const numColumns = columns?.length ?? Object.keys(meta.fields).length;
+
+  let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
+  const locationWidths = location.query?.width;
+  // If at least one column has the width key and that key is defined, take that over url widths
+  if (columns?.some(column => defined(column.width))) {
+    widths = columns.map(column =>
+      defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
+    );
+  } else if (
+    resizable &&
+    Array.isArray(locationWidths) &&
+    locationWidths.length === numColumns
+  ) {
+    widths = locationWidths.map(width => {
+      const val = parseInt(width, 10);
+      return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
+    });
+  }
+
   // Fallback to extracting fields from the tableData if no columns are provided
   const columnOrder: TabularColumn[] =
-    columns ??
-    Object.keys(tableData?.meta.fields).map((key: string) => ({
+    columns?.map((column, index) => ({
+      ...column,
+      width: widths[index],
+    })) ??
+    Object.keys(meta.fields).map((key, index) => ({
       key,
-      name: key,
-      width: -1,
-      type: tableData?.meta.fields[key],
+      width: widths[index],
+      type: meta.fields[key],
     }));
-
-  const {data, meta} = tableData;
 
   return (
     <GridEditable
       data={data}
-      columnOrder={columnOrder}
+      // GridEditable needs name, but this functionality is replaced by aliases
+      columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
-          const align = fieldAlignment(column.name, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.name;
+          const align = fieldAlignment(column.key, column.type as ColumnValueType);
+          const name = aliases?.[column.key] || column.key;
+          const sortColumn = getSortField(column.key) ?? column.key;
+
+          let direction = undefined;
+          if (sort?.field === sortColumn) {
+            direction = sort.kind;
+          } else if (locationSort?.field === sortColumn && !sort) {
+            direction = locationSort.kind;
+          }
 
           return (
-            <CellWrapper align={align}>
-              <StyledTooltip title={name}>{name}</StyledTooltip>
-            </CellWrapper>
+            <SortLink
+              align={align}
+              canSort={column.sortable ?? false}
+              onClick={() => {
+                const nextDirection = direction === 'desc' ? 'asc' : 'desc';
+
+                onChangeSort?.({
+                  field: sortColumn,
+                  kind: nextDirection,
+                });
+              }}
+              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              direction={direction}
+              generateSortLink={() => {
+                return onChangeSort
+                  ? location
+                  : {
+                      ...location,
+                      query: {
+                        ...location.query,
+                        sort: `${direction === 'desc' ? '' : '-'}${sortColumn}`,
+                      },
+                    };
+              }}
+            />
           );
         },
         renderBodyCell: (tableColumn, dataRow, rowIndex, columnIndex) => {
@@ -164,14 +245,37 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
         },
+        onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
+          widths[columnIndex] = defined(nextColumn.width)
+            ? nextColumn.width
+            : COL_WIDTH_UNDEFINED;
+
+          columnOrder[columnIndex]!.width = widths[columnIndex];
+
+          if (onResizeColumn) {
+            onResizeColumn(columnOrder);
+            return;
+          }
+
+          // Default is to fallback to location query
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                width: widths,
+              },
+            },
+            {replace: true}
+          );
+        },
       }}
       stickyHeader={scrollable}
       scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
-      // Resizing is not implemented yet
-      resizable={false}
       fit={fit}
+      resizable={resizable}
     />
   );
 }
@@ -184,11 +288,4 @@ TableWidgetVisualization.LoadingPlaceholder = function () {
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
-`;
-
-const CellWrapper = styled('div')<{align: Alignments}>`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;

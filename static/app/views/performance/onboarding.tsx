@@ -27,15 +27,15 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
-  type Configuration,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  type DocsParams,
-  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import type {
+  Configuration,
+  DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
@@ -169,7 +169,6 @@ function SampleButton({
             generateLinkToEventInTraceView({
               eventId: eventData.eventID,
               location,
-              projectSlug: project.slug,
               organization,
               timestamp: eventData.endTimestamp,
               traceSlug,

@@ -1701,6 +1701,7 @@ function buildRoutes() {
 
   const domainViewRoutes = (
     <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/insights/index'))} />
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
@@ -1811,7 +1812,7 @@ function buildRoutes() {
 
   const logsChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/explore/logs'))} />
+      <IndexRoute component={make(() => import('sentry/views/explore/logs/content'))} />
       {traceViewRoute}
     </Fragment>
   );
@@ -1884,7 +1885,9 @@ function buildRoutes() {
       >
         {releasesChildRoutes}
       </Route>
-      <Route path="logs/">{logsChildRoutes}</Route>
+      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))}>
+        {logsChildRoutes}
+      </Route>
       <Route
         path="saved-queries/"
         component={make(() => import('sentry/views/explore/savedQueries'))}

@@ -853,6 +853,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
     "sentry.demo_mode.tasks",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
 )
 
 # Enable split queue routing
@@ -1023,6 +1025,7 @@ CELERY_QUEUES_REGION = [
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
     Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
+    Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
 from celery.schedules import crontab
@@ -1516,6 +1519,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -3391,11 +3396,14 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "snuba-ourlogs": "default",
+    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
+    "taskworker-buffer": "default",
+    "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
     "taskworker-cutover": "default",
@@ -3438,25 +3446,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-# Specifies the list of django apps to include in the lockfile. If Falsey then include
-# all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "explore",
-    "feedback",
-    "flags",
-    "hybridcloud",
-    "insights",
-    "monitors",
-    "nodestore",
-    "notifications",
-    "preprod",
-    "replays",
-    "sentry",
-    "social_auth",
-    "tempest",
-    "uptime",
-    "workflow_engine",
-)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
@@ -3713,6 +3702,8 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
+
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = None
 
@@ -3732,11 +3723,11 @@ SHOW_LOGIN_BANNER = False
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
 # Example:
 # SLICED_KAFKA_TOPICS = {
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#   ("snuba-generic-metrics", 0): {
 #       "topic": "generic_metrics_0",
 #       "cluster": "cluster_1",
 #   },
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#   ("snuba-generic-metrics", 1): {
 #       "topic": "generic_metrics_1",
 #       "cluster": "cluster_2",
 # }

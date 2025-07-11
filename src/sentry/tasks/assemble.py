@@ -64,6 +64,9 @@ class AssembleTask:
     PREPROD_ARTIFACT_SIZE_ANALYSIS = (
         "organization.preprod_artifact_size_analysis"  # Preprod artifact size analysis upload
     )
+    PREPROD_ARTIFACT_INSTALLABLE_APP = (
+        "organization.preprod_artifact_installable_app"  # Preprod artifact installable app upload
+    )
 
 
 class AssembleResult(NamedTuple):
@@ -232,7 +235,7 @@ def delete_assemble_status(task, scope, checksum):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
-        processing_deadline_duration=30,
+        processing_deadline_duration=60 * 3,
     ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):

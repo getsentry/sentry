@@ -60,12 +60,10 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:ingest-spans-in-eap",
-    "projects:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:ourlogs-calculated-byte-count",
     "organizations:view-hierarchy-scrubbing",
-    "projects:ourlogs-breadcrumb-extraction",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
 ]

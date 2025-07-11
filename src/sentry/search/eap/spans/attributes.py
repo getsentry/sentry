@@ -126,6 +126,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="span.status.message",
+            internal_name="sentry.status.message",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
@@ -189,6 +194,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_cost",
             internal_name="ai.total_cost",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.input_tokens",
+            internal_name="gen_ai.usage.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.output_tokens",
+            internal_name="gen_ai.usage.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_tokens",
+            internal_name="gen_ai.usage.total_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.total_cost",
+            internal_name="gen_ai.usage.total_cost",
             search_type="number",
         ),
         ResolvedAttribute(
@@ -562,6 +587,9 @@ SPANS_PRIVATE_ATTRIBUTES: set[str] = {
     for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
 }
+
+# For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
+SPANS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {"sentry._meta"}
 
 SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
     definition.replacement
