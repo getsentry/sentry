@@ -11,6 +11,7 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 
 const dataConditionHandlers: DataConditionHandler[] = [
@@ -54,9 +55,16 @@ describe('DataConditionNodeList', function () {
   });
 
   it('renders correct condition options', async function () {
-    render(<DataConditionNodeList {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
 
     // Deescalating condition should not be shown in the dropdown
@@ -69,9 +77,16 @@ describe('DataConditionNodeList', function () {
   });
 
   it('adds conditions', async function () {
-    render(<DataConditionNodeList {...defaultProps} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Issue age'}));
@@ -81,7 +96,11 @@ describe('DataConditionNodeList', function () {
 
   it('updates existing conditions', async function () {
     render(
-      <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />
+      </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
@@ -93,7 +112,11 @@ describe('DataConditionNodeList', function () {
 
   it('deletes existing condition', async function () {
     render(
-      <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />
+      </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
@@ -103,12 +126,18 @@ describe('DataConditionNodeList', function () {
 
   it('handles adding issue priority deescalating condition', async function () {
     render(
-      <DataConditionNodeList
-        {...defaultProps}
-        conditions={[
-          DataConditionFixture({type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL}),
-        ]}
-      />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList
+          {...defaultProps}
+          conditions={[
+            DataConditionFixture({
+              type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+            }),
+          ]}
+        />
+      </AutomationBuilderErrorContext.Provider>,
       {
         organization,
       }
@@ -122,19 +151,23 @@ describe('DataConditionNodeList', function () {
 
   it('handles deleting issue priority deescalating condition', async function () {
     render(
-      <DataConditionNodeList
-        {...defaultProps}
-        conditions={[
-          DataConditionFixture({
-            id: 'issue-priority',
-            type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-          }),
-          DataConditionFixture({
-            id: 'deescalating',
-            type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-          }),
-        ]}
-      />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList
+          {...defaultProps}
+          conditions={[
+            DataConditionFixture({
+              id: 'issue-priority',
+              type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+            }),
+            DataConditionFixture({
+              id: 'deescalating',
+              type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+            }),
+          ]}
+        />
+      </AutomationBuilderErrorContext.Provider>,
       {
         organization,
       }
@@ -152,9 +185,16 @@ describe('DataConditionNodeList', function () {
   });
 
   it('shows conflicting condition warning for action filters', function () {
-    render(<DataConditionNodeList {...defaultProps} conflictingConditionIds={['1']} />, {
-      organization,
-    });
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList {...defaultProps} conflictingConditionIds={['1']} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
 
     expect(
       screen.getByText(
@@ -166,11 +206,15 @@ describe('DataConditionNodeList', function () {
   it('only shows conflicting condition warning for two or more workflow triggers', function () {
     // Only one conflicting condition should not show the warning
     render(
-      <DataConditionNodeList
-        {...defaultProps}
-        conflictingConditionIds={['1']}
-        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
-      />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList
+          {...defaultProps}
+          conflictingConditionIds={['1']}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+        />
+      </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
@@ -182,11 +226,15 @@ describe('DataConditionNodeList', function () {
 
     // Two or more conflicting conditions should show the warning
     render(
-      <DataConditionNodeList
-        {...defaultProps}
-        conflictingConditionIds={['1', '2']}
-        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
-      />,
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <DataConditionNodeList
+          {...defaultProps}
+          conflictingConditionIds={['1', '2']}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+        />
+      </AutomationBuilderErrorContext.Provider>,
       {organization}
     );
 
@@ -195,5 +243,27 @@ describe('DataConditionNodeList', function () {
         'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('displays error message when error context contains an error for a condition', function () {
+    const conditionWithError = DataConditionFixture({
+      id: 'condition-with-error',
+    });
+    const errorMessage = 'This condition has an error';
+
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{
+          errors: {'condition-with-error': errorMessage},
+          setErrors: jest.fn(),
+          removeError: jest.fn(),
+        }}
+      >
+        <DataConditionNodeList {...defaultProps} conditions={[conditionWithError]} />
+      </AutomationBuilderErrorContext.Provider>,
+      {organization}
+    );
+
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 });
