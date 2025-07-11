@@ -12,7 +12,7 @@ export interface SwitchProps
 
 export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
   return (
-    <SwitchWrapper>
+    <SwitchWrapper size={size}>
       {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
        * so we need to use a different name, or somehow tell emotion to not create a type intersection.
        */}
@@ -40,11 +40,15 @@ const ToggleWrapperSize = {
   lg: 24,
 };
 
-const SwitchWrapper = styled('div')`
+const SwitchWrapper = styled('div')<{
+  size: NonNullable<SwitchProps['size']>;
+}>`
   position: relative;
   cursor: pointer;
   display: inline-flex;
   justify-content: flex-start;
+  width: ${p => ToggleWrapperSize[p.size] * 1.875}px;
+  height: ${p => ToggleWrapperSize[p.size]}px;
 `;
 
 const NativeHiddenCheckbox = withChonk(

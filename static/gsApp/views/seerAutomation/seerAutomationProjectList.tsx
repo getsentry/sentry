@@ -298,7 +298,7 @@ export function SeerAutomationProjectList() {
               />
             </Flex>
           ) : (
-            <div>{t('Automation for Current Projects')}</div>
+            <div>{t('Project Level Configs and Overrides')}</div>
           )}
           <div style={{marginLeft: 'auto'}}>
             <Button size="sm" onClick={toggleSelectAll}>
