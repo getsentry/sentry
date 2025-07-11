@@ -48,16 +48,28 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Feature not enabled"}, status=403)
 
         try:
-            size_metrics = PreprodArtifactSizeMetrics.objects.select_related(
+            size_metrics_qs = PreprodArtifactSizeMetrics.objects.select_related(
                 "preprod_artifact"
-            ).get(
+            ).filter(
                 preprod_artifact__project=project,
                 preprod_artifact__id=artifact_id,
             )
-        except PreprodArtifactSizeMetrics.DoesNotExist:
+            size_metrics_count = size_metrics_qs.count()
+            if size_metrics_count == 0:
+                return Response(
+                    {"error": "Preprod artifact not found or size analysis results not available"},
+                    status=404,
+                )
+            elif size_metrics_count > 1:
+                return Response(
+                    {"error": "Multiple size analysis results found for this artifact"},
+                    status=409,
+                )
+            size_metrics = size_metrics_qs.first()
+        except Exception:
             return Response(
-                {"error": "Preprod artifact not found or size analysis results not available"},
-                status=404,
+                {"error": "Failed to retrieve size analysis results"},
+                status=500,
             )
 
         if size_metrics.analysis_file_id is None:
