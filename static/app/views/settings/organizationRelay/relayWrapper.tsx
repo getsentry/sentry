@@ -101,6 +101,18 @@ export function RelayWrapper() {
                   visible: organization.features.includes(
                     'ingest-through-trusted-relays-only'
                   ),
+                  getData: (data: Record<string, any>) => {
+                    // Transform boolean to enabled/disabled string for API
+                    const value = data.ingestThroughTrustedRelaysOnly;
+                    return {
+                      ingestThroughTrustedRelaysOnly:
+                        typeof value === 'boolean'
+                          ? value
+                            ? 'enabled'
+                            : 'disabled'
+                          : value,
+                    };
+                  },
                 },
               ],
             },
