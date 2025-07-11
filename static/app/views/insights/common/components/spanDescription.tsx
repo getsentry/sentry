@@ -13,8 +13,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -51,7 +49,6 @@ export function DatabaseSpanDescription({
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
-  const useEap = useInsightsEap();
   const {projects} = useProjects();
   const organization = useOrganization();
 
@@ -83,7 +80,7 @@ export function DatabaseSpanDescription({
     orgSlug: organization.slug,
     projectSlug: project?.slug ?? '',
     releaseVersion: indexedSpan?.release ?? '',
-    enabled: useEap,
+    enabled: indexedSpan?.release !== undefined,
   });
 
   const sdk =
@@ -100,13 +97,6 @@ export function DatabaseSpanDescription({
     sdk,
   };
 
-  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
-  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
-    groupId,
-    [INDEXED_SPAN_SORT],
-    Boolean(indexedSpan) && !useEap
-  );
-
   // isExpanded is a query param that is meant to be accessed only when clicking on the
   // "View full query" button from the hover tooltip. It is removed from the query params
   // on the initial load so the value is not persisted through the link
@@ -121,39 +111,24 @@ export function DatabaseSpanDescription({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const system = useEap ? indexedSpan?.['db.system'] : rawSpan?.data?.['db.system'];
-  const codeFilepath = useEap
-    ? indexedSpan?.['code.filepath']
-    : rawSpan?.data?.['code.filepath'];
-  const codeLineno = useEap
-    ? indexedSpan?.['code.lineno']
-    : rawSpan?.data?.['code.lineno'];
-  const codeFunction = useEap
-    ? indexedSpan?.['code.function']
-    : rawSpan?.data?.['code.function'];
+  const system = indexedSpan?.['db.system'];
+  const codeFilepath = indexedSpan?.['code.filepath'];
+  const codeLineno = indexedSpan?.['code.lineno'];
+  const codeFunction = indexedSpan?.['code.function'];
 
   const formattedDescription = useMemo(() => {
-    const description = useEap ? indexedSpan?.['span.description'] : rawSpan?.description;
-    const rawDescription =
-      description || indexedSpan?.['span.description'] || preliminaryDescription;
+    const rawDescription = indexedSpan?.['span.description'] || preliminaryDescription;
 
     if (system === SupportedDatabaseSystem.MONGODB) {
       let bestDescription = '';
 
-      if (
-        rawSpan?.sentry_tags?.description &&
-        isValidJson(rawSpan.sentry_tags.description)
-      ) {
-        bestDescription = rawSpan.sentry_tags.description;
-      } else if (preliminaryDescription && isValidJson(preliminaryDescription)) {
+      if (preliminaryDescription && isValidJson(preliminaryDescription)) {
         bestDescription = preliminaryDescription;
       } else if (
         indexedSpan?.['span.description'] &&
         isValidJson(indexedSpan?.['span.description'])
       ) {
         bestDescription = indexedSpan?.['span.description'];
-      } else if (rawSpan?.description && isValidJson(rawSpan.description)) {
-        bestDescription = rawSpan?.description;
       } else {
         return rawDescription ?? 'N/A';
       }
@@ -162,11 +137,11 @@ export function DatabaseSpanDescription({
     }
 
     return formatter.toString(rawDescription ?? '');
-  }, [preliminaryDescription, rawSpan, indexedSpan, system, useEap]);
+  }, [preliminaryDescription, indexedSpan, system]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading || isRawSpanLoading ? (
+      {areIndexedSpansLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
@@ -178,7 +153,7 @@ export function DatabaseSpanDescription({
         </QueryClippedBox>
       )}
 
-      {!areIndexedSpansLoading && !isRawSpanLoading && (
+      {!areIndexedSpansLoading && (
         <Fragment>
           {codeFilepath ? (
             <StackTraceMiniFrame
@@ -208,11 +183,6 @@ function QueryClippedBox(props: any) {
 
   return <StyledClippedBox {...props} />;
 }
-
-const INDEXED_SPAN_SORT = {
-  field: 'span.self_time',
-  kind: 'desc' as const,
-};
 
 export const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
