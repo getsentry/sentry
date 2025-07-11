@@ -243,7 +243,7 @@ describe('Testing new onboarding ui', function () {
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
         location: {
-          pathname: RouterFixture().location.pathname,
+          pathname: `/onboarding/`,
           query: {
             guidedStep: '4',
           },
