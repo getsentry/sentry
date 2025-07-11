@@ -108,8 +108,7 @@ export const Text = styled(
     p.variant
       ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
       : p.theme.tokens.content.primary};
-  /* Remove text-align from styled component since it's now handled by container */
-  /* text-align: ${p => p.align ?? 'left'}; */
+  text-align: ${p => p.align ?? 'left'};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
@@ -150,7 +149,6 @@ export const Heading = styled(
   (props: HeadingProps & ExclusiveEllipsisProps) => {
     const {children, as, ...rest} = props;
     const HeadingComponent = as;
-
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
   },
   {
@@ -164,8 +162,7 @@ export const Heading = styled(
   text-decoration: ${p => getTextDecoration(p)};
 
   color: ${p => p.theme.tokens.content[p.variant ?? 'primary']};
-  /* Remove text-align from styled component since it's now handled by container */
-  /* text-align: ${p => p.align ?? 'left'}; */
+  text-align: ${p => p.align ?? 'left'};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
