@@ -74,7 +74,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
 
-        title_field = next(field for field in fields if field["name"] == "title")
+        title_field = next((field for field in fields if field["name"] == "title"), None)
         if title_field:
             title_field["maxLength"] = BITBUCKET_MAX_TITLE_LENGTH
             title_field["default"] = truncatechars(

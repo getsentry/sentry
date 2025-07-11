@@ -212,6 +212,7 @@ class BitbucketIssueTest(APITestCase):
                 "default": "message",
                 "type": "string",
                 "required": True,
+                "maxLength": BITBUCKET_MAX_TITLE_LENGTH,
             },
             {
                 "name": "description",
