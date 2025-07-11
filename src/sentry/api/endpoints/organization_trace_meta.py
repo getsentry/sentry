@@ -21,12 +21,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
 
-# 1 worker for each query
-_query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix=__name__,
-    max_workers=3,
-)
-
 
 class SerializedResponse(TypedDict):
     logs: int
@@ -155,12 +149,17 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=1,
         )
-        with _query_thread_pool:
-            spans_future = _query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
-            perf_issues_future = _query_thread_pool.submit(
+        # 1 worker for each query
+        query_thread_pool = ThreadPoolExecutor(
+            thread_name_prefix=__name__,
+            max_workers=3,
+        )
+        with query_thread_pool:
+            spans_future = query_thread_pool.submit(self.query_span_data, trace_id, snuba_params)
+            perf_issues_future = query_thread_pool.submit(
                 count_performance_issues, trace_id, snuba_params
             )
-            errors_future = _query_thread_pool.submit(
+            errors_future = query_thread_pool.submit(
                 errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
             )
 
