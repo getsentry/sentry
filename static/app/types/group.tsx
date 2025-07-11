@@ -175,6 +175,7 @@ export enum IssueType {
 
   // Detectors
   DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
+  QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -266,6 +267,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
   1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
+  1021: IssueType.QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
