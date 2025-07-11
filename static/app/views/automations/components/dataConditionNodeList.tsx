@@ -11,6 +11,7 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
@@ -23,8 +24,7 @@ import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
-  conflictingConditionIds: string[];
-  group: string;
+  groupId: string;
   handlerGroup: DataConditionHandlerGroupType;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
@@ -39,15 +39,17 @@ interface Option {
 
 export default function DataConditionNodeList({
   handlerGroup,
-  group,
+  groupId,
   placeholder,
   conditions,
   onAddRow,
   onDeleteRow,
   updateCondition,
-  conflictingConditionIds,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
+  const {conflictingConditionGroups, conflictReason} =
+    useAutomationBuilderConflictContext();
+  const conflictingConditions = conflictingConditionGroups[groupId];
   const {errors} = useAutomationBuilderErrorContext();
 
   const options = useMemo(() => {
@@ -163,15 +165,15 @@ export default function DataConditionNodeList({
 
         return (
           <AutomationBuilderRow
-            key={`${group}.conditions.${condition.id}`}
+            key={condition.id}
             onDelete={() => onDeleteRowHandler(condition)}
-            hasError={conflictingConditionIds.includes(condition.id) || !!error}
+            hasError={conflictingConditions?.has(condition.id) || !!error}
             errorMessage={error}
           >
             <DataConditionNodeContext.Provider
               value={{
                 condition,
-                condition_id: `${group}.conditions.${condition.id}`,
+                condition_id: condition.id,
                 onUpdate: params => updateCondition(condition.id, params),
               }}
             >
@@ -191,15 +193,14 @@ export default function DataConditionNodeList({
         );
       })}
       {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
-      {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
-        conflictingConditionIds.length > 0) ||
-        conflictingConditionIds.length > 1) && (
-        <Alert type="error" showIcon>
-          {t(
-            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
-          )}
-        </Alert>
-      )}
+      {conflictingConditions &&
+        ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
+          conflictingConditions.size > 0) ||
+          conflictingConditions.size > 1) && (
+          <Alert type="error" showIcon>
+            {conflictReason}
+          </Alert>
+        )}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {
