@@ -432,7 +432,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
-    "sentry.feedback",
     "sentry.hybridcloud",
     "sentry.relocation",
     "sentry.remote_subscriptions.apps.Config",
