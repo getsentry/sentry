@@ -4,11 +4,7 @@ import styled from '@emotion/styled';
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,19 +17,13 @@ import {
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
-import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
+import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
+import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 interface DetectorDetailsSidebarProps {
   detector: MetricDetector;
-}
-
-function getDetectorEnvironment(detector: MetricDetector) {
-  return (
-    detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')?.queryObj
-      ?.snubaQuery.environment ?? t('All environments')
-  );
 }
 
 function AssignToTeam({teamId}: {teamId: string}) {
@@ -144,27 +134,6 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   return <div>{description}</div>;
 }
 
-function DetectorCreatedBy({createdBy}: {createdBy: MetricDetector['createdBy']}) {
-  const {isPending, data: user} = useUserFromId({
-    id: createdBy ? parseInt(createdBy, 10) : undefined,
-  });
-
-  if (!createdBy) {
-    return t('Sentry');
-  }
-
-  if (isPending) {
-    return <Placeholder width="80px" height="16px" />;
-  }
-
-  const title = user?.name ?? user?.email ?? t('Unknown');
-  return (
-    <Tooltip title={title} showOnlyOnOverflow>
-      <TextOverflow>{title}</TextOverflow>
-    </Tooltip>
-  );
-}
-
 function DetectorAssignee({owner}: {owner: string | null}) {
   if (!owner) {
     return t('Unassigned');
@@ -185,7 +154,7 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
   return (
     <Fragment>
       <Section title={t('Detect')}>
-        <DetailsPanel detector={detector} />
+        <MetricDetectorDetailsDetect detector={detector} />
       </Section>
       <Section title={t('Assign')}>
         <DetectorAssignee owner={detector.owner} />
@@ -196,30 +165,12 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
       <Section title={t('Resolve')}>
         <DetectorResolve detector={detector} />
       </Section>
-      <Section title={t('Details')}>
-        <StyledKeyValueTable>
-          <KeyValueTableRow
-            keyName={t('Date created')}
-            value={<DateTime date={detector.dateCreated} dateOnly year />}
-          />
-          <KeyValueTableRow
-            keyName={t('Created by')}
-            value={<DetectorCreatedBy createdBy={detector.createdBy ?? null} />}
-          />
-          <KeyValueTableRow
-            keyName={t('Last modified')}
-            value={<TimeSince date={detector.dateUpdated} />}
-          />
-          <KeyValueTableRow
-            keyName={t('Environment')}
-            value={
-              <Tooltip title={getDetectorEnvironment(detector)} showOnlyOnOverflow>
-                <TextOverflow>{getDetectorEnvironment(detector)}</TextOverflow>
-              </Tooltip>
-            }
-          />
-        </StyledKeyValueTable>
-      </Section>
+      <DetectorExtraDetails>
+        <DetectorExtraDetails.DateCreated detector={detector} />
+        <DetectorExtraDetails.CreatedBy detector={detector} />
+        <DetectorExtraDetails.LastModified detector={detector} />
+        <DetectorExtraDetails.Environment detector={detector} />
+      </DetectorExtraDetails>
     </Fragment>
   );
 }
@@ -241,8 +192,4 @@ const PriorityCondition = styled('div')`
   justify-self: flex-end;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
-`;
-
-const StyledKeyValueTable = styled(KeyValueTable)`
-  grid-template-columns: min-content auto;
 `;
