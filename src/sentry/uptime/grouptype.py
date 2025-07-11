@@ -169,10 +169,6 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         uptime_subscription = data_packet.packet.subscription
         metric_tags = data_packet.packet.metric_tags
 
-        detector_issue_creation_enabled = features.has(
-            "organizations:uptime-detector-create-issues",
-            self.detector.project.organization,
-        )
         issue_creation_flag_enabled = features.has(
             "organizations:uptime-create-issues",
             self.detector.project.organization,
@@ -183,28 +179,20 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         host_provider_id = uptime_subscription.host_provider_id
         host_provider_enabled = host_provider_id not in restricted_host_provider_ids
 
-        issue_creation_allowed = (
-            detector_issue_creation_enabled
-            and issue_creation_flag_enabled
-            and host_provider_enabled
-        )
+        issue_creation_allowed = issue_creation_flag_enabled and host_provider_enabled
 
         # XXX(epurkhiser): We currently are duplicating the detector state onto
         # the uptime_subscription when the detector changes state. Once we stop
         # using this field we can drop this update logic.
-        #
-        # We ONLY do this when detector issue creation is enabled, otherwise we
-        # let the legacy uptime consumer handle this.
-        if detector_issue_creation_enabled:
-            if evaluation.priority == DetectorPriorityLevel.OK:
-                uptime_status = UptimeStatus.OK
-            elif evaluation.priority != DetectorPriorityLevel.OK:
-                uptime_status = UptimeStatus.FAILED
+        if evaluation.priority == DetectorPriorityLevel.OK:
+            uptime_status = UptimeStatus.OK
+        elif evaluation.priority != DetectorPriorityLevel.OK:
+            uptime_status = UptimeStatus.FAILED
 
-            uptime_subscription.update(
-                uptime_status=uptime_status,
-                uptime_status_update_date=django_timezone.now(),
-            )
+        uptime_subscription.update(
+            uptime_status=uptime_status,
+            uptime_status_update_date=django_timezone.now(),
+        )
 
         if not host_provider_enabled:
             metrics.incr(
