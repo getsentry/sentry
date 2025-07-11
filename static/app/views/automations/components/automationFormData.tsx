@@ -1,5 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
+import type {Action} from 'sentry/types/workflowEngine/actions';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
@@ -113,6 +114,18 @@ export function validateAutomationBuilderState(state: AutomationBuilderState) {
       if (validationResult) {
         errors[action.id] = validationResult;
       }
+    }
+  }
+  return errors;
+}
+
+export function validateActions({actions}: {actions: Action[]}): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  for (const action of actions) {
+    const validationResult = actionNodesMap.get(action.type)?.validate?.(action);
+    if (validationResult) {
+      errors[action.id] = validationResult;
     }
   }
   return errors;
