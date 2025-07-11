@@ -12,7 +12,7 @@ import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Theme} from 'sentry/utils/theme';
-// we need to always reference the dark theme, so
+// we need the hero to always use values from the dark theme
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme';
 import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
@@ -81,22 +81,22 @@ export function StoryLanding() {
           </Flex>
           <CardGrid>
             <Card href="stories?name=app/styles/accessibility.mdx" title="Accessibility">
-              Accessibility
+              <CardFigure />
             </Card>
             <Card href="stories?name=app/styles/colors.mdx" title="Color">
-              Color
+              <CardFigure />
             </Card>
             <Card href="stories?name=app/styles/content.mdx" title="Content">
-              Content
+              <CardFigure />
             </Card>
             <Card href="stories?name=app/styles/graphics.mdx" title="Graphics">
-              Graphics
+              <CardFigure />
             </Card>
             <Card href="stories?name=app/styles/typography.mdx" title="Typography">
-              Typography
+              <CardFigure />
             </Card>
             <Card href="stories?name=app/styles/motion.mdx" title="Motion">
-              Motion
+              <CardFigure />
             </Card>
           </CardGrid>
         </Flex>
@@ -162,3 +162,11 @@ const CardLink = styled(Link)`
   border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: ${p => p.theme.borderRadius};
 `;
+
+function CardFigure(props: PropsWithChildren) {
+  return (
+    <Flex as="figure" role="image" align="center" justify="center">
+      {props.children}
+    </Flex>
+  );
+}
