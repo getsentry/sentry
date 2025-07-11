@@ -62,7 +62,7 @@ export interface ReplayTableColumn {
 }
 
 export const ReplayActivityColumn: ReplayTableColumn = {
-  name: t('Activity'),
+  name: t('User Activity'),
   tooltip: t(
     'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
   ),
