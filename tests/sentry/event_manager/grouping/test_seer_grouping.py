@@ -103,7 +103,9 @@ class SeerEventManagerGroupingTest(TestCase):
                 # In real life just filtering on group id wouldn't be enough to guarantee us a
                 # single, specific GroupHash record, but since the database resets before each test,
                 # here it's okay
-                expected_grouphash = GroupHash.objects.filter(group_id=existing_event.group_id).first()
+                expected_grouphash = GroupHash.objects.filter(
+                    group_id=existing_event.group_id
+                ).first()
 
                 # We checked whether to make the call, and then made it
                 assert should_call_seer_spy.call_count == 1

@@ -74,7 +74,9 @@ class ShouldCallSeerTest(TestCase):
                     return_value=content_eligibility,
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -83,7 +85,9 @@ class ShouldCallSeerTest(TestCase):
             for killswitch_enabled, expected_result in [(True, False), (False, True)]:
                 with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -92,7 +96,9 @@ class ShouldCallSeerTest(TestCase):
             for killswitch_enabled, expected_result in [(True, False), (False, True)]:
                 with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -103,7 +109,9 @@ class ShouldCallSeerTest(TestCase):
                     {"seer.similarity.grouping_killswitch_projects": blocked_projects}
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -117,7 +125,9 @@ class ShouldCallSeerTest(TestCase):
                     ),
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -133,7 +143,9 @@ class ShouldCallSeerTest(TestCase):
                     ),
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -145,7 +157,9 @@ class ShouldCallSeerTest(TestCase):
                     return_value=request_allowed,
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -205,7 +219,9 @@ class ShouldCallSeerTest(TestCase):
                     return_value=frame_check_result,
                 ):
                     assert (
-                        should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                        should_call_seer_for_grouping(
+                            self.event, self.variants, self.event_grouphash
+                        )
                         is expected_result
                     )
 
@@ -231,7 +247,8 @@ class ShouldCallSeerTest(TestCase):
 
             assert self.stacktrace_string != ""
             assert (
-                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                is True
             )
             mock_record_did_call_seer.assert_not_called()
 
@@ -251,13 +268,15 @@ class ShouldCallSeerTest(TestCase):
         with override_options({"similarity.new_project_seer_grouping.enabled": True}):
             assert self.event.should_skip_seer is False
             assert (
-                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is True
+                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                is True
             )
 
             self.event.should_skip_seer = True
 
             assert (
-                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash) is False
+                should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                is False
             )
             mock_record_did_call_seer.assert_any_call(
                 self.event, call_made=False, blocker="race_condition"
