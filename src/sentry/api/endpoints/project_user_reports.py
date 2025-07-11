@@ -15,7 +15,7 @@ from sentry.api.helpers.environments import get_environment, get_environment_fun
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
