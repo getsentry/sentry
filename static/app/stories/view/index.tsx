@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
+import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
@@ -14,20 +15,21 @@ import {StoryHeader} from './storyHeader';
 import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
 export default function Stories() {
+  useStoryRedirect();
   const location = useLocation<{name: string; query?: string}>();
   const files = useStoryBookFiles();
 
   // If no story is selected, show the landing page stories
   const storyFiles = useMemo(() => {
-    if (!location.query.name) {
+    if (!location.state?.storyPath) {
       return files.filter(
         file =>
           file.endsWith('styles/colors.mdx') ||
           file.endsWith('styles/typography.stories.tsx')
       );
     }
-    return [location.query.name];
-  }, [files, location.query.name]);
+    return [location.state?.storyPath];
+  }, [files, location.state?.storyPath]);
 
   const story = useStoriesLoader({files: storyFiles});
 
