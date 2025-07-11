@@ -260,6 +260,17 @@ export function FrameworkSuggestionModal({
     ...listEntries,
   ];
 
+  useEffect(() => {
+    const documentElement = document.querySelector('[role="dialog"] [role="document"]');
+    if (
+      !(documentElement instanceof HTMLElement) ||
+      listEntriesWithVanilla.length <= COLLAPSE_COUNT
+    ) {
+      return;
+    }
+    documentElement.style.minHeight = '631px';
+  }, [listEntriesWithVanilla.length]);
+
   return (
     <Fragment>
       <Header>
@@ -320,7 +331,7 @@ export function FrameworkSuggestionModal({
                         );
                       })}
                     </PlatformList>
-                    {!isExpanded && (
+                    {showMoreButton && (
                       <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
                     )}
                   </Fragment>
@@ -483,7 +494,7 @@ export const modalCss = css`
     display: flex;
     flex-direction: column;
     max-height: 80vh;
-    min-height: 631px;
+    min-height: 550px;
   }
   section {
     display: flex;
