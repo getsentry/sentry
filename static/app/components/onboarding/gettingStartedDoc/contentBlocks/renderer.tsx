@@ -7,7 +7,10 @@ import type {
   BlockRenderer,
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import {renderBlocks} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
+import {
+  CssVariables,
+  renderBlocks,
+} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
 import {space} from 'sentry/styles/space';
 
 interface Props {
@@ -58,5 +61,5 @@ export function ContentBlocksRenderer({
 }
 
 const Wrapper = styled('div')<{spacing: string}>`
-  --block-spacing: ${p => p.spacing};
+  ${CssVariables.BLOCK_SPACING}: ${p => p.spacing};
 `;
