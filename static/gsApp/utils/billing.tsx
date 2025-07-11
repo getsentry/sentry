@@ -145,7 +145,10 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (dataCategory !== DataCategory.ATTACHMENTS) {
+  if (
+    dataCategory !== DataCategory.ATTACHMENTS &&
+    dataCategory !== DataCategory.LOG_BYTE
+  ) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
   // convert reservedQuantity to BYTES to check for unlimited
@@ -158,23 +161,26 @@ export function formatReservedWithUnits(
     return `${formatted} GB`;
   }
 
-  return formatAttachmentUnits(reservedQuantity || 0, 3);
+  return formatByteUnits(reservedQuantity || 0, 3);
 }
 
 /**
  * This expects values from CustomerUsageEndpoint, which contains usage
  * quantities for the data categories that we sell.
  *
- * Note: usageQuantity for Attachments should be in BYTES
+ * Note: usageQuantity for Attachments and Logs should be in BYTES
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (dataCategory === DataCategory.ATTACHMENTS) {
+  if (
+    dataCategory === DataCategory.ATTACHMENTS ||
+    dataCategory === DataCategory.LOG_BYTE
+  ) {
     if (options.useUnitScaling) {
-      return formatAttachmentUnits(usageQuantity);
+      return formatByteUnits(usageQuantity);
     }
 
     const usageGb = usageQuantity / GIGABYTE;
@@ -242,7 +248,7 @@ function formatReservedNumberToString(
  * For storage/memory/file sizes, please take a look at the function in
  * sentry/utils/formatBytes.
  */
-function formatAttachmentUnits(bytes: number, u = 0) {
+function formatByteUnits(bytes: number, u = 0) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
