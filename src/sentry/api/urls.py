@@ -671,7 +671,6 @@ from .endpoints.project_performance_issue_settings import ProjectPerformanceIssu
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
-    ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -3437,13 +3436,6 @@ urlpatterns = [
         r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
-    ),
-    # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
-    # It will be removed in the near future.
-    re_path(
-        r"^profiling/projects/(?P<project_id>[^/]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
-        ProjectProfilingEventEndpoint.as_view(),
-        name="sentry-api-0-profiling-project-profile",
     ),
     re_path(
         r"^notification-defaults/$",
