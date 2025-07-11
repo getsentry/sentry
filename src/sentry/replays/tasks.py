@@ -191,7 +191,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         return None
 
     # If this is the first run of the task we set the model to in-progress.
-    if offset == 0:
+    if job.status == DeletionJobStatus.PENDING:
         job.status = DeletionJobStatus.IN_PROGRESS
         job.save()
 
