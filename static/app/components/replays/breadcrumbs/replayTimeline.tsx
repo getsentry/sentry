@@ -50,7 +50,7 @@ function createBuckets({
 
 // Helper function to create stacked area chart data from chapter frames
 function createStackedChartData({
-  bucketCount,
+  bucketCount: _,
   durationMs,
   startTimestampMs,
   frames,
@@ -66,7 +66,8 @@ function createStackedChartData({
     return [];
   }
 
-  const bucketSizeMs = durationMs / bucketCount;
+  const bucketSizeMs = 1000;
+  const bucketCount = Math.ceil(durationMs / bucketSizeMs);
   const buckets = Array.from(
     {length: bucketCount},
     (_, index) => startTimestampMs + index * bucketSizeMs
@@ -190,7 +191,7 @@ export default function ReplayTimeline() {
     const data = categories.map(category => [
       category,
       createStackedChartData({
-        bucketCount: 100,
+        bucketCount: 1000,
         frames: chapterFrames.filter(frame => getGroupedCategories(frame) === category),
         durationMs,
         startTimestampMs,
@@ -244,6 +245,18 @@ export default function ReplayTimeline() {
     }
     return acc;
   }, 0);
+  const maxNavigationCount = stackedData.navigation.reduce((acc, bucket) => {
+    if ((bucket.data ?? 0) > acc) {
+      acc = bucket.data ?? 0;
+    }
+    return acc;
+  }, 0);
+  const maxUiCount = stackedData.ui.reduce((acc, bucket) => {
+    if ((bucket.data ?? 0) > acc) {
+      acc = bucket.data ?? 0;
+    }
+    return acc;
+  }, 0);
 
   // const ui = Object.entries(
   //   userInteractionEvents.reduce((acc, event) => {
@@ -276,10 +289,11 @@ export default function ReplayTimeline() {
 
   // console.log(chapters);
 
+  const maxTotalCount = Math.max(maxIssueCount, maxNavigationCount, maxUiCount);
   // A line series for rrweb user interaction events
   const userInteractionSeries = {
     type: 'line' as const,
-    gridIndex: 1,
+    gridIndex: 0,
     xAxisIndex: 0,
     yAxisIndex: 1,
     lineStyle: {
@@ -294,7 +308,6 @@ export default function ReplayTimeline() {
     color: theme.tokens.graphics.muted,
     data: userInteractionStackedData.map(bucket => [bucket.time, bucket.data || 0]),
   };
-
   const allScatterSeriesData = [
     ...issuesStackedData.map(bucket => {
       return {
@@ -317,11 +330,9 @@ export default function ReplayTimeline() {
       });
     }),
   ];
-  const issueSeries = {
+  const uiSeries = {
     type: 'scatter' as const,
     singleAxisIndex: 0,
-    gridIndex: 1,
-    yAxisIndex: 1,
     coordinateSystem: 'singleAxis',
     showSymbol: true,
     symbolSize: (dataItem: [timestamp: number, value: number]) => {
@@ -332,12 +343,102 @@ export default function ReplayTimeline() {
       // `dataItem[1]` is the number of issues in the current bucket.
       // I want to scale the symbol size based on the number of issues in the current bucket relative to the max number of issues across all buckets.
       // I want to scale the symbol size between 4 and 16.
-      return (dataItem[1] / maxIssueCount) * 12 + 4;
+      return (dataItem[1] / maxTotalCount) * 16 + 4;
+      // return (dataItem[1] / maxIssueCount) * 8;
+    },
+    seriesName: 'ui',
+    name: 'ui',
+    color: theme.tokens.graphics.accent,
+    data: stackedData.ui.map(bucket => [bucket.time, bucket.data || 0]),
+    // [
+    //   ...issuesStackedData.map(bucket => {
+    //     return {
+    //       name: bucket.time,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics.danger,
+    //       },
+    //       value: [bucket.time, bucket.data || 0],
+    //     };
+    //   }),
+    //   ...Object.entries(stackedData).map(([category, categoryData]) => {
+    //     return {
+    //       name: category,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
+    //       },
+    //       value: categoryData.map(bucket => [bucket.time, bucket.data || 0]),
+    //     };
+    //   }),
+    // ],
+  };
+  const navigationSeries = {
+    type: 'scatter' as const,
+    singleAxisIndex: 0,
+    coordinateSystem: 'singleAxis',
+    showSymbol: true,
+    symbolSize: (dataItem: [timestamp: number, value: number]) => {
+      if (dataItem[1] === 0) {
+        return 0;
+      }
+      // `maxIssueCount` is the max number of issues across all buckets.
+      // `dataItem[1]` is the number of issues in the current bucket.
+      // I want to scale the symbol size based on the number of issues in the current bucket relative to the max number of issues across all buckets.
+      // I want to scale the symbol size between 4 and 16.
+      return (dataItem[1] / maxTotalCount) * 16 + 4;
+      // return (dataItem[1] / maxIssueCount) * 8;
+    },
+    seriesName: 'navigation',
+    name: 'navigation',
+    color: theme.tokens.graphics.success,
+    data: stackedData.navigation.map(bucket => [bucket.time, bucket.data || 0]),
+    // [
+    //   ...issuesStackedData.map(bucket => {
+    //     return {
+    //       name: bucket.time,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics.danger,
+    //       },
+    //       value: [bucket.time, bucket.data || 0],
+    //     };
+    //   }),
+    //   ...Object.entries(stackedData).map(([category, categoryData]) => {
+    //     return {
+    //       name: category,
+    //       itemStyle: {
+    //         color: theme.tokens.graphics[frameDetails.get(category) ?? ''],
+    //       },
+    //       value: categoryData.map(bucket => [bucket.time, bucket.data || 0]),
+    //     };
+    //   }),
+    // ],
+  };
+  const issueSeries = {
+    type: 'scatter' as const,
+    singleAxisIndex: 1,
+    coordinateSystem: 'singleAxis',
+    showSymbol: true,
+    symbolSize: (dataItem: [timestamp: number, value: number]) => {
+      if (dataItem[1] === 0) {
+        return 0;
+      }
+      // `maxIssueCount` is the max number of issues across all buckets.
+      // `dataItem[1]` is the number of issues in the current bucket.
+      // I want to scale the symbol size based on the number of issues in the current bucket relative to the max number of issues across all buckets.
+      // I want to scale the symbol size between 4 and 16.
+      return (dataItem[1] / maxTotalCount) * 16 + 4;
       // return (dataItem[1] / maxIssueCount) * 8;
     },
     seriesName: ISSUE_CATEGORY,
     name: ISSUE_CATEGORY,
-    data: allScatterSeriesData,
+    data: issuesStackedData.map(bucket => {
+      return {
+        name: bucket.time,
+        itemStyle: {
+          color: theme.tokens.graphics.danger,
+        },
+        value: [bucket.time, bucket.data || 0],
+      };
+    }),
     // [
     //   ...issuesStackedData.map(bucket => {
     //     return {
@@ -393,7 +494,7 @@ export default function ReplayTimeline() {
 
   const playedStatus = {
     type: 'custom' as const,
-    gridIndex: 2,
+    gridIndex: 0,
     xAxisIndex: 1,
     yAxisIndex: 2,
     renderItem: () => null,
@@ -425,7 +526,7 @@ export default function ReplayTimeline() {
 
   const hoverStatus = {
     type: 'custom' as const,
-    gridIndex: 2,
+    gridIndex: 0,
     xAxisIndex: 1,
     yAxisIndex: 2,
     renderItem: () => null,
@@ -495,7 +596,7 @@ export default function ReplayTimeline() {
                 boundaryGap: false,
               },
               {
-                gridIndex: 2,
+                gridIndex: 0,
                 show: false,
                 axisLabel: {
                   show: false,
@@ -527,6 +628,34 @@ export default function ReplayTimeline() {
                 min: startTimestampMs,
                 max: startTimestampMs + durationMs,
               },
+              {
+                gridIndex: 2,
+                type: 'time',
+                boundaryGap: false,
+                top: 20,
+                left: 0,
+                right: 0,
+                height: 20,
+                axisLine: {show: false},
+                axisTick: {show: false},
+                axisLabel: {show: false},
+                min: startTimestampMs,
+                max: startTimestampMs + durationMs,
+              },
+              {
+                gridIndex: 0,
+                type: 'time',
+                boundaryGap: false,
+                top: 40,
+                left: 0,
+                right: 0,
+                height: 20,
+                axisLine: {show: false},
+                axisTick: {show: false},
+                axisLabel: {show: false},
+                min: startTimestampMs,
+                max: startTimestampMs + durationMs,
+              },
             ]}
             xAxes={[
               {
@@ -545,7 +674,7 @@ export default function ReplayTimeline() {
                 max: startTimestampMs + durationMs,
               },
               {
-                gridIndex: 2,
+                gridIndex: 0,
                 type: 'time',
                 show: false,
                 axisTick: {show: false},
@@ -564,28 +693,29 @@ export default function ReplayTimeline() {
               {
                 left: 0,
                 right: 0,
+                top: 0,
+                bottom: 0,
+              },
+              {
+                left: 0,
+                right: 0,
                 top: 20,
                 bottom: 0,
               },
               {
                 left: 0,
                 right: 0,
-                top: 0,
-                bottom: 20,
-              },
-              {
-                left: 0,
-                right: 0,
-                top: 0,
+                top: 40,
                 bottom: 0,
               },
             ]}
             series={[
               userInteractionSeries,
-              ...series,
               playedStatus,
               issueSeries,
               hoverStatus,
+              navigationSeries,
+              uiSeries,
             ]}
           />
         </div>

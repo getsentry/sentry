@@ -76,6 +76,7 @@ import {
 //
 // Calls "onClick" inside of series data
 const handleClick = (clickSeries: any, instance: ECharts) => {
+  console.log('handleClick', {clickSeries, instance});
   if (clickSeries.data) {
     clickSeries.data.onClick?.(clickSeries, instance);
   }
@@ -625,6 +626,7 @@ function BaseChart({
     () =>
       ({
         click: (props: any, instance: ECharts) => {
+          console.log('click', {props, instance});
           handleClick(props, instance);
           onClick?.(props, instance);
         },
