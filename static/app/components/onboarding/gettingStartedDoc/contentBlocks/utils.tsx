@@ -20,6 +20,8 @@ export function renderBlocks(
       block: ContentBlock
     ) => React.ReactNode;
 
-    return <RendererComponent {...block} key={String(index)} />;
+    // The index actually works well as a key here
+    // as long as the conditional block is used instead of JS logic to edit the blocks array
+    return <RendererComponent {...block} key={index} />;
   });
 }
