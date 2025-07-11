@@ -10,7 +10,7 @@ from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
+from tests.sentry.feedback import mock_feedback_event
 
 
 @pytest.fixture

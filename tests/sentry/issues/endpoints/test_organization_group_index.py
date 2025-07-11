@@ -72,7 +72,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
-from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
