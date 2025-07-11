@@ -72,7 +72,7 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
         <Subheading>{t('Scans:')}</Subheading>{' '}
         {seerScannerAutomation ? t('On') : t('Off')}
       </ValueWrapper>
-      <ValueWrapper>
+      <ValueWrapper isDangerous={autofixAutomationTuning === 'off'}>
         <Subheading>{t('Fixes:')}</Subheading>{' '}
         {getSeerLabel(autofixAutomationTuning, seerScannerAutomation)}
       </ValueWrapper>
