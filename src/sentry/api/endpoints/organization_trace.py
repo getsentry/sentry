@@ -28,9 +28,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_trace_query
 from sentry.utils.numbers import base32_encode
 
-# 1 worker each for spans, errors, performance issues
-_query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
-
 
 class SerializedEvent(TypedDict):
     description: str
@@ -305,21 +302,24 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         errors_query = self.errors_query(snuba_params, trace_id)
         occurrence_query = self.perf_issues_query(snuba_params, trace_id)
 
-        spans_future = _query_thread_pool.submit(
-            run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-        )
-        errors_future = _query_thread_pool.submit(
-            self.run_errors_query,
-            errors_query,
-        )
-        occurrence_future = _query_thread_pool.submit(
-            self.run_perf_issues_query,
-            occurrence_query,
-        )
+        # 1 worker each for spans, errors, performance issues
+        query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
+        with query_thread_pool:
+            spans_future = query_thread_pool.submit(
+                run_trace_query,
+                trace_id,
+                snuba_params,
+                Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                SearchResolverConfig(),
+            )
+            errors_future = query_thread_pool.submit(
+                self.run_errors_query,
+                errors_query,
+            )
+            occurrence_future = query_thread_pool.submit(
+                self.run_perf_issues_query,
+                occurrence_query,
+            )
 
         spans_data = spans_future.result()
         errors_data = errors_future.result()
