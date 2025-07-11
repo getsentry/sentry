@@ -29,6 +29,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.sentry import thread_leaks
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
@@ -1572,6 +1573,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 class ProcessResultSerialTest(ProcessResultTest):
     strategy_processing_mode = "serial"
 
@@ -1676,5 +1678,6 @@ class ProcessResultSerialTest(ProcessResultTest):
         assert group_2 == [result_3]
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
