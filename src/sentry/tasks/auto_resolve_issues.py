@@ -8,6 +8,7 @@ from typing import Any
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
@@ -138,12 +139,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
             analytics.record(
-                "issue.auto_resolved",
-                project_id=project.id,
-                organization_id=project.organization_id,
-                group_id=group.id,
-                issue_type=group.issue_type.slug,
-                issue_category=group.issue_category.name.lower(),
+                IssueAutoResolvedEvent(
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    group_id=group.id,
+                    issue_type=group.issue_type.slug,
+                    issue_category=group.issue_category.name.lower(),
+                )
             )
             # auto-resolve is a kind of resolve and this signal makes
             # sure all things that need to happen after resolve are triggered
