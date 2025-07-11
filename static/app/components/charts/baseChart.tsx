@@ -355,6 +355,7 @@ function BaseChart({
   end,
   period,
   utc,
+  singleAxis,
   yAxes,
   xAxes,
 
@@ -571,6 +572,7 @@ function BaseChart({
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
+      singleAxis,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
@@ -603,6 +605,7 @@ function BaseChart({
     isGroupedByDate,
     useShortDate,
     useMultilineDate,
+    singleAxis,
     start,
     end,
     period,
