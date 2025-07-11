@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -89,13 +90,14 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             return
 
     analytics.record(
-        "project.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        origin=origin,
-        project_id=project.id,
-        platform=project.platform,
+        ProjectCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            origin=origin,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
     completed = complete_onboarding_task(

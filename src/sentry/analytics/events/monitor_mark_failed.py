@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("monitor_environment.mark_failed")
 class MonitorEnvironmentMarkFailed(analytics.Event):
-    type = "monitor_environment.mark_failed"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("monitor_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("environment_id"),
-    )
+    organization_id: str
+    monitor_id: str
+    project_id: str
+    environment_id: str
 
 
 analytics.register(MonitorEnvironmentMarkFailed)
