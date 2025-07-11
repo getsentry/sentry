@@ -64,7 +64,7 @@ export interface ReplayTableColumn {
 export const ReplayActivityColumn: ReplayTableColumn = {
   name: t('User Activity'),
   tooltip: t(
-    'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
+    'User activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
   ),
   sortKey: 'activity',
   Component: ({replay, showDropdownFilters}) => {
