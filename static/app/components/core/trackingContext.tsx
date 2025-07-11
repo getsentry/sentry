@@ -2,9 +2,9 @@ import {createContext, useContext} from 'react';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './button/types';
 
-const defaultButtonTracking = (props: ButtonProps) => {
+const defaultButtonTracking = () => {
   const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
-  return () => {
+  return (props: ButtonProps) => {
     const hasCustomAnalytics =
       props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
     if (hasCustomAnalytics && hasAnalyticsDebug) {
@@ -21,13 +21,13 @@ const defaultButtonTracking = (props: ButtonProps) => {
 };
 
 const TrackingContext = createContext<{
-  useButtonTracking?: (props: ButtonProps) => () => void;
+  buttonTracking?: (props: ButtonProps) => void;
 }>({});
 
 export const TrackingContextProvider = TrackingContext.Provider;
 
-export const useButtonTracking = (props: ButtonProps) => {
+export const useButtonTracking = () => {
   const context = useContext(TrackingContext);
 
-  return context.useButtonTracking?.(props) ?? defaultButtonTracking(props);
+  return context.buttonTracking ?? defaultButtonTracking();
 };
