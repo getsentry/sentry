@@ -41,9 +41,11 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 }
 
 function DetailsPanel({detector}: DetailsPanelProps) {
-  const dataSource = detector.dataSources?.[0];
-  if (dataSource?.type === 'snuba_query_subscription') {
-    return <SnubaQueryDetails dataSource={dataSource} />;
+  if (detector.type === 'metric_issue') {
+    const dataSource = detector.dataSources?.[0];
+    if (dataSource?.type === 'snuba_query_subscription') {
+      return <SnubaQueryDetails dataSource={dataSource} />;
+    }
   }
 
   return (

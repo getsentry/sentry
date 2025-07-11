@@ -10,6 +10,7 @@ import type {Token, TokenFreeText} from 'sentry/components/arithmeticBuilder/tok
 import {
   isTokenFreeText,
   isTokenFunction,
+  isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
   TokenKind,
@@ -82,6 +83,17 @@ export function ArithmeticTokenFreeText({
   );
 }
 
+type FocusTokenFunction = {
+  func: string;
+  kind: TokenKind.FUNCTION;
+};
+
+type FocusTokenLiteral = {
+  kind: TokenKind.LITERAL;
+};
+
+type FocusToken = FocusTokenFunction | FocusTokenLiteral;
+
 interface InternalInputProps extends ArithmeticTokenFreeTextProps {
   rowRef: RefObject<HTMLDivElement | null>;
 }
@@ -121,13 +133,17 @@ function InternalInput({
   const {dispatch, aggregations, getFieldDefinition} = useArithmeticBuilder();
 
   const getNextFocusOverride = useCallback(
-    (func?: string): string => {
-      if (defined(func)) {
-        const definition = getFieldDefinition(func);
-        const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
-        if (parameterDefinitions.length > 0) {
-          // if they selected a function with arguments, move focus into the function argument
-          return nextTokenKeyOfKind(state, token, TokenKind.FUNCTION);
+    (focusToken?: FocusToken): string => {
+      if (defined(focusToken)) {
+        if (focusToken.kind === TokenKind.FUNCTION) {
+          const definition = getFieldDefinition(focusToken.func);
+          const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+          if (parameterDefinitions.length > 0) {
+            // if they selected a function with arguments, move focus into the function argument
+            return nextTokenKeyOfKind(state, token, TokenKind.FUNCTION);
+          }
+        } else if (focusToken.kind === TokenKind.LITERAL) {
+          return nextTokenKeyOfKind(state, token, TokenKind.LITERAL);
         }
       }
 
@@ -180,15 +196,44 @@ function InternalInput({
       const tokens = tokenizeExpression(text);
 
       for (const tok of tokens) {
-        if (isTokenParenthesis(tok) || isTokenOperator(tok) || isTokenFunction(tok)) {
+        if (isTokenParenthesis(tok) || isTokenOperator(tok)) {
           dispatch({
             type: 'REPLACE_TOKEN',
             token,
             text,
             focusOverride: {
-              itemKey: getNextFocusOverride(
-                isTokenFunction(tok) ? tok.function : undefined
-              ),
+              itemKey: getNextFocusOverride(),
+            },
+          });
+          resetInputValue();
+          return;
+        }
+
+        if (isTokenFunction(tok)) {
+          dispatch({
+            type: 'REPLACE_TOKEN',
+            token,
+            text,
+            focusOverride: {
+              itemKey: getNextFocusOverride({
+                kind: TokenKind.FUNCTION,
+                func: tok.function,
+              }),
+            },
+          });
+          resetInputValue();
+          return;
+        }
+
+        if (isTokenLiteral(tok)) {
+          dispatch({
+            type: 'REPLACE_TOKEN',
+            token,
+            text,
+            focusOverride: {
+              itemKey: getNextFocusOverride({
+                kind: TokenKind.LITERAL,
+              }),
             },
           });
           resetInputValue();
@@ -205,7 +250,12 @@ function InternalInput({
                 type: 'REPLACE_TOKEN',
                 token,
                 text: `${input.substring(0, pos + 1)}${getFunctionDefault(maybeFunc)}`,
-                focusOverride: {itemKey: getNextFocusOverride(maybeFunc)},
+                focusOverride: {
+                  itemKey: getNextFocusOverride({
+                    kind: TokenKind.FUNCTION,
+                    func: maybeFunc,
+                  }),
+                },
               });
               resetInputValue();
               return;
@@ -223,7 +273,6 @@ function InternalInput({
       getNextFocusOverride,
       getFunctionDefault,
       resetInputValue,
-      setInputValue,
       token,
     ]
   );
@@ -312,7 +361,9 @@ function InternalInput({
         token,
         text: isFunction ? getFunctionDefault(option.value) : option.value,
         focusOverride: {
-          itemKey: getNextFocusOverride(isFunction ? option.value : undefined),
+          itemKey: getNextFocusOverride(
+            isFunction ? {kind: TokenKind.FUNCTION, func: option.value} : undefined
+          ),
         },
       });
       resetInputValue();
