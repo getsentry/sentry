@@ -25,11 +25,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_table_query
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
-_query_thread_pool = ThreadPoolExecutor(
-    thread_name_prefix=__name__,
-    max_workers=4,
-)
-
 
 @region_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2EndpointBase):
@@ -91,40 +86,45 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             ],
         )
 
-        cohort_1_future = _query_thread_pool.submit(
-            trace_item_stats_rpc,
-            cohort_1_request,
+        query_thread_pool = ThreadPoolExecutor(
+            thread_name_prefix=__name__,
+            max_workers=4,
         )
-        totals_1_future = _query_thread_pool.submit(
-            run_table_query,
-            snuba_params,
-            query_1,
-            ["count(span.duration)"],
-            None,
-            config=SearchResolverConfig(use_aggregate_conditions=False),
-            offset=0,
-            limit=1,
-            sampling_mode=snuba_params.sampling_mode,
-            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-        )
+        with query_thread_pool:
+            cohort_1_future = query_thread_pool.submit(
+                trace_item_stats_rpc,
+                cohort_1_request,
+            )
+            totals_1_future = query_thread_pool.submit(
+                run_table_query,
+                snuba_params,
+                query_1,
+                ["count(span.duration)"],
+                None,
+                config=SearchResolverConfig(use_aggregate_conditions=False),
+                offset=0,
+                limit=1,
+                sampling_mode=snuba_params.sampling_mode,
+                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            )
 
-        cohort_2_future = _query_thread_pool.submit(
-            trace_item_stats_rpc,
-            cohort_2_request,
-        )
+            cohort_2_future = query_thread_pool.submit(
+                trace_item_stats_rpc,
+                cohort_2_request,
+            )
 
-        totals_2_future = _query_thread_pool.submit(
-            run_table_query,
-            snuba_params,
-            query_2,
-            ["count(span.duration)"],
-            None,
-            config=SearchResolverConfig(use_aggregate_conditions=False),
-            offset=0,
-            limit=1,
-            sampling_mode=snuba_params.sampling_mode,
-            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-        )
+            totals_2_future = query_thread_pool.submit(
+                run_table_query,
+                snuba_params,
+                query_2,
+                ["count(span.duration)"],
+                None,
+                config=SearchResolverConfig(use_aggregate_conditions=False),
+                offset=0,
+                limit=1,
+                sampling_mode=snuba_params.sampling_mode,
+                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            )
 
         cohort_1_data = cohort_1_future.result()
         cohort_2_data = cohort_2_future.result()
