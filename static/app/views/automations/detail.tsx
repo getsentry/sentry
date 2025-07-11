@@ -19,7 +19,6 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -29,7 +28,6 @@ import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
-import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 
 export default function AutomationDetail() {
   const organization = useOrganization();
@@ -44,11 +42,6 @@ export default function AutomationDetail() {
   } = useAutomationQuery(params.automationId);
 
   const {data: createdByUser} = useUserFromId({id: Number(automation?.createdBy)});
-
-  const detectorsQuery = useDetectorQueriesByIds(automation?.detectorIds || []);
-  const detectors = detectorsQuery
-    .map(result => result.data)
-    .filter((detector): detector is Detector => detector !== undefined);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -76,7 +69,7 @@ export default function AutomationDetail() {
               </Section>
               <Section title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
-                  <ConnectedMonitorsList monitors={detectors} />
+                  <ConnectedMonitorsList detectorIds={automation.detectorIds} />
                 </ErrorBoundary>
               </Section>
             </DetailLayout.Main>

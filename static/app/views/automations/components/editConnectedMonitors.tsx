@@ -7,7 +7,6 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 interface Props {
   connectedIds: Set<string>;
@@ -15,25 +14,21 @@ interface Props {
 }
 
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
-  const {data: monitors = []} = useDetectorsQuery();
-
-  const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
-  const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));
-
   return (
     <div>
-      {connectedMonitors.length > 0 && (
+      {connectedIds.size > 0 && (
         <Fragment>
           <Heading>{t('Connected Monitors')}</Heading>
           <ConnectedMonitorsList
-            monitors={connectedMonitors}
-            connectedIds={connectedIds}
-            setConnectedIds={setConnectedIds}
+            detectorIds={Array.from(connectedIds)}
+            connectedDetectorIds={connectedIds}
+            setConnectedDetectorIds={setConnectedIds}
           />
         </Fragment>
       )}
       <Heading>
-        {connectedMonitors.length > 0 ? t('Other Monitors') : t('All Monitors')}
+        {/* TODO: Filter out connected monitors */}
+        {t('All Monitors')}
       </Heading>
       <div style={{flexGrow: 1}}>
         <StyledInputGroup>
@@ -48,9 +43,9 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
         </StyledInputGroup>
       </div>
       <ConnectedMonitorsList
-        monitors={unconnectedMonitors}
-        connectedIds={connectedIds}
-        setConnectedIds={setConnectedIds}
+        detectorIds={undefined}
+        connectedDetectorIds={connectedIds}
+        setConnectedDetectorIds={setConnectedIds}
       />
     </div>
   );

@@ -18,7 +18,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {EditConnectedMonitorsDrawer} from 'sentry/views/automations/components/editConnectedMonitorsDrawer';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 const FREQUENCY_OPTIONS = [
@@ -36,12 +35,10 @@ const FREQUENCY_OPTIONS = [
 export default function AutomationForm({model}: {model: FormModel}) {
   const organization = useOrganization();
 
-  const {data: monitors = []} = useDetectorsQuery();
   const initialConnectedIds = useFormField('detectorIds');
   const [connectedIds, setConnectedIds] = useState<Set<string>>(
     initialConnectedIds ? new Set(initialConnectedIds) : new Set<string>()
   );
-  const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
   const updateConnectedIds = (ids: Set<string>) => {
     setConnectedIds(ids);
     model.setValue('detectorIds', Array.from(ids));
@@ -79,7 +76,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
     <Flex direction="column" gap={space(1.5)}>
       <Card>
         <Heading>{t('Connect Monitors')}</Heading>
-        <ConnectedMonitorsList monitors={connectedMonitors} />
+        <ConnectedMonitorsList detectorIds={Array.from(connectedIds)} />
         <ButtonWrapper justify="space-between">
           <LinkButton
             icon={<IconAdd />}
