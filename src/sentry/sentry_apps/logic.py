@@ -14,6 +14,9 @@ from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import isolation_scope
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
+from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
+from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
@@ -283,11 +286,13 @@ class SentryAppUpdater:
 
     def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
         analytics.record(
-            "sentry_app.updated",
-            user_id=user.id,
-            organization_id=self.sentry_app.owner_id,
-            sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in (new_schema_elements or set()),
+            SentryAppUpdatedEvent(
+                user_id=user.id,
+                organization_id=self.sentry_app.owner_id,
+                sentry_app=self.sentry_app.slug,
+                created_alert_rule_ui_component="alert-rule-action"
+                in (new_schema_elements or set()),
+            )
         )
 
 
@@ -470,17 +475,20 @@ class SentryAppCreator:
 
     def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
         analytics.record(
-            "sentry_app.created",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app=sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in _get_schema_types(self.schema),
+            SentryAppCreatedEvent(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app=sentry_app.slug,
+                created_alert_rule_ui_component="alert-rule-action"
+                in _get_schema_types(self.schema),
+            )
         )
 
         if self.is_internal:
             analytics.record(
-                "internal_integration.created",
-                user_id=user.id,
-                organization_id=self.organization_id,
-                sentry_app=sentry_app.slug,
+                InternalIntegrationCreatedEvent(
+                    user_id=user.id,
+                    organization_id=self.organization_id,
+                    sentry_app=sentry_app.slug,
+                )
             )

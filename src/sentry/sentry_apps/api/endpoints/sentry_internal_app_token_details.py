@@ -5,6 +5,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, deletions
+from sentry.analytics.events.sentry_app_installation_token_deleted import (
+    SentryAppInstallationTokenDeleted,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -63,11 +66,12 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
             deletions.exec_sync(install_token)
 
         analytics.record(
-            "sentry_app_installation_token.deleted",
-            user_id=request.user.id,
-            organization_id=sentry_app_installation.organization_id,
-            sentry_app_installation_id=sentry_app_installation.id,
-            sentry_app=sentry_app.slug,
+            SentryAppInstallationTokenDeleted(
+                user_id=request.user.id,
+                organization_id=sentry_app_installation.organization_id,
+                sentry_app_installation_id=sentry_app_installation.id,
+                sentry_app=sentry_app.slug,
+            )
         )
 
         return Response(status=204)

@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("internal_integration.created")
 class InternalIntegrationCreatedEvent(analytics.Event):
-    type = "internal_integration.created"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("sentry_app"),
-    )
+    user_id: str
+    organization_id: str
+    sentry_app: str
 
 
 analytics.register(InternalIntegrationCreatedEvent)
