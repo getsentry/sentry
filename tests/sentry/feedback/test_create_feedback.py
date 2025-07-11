@@ -7,14 +7,14 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.create_feedback import (
-    FeedbackCreationSource,
     create_feedback_issue,
     fix_for_issue_platform,
     get_feedback_title,
-    shim_to_feedback,
     validate_issue_platform_event_schema,
 )
+from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.factories import Factories
