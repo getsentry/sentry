@@ -33,7 +33,7 @@ def assert_analytics_events_recorded(
 
 
 @contextlib.contextmanager
-def track_analytics_events_recorded(
+def assert_analytics_events(
     expected_events: list[Event],
     check_uuid: bool = False,
     check_datetime: bool = False,
@@ -41,7 +41,7 @@ def track_analytics_events_recorded(
     """
     Context manager that allows you to track analytics events recorded during the context.
 
-    with track_analytics_events_recorded([SomeEvent(...)]):
+    with assert_analytics_events([SomeEvent(...)]):
         ...
 
     # analytics events must have been recorded in the context
