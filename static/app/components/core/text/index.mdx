@@ -1,0 +1,274 @@
+---
+title: Text
+description: Text components display text content with various typography options and styling controls.
+source: 'sentry/components/core/text'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/text.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
+    WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
+    WAI-ARIA Text: https://www.w3.org/WAI/ARIA/apg/patterns/
+---
+
+import {Text, Heading} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/text/text';
+
+export {types};
+
+To create basic text, wrap content in a `<Text>` component. For semantic headings, use `<Heading>` with the appropriate `as` prop.
+
+```jsx
+<Text>This is basic text content</Text>
+<Heading as="h1">This is a heading</Heading>
+```
+
+### Sizes
+
+Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`, and `2xl`.
+
+<Storybook.Demo>
+  <Text size="2xl">Extra extra large text</Text>
+  <Text size="xl">Extra large text</Text>
+  <Text size="lg">Large text</Text>
+  <Text size="md">Medium text (default)</Text>
+  <Text size="sm">Small text</Text>
+  <Text size="xs">Extra small text</Text>
+</Storybook.Demo>
+```jsx
+<Text size="2xl">Extra extra large text</Text>
+<Text size="xl">Extra large text</Text>
+<Text size="lg">Large text</Text>
+<Text size="md">Medium text (default)</Text>
+<Text size="sm">Small text</Text>
+<Text size="xs">Extra small text</Text>
+```
+
+### Variants
+
+Text components support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
+
+<Storybook.Demo>
+  <Text variant="primary">Primary text (default)</Text>
+  <Text variant="muted">Muted text</Text>
+  <Text variant="accent">Accent text</Text>
+  <Text variant="success">Success text</Text>
+  <Text variant="warning">Warning text</Text>
+  <Text variant="danger">Danger text</Text>
+  <Text variant="promotion">Promotion text</Text>
+</Storybook.Demo>
+```jsx
+<Text variant="primary">Primary text (default)</Text>
+<Text variant="muted">Muted text</Text>
+<Text variant="accent">Accent text</Text>
+<Text variant="success">Success text</Text>
+<Text variant="warning">Warning text</Text>
+<Text variant="danger">Danger text</Text>
+<Text variant="promotion">Promotion text</Text>
+```
+
+### Headings
+
+The `<Heading>` component creates semantic heading elements with appropriate default sizes. Headings are bold by default.
+
+<Storybook.Demo>
+  <Heading as="h1">Heading 1 (2xl)</Heading>
+  <Heading as="h2">Heading 2 (xl)</Heading>
+  <Heading as="h3">Heading 3 (lg)</Heading>
+  <Heading as="h4">Heading 4 (md)</Heading>
+  <Heading as="h5">Heading 5 (sm)</Heading>
+  <Heading as="h6">Heading 6 (xs)</Heading>
+</Storybook.Demo>
+```jsx
+<Heading as="h1">Heading 1 (2xl)</Heading>
+<Heading as="h2">Heading 2 (xl)</Heading>
+<Heading as="h3">Heading 3 (lg)</Heading>
+<Heading as="h4">Heading 4 (md)</Heading>
+<Heading as="h5">Heading 5 (sm)</Heading>
+<Heading as="h6">Heading 6 (xs)</Heading>
+```
+
+### Typography Features
+
+Text components support various typography options including bold, italic, underline, and strikethrough.
+
+<Storybook.Demo>
+  <Text bold>Bold text</Text>
+  <Text italic>Italic text</Text>
+  <Text underline>Underlined text</Text>
+  <Text strikethrough>Strikethrough text</Text>
+  <Text bold italic underline>
+    Bold italic underlined text
+  </Text>
+</Storybook.Demo>
+```jsx
+<Text bold>Bold text</Text>
+<Text italic>Italic text</Text>
+<Text underline>Underlined text</Text>
+<Text strikethrough>Strikethrough text</Text>
+<Text bold italic underline>
+  Bold italic underlined text
+</Text>
+```
+
+### Text Alignment
+
+Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
+
+<Storybook.Demo>
+  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+    <Text align="left">Left aligned text</Text>
+    <Text align="center">Center aligned text</Text>
+    <Text align="right">Right aligned text</Text>
+    <Text align="justify">
+      Justified text that will wrap to multiple lines and be justified.
+    </Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text align="left">Left aligned text</Text>
+<Text align="center">Center aligned text</Text>
+<Text align="right">Right aligned text</Text>
+<Text align="justify">
+  Justified text that will wrap to multiple lines and be justified.
+</Text>
+```
+
+### Density
+
+Control line height with the `density` prop: `compressed` (1.0), default (1.2), or `comfortable` (1.4).
+
+<Storybook.Demo>
+  <div style={{width: '300px'}}>
+    <Text density="compressed">
+      Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+    </Text>
+    <Text>
+      Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+      do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+    </Text>
+    <Text density="comfortable">
+      Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+    </Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text density="compressed">Compressed density text...</Text>
+<Text>Default density text...</Text>
+<Text density="comfortable">Comfortable density text...</Text>
+```
+
+### Ellipsis Overflow
+
+Handle text overflow with the `ellipsis` prop to truncate long text with an ellipsis.
+
+<Storybook.Demo>
+  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+    <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<div style={{width: '200px'}}>
+  <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
+</div>
+```
+
+### Monospace and Tabular
+
+Use `monospace` for fixed-width text and `tabular` for consistent number alignment.
+
+<Storybook.Demo>
+  <div>
+    <Text>Regular: 1234567890</Text>
+    <Text monospace>Monospace: 1234567890</Text>
+    <Text tabular>Tabular: 1234567890</Text>
+    <Text monospace tabular>
+      Mono + Tabular: 1234567890
+    </Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text>Regular: 1234567890</Text>
+<Text monospace>Monospace: 1234567890</Text>
+<Text tabular>Tabular: 1234567890</Text>
+<Text monospace tabular>
+  Mono + Tabular: 1234567890
+</Text>
+```
+
+### Fractions
+
+Display fractions with diagonal formatting using the `fraction` prop.
+
+<Storybook.Demo>
+  <div>
+    <Text>Regular: 1/2 3/4 5/8</Text>
+    <Text fraction>Fractions: 1/2 3/4 5/8</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text>Regular: 1/2 3/4 5/8</Text>
+<Text fraction>Fractions: 1/2 3/4 5/8</Text>
+```
+
+### Text Transformation
+
+Transform text case with the `uppercase` prop.
+
+<Storybook.Demo>
+  <div>
+    <Text>Regular text</Text>
+    <Text uppercase>Uppercase text</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text>Regular text</Text>
+<Text uppercase>Uppercase text</Text>
+```
+
+### Text Wrapping
+
+Control text wrapping behavior with the `wrap` prop: `nowrap`, `normal`, `pre`, `pre-line`, or `pre-wrap`.
+
+<Storybook.Demo>
+  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+    <Text wrap="nowrap">This text will not wrap even if it's very long</Text>
+    <Text wrap="normal">
+      This text will wrap normally when it reaches the container edge
+    </Text>
+    <Text wrap="pre">This text preserves whitespace and line breaks</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text wrap="nowrap">This text will not wrap even if it's very long</Text>
+<Text wrap="normal">This text will wrap normally when it reaches the container edge</Text>
+<Text wrap="pre">This text preserves whitespace and line breaks</Text>
+```
+
+### HTML Elements
+
+Text components can render as different HTML elements. Text defaults to `span` but can be `p`. Headings must specify the semantic level.
+
+<Storybook.Demo>
+  <div>
+    <Text as="span">This is a span element</Text>
+    <Text as="p">This is a paragraph element</Text>
+  </div>
+</Storybook.Demo>
+```jsx
+<Text as="span">This is a span element</Text>
+<Text as="p">This is a paragraph element</Text>
+```
+
+### Accessibility
+
+Text components automatically meet WCAG 2.2 AA compliance for color contrast and text spacing. When using semantic headings, ensure proper heading hierarchy for screen readers.
+
+- Use `<Heading>` components for semantic structure
+- Maintain logical heading order (h1 → h2 → h3, etc.)
+- Ensure sufficient color contrast with chosen variants
+- Test text readability at 200% zoom level
