@@ -190,7 +190,7 @@
     "@tanstack/eslint-plugin-query": "^5.66.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/react": "16.2.0",
+    "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
