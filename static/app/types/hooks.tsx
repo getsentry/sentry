@@ -1,6 +1,5 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ButtonProps} from 'sentry/components/core/button';
 import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -315,7 +314,6 @@ type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
-  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 

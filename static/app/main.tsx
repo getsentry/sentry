@@ -12,16 +12,20 @@ import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory'
 
 import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
-function buildRouter() {
+function buildRouter(SentryHooksProvider?: React.ComponentType<React.PropsWithChildren>) {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
-  const router = sentryCreateBrowserRouter(buildReactRouter6Routes(routes()));
+  const router = sentryCreateBrowserRouter(
+    buildReactRouter6Routes(routes(SentryHooksProvider))
+  );
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
 
   return router;
 }
 
-function Main() {
-  const [router] = useState(buildRouter);
+function Main(props: {
+  SentryHooksProvider?: React.ComponentType<React.PropsWithChildren>;
+}) {
+  const [router] = useState(() => buildRouter(props.SentryHooksProvider));
 
   return (
     <AppQueryClientProvider>
