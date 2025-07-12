@@ -363,6 +363,10 @@ export function getEventsWithUnit(
   return events;
 }
 
+type CheckoutData = {
+  plan: string;
+} & Partial<Record<DataCategory, number>>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -371,30 +375,24 @@ function recordAnalytics(
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
-  const currentData = {
-    // TODO(data categories): BIL-966
+  const currentData: CheckoutData = {
     plan: data.plan,
-    errors: data.reservedErrors,
-    transactions: data.reservedTransactions,
-    attachments: data.reservedAttachments,
-    replays: data.reservedReplays,
-    monitorSeats: data.reservedMonitorSeats,
-    spans: data.reservedSpans,
-    profileDuration: data.reservedProfileDuration,
-    uptime: data.reservedUptime,
   };
 
-  const previousData = {
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+  });
+
+  const previousData: CheckoutData = {
     plan: subscription.plan,
-    errors: subscription.categories.errors?.reserved || undefined,
-    transactions: subscription.categories.transactions?.reserved || undefined,
-    attachments: subscription.categories.attachments?.reserved || undefined,
-    replays: subscription.categories.replays?.reserved || undefined,
-    monitorSeats: subscription.categories.monitorSeats?.reserved || undefined,
-    profileDuration: subscription.categories.profileDuration?.reserved || undefined,
-    spans: subscription.categories.spans?.reserved || undefined,
-    uptime: subscription.categories.uptime?.reserved || undefined,
   };
+
+  Object.entries(subscription.categories).forEach(([category, value]) => {
+    (previousData as any)[category] = value?.reserved || undefined;
+  });
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
