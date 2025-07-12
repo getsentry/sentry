@@ -73,7 +73,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
 
     process_workflows(event_data, detector)
     metrics.incr(
-        "workflow_engine.process_workflow.activity_update.executed",
+        "workflow_engine.tasks.process_workflow.activity_update.executed",
         tags={"activity_type": activity.type},
     )
 
@@ -86,9 +86,11 @@ def workflow_status_update_handler(
     Hook the process_workflow_task into the activity creation registry.
 
     Since this handler is called in process for the activity, we want
-    to queue a task to process workflows asynchronously."""
+    to queue a task to process workflows asynchronously.
+    """
     metrics.incr(
-        "workflow_engine.process_workflow.activity_update", tags={"activity_type": activity.type}
+        "workflow_engine.tasks.process_workflows.activity_update",
+        tags={"activity_type": activity.type},
     )
     if activity.type not in SUPPORTED_ACTIVITIES:
         # If the activity type is not supported, we do not need to process it.
@@ -99,7 +101,7 @@ def workflow_status_update_handler(
     if detector_id is None:
         # We should not hit this case, it's should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
-        metrics.incr("workflow_engine.error.tasks.no_detector_id")
+        metrics.incr("workflow_engine.tasks.error.no_detector_id")
         return
 
     if features.has("organizations:workflow-engine-process-activity", group.organization):

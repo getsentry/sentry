@@ -2,6 +2,7 @@ from unittest import mock
 
 from google.api_core.exceptions import RetryError
 
+from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -63,7 +64,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
-            mock_incr.assert_called_with("workflow_engine.error.tasks.no_detector_id")
+            mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
 
     def test__feature_flag(self):
         detector = self.create_detector(project=self.project)
@@ -205,3 +206,42 @@ class TestProcessWorkflowActivity(TestCase):
         )
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
+
+    @with_feature("organizations:workflow-engine-process-activity")
+    @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
+    def test__e2e__issue_plat_to_processed(self, mock_incr):
+        self.message = StatusChangeMessageData(
+            id="test-id",
+            fingerprint=["group-1"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            detector_id=self.detector.id,
+        )
+
+        with self.tasks():
+            update_status(self.group, self.message)
+
+            # Ensure task is evaluated in issue platform
+            mock_incr.assert_any_call(
+                "workflow_engine.issue_platform.status_change",
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Issue platform is forwarding the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.issue_platform.status_change_handler",
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Workflow engine is correctly registered for the activity update
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
+                tags={"activity_type": self.activity.type},
+            )
+
+            # Workflow engine evaluated activity update in process_workflows
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflow.activity_update.executed",
+                tags={"activity_type": self.activity.type},
+            )
