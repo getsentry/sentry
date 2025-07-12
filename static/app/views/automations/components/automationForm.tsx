@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
-import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {AutomationConnectedMonitors} from 'sentry/views/automations/components/automationConnectedMonitors';
 import {EditConnectedMonitorsDrawer} from 'sentry/views/automations/components/editConnectedMonitorsDrawer';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
@@ -76,7 +76,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
     <Flex direction="column" gap={space(1.5)}>
       <Card>
         <Heading>{t('Connect Monitors')}</Heading>
-        <ConnectedMonitorsList detectorIds={Array.from(connectedIds)} />
+        <AutomationConnectedMonitors detectorIds={Array.from(connectedIds)} />
         <ButtonWrapper justify="space-between">
           <LinkButton
             icon={<IconAdd />}
