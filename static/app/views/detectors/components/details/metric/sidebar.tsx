@@ -2,9 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,8 +12,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {useTeamsById} from 'sentry/utils/useTeamsById';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
@@ -24,40 +20,6 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 
 interface DetectorDetailsSidebarProps {
   detector: MetricDetector;
-}
-
-function AssignToTeam({teamId}: {teamId: string}) {
-  const {teams, isLoading} = useTeamsById({ids: [teamId]});
-  const team = teams.find(tm => tm.id === teamId);
-
-  if (isLoading) {
-    return (
-      <Flex align="center" gap={space(0.5)}>
-        {t('Assign to')} <Placeholder width="80px" height="16px" />
-      </Flex>
-    );
-  }
-
-  return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
-}
-
-function AssignToUser({userId}: {userId: string}) {
-  const {isPending, data: user} = useUserFromId({id: parseInt(userId, 10)});
-
-  if (isPending) {
-    return (
-      <Flex align="center" gap={space(0.5)}>
-        {t('Assign to')} <Placeholder width="80px" height="16px" />
-      </Flex>
-    );
-  }
-
-  const title = user?.name ?? user?.email ?? t('Unknown user');
-  return (
-    <Tooltip title={title} showOnlyOnOverflow>
-      {t('Assign to %s', title)}
-    </Tooltip>
-  );
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
@@ -134,31 +96,13 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   return <div>{description}</div>;
 }
 
-function DetectorAssignee({owner}: {owner: string | null}) {
-  if (!owner) {
-    return t('Unassigned');
-  }
-
-  const [ownerType, ownerId] = owner.split(':');
-  if (ownerType === 'team') {
-    return <AssignToTeam teamId={ownerId!} />;
-  }
-  if (ownerType === 'user') {
-    return <AssignToUser userId={ownerId!} />;
-  }
-
-  return t('Unassigned');
-}
-
 export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarProps) {
   return (
     <Fragment>
       <Section title={t('Detect')}>
         <MetricDetectorDetailsDetect detector={detector} />
       </Section>
-      <Section title={t('Assign')}>
-        <DetectorAssignee owner={detector.owner} />
-      </Section>
+      <DetectorDetailsAssignee owner={detector.owner} />
       <Section title={t('Prioritize')}>
         <DetectorPriorities detector={detector} />
       </Section>
