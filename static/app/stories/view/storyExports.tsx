@@ -148,7 +148,19 @@ function StoryUsage() {
 function StoryAPI() {
   const {story} = useStory();
   if (!story.exports.types) return null;
-  return <Storybook.APIReference types={story.exports.types} />;
+
+  return (
+    <Fragment>
+      {Object.entries(story.exports.types).map(([key, value]) => {
+        return (
+          <Storybook.APIReference
+            key={key}
+            types={value as TypeLoader.ComponentDocWithFilename}
+          />
+        );
+      })}
+    </Fragment>
+  );
 }
 
 const StoryHeader = styled('header')`
