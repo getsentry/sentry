@@ -126,7 +126,7 @@ class UpdateUserReportTest(TestCase):
         assert report4.group_id is None
         assert report4.environment_id is None
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         event1 = self.store_event(
@@ -166,7 +166,7 @@ class UpdateUserReportTest(TestCase):
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event1.event_id
         assert mock_event_data["level"] == "error"
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_does_not_call_feedback_shim_if_environment_is_set(
         self, mock_produce_occurrence_to_kafka
     ):

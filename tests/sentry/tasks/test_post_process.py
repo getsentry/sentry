@@ -2026,7 +2026,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         environment = Environment.objects.create(
@@ -2080,7 +2080,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             mock_event_data["contexts"]["feedback"]["message"]
         )
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         environment = Environment.objects.create(
