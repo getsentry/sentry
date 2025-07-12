@@ -186,25 +186,34 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
-    if offset == 0:
+    if job.status == DeletionJobStatus.PENDING:
         job.status = DeletionJobStatus.IN_PROGRESS
         job.save()
 
-    # Delete the replays within a limited range. If more replays exist an incremented offset value
-    # is returned.
-    results = fetch_rows_matching_pattern(
-        project_id=job.project_id,
-        start=job.range_start,
-        end=job.range_end,
-        query=job.query,
-        environment=job.environments,
-        limit=limit,
-        offset=offset,
-    )
+    # Exit if the job status is failed or completed.
+    if job.status != DeletionJobStatus.IN_PROGRESS:
+        return None
 
-    # Delete the matched rows if any rows were returned.
-    if len(results["rows"]) > 0:
-        delete_matched_rows(job.project_id, results["rows"])
+    try:
+        # Delete the replays within a limited range. If more replays exist an incremented offset value
+        # is returned.
+        results = fetch_rows_matching_pattern(
+            project_id=job.project_id,
+            start=job.range_start,
+            end=job.range_end,
+            query=job.query,
+            environment=job.environments,
+            limit=limit,
+            offset=offset,
+        )
+
+        # Delete the matched rows if any rows were returned.
+        if len(results["rows"]) > 0:
+            delete_matched_rows(job.project_id, results["rows"])
+    except Exception:
+        job.status = DeletionJobStatus.FAILED
+        job.save()
+        raise
 
     # Compute the next offset to start from. If no further processing is required then this serves
     # as a count of replays deleted.
