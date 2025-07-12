@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.create_feedback import (
+from sentry.feedback.usecases.ingest.create_feedback import (
     create_feedback_issue,
     fix_for_issue_platform,
     get_feedback_title,
@@ -845,7 +845,7 @@ def test_create_feedback_evidence_has_spam(
     default_project, mock_produce_occurrence_to_kafka, monkeypatch
 ):
     """We need this evidence field in post process, to determine if we should send alerts."""
-    monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
+    monkeypatch.setattr("sentry.feedback.usecases.ingest.create_feedback.is_spam", lambda _: True)
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
     with Feature({"organizations:user-feedback-spam-ingest": True}):

@@ -242,7 +242,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert response.status_code == 200, response.content
         assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
-    @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @mock.patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         self.client.post(
@@ -264,7 +264,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
         assert mock_event_data["level"] == "error"
 
-    @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    @mock.patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_does_not_call_feedback_shim_no_event_if_ff_enabled(
         self, mock_produce_occurrence_to_kafka
     ):

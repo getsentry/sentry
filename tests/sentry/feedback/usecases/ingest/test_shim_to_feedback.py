@@ -8,7 +8,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -111,7 +111,7 @@ def test_shim_to_feedback_fails_if_required_fields_missing(default_project, monk
     # Email and comments are required to shim. Tests key errors are handled.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
-        "sentry.feedback.usecases.shim_to_feedback.create_feedback_issue",
+        "sentry.feedback.usecases.ingest.shim_to_feedback.create_feedback_issue",
         mock_create_feedback_issue,
     )
     report_dict = {
