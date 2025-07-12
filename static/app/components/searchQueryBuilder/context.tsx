@@ -24,6 +24,7 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -100,6 +101,7 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const organization = useOrganization();
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -163,7 +165,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
-      enableAISearch: Boolean(enableAISearch),
+      enableAISearch: Boolean(enableAISearch) && !organization.hideAiFeatures,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -198,6 +200,7 @@ export function SearchQueryBuilderProvider({
     filterKeySections,
     getTagValues,
     handleSearch,
+    organization.hideAiFeatures,
     parseQuery,
     parsedQuery,
     placeholder,
