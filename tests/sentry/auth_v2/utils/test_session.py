@@ -184,7 +184,7 @@ class SessionBuilderTest(TestCase):
             "todo_email_verification": True,
             "todo_2fa_verification": True,
             "todo_password_reset": True,
-            "todo_2fa_setup": True,
+            "todo_2fa_setup": False,  # False because user already has 2FA enabled
         }
 
         assert self.request.session.data == expected_flags
@@ -226,3 +226,51 @@ class SessionBuilderTest(TestCase):
         )
         self.session_builder.initialize_auth_flags()
         assert self.request.session["todo_password_reset"] is True
+
+    def test_initialize_todo_2fa_setup_logic(self):
+        """
+        todo_2fa_setup should only be True when user has org requiring 2FA but doesn't have 2FA enabled.
+        """
+        # Case 1: User has org requiring 2FA but no 2FA enabled -> should be True
+        self.request.user = self.create_mock_user(
+            has_org_requiring_2fa=True,
+            has_2fa=False,
+        )
+        self.session_builder.initialize_auth_flags()
+        assert self.request.session.data["todo_2fa_setup"] is True
+
+        # Reset session
+        self.request.session = MockSession()
+        self.session_builder = SessionBuilder(self.request)
+
+        # Case 2: User has org requiring 2FA and already has 2FA enabled -> should be False
+        self.request.user = self.create_mock_user(
+            has_org_requiring_2fa=True,
+            has_2fa=True,
+        )
+        self.session_builder.initialize_auth_flags()
+        assert self.request.session.data["todo_2fa_setup"] is False
+
+        # Reset session
+        self.request.session = MockSession()
+        self.session_builder = SessionBuilder(self.request)
+
+        # Case 3: User doesn't have org requiring 2FA and no 2FA enabled -> should be False
+        self.request.user = self.create_mock_user(
+            has_org_requiring_2fa=False,
+            has_2fa=False,
+        )
+        self.session_builder.initialize_auth_flags()
+        assert self.request.session.data["todo_2fa_setup"] is False
+
+        # Reset session
+        self.request.session = MockSession()
+        self.session_builder = SessionBuilder(self.request)
+
+        # Case 4: User doesn't have org requiring 2FA but has 2FA enabled -> should be False
+        self.request.user = self.create_mock_user(
+            has_org_requiring_2fa=False,
+            has_2fa=True,
+        )
+        self.session_builder.initialize_auth_flags()
+        assert self.request.session.data["todo_2fa_setup"] is False

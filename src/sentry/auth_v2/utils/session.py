@@ -92,4 +92,4 @@ class SessionBuilder:
                 user.is_password_expired or not user.has_usable_password()
             )
         if session.get("todo_2fa_setup") is None:
-            session["todo_2fa_setup"] = user.has_org_requiring_2fa()
+            session["todo_2fa_setup"] = user.has_org_requiring_2fa() and not user.has_2fa()
