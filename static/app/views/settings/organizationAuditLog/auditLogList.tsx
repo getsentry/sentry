@@ -23,6 +23,7 @@ import type {DateString} from 'sentry/types/core';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -307,7 +308,7 @@ function AuditLogList({
           allTime,
         }}
         utc={utc}
-        maxPickableDays={Infinity}
+        maxPickableDays={getDaysSinceDate(organization.dateCreated)}
         trigger={(triggerProps, isOpen) => {
           const currentValue = statsPeriod || allTime;
           let displayLabel: React.ReactNode;
