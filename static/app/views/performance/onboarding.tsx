@@ -27,12 +27,14 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   Configuration,
+  ContentBlock,
   DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -369,6 +371,19 @@ function WaitingIndicator({
   );
 }
 
+function RenderBlocksOrFallback({
+  contentBlocks,
+  children,
+}: {
+  children: React.ReactNode;
+  contentBlocks?: ContentBlock[];
+}) {
+  if (contentBlocks && contentBlocks.length > 0) {
+    return <ContentBlocksRenderer spacing={space(1)} contentBlocks={contentBlocks} />;
+  }
+  return children;
+}
+
 type ConfigurationStepProps = {
   api: Client;
   configuration: Configuration;
@@ -377,6 +392,7 @@ type ConfigurationStepProps = {
   showWaitingIndicator: boolean;
   stepKey: string;
   title: React.ReactNode;
+  contentBlocks?: ContentBlock[];
 };
 
 function ConfigurationStep({
@@ -385,13 +401,14 @@ function ConfigurationStep({
   api,
   organization,
   project,
+  contentBlocks,
   configuration,
   showWaitingIndicator,
 }: ConfigurationStepProps) {
   return (
     <GuidedSteps.Step stepKey={stepKey} title={title}>
       <div>
-        <div>
+        <RenderBlocksOrFallback contentBlocks={contentBlocks}>
           <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
           <CodeSnippetWrapper>
             {configuration.code ? (
@@ -415,7 +432,7 @@ function ConfigurationStep({
           {showWaitingIndicator ? (
             <WaitingIndicator api={api} organization={organization} project={project} />
           ) : null}
-        </div>
+        </RenderBlocksOrFallback>
         <GuidedSteps.ButtonWrapper>
           <GuidedSteps.BackButton size="md" />
           <GuidedSteps.NextButton size="md" />
@@ -673,7 +690,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
       >
         <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
           <div>
-            <div>
+            <RenderBlocksOrFallback contentBlocks={installStep.content}>
               <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
               {installStep.configurations?.map((configuration, index) => (
                 <div key={index}>
@@ -694,7 +711,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
               {!configureStep.configurations && !verifyStep.configurations
                 ? eventWaitingIndicator
                 : null}
-            </div>
+            </RenderBlocksOrFallback>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
               <GuidedSteps.NextButton size="md" />
@@ -727,7 +744,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         ) : null}
         {verifyStep.configurations || verifyStep.description ? (
           <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-            <div>
+            <RenderBlocksOrFallback contentBlocks={verifyStep.content}>
               <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
               {verifyStep.configurations?.map((configuration, index) => (
                 <div key={index}>
@@ -746,7 +763,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                 </div>
               ))}
               {eventWaitingIndicator}
-            </div>
+            </RenderBlocksOrFallback>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
               {received ? (
