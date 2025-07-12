@@ -24,7 +24,6 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -39,7 +38,6 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  genAIConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -102,8 +100,6 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
-  const organization = useOrganization();
-  const genAIConsent = organization?.genAIConsent ?? false;
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -168,7 +164,6 @@ export function SearchQueryBuilderProvider({
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
       enableAISearch: Boolean(enableAISearch),
-      genAIConsent,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -201,7 +196,6 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
-    genAIConsent,
     getTagValues,
     handleSearch,
     parseQuery,
