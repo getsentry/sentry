@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 export const ASK_SEER_ITEM_KEY = 'ask_seer';
+export const ASK_SEER_CONSENT_ITEM_KEY = 'ask_seer_consent';
 
 export const AskSeerPane = styled('div')`
   grid-area: seer;
