@@ -4,11 +4,14 @@
 
 {{ text_description }}
 
-
+{% if enhanced_privacy %}
+Details about this issue are not shown in this notification since enhanced privacy controls are enabled.
+For more details about this issue, view this issue on Sentry.
+{% else %}
 ## Issue Details
 
 {{ group.title }}
-
+{% endif %}
 {{ link }}
 {% if unsubscribe_link %}
 
