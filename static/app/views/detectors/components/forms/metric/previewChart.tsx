@@ -1,27 +1,16 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {Flex} from 'sentry/components/core/layout';
-import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
+  createConditions,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
-
-const CHART_HEIGHT = 175;
 
 export function MetricDetectorPreviewChart() {
-  const organization = useOrganization();
+  // Get all the form fields needed for the chart
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-  const aggregate = useMetricDetectorFormField(
+  const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
@@ -29,64 +18,46 @@ export function MetricDetectorPreviewChart() {
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
 
-  const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
-  const seriesQueryOptions = datasetConfig.getSeriesQueryOptions({
-    organization,
-    aggregate,
-    interval,
-    query,
-    environment,
-    projectId: Number(projectId),
-    dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
-  });
+  // Threshold-related form fields
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  );
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  );
+  const initialPriorityLevel = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  );
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
 
-  const {data, isPending, isError} = useApiQuery<
-    Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
-  >(seriesQueryOptions, {
-    // 5 minutes
-    staleTime: 5 * 60 * 1000,
-  });
+  // Create condition group from form data using the helper function
+  const conditions = useMemo(() => {
+    // Wait for a condition value to be defined
+    if (kind === 'static' && !conditionValue) {
+      return [];
+    }
 
-  const series = useMemo(() => {
-    // TypeScript can't infer that each dataset config expects its own specific response type
-    return datasetConfig.transformSeriesQueryData(data as any, aggregate);
-  }, [datasetConfig, data, aggregate]);
-
-  if (isPending) {
-    return (
-      <PreviewChartContainer>
-        <Placeholder height={`${CHART_HEIGHT}px`} />
-      </PreviewChartContainer>
-    );
-  }
-
-  if (isError) {
-    return (
-      <PreviewChartContainer>
-        <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
-          <ErrorPanel>
-            <IconWarning color="gray300" size="lg" />
-            <div>{t('Error loading chart data')}</div>
-          </ErrorPanel>
-        </Flex>
-      </PreviewChartContainer>
-    );
-  }
+    return createConditions({
+      conditionType,
+      conditionValue,
+      initialPriorityLevel,
+      highThreshold,
+    });
+  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, kind]);
 
   return (
-    <PreviewChartContainer>
-      <AreaChart
-        series={series}
-        height={CHART_HEIGHT}
-        stacked={false}
-        isGroupedByDate
-        showTimeInTooltip
-      />
-    </PreviewChartContainer>
+    <MetricDetectorChart
+      dataset={dataset}
+      aggregate={aggregateFunction}
+      interval={interval}
+      query={query}
+      environment={environment}
+      projectId={projectId}
+      conditions={conditions}
+      detectionType={kind}
+    />
   );
 }
-
-const PreviewChartContainer = styled('div')`
-  max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
-`;
