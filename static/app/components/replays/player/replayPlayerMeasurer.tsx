@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import divide from 'sentry/utils/number/divide';
+import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
@@ -49,6 +50,7 @@ export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props
   const elementRef = useRef<HTMLDivElement>(null);
   const measuredDimensions = useDimensions({elementRef});
   const playerState = useReplayPlayerState();
+  const [, setViewSize] = useReplayPlayerSize();
 
   const parentDimensions = {
     width: measuredDimensions.width,
@@ -62,8 +64,7 @@ export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props
     MAX_ZOOM
   );
 
-  // TODO: set the `scale` into a provider, so that we can read it back
-  // elsewhere and potentially print it to the screen.
+  setViewSize({width: childDimensions.width, height: childDimensions.height, scale});
 
   const scaleStyle = {transform: `scale(${scale})`};
   const dimensions = {
