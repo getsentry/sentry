@@ -152,6 +152,18 @@ function StoryAPI() {
   const {story} = useStory();
   if (!story.exports.types) return null;
 
+  if (
+    typeof story.exports.types === 'object' &&
+    story.exports.types !== null &&
+    'filename' in story.exports.types
+  ) {
+    return (
+      <Storybook.APIReference
+        types={story.exports.types as TypeLoader.ComponentDocWithFilename}
+      />
+    );
+  }
+
   return (
     <Fragment>
       {Object.entries(story.exports.types).map(([key, value]) => {
