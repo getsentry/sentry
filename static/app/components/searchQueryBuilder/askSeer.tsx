@@ -37,8 +37,6 @@ export const AskSeerListItem = styled('div')`
   &:hover,
   &:focus {
     cursor: pointer;
-    background-color: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple400};
   }
 
   &[aria-selected='true'] {
@@ -52,4 +50,7 @@ export const AskSeerLabel = styled('span')`
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
