@@ -33,7 +33,17 @@ function isStorySection(item: StoryTreeNode | StorySection): item is StorySectio
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const {foundations, core, shared} = useStoryBookFilesByCategory();
+  const {
+    foundations: foundationsTree,
+    core: coreTree,
+    shared: sharedTree,
+  } = useStoryBookFilesByCategory();
+  const foundations = useMemo(
+    () => foundationsTree.flatMap(tree => tree.flat()),
+    [foundationsTree]
+  );
+  const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
+  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
 
   const storiesSearchHotkeys = useMemo(() => {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
@@ -54,8 +64,8 @@ export function StorySearch() {
 
     if (core.length > 0) {
       sections.push({
-        key: 'core',
-        label: 'Core',
+        key: 'components',
+        label: 'Components',
         options: core,
       });
     }
