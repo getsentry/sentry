@@ -1,245 +1,258 @@
+from typing import Any
+
 import pytest
 
 from sentry.replays.usecases.ingest.event_parser import (
+    EventContext,
     EventType,
+    HighlightedEventsBuilder,
     _get_testid,
     _parse_classes,
-    parse_highlighted_events,
+    as_trace_item,
+    as_trace_item_context,
+    parse_events,
     which,
 )
 from sentry.utils import json
 
 
-def test_parse_highlighted_events_canvas_sizes():
-    events = [{"type": 3, "data": {"source": 9, "id": 2440, "type": 0, "commands": [{"a": "b"}]}}]
-    result = parse_highlighted_events(events, sampled=True)
-    assert len(result.canvas_sizes) == 1
-    assert result.canvas_sizes[0] == len(json.dumps(events[0]))
+def test_highlighted_event_builder_canvas_sizes():
+    event = {"type": 3, "data": {"source": 9, "id": 2440, "type": 0, "commands": [{"a": "b"}]}}
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.canvas_sizes) == 1
+    assert builder.result.canvas_sizes[0] == len(json.dumps(event))
 
     # Not sampled.
-    result = parse_highlighted_events(events, sampled=False)
-    assert len(result.canvas_sizes) == 0
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    assert len(builder.result.canvas_sizes) == 0
 
 
 def test_parse_highlighted_events_mutation_events():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {"category": "replay.mutations", "data": {"count": 1738}},
-            },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"category": "replay.mutations", "data": {"count": 1738}},
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.mutation_events) == 1
-    assert result.mutation_events[0].payload == events[0]["data"]["payload"]  # type: ignore[index]
+    assert result.mutation_events[0].payload == event["data"]["payload"]  # type: ignore[index]
 
     # Not sampled.
-    result = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.mutation_events) == 0
 
 
 def test_parse_highlighted_events_options_events():
-    events = [
-        {
-            "data": {
-                "payload": {
-                    "blockAllMedia": True,
-                    "errorSampleRate": 0,
-                    "maskAllInputs": True,
-                    "maskAllText": True,
-                    "networkCaptureBodies": True,
-                    "networkDetailHasUrls": False,
-                    "networkRequestHasHeaders": True,
-                    "networkResponseHasHeaders": True,
-                    "sessionSampleRate": 1,
-                    "useCompression": False,
-                    "useCompressionOption": True,
-                },
-                "tag": "options",
+    event = {
+        "data": {
+            "payload": {
+                "blockAllMedia": True,
+                "errorSampleRate": 0,
+                "maskAllInputs": True,
+                "maskAllText": True,
+                "networkCaptureBodies": True,
+                "networkDetailHasUrls": False,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": True,
+                "sessionSampleRate": 1,
+                "useCompression": False,
+                "useCompressionOption": True,
             },
-            "timestamp": 1680009712.507,
-            "type": 5,
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+            "tag": "options",
+        },
+        "timestamp": 1680009712.507,
+        "type": 5,
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.options_events) == 1
-    assert result.options_events[0] == events[0]
+    assert result.options_events[0] == event
 
     # Not sampled.
-    result = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.options_events) == 0
 
 
 def test_parse_highlighted_events_hydration_errors():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "category": "replay.hydrate-error",
-                    "timestamp": 1.0,
-                    "data": {"url": "https://sentry.io"},
-                },
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "category": "replay.hydrate-error",
+                "timestamp": 1.0,
+                "data": {"url": "https://sentry.io"},
             },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=False)
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.hydration_errors) == 1
-    assert result.hydration_errors[0].url == events[0]["data"]["payload"]["data"]["url"]  # type: ignore[index]
-    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]  # type: ignore[index]
+    assert result.hydration_errors[0].url == event["data"]["payload"]["data"]["url"]  # type: ignore[index]
+    assert result.hydration_errors[0].timestamp == event["data"]["payload"]["timestamp"]  # type: ignore[index]
 
 
 def test_parse_highlighted_events_hydration_errors_missing_data_key():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {"category": "replay.hydrate-error", "timestamp": 1.0},
-            },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=False)
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"category": "replay.hydrate-error", "timestamp": 1.0},
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.hydration_errors) == 1
     assert result.hydration_errors[0].url is None
-    assert result.hydration_errors[0].timestamp == events[0]["data"]["payload"]["timestamp"]  # type: ignore[index]
+    assert result.hydration_errors[0].timestamp == event["data"]["payload"]["timestamp"]  # type: ignore[index]
 
 
 # Request response body sizes parsing.
 
 
 def test_parse_highlighted_events_payload_sizes_old_format():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {
-                    "op": "resource.xhr",
-                    "data": {"requestBodySize": 1002, "responseBodySize": 8001},
-                },
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.xhr",
+                "data": {"requestBodySize": 1002, "responseBodySize": 8001},
             },
         },
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (1002, 8001)
 
 
 def test_parse_highlighted_events_payload_sizes_old_format_no_response():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {"op": "resource.xhr", "data": {"requestBodySize": 1002}},
-            },
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "resource.xhr", "data": {"requestBodySize": 1002}},
         },
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (1002, None)
 
 
 def test_parse_highlighted_events_payload_sizes_old_format_no_request():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {"op": "resource.xhr", "data": {"responseBodySize": 8001}},
-            },
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "resource.xhr", "data": {"responseBodySize": 8001}},
         },
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (None, 8001)
 
 
 def test_parse_highlighted_events_payload_sizes_old_format_nothing():
-    events = [
-        {
-            "type": 5,
-            "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr", "data": {}}},
-        },
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr", "data": {}}},
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 0
 
 
 def test_parse_highlighted_events_payload_sizes_new_format():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {
-                    "op": "resource.fetch",
-                    "data": {"request": {"size": 5}, "response": {"size": 22}},
-                },
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "data": {"request": {"size": 5}, "response": {"size": 22}},
             },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (5, 22)
 
 
 def test_parse_highlighted_events_payload_sizes_new_format_no_response():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {"op": "resource.fetch", "data": {"request": {"size": 5}}},
-            },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "resource.fetch", "data": {"request": {"size": 5}}},
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (5, None)
 
 
 def test_parse_highlighted_events_payload_sizes_new_format_no_request():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {"op": "resource.fetch", "data": {"response": {"size": 5}}},
-            },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "resource.fetch", "data": {"response": {"size": 5}}},
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 1
     assert result.request_response_sizes[0] == (None, 5)
 
 
 def test_parse_highlighted_events_payload_sizes_new_format_nothing():
-    events = [
-        {
-            "type": 5,
-            "data": {"tag": "performanceSpan", "payload": {"op": "resource.fetch"}},
-        },
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {"tag": "performanceSpan", "payload": {"op": "resource.fetch"}},
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 0
 
 
 def test_parse_highlighted_events_payload_sizes_invalid_op():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {"op": "a", "data": {"response": {"size": 5}}},
-            },
-        }
-    ]
-    result = parse_highlighted_events(events, sampled=True)
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {"op": "a", "data": {"response": {"size": 5}}},
+        },
+    }
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    result = builder.result
     assert len(result.request_response_sizes) == 0
 
 
@@ -247,41 +260,41 @@ def test_parse_highlighted_events_payload_sizes_invalid_op():
 
 
 def test_parse_highlighted_events_click_events():
-    events = [
-        {
-            "type": 5,
-            "timestamp": 1674298825,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1674298825.403,
-                    "type": "default",
-                    "category": "ui.click",
-                    "message": "div#hello.hello.world",
-                    "data": {
-                        "nodeId": 1,
-                        "node": {
-                            "id": 1,
-                            "tagName": "div",
-                            "attributes": {
-                                "id": "hello",
-                                "class": "hello world",
-                                "aria-label": "test",
-                                "role": "button",
-                                "alt": "1",
-                                "data-testid": "2",
-                                "title": "3",
-                                "data-sentry-component": "SignUpForm",
-                            },
-                            "textContent": "Hello, world!",
+    event = {
+        "type": 5,
+        "timestamp": 1674298825,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1674298825.403,
+                "type": "default",
+                "category": "ui.click",
+                "message": "div#hello.hello.world",
+                "data": {
+                    "nodeId": 1,
+                    "node": {
+                        "id": 1,
+                        "tagName": "div",
+                        "attributes": {
+                            "id": "hello",
+                            "class": "hello world",
+                            "aria-label": "test",
+                            "role": "button",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
                         },
+                        "textContent": "Hello, world!",
                     },
                 },
             },
-        }
-    ]
+        },
+    }
 
-    user_actions = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    user_actions = builder.result
     assert len(user_actions.click_events) == 1
     assert user_actions.click_events[0].node_id == 1
     assert user_actions.click_events[0].tag == "div"
@@ -300,137 +313,141 @@ def test_parse_highlighted_events_click_events():
 
 
 def test_parse_highlighted_events_click_event_str_payload():
-    events = [{"type": 5, "data": {"tag": "breadcrumb", "payload": "hello world"}}]
-    result = parse_highlighted_events(events, sampled=False)
+    event = {"type": 5, "data": {"tag": "breadcrumb", "payload": "hello world"}}
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.click_events) == 0
 
 
 def test_parse_highlighted_events_click_event_missing_node():
-    events = [
-        {
-            "type": 5,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {"category": "ui.click", "message": "div#hello.hello.world"},
-            },
-        }
-    ]
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"category": "ui.click", "message": "div#hello.hello.world"},
+        },
+    }
 
-    result = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.click_events) == 0
 
 
 def test_parse_highlighted_events_click_event_dead_rage():
     time_after_click_ms = 7000.0
-    events = [
-        {
-            "type": 5,
-            "timestamp": 1674291701348,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1.1,
-                    "type": "default",
-                    "category": "ui.slowClickDetected",
-                    "message": "div.container > div#root > div > ul > div",
-                    "data": {
-                        "endReason": "timeout",
-                        "timeafterclickms": time_after_click_ms,
-                        "nodeId": 59,
-                        "url": "https://www.sentry.io",
-                        "node": {
-                            "id": 59,
-                            "tagName": "a",
-                            "attributes": {
-                                "id": "id",
-                                "class": "class1 class2",
-                                "role": "button",
-                                "aria-label": "test",
-                                "alt": "1",
-                                "data-testid": "2",
-                                "title": "3",
-                                "data-sentry-component": "SignUpForm",
-                            },
-                            "textContent": "text",
+    event1 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "endReason": "timeout",
+                    "timeafterclickms": time_after_click_ms,
+                    "nodeId": 59,
+                    "url": "https://www.sentry.io",
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
                         },
+                        "textContent": "text",
                     },
                 },
             },
         },
-        {
-            "type": 5,
-            "timestamp": 1674291701348,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1.1,
-                    "type": "default",
-                    "category": "ui.slowClickDetected",
-                    "message": "div.container > div#root > div > ul > div",
-                    "data": {
-                        "clickcount": 5,
-                        "endReason": "timeout",
-                        "timeafterclickms": time_after_click_ms,
-                        "nodeId": 59,
-                        "url": "https://www.sentry.io",
-                        "node": {
-                            "id": 59,
-                            "tagName": "a",
-                            "attributes": {
-                                "id": "id",
-                                "class": "class1 class2",
-                                "role": "button",
-                                "aria-label": "test",
-                                "alt": "1",
-                                "data-testid": "2",
-                                "title": "3",
-                                "data-sentry-component": "SignUpForm",
-                            },
-                            "textContent": "text",
+    }
+    event2 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "clickcount": 5,
+                    "endReason": "timeout",
+                    "timeafterclickms": time_after_click_ms,
+                    "nodeId": 59,
+                    "url": "https://www.sentry.io",
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
                         },
+                        "textContent": "text",
                     },
                 },
             },
         },
-        # New style slowClickDetected payload.
-        {
-            "type": 5,
-            "timestamp": 1674291701348,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1.1,
-                    "type": "default",
-                    "category": "ui.slowClickDetected",
-                    "message": "div.container > div#root > div > ul > div",
-                    "data": {
-                        "url": "https://www.sentry.io",
-                        "clickCount": 5,
-                        "endReason": "timeout",
-                        "timeAfterClickMs": time_after_click_ms,
-                        "nodeId": 59,
-                        "node": {
-                            "id": 59,
-                            "tagName": "a",
-                            "attributes": {
-                                "id": "id",
-                                "class": "class1 class2",
-                                "role": "button",
-                                "aria-label": "test",
-                                "alt": "1",
-                                "data-testid": "2",
-                                "title": "3",
-                                "data-sentry-component": "SignUpForm",
-                            },
-                            "textContent": "text",
+    }
+    # New style slowClickDetected payload.
+    event3 = {
+        "type": 5,
+        "timestamp": 1674291701348,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1.1,
+                "type": "default",
+                "category": "ui.slowClickDetected",
+                "message": "div.container > div#root > div > ul > div",
+                "data": {
+                    "url": "https://www.sentry.io",
+                    "clickCount": 5,
+                    "endReason": "timeout",
+                    "timeAfterClickMs": time_after_click_ms,
+                    "nodeId": 59,
+                    "node": {
+                        "id": 59,
+                        "tagName": "a",
+                        "attributes": {
+                            "id": "id",
+                            "class": "class1 class2",
+                            "role": "button",
+                            "aria-label": "test",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
                         },
+                        "textContent": "text",
                     },
                 },
             },
         },
-    ]
+    }
 
-    result = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event1), event1, sampled=False)
+    builder.add(which(event2), event2, sampled=False)
+    builder.add(which(event3), event3, sampled=False)
+    result = builder.result
     assert len(result.click_events) == 3
     assert result.click_events[0].node_id == 59
     assert result.click_events[0].tag == "a"
@@ -459,41 +476,41 @@ def test_parse_highlighted_events_click_event_dead_rage():
 
 
 def test_emit_click_negative_node_id():
-    events = [
-        {
-            "type": 5,
-            "timestamp": 1674298825,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1674298825.403,
-                    "type": "default",
-                    "category": "ui.click",
-                    "message": "div#hello.hello.world",
-                    "data": {
-                        "nodeId": 1,
-                        "node": {
-                            "id": -1,
-                            "tagName": "div",
-                            "attributes": {
-                                "id": "hello",
-                                "class": "hello world",
-                                "aria-label": "test",
-                                "role": "button",
-                                "alt": "1",
-                                "data-testid": "2",
-                                "title": "3",
-                                "data-sentry-component": "SignUpForm",
-                            },
-                            "textContent": "Hello, world!",
+    event = {
+        "type": 5,
+        "timestamp": 1674298825,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1674298825.403,
+                "type": "default",
+                "category": "ui.click",
+                "message": "div#hello.hello.world",
+                "data": {
+                    "nodeId": 1,
+                    "node": {
+                        "id": -1,
+                        "tagName": "div",
+                        "attributes": {
+                            "id": "hello",
+                            "class": "hello world",
+                            "aria-label": "test",
+                            "role": "button",
+                            "alt": "1",
+                            "data-testid": "2",
+                            "title": "3",
+                            "data-sentry-component": "SignUpForm",
                         },
+                        "textContent": "Hello, world!",
                     },
                 },
             },
-        }
-    ]
+        },
+    }
 
-    result = parse_highlighted_events(events, sampled=False)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    result = builder.result
     assert len(result.click_events) == 0
 
 
@@ -736,4 +753,453 @@ def test_which():
 )
 def test_parse_highlighted_events_fault_tolerance(event):
     # If the test raises an exception we fail. All of these events are invalid.
-    parse_highlighted_events([event], True)
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+
+
+# Tests for trace item functions
+
+
+def test_as_trace_item_context_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "div#hello.hello.world",
+                "data": {
+                    "node": {
+                        "id": 123,
+                        "tagName": "button",
+                        "textContent": "Click me!",
+                        "attributes": {
+                            "id": "submit-btn",
+                            "class": "btn primary",
+                            "alt": "submit button",
+                            "aria-label": "Submit form",
+                            "role": "button",
+                            "title": "Submit this form",
+                            "data-sentry-component": "SubmitButton",
+                            "data-testid": "submit-test",
+                        },
+                    }
+                },
+                "url": "https://example.com/form",
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.CLICK, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.403
+    assert result["attributes"]["category"] == "ui.click"
+    assert result["attributes"]["node_id"] == 123
+    assert result["attributes"]["tag"] == "button"
+    assert result["attributes"]["text"] == "Click me!"
+    assert result["attributes"]["is_dead"] is False
+    assert result["attributes"]["is_rage"] is False
+    assert result["attributes"]["selector"] == "div#hello.hello.world"
+    assert result["attributes"]["id"] == "submit-btn"
+    assert result["attributes"]["class"] == "btn primary"
+    assert result["attributes"]["alt"] == "submit button"
+    assert result["attributes"]["aria_label"] == "Submit form"
+    assert result["attributes"]["role"] == "button"
+    assert result["attributes"]["title"] == "Submit this form"
+    assert result["attributes"]["component_name"] == "SubmitButton"
+    assert result["attributes"]["testid"] == "submit-test"
+    assert result["attributes"]["url"] == "https://example.com/form"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_dead_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "button.slow",
+                "data": {
+                    "node": {
+                        "id": 456,
+                        "tagName": "button",
+                        "textContent": "Slow button",
+                        "attributes": {},
+                    }
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.DEAD_CLICK, event)
+    assert result is not None
+    assert result["attributes"]["is_dead"] is True
+    assert result["attributes"]["is_rage"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_rage_click_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "message": "button.rage",
+                "data": {
+                    "node": {
+                        "id": 789,
+                        "tagName": "button",
+                        "textContent": "Rage button",
+                        "attributes": {},
+                    }
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RAGE_CLICK, event)
+    assert result is not None
+    assert result["attributes"]["is_dead"] is True
+    assert result["attributes"]["is_rage"] is True
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_navigation_event():
+    event = {
+        "data": {
+            "payload": {"timestamp": 1674298825.0, "data": {"from": "/old-page", "to": "/new-page"}}
+        }
+    }
+
+    result = as_trace_item_context(EventType.NAVIGATION, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
+    assert result["attributes"]["from"] == "/old-page"
+    assert result["attributes"]["to"] == "/new-page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_navigation_event_missing_optional_fields():
+    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+
+    result = as_trace_item_context(EventType.NAVIGATION, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "navigation"
+    assert "from" not in result["attributes"]
+    assert "to" not in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_resource_fetch_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"requestBodySize": 1024, "responseBodySize": 2048},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "resource.fetch"
+    assert result["attributes"]["request_size"] == 1024
+    assert result["attributes"]["response_size"] == 2048
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_resource_xhr_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"request": {"size": 512}, "response": {"size": 1024}},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.RESOURCE_XHR, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.xhr"
+    assert result["attributes"]["request_size"] == 512
+    assert result["attributes"]["response_size"] == 1024
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_resource_no_sizes():
+    event = {"data": {"payload": {"timestamp": 1674298825.0, "data": {}}}}
+
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.fetch"
+    assert "request_size" not in result["attributes"]
+    assert "response_size" not in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_lcp_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"rating": "good", "size": 1024, "value": 1500},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.LCP, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "web-vital.lcp"
+    assert result["attributes"]["rating"] == "good"
+    assert result["attributes"]["size"] == 1024
+    assert result["attributes"]["value"] == 1500
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_fcp_event():
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.0,
+                "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.FCP, event)
+    assert result is not None
+    assert result["attributes"]["category"] == "web-vital.fcp"
+    assert result["attributes"]["rating"] == "needs-improvement"
+    assert result["attributes"]["size"] == 512
+    assert result["attributes"]["value"] == 2000
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_hydration_error():
+    event = {
+        "data": {
+            "payload": {"timestamp": 1674298825.0, "data": {"url": "https://example.com/page"}}
+        }
+    }
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == "https://example.com/page"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_mutations():
+    event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
+
+    result = as_trace_item_context(EventType.MUTATIONS, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825000
+    assert result["attributes"]["category"] == "replay.mutations"
+    assert result["attributes"]["count"] == 42
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_options():
+    event = {
+        "timestamp": 1674298825507,
+        "data": {
+            "payload": {
+                "shouldRecordCanvas": True,
+                "sessionSampleRate": 0.1,
+                "errorSampleRate": 1.0,
+                "useCompressionOption": False,
+                "blockAllMedia": True,
+                "maskAllText": False,
+                "maskAllInputs": True,
+                "useCompression": False,
+                "networkDetailHasUrls": True,
+                "networkCaptureBodies": False,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": False,
+            }
+        },
+    }
+
+    result = as_trace_item_context(EventType.OPTIONS, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.507  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
+    assert result["attributes"]["shouldRecordCanvas"] is True
+    assert result["attributes"]["sessionSampleRate"] == 0.1
+    assert result["attributes"]["errorSampleRate"] == 1.0
+    assert result["attributes"]["useCompressionOption"] is False
+    assert result["attributes"]["blockAllMedia"] is True
+    assert result["attributes"]["maskAllText"] is False
+    assert result["attributes"]["maskAllInputs"] is True
+    assert result["attributes"]["useCompression"] is False
+    assert result["attributes"]["networkDetailHasUrls"] is True
+    assert result["attributes"]["networkCaptureBodies"] is False
+    assert result["attributes"]["networkRequestHasHeaders"] is True
+    assert result["attributes"]["networkResponseHasHeaders"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_memory():
+    event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298826.5,
+                "data": {
+                    "jsHeapSizeLimit": 4294705152,
+                    "totalJSHeapSize": 50331648,
+                    "usedJSHeapSize": 30000000,
+                },
+            }
+        }
+    }
+
+    result = as_trace_item_context(EventType.MEMORY, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "memory"
+    assert result["attributes"]["jsHeapSizeLimit"] == 4294705152
+    assert result["attributes"]["totalJSHeapSize"] == 50331648
+    assert result["attributes"]["usedJSHeapSize"] == 30000000
+    assert result["attributes"]["endTimestamp"] == 1674298826.5
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_returns_none_for_unsupported_events():
+    event: dict[str, Any] = {"data": {"payload": {}}}
+    assert as_trace_item_context(EventType.CONSOLE, event) is None
+    assert as_trace_item_context(EventType.UI_BLUR, event) is None
+    assert as_trace_item_context(EventType.UI_FOCUS, event) is None
+    assert as_trace_item_context(EventType.UNKNOWN, event) is None
+    assert as_trace_item_context(EventType.CANVAS, event) is None
+    assert as_trace_item_context(EventType.FEEDBACK, event) is None
+
+
+def test_as_trace_item():
+    context: EventContext = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "data": {"from": "/old-page", "to": "/new-page"},
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.NAVIGATION, event)
+    assert result is not None
+    assert result.organization_id == 123
+    assert result.project_id == 456
+    assert result.trace_id == "trace-123"
+    assert result.retention_days == 30
+    assert result.received.ToSeconds() == 1674298825
+    assert result.timestamp.ToMilliseconds() == int(1674298825.403 * 1000)
+    assert result.attributes["category"].string_value == "navigation"
+    assert result.attributes["from"].string_value == "/old-page"
+    assert result.attributes["to"].string_value == "/new-page"
+    assert result.attributes["replay_id"].string_value == "replay-456"  # Should be added
+
+
+def test_as_trace_item_with_no_trace_id():
+    context: EventContext = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": None,
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "data": {"from": "/old-page", "to": "/new-page"},
+            }
+        }
+    }
+
+    result = as_trace_item(context, EventType.NAVIGATION, event)
+    assert result is not None
+    assert result.trace_id == "replay-456"  # Should fall back to replay_id
+
+
+def test_as_trace_item_returns_none_for_unsupported_event():
+    context: EventContext = {
+        "organization_id": 123,
+        "project_id": 456,
+        "received": 1674298825.0,
+        "retention_days": 30,
+        "trace_id": "trace-123",
+        "replay_id": "replay-456",
+        "segment_id": 1,
+    }
+
+    event: dict[str, Any] = {"data": {"payload": {}}}
+    assert as_trace_item(context, EventType.CONSOLE, event) is None
+
+
+def test_parse_events():
+    """Test "parse_events" function."""
+    parsed, trace_items = parse_events(
+        {
+            "organization_id": 1,
+            "project_id": 1,
+            "received": 1,
+            "replay_id": "1",
+            "retention_days": 1,
+            "segment_id": 1,
+            "trace_id": None,
+        },
+        [
+            {
+                "type": 5,
+                "timestamp": 1674291701348,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": 1.1,
+                        "type": "default",
+                        "category": "ui.slowClickDetected",
+                        "message": "div.container > div#root > div > ul > div",
+                        "data": {
+                            "clickcount": 5,
+                            "endReason": "timeout",
+                            "timeafterclickms": 0,
+                            "nodeId": 59,
+                            "url": "https://www.sentry.io",
+                            "node": {
+                                "id": 59,
+                                "tagName": "a",
+                                "attributes": {
+                                    "id": "id",
+                                    "class": "class1 class2",
+                                    "role": "button",
+                                    "aria-label": "test",
+                                    "alt": "1",
+                                    "data-testid": "2",
+                                    "title": "3",
+                                    "data-sentry-component": "SignUpForm",
+                                },
+                                "textContent": "text",
+                            },
+                        },
+                    },
+                },
+            }
+        ],
+    )
+
+    assert len(trace_items) == 1
+    assert len(parsed.click_events) == 1
