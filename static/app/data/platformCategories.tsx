@@ -7,7 +7,8 @@ export enum PlatformCategory {
   BACKEND = 2,
   SERVERLESS = 3,
   DESKTOP = 4,
-  OTHER = 5,
+  CONSOLE = 5,
+  OTHER = 6,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -164,6 +165,10 @@ export const desktop: PlatformKey[] = [
   'unreal',
 ];
 
+// Mirrors `CONSOLE` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const console: PlatformKey[] = ['playstation'];
+
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
@@ -287,7 +292,6 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
-  'playstation',
 ]);
 
 export const profiling: PlatformKey[] = [

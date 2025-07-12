@@ -159,6 +159,8 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
+const console: Set<PlatformKey> = new Set(['playstation']);
+
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
   ...browser,
@@ -166,6 +168,7 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
+  ...console,
 ]);
 
 /**
@@ -182,6 +185,7 @@ const categoryList = [
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
+  {id: 'console', name: t('Console'), platforms: console},
   {
     id: 'all',
     name: t('All'),
