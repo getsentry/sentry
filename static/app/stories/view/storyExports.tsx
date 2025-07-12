@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
-import type {StoryDescriptor} from './useStoriesLoader';
+import {isMDXStory, type StoryDescriptor} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
@@ -47,10 +47,10 @@ function StoryLayout() {
 function StoryTitlebar() {
   const {story} = useStory();
 
+  if (!isMDXStory(story)) return null;
+
   const title = story.exports.frontmatter?.title;
   const description = story.exports.frontmatter?.description;
-
-  if (!story.filename.endsWith('.mdx')) return null;
 
   return (
     <StoryHeader>
@@ -74,7 +74,8 @@ function StoryTabList() {
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
       {story.exports.types ? <TabList.Item key="api">{t('API')}</TabList.Item> : null}
-      {story.exports.frontmatter?.resources ? (
+
+      {isMDXStory(story) && story.exports.frontmatter?.resources ? (
         <TabList.Item key="resources">{t('Resources')}</TabList.Item>
       ) : null}
     </TabList>
@@ -109,6 +110,7 @@ function StoryUsage() {
       filename,
     },
   } = useStory();
+
   return (
     <Fragment>
       {Story && (
@@ -129,9 +131,10 @@ function StoryUsage() {
           return null;
         }
         if (typeof MaybeComponent === 'function') {
+          const Component = MaybeComponent as React.ComponentType;
           return (
             <Storybook.Section key={name}>
-              <MaybeComponent />
+              <Component />
             </Storybook.Section>
           );
         }
@@ -152,12 +155,7 @@ function StoryAPI() {
   return (
     <Fragment>
       {Object.entries(story.exports.types).map(([key, value]) => {
-        return (
-          <Storybook.APIReference
-            key={key}
-            types={value as TypeLoader.ComponentDocWithFilename}
-          />
-        );
+        return <Storybook.APIReference key={key} types={value} />;
       })}
     </Fragment>
   );
