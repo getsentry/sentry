@@ -154,6 +154,20 @@ function InternalInput({item, state, token}: InternalInputProps) {
     [dispatch, state, token, resetInputValue]
   );
 
+  const onInputCommit = useCallback(() => {
+    const trimmed = inputValue.trim();
+    const text = validateLiteral(trimmed) ? trimmed : token.text;
+    dispatch({
+      text,
+      type: 'REPLACE_TOKEN',
+      token,
+      focusOverride: {
+        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+      },
+    });
+    resetInputValue();
+  }, [dispatch, state, token, inputValue, resetInputValue]);
+
   const onInputEscape = useCallback(() => {
     const text = inputValue.trim();
     if (validateLiteral(text)) {
@@ -243,6 +257,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
         onClick={onClick}
         onInputBlur={onInputBlur}
         onInputChange={onInputChange}
+        onInputCommit={onInputCommit}
         onInputEscape={onInputEscape}
         onInputFocus={onInputFocus}
         onKeyDown={onKeyDown}
