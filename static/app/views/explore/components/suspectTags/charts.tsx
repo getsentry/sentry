@@ -1,9 +1,7 @@
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {TooltipComponentFormatterCallbackParams} from 'echarts';
-import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
@@ -31,75 +29,6 @@ export function Charts({rankedAttributes}: Props) {
   );
 }
 
-type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1'];
-
-function cohortsToSeriesData(
-  cohort1: CohortData,
-  cohort2: CohortData
-): {
-  [BASELINE_SERIES_NAME]: Array<{label: string; value: string}>;
-  [SELECTED_SERIES_NAME]: Array<{label: string; value: string}>;
-} {
-  const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
-  const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
-
-  const uniqueLabels = new Set([
-    ...cohort1.map(c => c.label),
-    ...cohort2.map(c => c.label),
-  ]);
-
-  // From the unique labels, we create two series data objects, one for the selected cohort and one for the baseline cohort.
-  // If a label isn't present in either of the cohorts, we assign a value of 0, to that label in the respective series.
-  const seriesData = Array.from(uniqueLabels).map(label => {
-    const selectedVal = cohort1Map.get(label) ?? '0';
-    const baselineVal = cohort2Map.get(label) ?? '0';
-
-    // We sort by descending value of the selected cohort
-    const sortVal = Number(selectedVal);
-
-    return {
-      label,
-      selectedValue: selectedVal,
-      baselineValue: baselineVal,
-      sortValue: sortVal,
-    };
-  });
-
-  seriesData.sort((a, b) => b.sortValue - a.sortValue);
-
-  const selectedSeriesData = seriesData.map(({label, selectedValue}) => ({
-    label,
-    value: selectedValue,
-  }));
-
-  const baselineSeriesData = seriesData.map(({label, baselineValue}) => ({
-    label,
-    value: baselineValue,
-  }));
-
-  return {
-    [SELECTED_SERIES_NAME]: selectedSeriesData,
-    [BASELINE_SERIES_NAME]: baselineSeriesData,
-  };
-}
-
-// TODO Abdullah Khan: This is a temporary function to get the totals of the cohorts. Will be removed
-// once the backend returns the totals.
-function cohortTotals(
-  cohort1: CohortData,
-  cohort2: CohortData
-): {
-  [BASELINE_SERIES_NAME]: number;
-  [SELECTED_SERIES_NAME]: number;
-} {
-  const cohort1Total = cohort1.reduce((acc, curr) => acc + Number(curr.value), 0);
-  const cohort2Total = cohort2.reduce((acc, curr) => acc + Number(curr.value), 0);
-  return {
-    [SELECTED_SERIES_NAME]: cohort1Total,
-    [BASELINE_SERIES_NAME]: cohort2Total,
-  };
-}
-
 function Chart({
   attribute,
   theme,
@@ -112,68 +41,6 @@ function Chart({
 
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
   const cohort2Color = '#dddddd';
-
-  const seriesData = useMemo(
-    () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
-  );
-
-  const seriesTotals = useMemo(
-    () => cohortTotals(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
-  );
-
-  const valueFormatter = useCallback(
-    (_value: number, label?: string, seriesParams?: CallbackDataParams) => {
-      const data = Number(seriesParams?.data);
-      const total = seriesTotals[label as keyof typeof seriesTotals];
-      const percentage = (data / total) * 100;
-      return `${percentage.toFixed(1)}%`;
-    },
-    [seriesTotals]
-  );
-
-  const formatAxisLabel = useCallback(
-    (
-      _value: number,
-      _isTimestamp: boolean,
-      _utc: boolean,
-      _showTimeInTooltip: boolean,
-      _addSecondsToTimeFormat: boolean,
-      _bucketSize: number | undefined,
-      seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-    ) => {
-      if (!Array.isArray(seriesParamsOrParam)) {
-        throw new Error('seriesParamsOrParam is not an array in formatAxisLabel');
-      }
-
-      const selectedParam = seriesParamsOrParam[0];
-      const baselineParam = seriesParamsOrParam[1];
-
-      if (!selectedParam || !baselineParam) {
-        throw new Error('selectedParam or baselineParam is not defined');
-      }
-
-      const selectedTotal =
-        seriesTotals[selectedParam?.seriesName as keyof typeof seriesTotals];
-      const selectedData = Number(selectedParam?.data);
-      const selectedPercentage = (selectedData / selectedTotal) * 100;
-
-      const baselineTotal =
-        seriesTotals[baselineParam?.seriesName as keyof typeof seriesTotals];
-      const baselineData = Number(baselineParam?.data);
-      const baselinePercentage = (baselineData / baselineTotal) * 100;
-
-      const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
-
-      const status = isDifferent
-        ? {adjective: 'different', message: 'This is suspicious.'}
-        : {adjective: 'similar', message: 'Nothing unusual here.'};
-
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${selectedParam?.name} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
-    },
-    [seriesTotals, theme.textColor]
-  );
 
   useLayoutEffect(() => {
     const chartContainer = chartRef.current?.getEchartsInstance().getDom();
@@ -202,9 +69,8 @@ function Chart({
         autoHeightResize
         isGroupedByDate={false}
         tooltip={{
-          renderMode: 'html',
-          valueFormatter,
-          formatAxisLabel,
+          trigger: 'axis',
+          confine: true,
         }}
         grid={{
           left: 2,
@@ -214,7 +80,7 @@ function Chart({
         xAxis={{
           show: true,
           type: 'category',
-          data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
+          data: attribute.cohort1.map(cohort => cohort.label),
           truncate: 14,
           axisLabel: hideLabels
             ? {show: false}
@@ -237,7 +103,7 @@ function Chart({
         series={[
           {
             type: 'bar',
-            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
+            data: attribute.cohort1.map(cohort => cohort.value),
             name: SELECTED_SERIES_NAME,
             itemStyle: {
               color: cohort1Color,
@@ -247,7 +113,7 @@ function Chart({
           },
           {
             type: 'bar',
-            data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
+            data: attribute.cohort2.map(cohort => cohort.value),
             name: BASELINE_SERIES_NAME,
             itemStyle: {
               color: cohort2Color,
