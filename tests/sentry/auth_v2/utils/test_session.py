@@ -194,7 +194,7 @@ class SessionBuilderTest(TestCase):
         """
         todo_password_reset has 2 conditions that trigger it.
         """
-        # Password is expired and usable
+        # Case 1:Password is expired and usable
         self.request.user = self.create_mock_user(
             is_password_expired=True,
             has_usable_password=True,
@@ -207,7 +207,7 @@ class SessionBuilderTest(TestCase):
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-        # Password is not expired and usable
+        # Case 2: Password is not expired and usable
         self.request.user = self.create_mock_user(
             is_password_expired=False,
             has_usable_password=True,
@@ -219,7 +219,7 @@ class SessionBuilderTest(TestCase):
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-        # Password is not expired and not usable
+        # Case 3: Password is not expired and not usable
         self.request.user = self.create_mock_user(
             is_password_expired=False,
             has_usable_password=False,
@@ -228,9 +228,6 @@ class SessionBuilderTest(TestCase):
         assert self.request.session["todo_password_reset"] is True
 
     def test_initialize_todo_2fa_setup_logic(self):
-        """
-        todo_2fa_setup should only be True when user has org requiring 2FA but doesn't have 2FA enabled.
-        """
         # Case 1: User has org requiring 2FA but no 2FA enabled -> should be True
         self.request.user = self.create_mock_user(
             has_org_requiring_2fa=True,
