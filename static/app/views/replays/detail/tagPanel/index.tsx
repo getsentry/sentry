@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {FluidPanel} from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
@@ -77,24 +76,22 @@ export default function TagPanel() {
       <PaddedFluidHeight>
         <TagFilters tags={tags} {...filterProps} />
         <TabItemContainer>
-          <StyledPanel>
-            <FluidPanel>
-              {filteredTags.length ? (
-                <KeyValueTable noMargin>
-                  {filteredTags.map(([key, values]) => (
-                    <ReplayTagsTableRow
-                      key={key}
-                      name={key}
-                      values={values}
-                      generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                    />
-                  ))}
-                </KeyValueTable>
-              ) : (
-                <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-              )}
-            </FluidPanel>
-          </StyledPanel>
+          <OverflowBody>
+            {filteredTags.length ? (
+              <KeyValueTable noMargin>
+                {filteredTags.map(([key, values]) => (
+                  <ReplayTagsTableRow
+                    key={key}
+                    name={key}
+                    values={values}
+                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                  />
+                ))}
+              </KeyValueTable>
+            ) : (
+              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+            )}
+          </OverflowBody>
         </TabItemContainer>
       </PaddedFluidHeight>
     </ErrorBoundary>
@@ -109,9 +106,7 @@ const PaddedFluidHeight = styled(FluidHeight)`
   padding-top: ${space(1)};
 `;
 
-const StyledPanel = styled('div')`
-  position: relative;
-  height: 100%;
+const OverflowBody = styled('section')`
+  flex: 1 1 auto;
   overflow: auto;
-  display: grid;
 `;
