@@ -68,6 +68,8 @@ export function useInfiniteTestResults() {
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
 
+  const term = searchParams.get('term') || '';
+
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
   if (filterBy in SUMMARY_TO_TA_TABLE_FILTER_KEY) {
@@ -82,7 +84,7 @@ export function useInfiniteTestResults() {
   >({
     queryKey: [
       `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy}},
+      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, term}},
     ],
     queryFn: async ({
       queryKey: [url],
@@ -101,6 +103,7 @@ export function useInfiniteTestResults() {
                 ],
               sortBy: signedSortBy,
               branch,
+              term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
             },
           },
