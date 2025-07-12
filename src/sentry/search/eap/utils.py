@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
@@ -20,8 +21,10 @@ from sentry.search.eap.ourlogs.attributes import (
     LOGS_PRIVATE_ATTRIBUTES,
     LOGS_REPLACEMENT_ATTRIBUTES,
     LOGS_REPLACEMENT_MAP,
+    OURLOG_ATTRIBUTE_DEFINITIONS,
 )
 from sentry.search.eap.spans.attributes import (
+    SPAN_ATTRIBUTE_DEFINITIONS,
     SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTE_PREFIXES,
@@ -124,6 +127,11 @@ INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
 }
 
+PUBLIC_ALIAS_TO_INTERNAL_MAPPING: dict[SupportedTraceItemType, dict[str, ResolvedAttribute]] = {
+    SupportedTraceItemType.SPANS: SPAN_ATTRIBUTE_DEFINITIONS,
+    SupportedTraceItemType.LOGS: OURLOG_ATTRIBUTE_DEFINITIONS,
+}
+
 
 PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.SPANS: SPANS_PRIVATE_ATTRIBUTES,
@@ -158,7 +166,17 @@ def translate_internal_to_public_alias(
     item_type: SupportedTraceItemType,
 ) -> str | None:
     mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
-    return mapping.get(internal_alias)
+    public_alias = mapping.get(internal_alias)
+    if public_alias is not None:
+        return public_alias
+
+    resolved_column = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(internal_alias)
+    if resolved_column is not None:
+        # if there is a known public alias with this exact name, it means we need to wrap
+        # it in the explicitly typed tags syntax in order for it to reference the correct column
+        return f"tags[{internal_alias},{type}]"
+
+    return None
 
 
 def get_secondary_aliases(
