@@ -275,7 +275,7 @@
     "validate-api-examples": "pnpm run --dir api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
-    "knip": "knip --treat-config-hints-as-errors",
+    "knip": "TS_NODE_PROJECT=tsconfig.jest.json knip --treat-config-hints-as-errors",
     "knip:prod": "pnpm run knip --production --exclude exports,types,dependencies,unresolved"
   },
   "browserslist": {
