@@ -32,6 +32,7 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
@@ -51,7 +52,7 @@ _default_logger: Logger = getLogger(__name__)
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     prompt = "Send a Slack notification"
-    provider = "slack"
+    provider = IntegrationProviderSlug.SLACK.value
     integration_key = "workspace"
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
