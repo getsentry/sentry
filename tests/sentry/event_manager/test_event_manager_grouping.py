@@ -150,6 +150,9 @@ class EventManagerGroupingTest(TestCase):
     def test_auto_updates_grouping_config(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
+        # Set a platform to prevent platform update audit log entry
+        self.project.update(platform="asdf")
+
         save_new_event({"message": "Adopt don't shop"}, self.project)
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
