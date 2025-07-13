@@ -2560,18 +2560,16 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <ProvideAriaRouter>
-      <Route>
-        {experimentalSpaRoutes}
-        <Route path="/" component={errorHandler(App)}>
-          {rootRoutes}
-          {authV2Routes}
-          {organizationRoutes}
-          {legacyRedirectRoutes}
-          <Route path="*" component={errorHandler(RouteNotFound)} />
-        </Route>
+    <Route component={ProvideAriaRouter}>
+      {experimentalSpaRoutes}
+      <Route path="/" component={errorHandler(App)}>
+        {rootRoutes}
+        {authV2Routes}
+        {organizationRoutes}
+        {legacyRedirectRoutes}
+        <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
-    </ProvideAriaRouter>
+    </Route>
   );
 
   return appRoutes;
