@@ -33,6 +33,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking.lock import Lock, UnableToAcquireLock
 
 from .base import Provider
 
@@ -294,55 +295,67 @@ class OAuth2CallbackView:
     def exchange_token(
         self, request: HttpRequest, pipeline: IdentityPipeline, code: str
     ) -> dict[str, str]:
-        with record_event(
-            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
-        ).capture() as lifecycle:
-            try:
-                req: Response = self.get_access_token(pipeline, code)
-                req.raise_for_status()
-            except HTTPError as e:
-                error_resp = e.response
-                exc = ApiError.from_response(error_resp, url=self.access_token_url)
-                sentry_sdk.capture_exception(exc)
-                lifecycle.record_failure(exc)
-                return {
-                    "error": f"Could not retrieve access token. Received {exc.code}: {exc.text}",
-                }
-            except SSLError:
-                lifecycle.record_failure(
-                    "ssl_error",
-                    {
-                        "verify_ssl": pipeline.config.get("verify_ssl", True),
-                        "url": self.access_token_url,
-                    },
-                )
-                url = self.access_token_url
-                return {
-                    "error": "Could not verify SSL certificate",
-                    "error_description": f"Ensure that {url} has a valid SSL certificate",
-                }
-            except ConnectionError:
-                url = self.access_token_url
-                lifecycle.record_failure("connection_error", {"url": url})
-                return {
-                    "error": "Could not connect to host or service",
-                    "error_description": f"Ensure that {url} is open to connections",
-                }
+        lock = Lock(
+            key=f"oauth2-exchange:{code}",
+            duration=60,  # 60 seconds
+            name="oauth2_exchange_token",
+        )
+        try:
+            with lock.acquire():
+                with record_event(
+                    IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
+                ).capture() as lifecycle:
+                    try:
+                        req: Response = self.get_access_token(pipeline, code)
+                        req.raise_for_status()
+                    except HTTPError as e:
+                        error_resp = e.response
+                        exc = ApiError.from_response(error_resp, url=self.access_token_url)
+                        sentry_sdk.capture_exception(exc)
+                        lifecycle.record_failure(exc)
+                        return {
+                            "error": f"Could not retrieve access token. Received {exc.code}: {exc.text}",
+                        }
+                    except SSLError:
+                        lifecycle.record_failure(
+                            "ssl_error",
+                            {
+                                "verify_ssl": pipeline.config.get("verify_ssl", True),
+                                "url": self.access_token_url,
+                            },
+                        )
+                        url = self.access_token_url
+                        return {
+                            "error": "Could not verify SSL certificate",
+                            "error_description": f"Ensure that {url} has a valid SSL certificate",
+                        }
+                    except ConnectionError:
+                        url = self.access_token_url
+                        lifecycle.record_failure("connection_error", {"url": url})
+                        return {
+                            "error": "Could not connect to host or service",
+                            "error_description": f"Ensure that {url} is open to connections",
+                        }
 
-            try:
-                body = safe_urlread(req)
-                content_type = req.headers.get("Content-Type", "").lower()
-                if content_type.startswith("application/x-www-form-urlencoded"):
-                    return dict(parse_qsl(body))
-                return orjson.loads(body)
-            except orjson.JSONDecodeError:
-                lifecycle.record_failure(
-                    "json_error", {"content_type": content_type, "url": self.access_token_url}
-                )
-                return {
-                    "error": "Could not decode a JSON Response",
-                    "error_description": "We were not able to parse a JSON response, please try again.",
-                }
+                    try:
+                        body = safe_urlread(req)
+                        content_type = req.headers.get("Content-Type", "").lower()
+                        if content_type.startswith("application/x-www-form-urlencoded"):
+                            return dict(parse_qsl(body))
+                        return orjson.loads(body)
+                    except orjson.JSONDecodeError:
+                        lifecycle.record_failure(
+                            "json_error", {"content_type": content_type, "url": self.access_token_url}
+                        )
+                        return {
+                            "error": "Could not decode a JSON Response",
+                            "error_description": "We were not able to parse a JSON response, please try again.",
+                        }
+        except UnableToAcquireLock:
+            return {
+                "error": "Could not acquire lock",
+                "error_description": "The authorization code is already being exchanged. Please try again.",
+            }
 
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(
