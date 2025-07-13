@@ -384,11 +384,13 @@ class OAuth2CallbackView:
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
             error = data.get("error")
-            return pipeline.error(data["error_description"])
+            event_id = data.get("errorId")
+            return pipeline.error(data["error_description"], event_id=event_id)
 
         if "error" in data:
             logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            event_id = data.get("errorId")
+            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}", event_id=event_id)
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
