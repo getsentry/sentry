@@ -1,19 +1,119 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import { FeatureBadge } from 'sentry/components/core/badge/featureBadge';
+import {promptsUpdate} from 'sentry/actionCreators/prompts';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useIsMutating, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const ASK_SEER_ITEM_KEY = 'ask_seer';
 export const ASK_SEER_CONSENT_ITEM_KEY = 'ask_seer_consent';
+
+const setupCheckQueryKey = (orgSlug: string) =>
+  `/organizations/${orgSlug}/seer/setup-check/`;
+
+function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const itemRef = useRef<HTMLDivElement>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const [optionDisableOverride, setOptionDisableOverride] = useState(false);
+
+  useEffect(() => {
+    const link = linkRef.current;
+    if (!link) return undefined;
+
+    const disableOption = () => setOptionDisableOverride(true);
+    const enableOption = () => setOptionDisableOverride(false);
+
+    link.addEventListener('mouseover', disableOption);
+    link.addEventListener('mouseout', enableOption);
+
+    return () => {
+      link.removeEventListener('mouseover', disableOption);
+      link.removeEventListener('mouseout', enableOption);
+    };
+  }, []);
+
+  const seerAcknowledgeMutation = useMutation({
+    mutationKey: [setupCheckQueryKey(organization.slug)],
+    mutationFn: () => {
+      return promptsUpdate(api, {
+        organization,
+        feature: 'seer_autofix_setup_acknowledged',
+        status: 'dismissed',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [setupCheckQueryKey(organization.slug)],
+      });
+    },
+  });
+
+  const {optionProps, labelProps, isFocused, isPressed} = useOption(
+    {
+      key: ASK_SEER_CONSENT_ITEM_KEY,
+      'aria-label': 'Enable Gen AI',
+      shouldFocusOnHover: true,
+      shouldSelectOnPressUp: true,
+      isDisabled: optionDisableOverride,
+    },
+    state,
+    itemRef
+  );
+
+  const handleClick = () => {
+    trackAnalytics('trace.explorer.ai_query_interface', {
+      organization,
+      action: 'consent_accepted',
+    });
+    seerAcknowledgeMutation.mutate();
+  };
+
+  return (
+    <AskSeerListItem
+      ref={itemRef}
+      onClick={handleClick}
+      {...optionProps}
+      justifyContent="space-between"
+    >
+      <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
+      <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+        <IconSeer />
+        <AskSeerLabel {...labelProps}>
+          {t('Enable Gen AI')} <FeatureBadge type="beta" />
+        </AskSeerLabel>
+      </div>
+      <SeerConsentText>
+        {tct(
+          'Query assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
+          {
+            dataProcessingPolicy: (
+              <TooltipSubExternalLink
+                ref={linkRef}
+                href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
+              />
+            ),
+          }
+        )}
+      </SeerConsentText>
+    </AskSeerListItem>
+  );
+}
 
 function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
@@ -26,6 +126,7 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       'aria-label': 'Ask Seer',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
+      isDisabled: false,
     },
     state,
     ref
@@ -51,12 +152,62 @@ function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 }
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
+  const organization = useOrganization();
+  const {gaveSeerConsentRef} = useSearchQueryBuilder();
+  const isMutating = useIsMutating({
+    mutationKey: [setupCheckQueryKey(organization.slug)],
+  });
+
+  const {setupAcknowledgement, isPending: isPendingSetupCheck} =
+    useOrganizationSeerSetup();
+  const orgHasAcknowledged = setupAcknowledgement.orgHasAcknowledged;
+
+  if (!gaveSeerConsentRef.current && orgHasAcknowledged && !isPendingSetupCheck) {
+    gaveSeerConsentRef.current = true;
+  }
+
+  if (isPendingSetupCheck || isMutating) {
+    return (
+      <AskSeerPane>
+        <AskSeerListItem>
+          <AskSeerLabel width="auto">{t('Loading Seer')}</AskSeerLabel>
+          <LoadingIndicator size={16} style={{margin: 0}} />
+        </AskSeerListItem>
+      </AskSeerPane>
+    );
+  }
+
+  if (orgHasAcknowledged) {
+    return (
+      <AskSeerPane>
+        <AskSeerOption state={state} />
+      </AskSeerPane>
+    );
+  }
+
   return (
     <AskSeerPane>
-      <AskSeerOption state={state} />
+      <AskSeerConsentOption state={state} />
     </AskSeerPane>
   );
 }
+
+const TooltipSubExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.purple400};
+
+  :hover {
+    color: ${p => p.theme.purple400};
+    text-decoration: underline;
+  }
+`;
+
+const SeerConsentText = styled('p')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  margin: 0;
+  background-color: none;
+`;
 
 const AskSeerPane = styled('div')`
   grid-area: seer;
@@ -69,7 +220,7 @@ const AskSeerPane = styled('div')`
   width: 100%;
 `;
 
-const AskSeerListItem = styled('div')`
+const AskSeerListItem = styled('div')<{justifyContent?: 'flex-start' | 'space-between'}>`
   position: relative;
   display: flex;
   align-items: center;
@@ -83,7 +234,7 @@ const AskSeerListItem = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
-  justify-content: flex-start;
+  justify-content: ${p => p.justifyContent ?? 'flex-start'};
   gap: ${space(1)};
   list-style: none;
   margin: 0;
@@ -99,7 +250,7 @@ const AskSeerListItem = styled('div')`
   }
 `;
 
-const AskSeerLabel = styled('span')`
+const AskSeerLabel = styled('span')<{width?: 'auto'}>`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.md};
@@ -107,4 +258,5 @@ const AskSeerLabel = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  width: ${p => p.width};
 `;
