@@ -16,6 +16,7 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
+  createAskSeerConsentItem,
   createAskSeerItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
@@ -162,8 +163,13 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
-  const {filterKeys, getFieldDefinition, setDisplaySeerResults, enableAISearch} =
-    useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    setDisplaySeerResults,
+    enableAISearch,
+    gaveSeerConsentRef,
+  } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -176,7 +182,12 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
-    const askSeerItem = enableAISearch ? [createAskSeerItem()] : [];
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(
+        gaveSeerConsentRef.current ? createAskSeerItem() : createAskSeerConsentItem()
+      );
+    }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
@@ -206,6 +217,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     enableAISearch,
     filterKeys,
     getFieldDefinition,
+    gaveSeerConsentRef,
     recentFilters,
     recentSearches,
     sectionedItems,
@@ -376,6 +388,15 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           action: 'opened',
         });
         setDisplaySeerResults(true);
+        return;
+      }
+
+      if (option.type === 'ask-seer-consent') {
+        // TODO: Implement logic to handle consent
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
         return;
       }
     },

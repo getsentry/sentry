@@ -15,7 +15,11 @@ import type {
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
-import {ASK_SEER_ITEM_KEY, AskSeer} from 'sentry/components/searchQueryBuilder/askSeer';
+import {
+  ASK_SEER_CONSENT_ITEM_KEY,
+  ASK_SEER_ITEM_KEY,
+  AskSeer,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
@@ -315,6 +319,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
     if (enableAISearch) {
       baseHidden.push(ASK_SEER_ITEM_KEY);
+      baseHidden.push(ASK_SEER_CONSENT_ITEM_KEY);
     }
 
     return new Set(baseHidden);

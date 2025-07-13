@@ -29,7 +29,11 @@ import {
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
-import {ASK_SEER_ITEM_KEY, AskSeer} from 'sentry/components/searchQueryBuilder/askSeer';
+import {
+  ASK_SEER_CONSENT_ITEM_KEY,
+  ASK_SEER_ITEM_KEY,
+  AskSeer,
+} from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
@@ -163,7 +167,7 @@ function menuIsOpen({
 
   // When a custom menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return openState && totalOptions > hiddenOptions.size;
+  return openState && totalOptions >= hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -185,13 +189,21 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
       shouldFilterResults ? filterValue : '',
       maxOptions
     );
-    return showAskSeerOption ? options.add(ASK_SEER_ITEM_KEY) : options;
+
+    if (showAskSeerOption) {
+      options.add(ASK_SEER_ITEM_KEY);
+      options.add(ASK_SEER_CONSENT_ITEM_KEY);
+    }
+
+    return options;
   }, [items, shouldFilterResults, filterValue, maxOptions, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
     return showAskSeerOption
-      ? baseDisabledKeys.filter(key => key !== ASK_SEER_ITEM_KEY)
+      ? baseDisabledKeys.filter(
+          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
+        )
       : baseDisabledKeys;
   }, [hiddenOptions, items, showAskSeerOption]);
 
@@ -621,7 +633,7 @@ const ListBoxOverlay = styled(Overlay)`
   max-height: 400px;
   min-width: 200px;
   width: 600px;
-  max-width: min-content;
+  max-width: fit-content;
   overflow-y: auto;
 `;
 
