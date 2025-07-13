@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -14,13 +15,15 @@ import {
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -29,12 +32,13 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -142,197 +146,68 @@ const getFields = ({
   return null;
 };
 
-type Props = DeprecatedAsyncComponent['props'] & WithRouterProps<{authId: string}>;
-
-type State = DeprecatedAsyncComponent['state'] & {
-  authenticator: Authenticator | null;
-  hasSentCode: boolean;
-  sendingCode: boolean;
-};
-
-type PendingInvite = ReturnType<typeof getPendingInvite>;
-
 /**
  * Renders necessary forms in order to enroll user in 2fa
  */
-class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
-  formModel = new FormModel();
+export default function AccountSecurityEnroll() {
+  const api = useApi();
+  const {authId} = useParams();
+  const navigate = useNavigate();
 
-  getDefaultState() {
-    return {...super.getDefaultState(), hasSentCode: false};
-  }
+  const [hasSentCode, setHasSentCode] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [isMutationPending, setIsMutationPending] = useState(false);
 
-  get authenticatorEndpoint() {
-    return `/users/me/authenticators/${this.props.params.authId}/`;
-  }
+  const authenticatorEndpoint = `/users/me/authenticators/${authId}/`;
+  const enrollEndpoint = `${authenticatorEndpoint}enroll/`;
 
-  get enrollEndpoint() {
-    return `${this.authenticatorEndpoint}enroll/`;
-  }
+  const pendingInvitation = getPendingInvite();
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const errorHandler = (err: any) => {
-      const alreadyEnrolled =
-        err &&
-        err.status === 400 &&
-        err.responseJSON &&
-        err.responseJSON.details === 'Already enrolled';
+  const [formModel] = useState(() => new FormModel());
 
-      if (alreadyEnrolled) {
-        this.props.router.push('/settings/account/security/');
-        addErrorMessage(t('Already enrolled'));
-      }
+  const {
+    data: authenticator,
+    error,
+    isError,
+    isPending,
+    refetch,
+  } = useApiQuery<Authenticator>([authenticatorEndpoint], {
+    staleTime: 0,
+  });
 
-      // Allow the endpoint to fail if the user is already enrolled
-      return alreadyEnrolled;
-    };
+  const authenticatorName = authenticator?.name ?? 'Authenticator';
 
-    return [['authenticator', this.enrollEndpoint, {}, {allowError: errorHandler}]];
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.pendingInvitation = getPendingInvite();
-  }
-
-  pendingInvitation: PendingInvite = null;
-
-  get authenticatorName() {
-    return this.state.authenticator?.name ?? 'Authenticator';
-  }
-
-  // This resets state so that user can re-enter their phone number again
-  handleSmsReset = () => this.setState({hasSentCode: false}, this.remountComponent);
-
-  // Handles SMS authenticators
-  handleSmsSubmit = async (dataModel: any) => {
-    const {authenticator, hasSentCode} = this.state;
-    const {phone, otp} = dataModel;
-
-    // Don't submit if empty
-    if (!phone || !authenticator) {
+  useEffect(() => {
+    if (!isError) {
       return;
     }
 
-    const data = {
-      phone,
-      // Make sure `otp` is undefined if we are submitting OTP verification
-      // Otherwise API will think that we are on verification step (e.g. after submitting phone)
-      otp: hasSentCode ? otp : undefined,
-      secret: authenticator.secret,
-    };
+    const alreadyEnrolled =
+      error &&
+      error.status === 400 &&
+      error.responseJSON &&
+      error.responseJSON.details === 'Already enrolled';
 
-    // Only show loading when submitting OTP
-    this.setState({sendingCode: !hasSentCode});
-
-    if (hasSentCode) {
-      addLoadingMessage(t('Verifying OTP...'));
-    } else {
-      addLoadingMessage(t('Sending code to %s...', data.phone));
+    if (alreadyEnrolled) {
+      navigate('/settings/account/security/');
+      addErrorMessage(t('Already enrolled'));
     }
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (error) {
-      this.formModel.resetForm();
-
-      addErrorMessage(
-        this.state.hasSentCode ? t('Incorrect OTP') : t('Error sending SMS')
-      );
-
-      this.setState({
-        hasSentCode: false,
-        sendingCode: false,
-      });
-
-      // Re-mount because we want to fetch a fresh secret
-      this.remountComponent();
-
-      return;
-    }
-
-    if (hasSentCode) {
-      // OTP was accepted and SMS was added as a 2fa method
-      this.handleEnrollSuccess();
-    } else {
-      // Just successfully finished sending OTP to user
-      this.setState({hasSentCode: true, sendingCode: false});
-      addSuccessMessage(t('Sent code to %s', data.phone));
-    }
-  };
-
-  // Currently only TOTP uses this
-  handleTotpSubmit = async (dataModel: any) => {
-    if (!this.state.authenticator) {
-      return;
-    }
-
-    const data = {
-      ...dataModel,
-      secret: this.state.authenticator.secret,
-    };
-
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {method: 'POST', data});
-    } catch (err) {
-      this.handleEnrollError();
-      return;
-    }
-
-    this.handleEnrollSuccess();
-  };
-
-  // Handle webAuthn
-  handleWebAuthn = async (dataModel: any) => {
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {data: dataModel});
-    } catch (err) {
-      this.handleEnrollError();
-      return;
-    }
-
-    this.handleEnrollSuccess();
-  };
-
-  handleSubmit: FormProps['onSubmit'] = data => {
-    const id = this.state.authenticator?.id;
-
-    if (id === 'totp') {
-      this.handleTotpSubmit(data);
-      return;
-    }
-    if (id === 'sms') {
-      this.handleSmsSubmit(data);
-      return;
-    }
-    if (id === 'u2f') {
-      this.handleWebAuthn(data);
-      return;
-    }
-  };
+  }, [error, isError, navigate]);
 
   // Handler when we successfully add a 2fa device
-  async handleEnrollSuccess() {
+  const handleEnrollSuccess = useCallback(async () => {
     // If we're pending approval of an invite, the user will have just joined
     // the organization when completing 2fa enrollment. We should reload the
     // organization context in that case to assign them to the org.
-    if (this.pendingInvitation) {
-      await fetchOrganizationByMember(
-        this.api,
-        this.pendingInvitation.memberId.toString(),
-        {
-          addOrg: true,
-          fetchOrgDetails: true,
-        }
-      );
+    if (pendingInvitation) {
+      await fetchOrganizationByMember(api, pendingInvitation.memberId.toString(), {
+        addOrg: true,
+        fetchOrgDetails: true,
+      });
     }
 
-    this.props.router.push('/settings/account/security/');
-    openRecoveryOptions({authenticatorName: this.authenticatorName});
+    navigate('/settings/account/security/');
+    openRecoveryOptions({authenticatorName});
 
     // The remainder of this function is included primarily to smooth out the relocation flow. The
     // newly claimed user will have landed on `https://sentry.io/settings/account/security` to
@@ -343,7 +218,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     let orgs = OrganizationsStore.getAll();
     if (orgs.length === 0) {
       // Try to load orgs post 2FA again.
-      orgs = await fetchOrganizations(this.api, {member: '1'});
+      orgs = await fetchOrganizations(api, {member: '1'});
       OrganizationsStore.load(orgs);
 
       // Still no orgs? Nowhere to redirect the user to, so just stay in place.
@@ -361,108 +236,246 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     if (!isAlreadyInOrgSubDomain) {
       testableWindowLocation.assign(generateOrgSlugUrl(orgs[0]!.slug));
     }
-  }
+  }, [api, authenticatorName, navigate, pendingInvitation]);
 
   // Handler when we failed to add a 2fa device
-  handleEnrollError() {
-    this.setState({loading: false});
-    addErrorMessage(t('Error adding %s authenticator', this.authenticatorName));
-  }
+  const handleEnrollError = useCallback(() => {
+    setIsMutationPending(false);
+    addErrorMessage(t('Error adding %s authenticator', authenticator?.name));
+  }, [authenticator]);
+
+  const handleSmsReset = useCallback(() => {
+    setHasSentCode(false);
+    refetch();
+  }, [refetch]);
+
+  // Handles SMS authenticators
+  const handleSmsSubmit = useCallback(
+    async (dataModel: any) => {
+      const {phone, otp} = dataModel;
+
+      // Don't submit if empty
+      if (!phone || !authenticator) {
+        return;
+      }
+
+      const data = {
+        phone,
+        // Make sure `otp` is undefined if we are submitting OTP verification
+        // Otherwise API will think that we are on verification step (e.g. after submitting phone)
+        otp: hasSentCode ? otp : undefined,
+        secret: authenticator.secret,
+      };
+
+      // Only show loading when submitting OTP
+      setSendingCode(!hasSentCode);
+
+      if (hasSentCode) {
+        addLoadingMessage(t('Verifying OTP...'));
+      } else {
+        addLoadingMessage(t('Sending code to %s...', data.phone));
+      }
+
+      try {
+        await api.requestPromise(enrollEndpoint, {data});
+      } catch {
+        formModel.resetForm();
+
+        addErrorMessage(hasSentCode ? t('Incorrect OTP') : t('Error sending SMS'));
+
+        setHasSentCode(false);
+        setSendingCode(false);
+
+        // Re-fetch a fresh secret
+        refetch();
+
+        return;
+      }
+
+      if (hasSentCode) {
+        // OTP was accepted and SMS was added as a 2fa method
+        handleEnrollSuccess();
+      } else {
+        // Just successfully finished sending OTP to user
+        setHasSentCode(true);
+        setSendingCode(false);
+        addSuccessMessage(t('Sent code to %s', data.phone));
+      }
+    },
+    [
+      api,
+      authenticator,
+      enrollEndpoint,
+      formModel,
+      handleEnrollSuccess,
+      hasSentCode,
+      refetch,
+    ]
+  );
+
+  // Currently only TOTP uses this
+  const handleTotpSubmit = useCallback(
+    async (dataModel: any) => {
+      if (!authenticator) {
+        return;
+      }
+
+      const data = {
+        ...dataModel,
+        secret: authenticator.secret,
+      };
+
+      setIsMutationPending(true);
+
+      try {
+        await api.requestPromise(enrollEndpoint, {method: 'POST', data});
+      } catch (err) {
+        handleEnrollError();
+        return;
+      }
+
+      handleEnrollSuccess();
+    },
+    [api, authenticator, enrollEndpoint, handleEnrollError, handleEnrollSuccess]
+  );
+
+  // Handle webAuthn
+  const handleWebAuthn = useCallback(
+    async (dataModel: any) => {
+      setIsMutationPending(false);
+
+      try {
+        await api.requestPromise(enrollEndpoint, {data: dataModel});
+      } catch (err) {
+        handleEnrollError();
+        return;
+      }
+
+      handleEnrollSuccess();
+    },
+    [api, enrollEndpoint, handleEnrollError, handleEnrollSuccess]
+  );
+
+  const handleSubmit: FormProps['onSubmit'] = useCallback(
+    (data: Record<string, any>) => {
+      const id = authenticator?.id;
+
+      if (id === 'totp') {
+        handleTotpSubmit(data);
+        return;
+      }
+      if (id === 'sms') {
+        handleSmsSubmit(data);
+        return;
+      }
+      if (id === 'u2f') {
+        handleWebAuthn(data);
+        return;
+      }
+    },
+    [authenticator, handleSmsSubmit, handleTotpSubmit, handleWebAuthn]
+  );
 
   // Removes an authenticator
-  handleRemove = async () => {
-    const {authenticator} = this.state;
-
+  const handleRemove = useCallback(async () => {
     if (!authenticator?.authId) {
       return;
     }
 
-    // `authenticator.authId` is NOT the same as `props.params.authId` This is
+    // `authenticator.authId` is NOT the same as `useParams().authId` This is
     // for backwards compatibility with API endpoint
     try {
-      await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
+      await api.requestPromise(authenticatorEndpoint, {method: 'DELETE'});
     } catch (err) {
       addErrorMessage(t('Error removing authenticator'));
       return;
     }
 
-    this.props.router.push('/settings/account/security/');
+    navigate('/settings/account/security/');
     addSuccessMessage(t('Authenticator has been removed'));
-  };
+  }, [api, authenticator?.authId, authenticatorEndpoint, navigate]);
 
-  renderBody() {
-    const {authenticator, hasSentCode, sendingCode} = this.state;
-
-    if (!authenticator) {
-      return null;
-    }
-
-    const fields = getFields({
-      authenticator,
-      hasSentCode,
-      sendingCode,
-      onSmsReset: this.handleSmsReset,
-    });
-
-    // Attempt to extract `defaultValue` from server generated form fields
-    const defaultValues = fields
-      ? fields
-          .filter(
-            field =>
-              typeof field !== 'function' && typeof field.defaultValue !== 'undefined'
-          )
-          .map(field => [
-            field.name,
-            typeof field === 'function' ? '' : field.defaultValue,
-          ])
-          .reduce((acc, [name, value]) => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            acc[name] = value;
-            return acc;
-          }, {})
-      : {};
-
-    const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
-
-    return (
-      <SentryDocumentTitle title={t('Security')}>
-        <SettingsPageHeader
-          title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
-          action={
-            authenticator.isEnrolled &&
-            authenticator.removeButton && (
-              <RemoveConfirm onConfirm={this.handleRemove}>
-                <Button priority="danger">{authenticator.removeButton}</Button>
-              </RemoveConfirm>
-            )
-          }
-        />
-
-        <TextBlock>{authenticator.description}</TextBlock>
-
-        {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <Alert.Container>
-            <Alert type="warning" showIcon>
-              {authenticator.rotationWarning}
-            </Alert>
-          </Alert.Container>
-        )}
-
-        {!!authenticator.form?.length && (
-          <Form
-            model={this.formModel}
-            apiMethod="POST"
-            apiEndpoint={this.authenticatorEndpoint}
-            onSubmit={this.handleSubmit}
-            initialData={{...defaultValues, ...authenticator}}
-            hideFooter
-          >
-            <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
-          </Form>
-        )}
-      </SentryDocumentTitle>
-    );
+  if (isMutationPending || isPending) {
+    return <LoadingIndicator />;
   }
+  if (isError) {
+    if (error.status === 404) {
+      return <NotFound />;
+    }
+    if (error.status === 403) {
+      return (
+        <LoadingError message={t('You do not have permission to view this page.')} />
+      );
+    }
+    return <LoadingError message={error.message} onRetry={refetch} />;
+  }
+
+  if (!authenticator) {
+    return null;
+  }
+
+  const fields = getFields({
+    authenticator,
+    hasSentCode,
+    sendingCode,
+    onSmsReset: handleSmsReset,
+  });
+
+  // Attempt to extract `defaultValue` from server generated form fields
+  const defaultValues = fields
+    ? fields
+        .filter(
+          field =>
+            typeof field !== 'function' && typeof field.defaultValue !== 'undefined'
+        )
+        .map(field => [field.name, typeof field === 'function' ? '' : field.defaultValue])
+        .reduce((acc, [name, value]) => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          acc[name] = value;
+          return acc;
+        }, {})
+    : {};
+
+  const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
+
+  return (
+    <SentryDocumentTitle title={t('Security')}>
+      <SettingsPageHeader
+        title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
+        action={
+          authenticator.isEnrolled &&
+          authenticator.removeButton && (
+            <RemoveConfirm onConfirm={handleRemove}>
+              <Button priority="danger">{authenticator.removeButton}</Button>
+            </RemoveConfirm>
+          )
+        }
+      />
+
+      <TextBlock>{authenticator.description}</TextBlock>
+
+      {authenticator.rotationWarning && authenticator.status === 'rotation' && (
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {authenticator.rotationWarning}
+          </Alert>
+        </Alert.Container>
+      )}
+
+      {!!authenticator.form?.length && (
+        <Form
+          model={formModel}
+          apiMethod="POST"
+          apiEndpoint={authenticatorEndpoint}
+          onSubmit={handleSubmit}
+          initialData={{...defaultValues, ...authenticator}}
+          hideFooter
+        >
+          <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
+        </Form>
+      )}
+    </SentryDocumentTitle>
+  );
 }
 
 const CodeContainer = styled(PanelItem)`
@@ -477,5 +490,3 @@ const StyledQRCode = styled(QRCodeCanvas)`
   background: white;
   padding: ${space(2)};
 `;
-
-export default withSentryRouter(AccountSecurityEnroll);
