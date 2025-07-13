@@ -716,7 +716,8 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
     if project.platform != event.platform:
         inferred_platform = project.get_option("sentry:project_platform_inferred")
 
-        # If current platform matches what we inferred, it hasn't been manually changed, and we should set it to other
+        # If current platform matches what we inferred, we can safely continue inferring it
+        # since it hasn't been manually changed
         if inferred_platform and project.platform == inferred_platform:
             project.update(platform="other")
             project.update_option("sentry:project_platform_inferred", "other")
@@ -726,6 +727,10 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
                 event=audit_log.get_event_id("PROJECT_EDIT"),
                 data={**project.get_audit_log_data(), "platform": "other"},
             )
+
+        # Otherwise, we need to mark that we should stop inferring platform (unless it becomes null again)
+        else:
+            project.update_option("sentry:project_platform_inferred", None)
 
 
 @sentry_sdk.tracing.trace
