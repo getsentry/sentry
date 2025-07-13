@@ -66,7 +66,6 @@ class RecordFirstTransactionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_analytics_event(self, mock_record):
-        self.project.update(platform="python")
         assert not self.project.flags.has_transactions
         event = self.store_event(
             data={
