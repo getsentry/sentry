@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -55,6 +56,18 @@ class OAuthTokenView(View):
         client_id = request.POST.get("client_id")
         redirect_uri = request.POST.get("redirect_uri")
 
+        # Capture the error as a Sentry event
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("oauth_error", name)
+            scope.set_extra("client_id", client_id)
+            scope.set_extra("redirect_uri", redirect_uri)
+            scope.set_extra("reason", reason)
+            scope.set_extra("status", status)
+            event_id = sentry_sdk.capture_message(
+                f"OAuth token error: {name}",
+                level="error"
+            )
+
         logging.error(
             "oauth.token-error",
             extra={
@@ -63,10 +76,16 @@ class OAuthTokenView(View):
                 "client_id": client_id,
                 "redirect_uri": redirect_uri,
                 "reason": reason,
+                "event_id": event_id,
             },
         )
+
+        error_response = {"error": name}
+        if event_id:
+            error_response["errorId"] = event_id
+
         return HttpResponse(
-            json.dumps({"error": name}), content_type="application/json", status=status
+            json.dumps(error_response), content_type="application/json", status=status
         )
 
     @method_decorator(never_cache)

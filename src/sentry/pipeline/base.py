@@ -188,19 +188,24 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
         return step.dispatch(self.request, pipeline=self)
 
-    def error(self, message: str) -> HttpResponseBase:
+    def error(self, message: str, event_id: str | None = None) -> HttpResponseBase:
         self.get_logger().error(
             f"PipelineError: {message}",
             extra={
                 "organization_id": self.organization.id if self.organization else None,
                 "provider": self.provider.key,
                 "error": message,
+                "event_id": event_id,
             },
         )
 
+        context = {"error": message}
+        if event_id:
+            context["event_id"] = event_id
+
         return render_to_response(
             template="sentry/pipeline-error.html",
-            context={"error": message},
+            context=context,
             request=self.request,
         )
 
