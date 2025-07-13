@@ -82,7 +82,7 @@ function AiContent() {
     return (
       <SummaryContainer>
         <Alert type="info">
-          {t('Replay AI summary is not available for this organization.')}
+          {t('Replay AI summary is not available for this organization yet.')}
         </Alert>
       </SummaryContainer>
     );
