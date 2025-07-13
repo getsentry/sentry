@@ -35,10 +35,18 @@ class ProjectPlatformInferTest(TestCase):
         project = self.create_project()
 
         save_new_event({"message": "test", "platform": "javascript"}, project)
+        project.refresh_from_db()
+
+        assert project.platform == "javascript"
+        assert project.get_option("sentry:project_platform_inferred") == "javascript"
 
         project.update(platform="python")
+        project.refresh_from_db()
 
-        save_new_event({"message": "test", "platform": "ios"}, project)
+        assert project.platform == "python"
+        assert project.get_option("sentry:project_platform_inferred") == "javascript"
+
+        save_new_event({"message": "test", "platform": "native"}, project)
 
         project.refresh_from_db()
         assert project.platform == "python"
