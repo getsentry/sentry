@@ -2,6 +2,8 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Virtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
@@ -22,11 +24,32 @@ type Props = {
 // TODO Abdullah Khan: Add virtualization and search to the list of charts
 export function Charts({rankedAttributes}: Props) {
   const theme = useTheme();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: rankedAttributes.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 200,
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
-    <ChartsWrapper>
-      {rankedAttributes.map(attribute => (
-        <Chart key={attribute.attributeName} attribute={attribute} theme={theme} />
-      ))}
+    <ChartsWrapper ref={scrollContainerRef}>
+      <AllItemsContainer height={virtualizer.getTotalSize()}>
+        {virtualItems.map(item => (
+          <VirtualOffset key={item.index} offset={item.start}>
+            <Chart
+              key={item.key}
+              index={item.index}
+              virtualizer={virtualizer}
+              attribute={rankedAttributes[item.index]!}
+              theme={theme}
+            />
+          </VirtualOffset>
+        ))}
+      </AllItemsContainer>
     </ChartsWrapper>
   );
 }
@@ -103,9 +126,13 @@ function cohortTotals(
 function Chart({
   attribute,
   theme,
+  index,
+  virtualizer,
 }: {
   attribute: SuspectAttributesResult['rankedAttributes'][number];
+  index: number;
   theme: Theme;
+  virtualizer: Virtualizer<HTMLDivElement, Element>;
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [hideLabels, setHideLabels] = useState(false);
@@ -170,7 +197,10 @@ function Chart({
         ? {adjective: 'different', message: 'This is suspicious.'}
         : {adjective: 'similar', message: 'Nothing unusual here.'};
 
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${selectedParam?.name} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
+      const name = selectedParam?.name ?? baselineParam?.name;
+      const truncatedName = name.length > 300 ? `${name.slice(0, 300)}...` : name;
+
+      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
     },
     [seriesTotals, theme.textColor]
   );
@@ -195,84 +225,100 @@ function Chart({
   }, [attribute]);
 
   return (
-    <ChartWrapper>
-      <ChartTitle>{attribute.attributeName}</ChartTitle>
-      <BaseChart
-        ref={chartRef}
-        autoHeightResize
-        isGroupedByDate={false}
-        tooltip={{
-          renderMode: 'html',
-          valueFormatter,
-          formatAxisLabel,
-        }}
-        grid={{
-          left: 2,
-          right: 8,
-          containLabel: true,
-        }}
-        xAxis={{
-          show: true,
-          type: 'category',
-          data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
-          truncate: 14,
-          axisLabel: hideLabels
-            ? {show: false}
-            : {
-                hideOverlap: true,
-                showMaxLabel: false,
-                showMinLabel: false,
-                color: '#000',
-                interval: 0,
-                formatter: (value: string) => value,
+    <div ref={virtualizer.measureElement} data-index={index}>
+      <ChartWrapper>
+        <ChartTitle>{attribute.attributeName}</ChartTitle>
+        <BaseChart
+          ref={chartRef}
+          autoHeightResize
+          isGroupedByDate={false}
+          tooltip={{
+            renderMode: 'html',
+            valueFormatter,
+            formatAxisLabel,
+          }}
+          grid={{
+            left: 2,
+            right: 8,
+            containLabel: true,
+          }}
+          xAxis={{
+            show: true,
+            type: 'category',
+            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
+            truncate: 14,
+            axisLabel: hideLabels
+              ? {show: false}
+              : {
+                  hideOverlap: true,
+                  showMaxLabel: false,
+                  showMinLabel: false,
+                  color: '#000',
+                  interval: 0,
+                  formatter: (value: string) => value,
+                },
+          }}
+          yAxis={{
+            type: 'value',
+            axisLabel: {
+              show: false,
+              width: 0,
+            },
+          }}
+          series={[
+            {
+              type: 'bar',
+              data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
+              name: SELECTED_SERIES_NAME,
+              itemStyle: {
+                color: cohort1Color,
               },
-        }}
-        yAxis={{
-          type: 'value',
-          axisLabel: {
-            show: false,
-            width: 0,
-          },
-        }}
-        series={[
-          {
-            type: 'bar',
-            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
-            name: SELECTED_SERIES_NAME,
-            itemStyle: {
-              color: cohort1Color,
+              barMaxWidth: MAX_BAR_WIDTH,
+              animation: false,
             },
-            barMaxWidth: MAX_BAR_WIDTH,
-            animation: false,
-          },
-          {
-            type: 'bar',
-            data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
-            name: BASELINE_SERIES_NAME,
-            itemStyle: {
-              color: cohort2Color,
+            {
+              type: 'bar',
+              data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
+              name: BASELINE_SERIES_NAME,
+              itemStyle: {
+                color: cohort2Color,
+              },
+              barMaxWidth: MAX_BAR_WIDTH,
+              animation: false,
             },
-            barMaxWidth: MAX_BAR_WIDTH,
-            animation: false,
-          },
-        ]}
-      />
-    </ChartWrapper>
+          ]}
+        />
+      </ChartWrapper>
+    </div>
   );
 }
 
 const ChartsWrapper = styled('div')`
-  flex: 1;
+  height: 100%;
   overflow: auto;
   overflow-y: scroll;
   overscroll-behavior: none;
+`;
+
+const AllItemsContainer = styled('div')<{height: number}>`
+  position: relative;
+  width: 100%;
+  height: ${p => p.height}px;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
 `;
 
 const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 200px;
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding-top: ${space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
