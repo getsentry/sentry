@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {
   act,
@@ -949,6 +950,16 @@ describe('SearchQueryBuilder', function () {
 
     it('displays ask seer button when searching free text', async function () {
       const mockOnSearch = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+
       render(
         <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
         {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
@@ -958,6 +969,29 @@ describe('SearchQueryBuilder', function () {
       await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
       expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
+    });
+
+    it('displays enable ai button when searching free text and user has not given consent', async function () {
+      const mockOnSearch = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: 'Enable Gen AI'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
