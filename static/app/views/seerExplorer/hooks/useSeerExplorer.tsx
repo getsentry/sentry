@@ -15,22 +15,22 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 export type SeerExplorerResponse = {
   session: {
     messages: Block[];
-    run_id: string;
     status: 'processing' | 'completed' | 'error';
     updated_at: string;
+    run_id?: number;
   } | null;
 };
 
 export type SeerExplorerChatResponse = {
   message: Block;
-  run_id: string;
+  run_id: number;
 };
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: string
+  runId?: number
 ): ApiQueryKey => [
   `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
   {},
@@ -42,7 +42,7 @@ const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
-    run_id: '',
+    run_id: undefined,
     messages: [
       {
         id: 'error',
@@ -80,7 +80,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
 
-  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [optimisticMessageIds, setOptimisticMessageIds] = useState<Set<string>>(

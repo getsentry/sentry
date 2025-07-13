@@ -54,7 +54,7 @@ describe('useSeerExplorer', () => {
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'POST',
         body: {
-          run_id: 'new-run-123',
+          run_id: 123,
           message: {
             id: 'msg-1',
             type: 'response',
@@ -80,7 +80,7 @@ describe('useSeerExplorer', () => {
                 loading: false,
               },
             ],
-            run_id: 'new-run-123',
+            run_id: 123,
             status: 'completed',
             updated_at: '2024-01-01T00:00:00Z',
           },
