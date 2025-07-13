@@ -75,6 +75,15 @@ class OAuthTokenView(View):
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
 
+        metrics.incr(
+            "oauth_token.post.start",
+            sample_rate=1.0,
+            tags={
+                "client_id_exists": bool(client_id),
+                "client_secret_exists": bool(client_secret),
+            },
+        )
+
         if not client_id:
             return self.error(request=request, name="missing_client_id", reason="missing client_id")
         if not client_secret:
@@ -90,6 +99,10 @@ class OAuthTokenView(View):
                 client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
+            metrics.incr(
+                "oauth_token.post.invalid",
+                sample_rate=1.0,
+            )
             logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
             return self.error(
                 request=request,
