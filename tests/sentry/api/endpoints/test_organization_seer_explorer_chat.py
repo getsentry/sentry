@@ -27,7 +27,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     def test_get_with_run_id_calls_seer(self, mock_call_seer_state):
         mock_response = {
             "session": {
-                "run_id": "test-run-123",
+                "run_id": 123,
                 "messages": [],
                 "status": "completed",
                 "updated_at": "2024-01-01T00:00:00Z",
@@ -39,11 +39,11 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             "sentry.api.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
         ):
-            response = self.client.get(f"{self.url}test-run-123/")
+            response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
         assert response.data == mock_response
-        mock_call_seer_state.assert_called_once_with(self.organization, "test-run-123")
+        mock_call_seer_state.assert_called_once_with(self.organization, "123")
 
     def test_post_without_query_returns_400(self):
         with patch(
@@ -85,7 +85,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
     ):
         mock_response = {
-            "run_id": "new-run-456",
+            "run_id": 456,
             "message": {
                 "id": "msg-1",
                 "type": "response",
@@ -111,7 +111,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     )
     @patch("sentry.api.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
     def test_post_with_all_parameters(self, mock_call_seer_chat, mock_get_seer_org_acknowledgement):
-        mock_response = {"run_id": "existing-run-789", "message": {}}
+        mock_response = {"run_id": 789, "message": {}}
         mock_call_seer_chat.return_value = mock_response
 
         data = {
@@ -119,13 +119,13 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             "insert_index": 2,
             "message_timestamp": 1704067200.0,
         }
-        response = self.client.post(f"{self.url}existing-run-789/", data, format="json")
+        response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
         assert response.data == mock_response
         mock_call_seer_chat.assert_called_once_with(
             self.organization,
-            "existing-run-789",
+            789,
             "Follow up question",
             2,
             1704067200.0,
@@ -217,7 +217,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
-            mock_response = {"run_id": "test-run", "message": {}}
+            mock_response = {"run_id": 1, "message": {}}
             mock_call_seer_chat.return_value = mock_response
 
             data = {"query": "Test query"}

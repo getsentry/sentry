@@ -38,7 +38,7 @@ class SeerExplorerChatSerializer(serializers.Serializer):
 
 def _call_seer_explorer_chat(
     organization: Organization,
-    run_id: str | None,
+    run_id: int | None,
     query: str,
     insert_index: int | None = None,
     message_timestamp: float | None = None,
@@ -69,7 +69,7 @@ def _call_seer_explorer_chat(
     return response.json()
 
 
-def _call_seer_explorer_state(organization: Organization, run_id: str):
+def _call_seer_explorer_state(organization: Organization, run_id: int):
     """Call Seer explorer state endpoint."""
     path = "/v1/automation/explorer/state"
     body = orjson.dumps(
@@ -115,7 +115,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     }
 
     def get(
-        self, request: Request, organization: Organization, run_id: str | None = None
+        self, request: Request, organization: Organization, run_id: int | None = None
     ) -> Response:
         """
         Get the current state of a Seer Explorer session.
@@ -141,7 +141,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         return Response(response_data)
 
     def post(
-        self, request: Request, organization: Organization, run_id: str | None = None
+        self, request: Request, organization: Organization, run_id: int | None = None
     ) -> Response:
         """
         Start a new chat session or continue an existing one.
