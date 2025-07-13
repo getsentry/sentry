@@ -303,11 +303,14 @@ class OAuth2CallbackView:
             except HTTPError as e:
                 error_resp = e.response
                 exc = ApiError.from_response(error_resp, url=self.access_token_url)
-                sentry_sdk.capture_exception(exc)
+                event_id = sentry_sdk.capture_exception(exc)
                 lifecycle.record_failure(exc)
-                return {
+                error_response = {
                     "error": f"Could not retrieve access token. Received {exc.code}: {exc.text}",
                 }
+                if event_id:
+                    error_response["errorId"] = event_id
+                return error_response
             except SSLError:
                 lifecycle.record_failure(
                     "ssl_error",
@@ -357,22 +360,7 @@ class OAuth2CallbackView:
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
                     extra={"error": error},
                 )
-                # Capture the error as a Sentry event
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_tag("oauth_error", error)
-                    scope.set_extra("provider", pipeline.provider.key)
-                    scope.set_extra("state", state)
-                    scope.set_extra("code", code)
-                    event_id = sentry_sdk.capture_message(
-                        f"OAuth2 error: {error}",
-                        level="error"
-                    )
-
-                error_message = f"{ERR_INVALID_STATE}\nError: {error}"
-                if event_id:
-                    error_message += f"\nEvent ID: {event_id}"
-
-                return pipeline.error(error_message, event_id=event_id)
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -384,41 +372,11 @@ class OAuth2CallbackView:
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
-                # Capture the error as a Sentry event
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_tag("oauth_error", "invalid_state")
-                    scope.set_extra("provider", pipeline.provider.key)
-                    scope.set_extra("state", state)
-                    scope.set_extra("pipeline_state", pipeline.fetch_state("state"))
-                    scope.set_extra("code", code)
-                    event_id = sentry_sdk.capture_message(
-                        f"OAuth2 invalid state error",
-                        level="error"
-                    )
-
-                error_message = ERR_INVALID_STATE
-                if event_id:
-                    error_message += f"\nEvent ID: {event_id}"
-
-                return pipeline.error(error_message, event_id=event_id)
+                return pipeline.error(ERR_INVALID_STATE)
 
             if code is None:
                 lifecycle.record_halt(IntegrationPipelineHaltReason.NO_CODE_PROVIDED)
-                # Capture the error as a Sentry event
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_tag("oauth_error", "no_code_provided")
-                    scope.set_extra("provider", pipeline.provider.key)
-                    scope.set_extra("state", state)
-                    event_id = sentry_sdk.capture_message(
-                        f"OAuth2 no code provided error",
-                        level="error"
-                    )
-
-                error_message = "no code was provided"
-                if event_id:
-                    error_message += f"\nEvent ID: {event_id}"
-
-                return pipeline.error(error_message, event_id=event_id)
+                return pipeline.error("no code was provided")
 
         # separate lifecycle event inside exchange_token
         data = self.exchange_token(request, pipeline, code)
@@ -426,38 +384,11 @@ class OAuth2CallbackView:
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
             error = data.get("error")
-            # Capture the error as a Sentry event
-            with sentry_sdk.push_scope() as scope:
-                scope.set_tag("oauth_error", error)
-                scope.set_extra("provider", pipeline.provider.key)
-                scope.set_extra("error_description", data["error_description"])
-                event_id = sentry_sdk.capture_message(
-                    f"OAuth2 token exchange error: {error}",
-                    level="error"
-                )
-
-            error_message = data["error_description"]
-            if event_id:
-                error_message += f"\nEvent ID: {event_id}"
-
-            return pipeline.error(error_message, event_id=event_id)
+            return pipeline.error(data["error_description"])
 
         if "error" in data:
             logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            # Capture the error as a Sentry event
-            with sentry_sdk.push_scope() as scope:
-                scope.set_tag("oauth_error", data["error"])
-                scope.set_extra("provider", pipeline.provider.key)
-                event_id = sentry_sdk.capture_message(
-                    f"OAuth2 token retrieval error: {data['error']}",
-                    level="error"
-                )
-
-            error_message = f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}"
-            if event_id:
-                error_message += f"\nEvent ID: {event_id}"
-
-            return pipeline.error(error_message, event_id=event_id)
+            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
