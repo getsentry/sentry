@@ -21,6 +21,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
+    audit_log,
     eventstore,
     eventstream,
     eventtypes,
@@ -127,6 +128,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
@@ -464,8 +466,8 @@ class EventManager:
         # After calling _pull_out_data we get some keys in the job like the platform
         _pull_out_data([job], projects)
 
-        # Sometimes projects get created without a platform, in which case we set it based on the
-        # first event
+        # Sometimes projects get created without a platform (e.g. through the API), in which case we
+        # attempt to set it based on the first event
         _set_project_platform_if_needed(project, job["event"])
 
         event_type = self._data.get("type")
@@ -695,14 +697,35 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 
 def _set_project_platform_if_needed(project: Project, event: Event) -> None:
-    if not project.platform and event.platform:
-        project.update(platform=event.platform)
 
-    elif project.platform != event.platform:
-        # Do we want to update to `other` here? Do we only want to do that if we were the ones to
-        # set the platform value? (We could track this in a project option). Maybe we should only do
-        # that if we add some FE indicator?
-        pass
+    if not event.platform:
+        return
+
+    if not project.platform:
+        project.update(platform=event.platform)
+        project.update_option("sentry:project_platform_inferred", event.platform)
+
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            data={**project.get_audit_log_data(), "platform": event.platform},
+        )
+        return
+
+    if project.platform != event.platform:
+        inferred_platform = project.get_option("sentry:project_platform_inferred")
+
+        # If current platform matches what we inferred, it hasn't been manually changed, and we should set it to other
+        if inferred_platform and project.platform == inferred_platform:
+            project.update(platform="other")
+            project.update_option("sentry:project_platform_inferred", "other")
+            create_system_audit_entry(
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**project.get_audit_log_data(), "platform": "other"},
+            )
 
 
 @sentry_sdk.tracing.trace
@@ -1298,9 +1321,6 @@ def assign_event_to_group(
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
-
-    # BELOW IS WHERE WE DO IT FOR GROUPING CONFIG - FOR PROJECT PLATFORM IT MAKES SENSE TO DO IT
-    # EARLIER IN THE CALL STACK SO IT APPLIES TO TRANSACTION EVENTS, ETC ALSO
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
