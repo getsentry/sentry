@@ -345,7 +345,8 @@ class OAuth2CallbackView:
                         return orjson.loads(body)
                     except orjson.JSONDecodeError:
                         lifecycle.record_failure(
-                            "json_error", {"content_type": content_type, "url": self.access_token_url}
+                            "json_error",
+                            {"content_type": content_type, "url": self.access_token_url},
                         )
                         return {
                             "error": "Could not decode a JSON Response",
