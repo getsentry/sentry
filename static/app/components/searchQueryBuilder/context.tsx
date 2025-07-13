@@ -39,6 +39,7 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
+  gaveSeerConsentRef: React.RefObject<boolean>;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -100,8 +101,10 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const organization = useOrganization();
+
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const gaveSeerConsentRef = useRef(false);
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -187,6 +190,7 @@ export function SearchQueryBuilderProvider({
       setDisplaySeerResults,
       replaceRawSearchKeys,
       filterKeyAliases,
+      gaveSeerConsentRef,
     };
   }, [
     disabled,
