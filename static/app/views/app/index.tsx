@@ -38,6 +38,8 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 type Props = {
   children: React.ReactNode;
@@ -73,6 +75,24 @@ function App({children, params}: Props) {
   }, [isModalOpen]);
 
   useHotkeys(commandPaletteHotkeys);
+
+  // Seer explorer panel hook and hotkeys
+  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
+
+  const explorerPanelHotkeys = useMemo(() => {
+    if (isModalOpen) {
+      return [];
+    }
+    return [
+      {
+        match: ['command+/', 'ctrl+/'],
+        callback: () => toggleExplorerPanel(),
+        includeInputs: true,
+      },
+    ];
+  }, [isModalOpen, toggleExplorerPanel]);
+
+  useHotkeys(explorerPanelHotkeys);
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -259,6 +279,7 @@ function App({children, params}: Props) {
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
                       <GlobalModal onClose={handleModalClose} />
+                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </DemoToursProvider>
