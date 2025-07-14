@@ -9,7 +9,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function mockLocation(query = '') {
-  window.location.search = qs.stringify({query});
+  setWindowLocation(`http://localhost/?${qs.stringify({query})}`);
 }
 
 describe('useActiveReplayTab', () => {
