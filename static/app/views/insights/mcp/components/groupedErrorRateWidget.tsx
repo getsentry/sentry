@@ -12,7 +12,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -43,7 +43,7 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
   const theme = useTheme();
   const fullQuery = useCombinedQuery(props.query);
 
-  const topEventsRequest = useEAPSpans(
+  const topEventsRequest = useSpans(
     {
       fields: [props.groupBy, 'failure_rate()'],
       sorts: [{field: 'failure_rate()', kind: 'desc'}],

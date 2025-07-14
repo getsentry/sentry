@@ -8,7 +8,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -62,7 +62,7 @@ export function MobileMetricsRibbon({
     selectedPlatform,
   ]);
 
-  const {isPending, data, meta} = useEAPSpans(
+  const {isPending, data, meta} = useSpans(
     {
       fields,
       search: queryString,
