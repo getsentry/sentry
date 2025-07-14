@@ -60,6 +60,16 @@ class TemporaryEmailError(Exception):
         self.args = (code, msg)
 
 
+def _send_email(message: dict[str, Any]) -> None:
+    try:
+        send_messages([message_from_dict(message)])
+    except SMTPDataError as e:
+        # 4xx means temporary and retriable; See RFC 5321, §4.2.1
+        if 400 <= e.smtp_code < 500:
+            raise TemporaryEmailError(e.smtp_code, e.smtp_error)
+        raise
+
+
 @instrumented_task(
     name="sentry.tasks.email.send_email",
     queue="email",
@@ -77,14 +87,7 @@ class TemporaryEmailError(Exception):
 )
 @retry(on=(TemporaryEmailError,))
 def send_email(message: dict[str, Any]) -> None:
-    django_message = message_from_dict(message)
-    try:
-        send_messages([django_message])
-    except SMTPDataError as e:
-        # 4xx means temporary and retriable; See RFC 5321, §4.2.1
-        if 400 <= e.smtp_code < 500:
-            raise TemporaryEmailError(e.smtp_code, e.smtp_error)
-        raise
+    _send_email(message)
 
 
 @instrumented_task(
@@ -97,10 +100,11 @@ def send_email(message: dict[str, Any]) -> None:
         namespace=notifications_control_tasks,
         processing_deadline_duration=30,
         retry=Retry(
+            times=2,
             delay=60 * 5,
         ),
     ),
 )
+@retry(on=(TemporaryEmailError,))
 def send_email_control(message: dict[str, Any]) -> None:
-    django_message = message_from_dict(message)
-    send_messages([django_message])
+    _send_email(message)
