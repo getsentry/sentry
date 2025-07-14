@@ -1,3 +1,8 @@
+"""
+Subscription processor tests for the legacy metric alerting system. This file will
+be cleaned up after we fully migrate away from metric alerts.
+"""
+
 import copy
 import inspect
 import unittest
