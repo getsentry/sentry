@@ -125,7 +125,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == mock_response
         mock_call_seer_chat.assert_called_once_with(
             self.organization,
-            789,
+            "789",
             "Follow up question",
             2,
             1704067200.0,
