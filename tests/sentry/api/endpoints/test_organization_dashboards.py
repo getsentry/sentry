@@ -723,18 +723,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["General", "Initial dashboard"]
 
-    def test_get_with_all_projects_filter(self):
+    def test_get_with_filters(self):
         Dashboard.objects.create(
             title="Dashboard with all projects filter",
             organization=self.organization,
             created_by_id=self.user.id,
-            filters={"all_projects": True},
+            filters={"all_projects": True, "environment": ["alpha"], "release": ["v1"]},
         )
         response = self.client.get(self.url, data={"query": "Dashboard with all projects filter"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["title"] == "Dashboard with all projects filter"
         assert response.data[0].get("projects") == [-1]
+        assert response.data[0].get("environment") == ["alpha"]
+        assert response.data[0].get("filters") == {"release": ["v1"]}
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
