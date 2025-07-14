@@ -24,7 +24,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
-    Workflow,
     WorkflowActionGroupStatus,
 )
 from sentry.workflow_engine.registry import action_handler_registry
@@ -65,7 +64,7 @@ def get_workflow_action_group_statuses(
 def process_workflow_action_group_statuses(
     action_to_workflows_ids: dict[int, set[int]],
     action_to_statuses: dict[int, list[WorkflowActionGroupStatus]],
-    workflows: BaseQuerySet[Workflow],
+    workflow_frequencies: dict[int, timedelta],
     group: Group,
     now: datetime,
 ) -> tuple[dict[int, int], set[int], list[WorkflowActionGroupStatus]]:
@@ -75,15 +74,13 @@ def process_workflow_action_group_statuses(
     """
 
     action_to_workflow_ids: dict[int, int] = {}  # will dedupe because there can be only 1
-    workflow_frequencies = {
-        workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
-        for workflow in workflows
-    }
     statuses_to_update: set[int] = set()
 
     for action_id, statuses in action_to_statuses.items():
         for status in statuses:
-            if (now - status.date_updated) > workflow_frequencies.get(status.workflow_id, 0):
+            if (now - status.date_updated) > workflow_frequencies.get(
+                status.workflow_id, timedelta(0)
+            ):
                 # we should fire the workflow for this action
                 action_to_workflow_ids[action_id] = status.workflow_id
                 statuses_to_update.add(status.id)
@@ -127,19 +124,26 @@ def filter_recently_fired_workflow_actions(
     Returns actions associated with the provided DataConditionsGroups, excluding those that have been recently fired. Also updates associated WorkflowActionGroupStatus objects.
     """
 
-    data_condition_group_actions = DataConditionGroupAction.objects.filter(
-        condition_group__in=filtered_action_groups
-    ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
+    data_condition_group_actions = (
+        DataConditionGroupAction.objects.filter(condition_group__in=filtered_action_groups)
+        .select_related("condition_group__workflowdataconditiongroup__workflow")
+        .values_list(
+            "action_id",
+            "condition_group__workflowdataconditiongroup__workflow_id",
+            "condition_group__workflowdataconditiongroup__workflow__config",
+        )
+    )
 
     action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
-    workflow_ids: set[int] = set()
+    workflow_frequencies: dict[int, timedelta] = {}
 
-    for action_id, workflow_id in data_condition_group_actions:
+    for action_id, workflow_id, workflow_config in data_condition_group_actions:
         action_to_workflows_ids[action_id].add(workflow_id)
-        workflow_ids.add(workflow_id)
+        if workflow_id not in workflow_frequencies:
+            frequency = workflow_config.get("frequency", 0) if workflow_config else 0
+            workflow_frequencies[workflow_id] = timedelta(minutes=frequency)
 
-    workflows = Workflow.objects.filter(id__in=workflow_ids)
-
+    workflow_ids = set(workflow_frequencies.keys())
     action_to_statuses = get_workflow_action_group_statuses(
         action_to_workflows_ids=action_to_workflows_ids,
         group=event_data.group,
@@ -150,7 +154,7 @@ def filter_recently_fired_workflow_actions(
         process_workflow_action_group_statuses(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
-            workflows=workflows,
+            workflow_frequencies=workflow_frequencies,
             group=event_data.group,
             now=now,
         )
