@@ -3,6 +3,7 @@ from unittest.mock import patch
 import responses
 from django.utils import timezone
 
+from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
@@ -11,6 +12,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.tasks import open_pr_comment_workflow
 from sentry.models.group import Group
 from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -447,12 +449,14 @@ Your merge request is modifying functions with the following pre-existing issues
         )
         assert mock_task_metrics.mock_calls == []
         assert mock_integration_metrics.mock_calls == []
-        mock_analytics.assert_any_call(
-            "open_pr_comment.created",
-            comment_id=comment.id,
-            org_id=self.organization.id,
-            pr_id=comment.pull_request.id,
-            language="python",
+        assert_last_analytics_event(
+            mock_analytics,
+            OpenPRCommentCreatedEvent(
+                comment_id=comment.id,
+                org_id=self.organization.id,
+                pr_id=comment.pull_request.id,
+                language="python",
+            ),
         )
 
     @responses.activate
