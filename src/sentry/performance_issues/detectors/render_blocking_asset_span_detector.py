@@ -124,7 +124,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def _is_blocking_render(self, span: Span) -> bool:
         assert self.fcp is not None
 
-        data = span.get("data", {})
+        data = span.get("data", {}) or {}
         render_blocking_status = data.get("resource.render_blocking_status")
         if render_blocking_status == "non-blocking":
             return False

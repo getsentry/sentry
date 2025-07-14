@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
@@ -21,7 +22,9 @@ export function renderTableBody({column, row}: TableBodyProps) {
     return (
       <AlignmentContainer alignment={alignment}>
         <Confirm
-          onConfirm={() => {}}
+          onConfirm={() => {
+            openTokenRegenerationConfirmationModal({});
+          }}
           header={<h5>{t('Generate new token')}</h5>}
           cancelText={t('Return')}
           confirmText={t('Generate new token')}

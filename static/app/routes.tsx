@@ -270,7 +270,7 @@ function buildRoutes() {
         <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
-        path="/stories/"
+        path="/stories/:category?/:topic?"
         component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
@@ -1694,6 +1694,11 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/sessions/views/overview'))}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MCP]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/mcp/views/overview'))}
         />
       </Route>
     </Fragment>

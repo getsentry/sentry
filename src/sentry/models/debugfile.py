@@ -35,7 +35,7 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -314,6 +314,13 @@ def create_dif_from_id(
         file.type = "project.dif"
         file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
         file.save()
+
+    metrics.distribution(
+        "storage.put.size",
+        file.size,
+        tags={"usecase": "debug-files", "compression": "none"},
+        unit="byte",
+    )
 
     dif = ProjectDebugFile.objects.create(
         file=file,

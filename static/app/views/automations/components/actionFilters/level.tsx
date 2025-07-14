@@ -8,6 +8,8 @@ import {
   LEVEL_MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function LevelDetails({condition}: {condition: DataCondition}) {
@@ -30,6 +32,8 @@ export function LevelNode() {
 
 function MatchField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.match`}
@@ -38,6 +42,7 @@ function MatchField() {
       options={LEVEL_MATCH_CHOICES}
       onChange={(option: SelectValue<MatchType>) => {
         onUpdate({comparison: {...condition.comparison, match: option.value}});
+        removeError(condition.id);
       }}
     />
   );
@@ -45,6 +50,8 @@ function MatchField() {
 
 function LevelField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.comparison.level`}
@@ -53,7 +60,17 @@ function LevelField() {
       options={LEVEL_CHOICES}
       onChange={(option: SelectValue<Level>) => {
         onUpdate({comparison: {...condition.comparison, level: option.value}});
+        removeError(condition.id);
       }}
     />
   );
+}
+
+export function validateLevelCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (!condition.comparison.match || !condition.comparison.level) {
+    return t('Ensure all fields are filled in.');
+  }
+  return undefined;
 }

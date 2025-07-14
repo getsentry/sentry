@@ -899,9 +899,6 @@ class SearchResolver:
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
         VirtualColumnDefinition | None,
     ]:
-        if column in self._resolved_function_cache:
-            return self._resolved_function_cache[column]
-        # Check if the column looks like a function (matches a pattern), parse the function name and args out
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -913,6 +910,10 @@ class SearchResolver:
         alias = match.group("alias") or column
         if public_alias_override is not None:
             alias = public_alias_override
+
+        if alias in self._resolved_function_cache:
+            return self._resolved_function_cache[alias]
+        # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
         function_definition = self.get_function_definition(function_name)
         if function_definition.private and function_name not in self.config.fields_acl.functions:
@@ -1014,8 +1015,8 @@ class SearchResolver:
         )
 
         resolved_context = None
-        self._resolved_function_cache[column] = (resolved_function, resolved_context)
-        return self._resolved_function_cache[column]
+        self._resolved_function_cache[alias] = (resolved_function, resolved_context)
+        return self._resolved_function_cache[alias]
 
     def resolve_equations(self, equations: list[str]) -> tuple[
         list[AnyResolved],

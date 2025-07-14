@@ -85,7 +85,7 @@ def post_bulk_grouping_records(
         return {"success": False, "reason": response.reason}
 
 
-def delete_project_grouping_records(
+def call_seer_to_delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:

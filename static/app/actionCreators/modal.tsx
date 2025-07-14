@@ -425,3 +425,11 @@ export async function openSaveQueryModal(options: SaveQueryModalProps) {
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
+
+export async function openTokenRegenerationConfirmationModal(options: ModalOptions) {
+  const {default: Modal} = await import(
+    'sentry/components/modals/tokenRegenerationConfirmationModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}

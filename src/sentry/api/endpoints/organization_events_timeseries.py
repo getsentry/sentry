@@ -234,12 +234,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
+            raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if "timestamp" in raw_groupby:
+                raise ParseError("Cannot group by timestamp")
             if dataset in {spans_rpc, ourlogs}:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    raw_groupby=self.get_field_list(organization, request, param_name="groupBy"),
+                    raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
                     referrer=referrer,
@@ -254,7 +257,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
-                selected_columns=self.get_field_list(organization, request, param_name="groupBy"),
+                selected_columns=raw_groupby,
                 equations=self.get_equation_list(organization, request),
                 user_query=query,
                 snuba_params=snuba_params,

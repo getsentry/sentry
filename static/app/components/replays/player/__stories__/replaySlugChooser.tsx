@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
+import {Input} from 'sentry/components/core/input';
 import Providers from 'sentry/components/replays/player/__stories__/providers';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -17,7 +18,7 @@ export default function ReplaySlugChooser(props: Props) {
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
 
   const input = (
-    <input
+    <Input
       defaultValue={replaySlug}
       onChange={event => {
         setReplaySlug(event.target.value);
@@ -26,7 +27,7 @@ export default function ReplaySlugChooser(props: Props) {
       css={css`
         font-variant-numeric: tabular-nums;
       `}
-      size={34}
+      size="sm"
     />
   );
 
@@ -61,5 +62,5 @@ export default function ReplaySlugChooser(props: Props) {
     );
   }
 
-  return null;
+  return input;
 }
